@@ -43,22 +43,24 @@ export default async function OrdersPage({
         환불/결제 조정은 WordPress / WooCommerce admin 에서 직접 처리.
       </p>
 
-      <form className="toolbar">
-        <select name="status" defaultValue={searchParams.status ?? ""}>
-          <option value="">전체 상태</option>
-          <option value="pending">pending</option>
-          <option value="processing">processing</option>
-          <option value="on_hold">on_hold</option>
-          <option value="completed">completed</option>
-          <option value="cancelled">cancelled</option>
-          <option value="refunded">refunded</option>
-          <option value="failed">failed</option>
-        </select>
-        <button className="btn small" type="submit">필터</button>
+      <div className="toolbar">
+        <form style={{ display: "contents" }}>
+          <select name="status" defaultValue={searchParams.status ?? ""}>
+            <option value="">전체 상태</option>
+            <option value="pending">pending</option>
+            <option value="processing">processing</option>
+            <option value="on_hold">on_hold</option>
+            <option value="completed">completed</option>
+            <option value="cancelled">cancelled</option>
+            <option value="refunded">refunded</option>
+            <option value="failed">failed</option>
+          </select>
+          <button className="btn small" type="submit">필터</button>
+        </form>
         <form action={syncOrdersAction} style={{ marginLeft: "auto" }}>
           <button className="btn small secondary" type="submit">WP에서 주문 동기화</button>
         </form>
-      </form>
+      </div>
 
       {!res.ok ? (
         <div className="error">{res.code}: {res.message}</div>
