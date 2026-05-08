@@ -33,7 +33,7 @@ export default async function ProductsPage({
       {!res.ok ? (
         <div className="error">{res.code}: {res.message}</div>
       ) : res.data.items.length === 0 ? (
-        <div className="empty">동기화된 상품 없음. 상단 "상품 동기화" 버튼.</div>
+        <div className="empty">동기화된 상품 없음. 상단 &ldquo;상품 동기화&rdquo; 버튼.</div>
       ) : (
         <>
           <table className="list">
