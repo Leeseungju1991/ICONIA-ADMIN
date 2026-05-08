@@ -9,19 +9,37 @@
 - Repo: <https://github.com/Leeseungju1991/ICONIA-ADMIN>
 - 패키지명 (`package.json`): `iconia-admin-web`
 
-## 본 라운드 상태 (H-15 round 1 — Login + MFA + Logout)
+## 라운드 상태
 
-`docs/2026-05-08-login-design.md` 디자인 스펙에 따른 인증 핵심 구현. TDD 로
-작성됨 (56 단위/통합 테스트 통과).
+### Round 1 — Login + MFA + Logout (배포됨)
 
-**구현된 화면**
+`docs/2026-05-08-login-design.md` 디자인 스펙. TDD 로 작성, 인증 핵심 구현.
 
 - `/login` — email + password → MFA 페이지 redirect 또는 직접 dashboard.
 - `/login/mfa?token=…` — TOTP 6자리 또는 복구 코드 입력 → JWT 발급 + dashboard.
-- `/dashboard` — 보호된 placeholder (헤더에 email + 로그아웃 버튼).
+- `/dashboard` — 보호된 화면 (헤더에 email + 로그아웃 버튼).
 - 로그아웃 — Server 측 jti revoke (best-effort) + httpOnly 쿠키 삭제 + `/login` redirect.
 
-**다음 라운드** — Users, Devices, Firmware, Reports, Audit, SRE Dashboard 화면.
+### Round 2 — 사용자 검색 + 강제 로그아웃 (배포됨)
+
+운영자가 매일 마주치는 가장 흔한 ops 표면. Server 에 `/api/v1/admin/users*`
+endpoint 3개 추가 (별 PR — `Server` repo) 와 짝.
+
+- `/dashboard/users` — 이메일/일부로 검색 (최대 50건). 결과 테이블에 상태, TOTP,
+  가입일 표시.
+- `/dashboard/users/[id]` — 상세 (계정 상태, paused_at, pending_deletion_at,
+  TOTP 활성, 활성 세션 수). **강제 로그아웃** 버튼 (refresh family 전부 revoke).
+- 모든 read/mutating 호출은 Server 측 audit_log 에 자동 기록 (`admin_user_search`,
+  `admin_user_view`, `admin_user_force_logout`).
+
+**테스트**: 68 단위/통합 테스트 통과 (vitest).
+
+### 다음 라운드 후보
+
+- Audit log 검색 + hash chain 검증 (보안 사고 forensics).
+- Devices 화면 — search + unpair / silence.
+- Firmware deployment 진행률 + rollback.
+- Server `/api/v1/operator/me` 추가 → admin 의 unsafe JWT decode 제거.
 
 ## 개발 실행
 

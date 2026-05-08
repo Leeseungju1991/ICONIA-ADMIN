@@ -28,11 +28,15 @@ export default function DashboardPage() {
       </header>
 
       <section>
-        <h2>대시보드 (placeholder)</h2>
-        <p style={{ color: "var(--muted)" }}>
-          Users / Devices / Firmware / Reports / Audit / SRE 화면은 다음
-          라운드에서 노출됩니다.
-        </p>
+        <h2>대시보드</h2>
+        <ul style={{ paddingLeft: 18, lineHeight: 2 }}>
+          <li>
+            <a href="/dashboard/users">사용자 검색 + 상세</a> — Round 2 (배포됨)
+          </li>
+          <li style={{ color: "var(--muted)" }}>
+            Devices / Firmware / Reports / Audit / SRE — 다음 라운드 예정
+          </li>
+        </ul>
       </section>
     </main>
   );
