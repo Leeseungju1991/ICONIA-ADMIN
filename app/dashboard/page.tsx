@@ -1,43 +1,67 @@
-import { redirect } from "next/navigation";
-import { readSession, clearSession } from "@/lib/authCookie";
-import { readIdentityFromJwt } from "@/lib/identity";
-import { LogoutButton } from "@/app/components/LogoutButton";
+import { readSession } from "@/lib/authCookie";
+import { getAiHealth, listDevices } from "@/lib/adminApi";
+
+// Dashboard overview — thin tile grid that calls a few cheap admin
+// endpoints and surfaces health at a glance. Failures render as "—".
 
 export const dynamic = "force-dynamic";
 
-export default function DashboardPage() {
-  const jwt = readSession();
-  if (!jwt) {
-    redirect("/login");
-  }
+async function safeAiHealth(jwt: string) {
+  const res = await getAiHealth({ jwt });
+  return res.ok ? res.data : null;
+}
+async function safeDevicesCount(jwt: string) {
+  const res = await listDevices({ jwt, limit: 1 });
+  return res.ok ? res.data.items.length : null;
+}
 
-  const identity = readIdentityFromJwt(jwt!);
-  if (!identity) {
-    clearSession();
-    redirect("/login?reason=invalid");
-  }
+export default async function DashboardHome() {
+  const jwt = readSession()!;
+  const [aiHealth, devicesProbe] = await Promise.all([
+    safeAiHealth(jwt),
+    safeDevicesCount(jwt),
+  ]);
 
   return (
-    <main className="dashboard">
-      <header>
-        <div>
-          <strong>ICONIA Admin</strong>
-          <div className="who">{identity!.email}</div>
-        </div>
-        <LogoutButton />
-      </header>
+    <div className="page">
+      <h1>개요</h1>
+      <p className="muted">앛 운영 현황 요약. 좌측 네이비게이션에서 세부 페이지로 이동.</p>
 
-      <section>
-        <h2>대시보드</h2>
-        <ul style={{ paddingLeft: 18, lineHeight: 2 }}>
-          <li>
-            <a href="/dashboard/users">사용자 검색 + 상세</a> — Round 2 (배포됨)
-          </li>
-          <li style={{ color: "var(--muted)" }}>
-            Devices / Firmware / Reports / Audit / SRE — 다음 라운드 예정
-          </li>
-        </ul>
-      </section>
-    </main>
+      <div className="tiles">
+        <div className="tile">
+          <div className="tile-label">AI fallback rate (5분)</div>
+          <div className="tile-value">
+            {aiHealth ? `${(aiHealth.fallback_rate * 100).toFixed(1)}%` : "—"}
+          </div>
+          <div className="tile-sub">
+            {aiHealth ? `${aiHealth.total_calls} calls / ${aiHealth.fallback_count} fallback` : "데이터 없음"}
+          </div>
+        </div>
+
+        <div className="tile">
+          <div className="tile-label">AI p95 latency</div>
+          <div className="tile-value">
+            {aiHealth?.p95_latency_ms != null ? `${aiHealth.p95_latency_ms} ms` : "—"}
+          </div>
+          <div className="tile-sub">{aiHealth?.last_updated_at ?? "—"}</div>
+        </div>
+
+        <div className="tile">
+          <div className="tile-label">디바이스 API</div>
+          <div className="tile-value">{devicesProbe === null ? "—" : "OK"}</div>
+          <div className="tile-sub">/api/v1/admin/devices</div>
+        </div>
+      </div>
+
+      <h2 style={{ marginTop: 32 }}>빠른 이동</h2>
+      <ul className="link-list">
+        <li><a href="/dashboard/users">사용자 검색</a></li>
+        <li><a href="/dashboard/devices">디바이스 목록</a></li>
+        <li><a href="/dashboard/firmware">펜웨어 배포 상태</a></li>
+        <li><a href="/dashboard/posts">대기 중인 신고 게시물</a></li>
+        <li><a href="/dashboard/commerce/orders">최근 주문</a></li>
+        <li><a href="/dashboard/commerce/webhooks?only_failures=1">실패한 웹훅 이벤트</a></li>
+      </ul>
+    </div>
   );
 }
