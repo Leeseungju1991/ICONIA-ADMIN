@@ -6,10 +6,13 @@
 > RBAC (cs/sre/secops/superadmin) 는 사용하지 않음. 본 web 은 role 을 표시
 > 하지도, 분기하지도 않습니다. Server 가 설령 role 을 응답해도 무시.
 
+- Repo: <https://github.com/Leeseungju1991/ICONIA-ADMIN>
+- 패키지명 (`package.json`): `iconia-admin-web`
+
 ## 본 라운드 상태 (H-15 round 1 — Login + MFA + Logout)
 
 `docs/2026-05-08-login-design.md` 디자인 스펙에 따른 인증 핵심 구현. TDD 로
-작성됨 (52 단위/통합 테스트 통과).
+작성됨 (56 단위/통합 테스트 통과).
 
 **구현된 화면**
 
