@@ -1,6 +1,7 @@
 import { readSession } from "@/lib/authCookie";
 import { listPosts, type PostRow } from "@/lib/adminApi";
 import { hidePostAction, unhidePostAction } from "@/lib/actions/posts";
+import { ConfirmActionForm } from "@/app/components/ConfirmActionForm";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +23,7 @@ export default async function PostsPage({
   return (
     <div className="page">
       <h1>게시물 모던</h1>
-      <p className="muted">신고 누적, 숨김, 내림 처리. 일반 공개 게시물은 &ldquo;전체&rdquo; 필터에서 조회.</p>
+      <p className="muted">신고 누적, 숨김, 내림 처리. 일반 공개 게시물은 &ldquo;전체&rdquo; 필터에서 조회. 액션은 사전 확인 + 사유 필수.</p>
 
       <form className="toolbar">
         <select name="filter" defaultValue={filter}>
@@ -65,16 +66,23 @@ export default async function PostsPage({
                 <td>{new Date(p.created_at).toLocaleString("ko-KR")}</td>
                 <td className="cell-actions">
                   {p.status === "visible" ? (
-                    <form action={hidePostAction}>
-                      <input type="hidden" name="post_id" value={p.post_id} />
-                      <input type="hidden" name="reason" value="operator_review" />
-                      <button className="btn small danger" type="submit">숨김</button>
-                    </form>
+                    <ConfirmActionForm
+                      action={hidePostAction}
+                      hidden={{ post_id: p.post_id }}
+                      confirmMessage={`이 게시물을 숨기시겠어요?\n\npost_id=${p.post_id.slice(0, 8)}…`}
+                      reasonRequired
+                      buttonLabel="숨김"
+                      buttonClassName="btn small danger"
+                    />
                   ) : p.status === "hidden" ? (
-                    <form action={unhidePostAction}>
-                      <input type="hidden" name="post_id" value={p.post_id} />
-                      <button className="btn small secondary" type="submit">숨김 해제</button>
-                    </form>
+                    <ConfirmActionForm
+                      action={unhidePostAction}
+                      hidden={{ post_id: p.post_id }}
+                      confirmMessage={`숨김을 해제하시겠어요? 게시물이 다시 공개됩니다.\n\npost_id=${p.post_id.slice(0, 8)}…`}
+                      reasonRequired={false}
+                      buttonLabel="숨김 해제"
+                      buttonClassName="btn small secondary"
+                    />
                   ) : null}
                 </td>
               </tr>
