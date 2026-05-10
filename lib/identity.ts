@@ -1,6 +1,8 @@
 import { decodeJwtPayloadUnsafe } from "./jwt";
+import type { OperatorRole } from "./operatorRoles";
+import { parseRoleFromJwtPayload } from "./operatorRoles";
 
-export type Identity = { email: string };
+export type Identity = { email: string; role: OperatorRole | null };
 
 export function readIdentityFromJwt(
   jwt: string | null | undefined,
@@ -9,5 +11,5 @@ export function readIdentityFromJwt(
   if (!payload) return null;
   const email = typeof payload.email === "string" ? payload.email : null;
   if (!email) return null;
-  return { email };
+  return { email, role: parseRoleFromJwtPayload(payload) };
 }

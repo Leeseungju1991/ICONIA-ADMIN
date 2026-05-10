@@ -9,12 +9,14 @@
   --error-bg: #3b1717;
   --error-fg: #ffb4b4;
   --error-border: #6f1d1d;
+  --warn-bg: #3a2e0c;
+  --warn-fg: #f7d97a;
+  --ok-bg: #14321a;
+  --ok-fg: #8be09a;
   --radius: 6px;
 }
 
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
 html, body {
   margin: 0;
@@ -27,68 +29,33 @@ html, body {
   line-height: 1.5;
 }
 
-main {
-  min-height: 100vh;
-}
-
-a { color: var(--accent); }
+main { min-height: 100vh; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
 button { cursor: pointer; }
 
+/* ---------------- Login card ---------------- */
 .center {
-  display: flex;
-  min-height: 100vh;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
+  display: flex; min-height: 100vh; align-items: center; justify-content: center; padding: 24px;
 }
-
 .card {
-  width: 100%;
-  max-width: 380px;
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 28px;
+  width: 100%; max-width: 380px; background: var(--card);
+  border: 1px solid var(--border); border-radius: var(--radius); padding: 28px;
 }
+.card h1 { margin: 0 0 4px; font-size: 20px; }
+.card p.subtitle { margin: 0 0 20px; color: var(--muted); font-size: 13px; }
 
-.card h1 {
-  margin: 0 0 4px;
-  font-size: 20px;
-}
-
-.card p.subtitle {
-  margin: 0 0 20px;
-  color: var(--muted);
-  font-size: 13px;
-}
-
-.form-row {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-bottom: 14px;
-}
-
-.form-row label {
-  font-size: 13px;
-  color: var(--muted);
-}
-
+.form-row { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+.form-row label { font-size: 13px; color: var(--muted); }
 .form-row input,
-.form-row select {
-  background: #0f1318;
-  color: var(--fg);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 10px 12px;
-  font: inherit;
-  outline: none;
+.form-row select,
+.form-row textarea {
+  background: #0f1318; color: var(--fg); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 10px 12px; font: inherit; outline: none;
 }
-
 .form-row input:focus,
-.form-row select:focus {
-  border-color: var(--accent);
-}
+.form-row select:focus,
+.form-row textarea:focus { border-color: var(--accent); }
 
 .btn {
   display: inline-flex;
@@ -108,20 +75,14 @@ button { cursor: pointer; }
 
 /* 기본은 inline width — 검색·로그아웃 등 inline 액션 호환.
    로그인/MFA 처럼 폼 width 채워야 하는 경우 .btn.full 명시. */
-.btn.full {
-  width: 100%;
-}
+.btn.full { width: 100%; }
 
 /* form 안의 .btn 은 자동으로 폭 100% 채움 (LoginForm/MfaForm 가 inline width 명시 안 해도 동작) */
-form .btn {
-  width: 100%;
-}
+form .btn { width: 100%; }
 
-.btn.secondary {
-  background: transparent;
-  color: var(--fg);
-  border: 1px solid var(--border);
-}
+.btn.secondary { background: transparent; color: var(--fg); border: 1px solid var(--border); }
+.btn.danger { background: #5a1d1d; color: #ffd9d9; }
+.btn.small { padding: 6px 10px; font-size: 13px; }
 
 .btn:disabled {
   opacity: 0.6;
@@ -154,45 +115,98 @@ form .btn {
 }
 
 .error {
-  background: var(--error-bg);
-  color: var(--error-fg);
-  border: 1px solid var(--error-border);
-  border-radius: var(--radius);
-  padding: 10px 12px;
-  margin-bottom: 14px;
-  font-size: 13px;
+  background: var(--error-bg); color: var(--error-fg);
+  border: 1px solid var(--error-border); border-radius: var(--radius);
+  padding: 10px 12px; margin-bottom: 14px; font-size: 13px;
 }
-
 .notice {
-  background: #1f2933;
-  color: var(--fg);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 10px 12px;
-  margin-bottom: 14px;
-  font-size: 13px;
+  background: #1f2933; color: var(--fg); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 10px 12px; margin-bottom: 14px; font-size: 13px;
 }
 
-.dashboard {
-  max-width: 720px;
-  margin: 0 auto;
-  padding: 32px 24px;
+/* ---------------- Shell with sidebar ---------------- */
+.shell {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  min-height: 100vh;
 }
-
-.dashboard header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
-  padding-bottom: 16px;
+.sidebar {
+  border-right: 1px solid var(--border);
+  background: #0f1318;
+  display: flex; flex-direction: column; padding: 20px 0;
+}
+.sidebar .brand {
+  padding: 0 20px 16px; font-weight: 700; font-size: 16px;
   border-bottom: 1px solid var(--border);
 }
+.sidebar nav {
+  display: flex; flex-direction: column; padding: 12px 8px; gap: 2px; flex: 1;
+}
+.sidebar .nav-link {
+  display: block; padding: 8px 12px; color: var(--fg);
+  border-radius: var(--radius); font-size: 14px;
+}
+.sidebar .nav-link:hover { background: #1a2128; text-decoration: none; }
+.sidebar-foot {
+  padding: 12px 16px; border-top: 1px solid var(--border);
+  display: flex; flex-direction: column; gap: 8px;
+}
+.sidebar-foot .who { font-size: 12px; color: var(--muted); }
 
-.dashboard header .who {
-  font-size: 13px;
-  color: var(--muted);
+.workspace { padding: 28px 32px; max-width: 1200px; }
+.page h1 { margin: 0 0 4px; font-size: 22px; }
+.page h2 { font-size: 16px; margin: 24px 0 8px; }
+.page .muted { color: var(--muted); font-size: 13px; margin: 0 0 20px; }
+
+/* ---------------- Tiles ---------------- */
+.tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 8px; }
+.tile {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px;
+}
+.tile-label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+.tile-value { font-size: 24px; font-weight: 700; margin-top: 6px; }
+.tile-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+.link-list { padding-left: 16px; line-height: 2; }
+
+/* ---------------- Tables ---------------- */
+.toolbar {
+  display: flex; align-items: center; gap: 12px;
+  margin: 12px 0 16px; flex-wrap: wrap;
+}
+.toolbar input, .toolbar select {
+  background: #0f1318; color: var(--fg); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 6px 10px; font: inherit;
 }
 
-.dashboard header form {
-  display: inline;
+table.list {
+  width: 100%; border-collapse: collapse; font-size: 13px;
 }
+table.list th, table.list td {
+  text-align: left; padding: 10px 12px;
+  border-bottom: 1px solid var(--border); vertical-align: top;
+}
+table.list th { color: var(--muted); font-weight: 500; font-size: 12px; }
+table.list tr:hover td { background: #131820; }
+table.list .cell-actions { display: flex; gap: 6px; }
+.empty { color: var(--muted); padding: 24px 0; }
+
+/* ---------------- Badges ---------------- */
+.badge {
+  display: inline-block; padding: 2px 8px; border-radius: 999px;
+  font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px;
+  border: 1px solid var(--border);
+}
+.badge.ok { background: var(--ok-bg); color: var(--ok-fg); border-color: var(--ok-bg); }
+.badge.warn { background: var(--warn-bg); color: var(--warn-fg); border-color: var(--warn-bg); }
+.badge.err { background: var(--error-bg); color: var(--error-fg); border-color: var(--error-bg); }
+.badge.muted { background: #1a2128; color: var(--muted); }
+
+/* legacy dashboard fallback (still used by /login etc.) */
+.dashboard { max-width: 720px; margin: 0 auto; padding: 32px 24px; }
+.dashboard header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--border);
+}
+.dashboard header .who { font-size: 13px; color: var(--muted); }

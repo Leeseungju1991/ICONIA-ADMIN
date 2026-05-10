@@ -12,17 +12,26 @@ function jwtWith(payload: Record<string, unknown>): string {
 }
 
 describe("readIdentityFromJwt", () => {
-  it("returns email when JWT payload includes one", () => {
+  it("returns email + null role when payload omits role", () => {
     expect(readIdentityFromJwt(jwtWith({ email: "ops@example.com" }))).toEqual({
       email: "ops@example.com",
+      role: null,
     });
   });
 
-  it("ignores role and other extra fields (single-user admin)", () => {
-    const id = readIdentityFromJwt(
-      jwtWith({ email: "a@b.com", role: "anything", sub: "x" }),
-    );
-    expect(id).toEqual({ email: "a@b.com" });
+  it("returns email + role when role is a known operator role", () => {
+    expect(
+      readIdentityFromJwt(jwtWith({ email: "sa@example.com", role: "superadmin" })),
+    ).toEqual({ email: "sa@example.com", role: "superadmin" });
+    expect(
+      readIdentityFromJwt(jwtWith({ email: "v@example.com", role: "viewer" })),
+    ).toEqual({ email: "v@example.com", role: "viewer" });
+  });
+
+  it("returns null role for unknown role values", () => {
+    expect(
+      readIdentityFromJwt(jwtWith({ email: "a@b.com", role: "god", sub: "x" })),
+    ).toEqual({ email: "a@b.com", role: null });
   });
 
   it("returns null when email is missing", () => {
