@@ -91,7 +91,10 @@ button { cursor: pointer; }
 }
 
 .btn {
-  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   padding: 11px 14px;
   background: var(--accent);
   color: #fff;
@@ -99,12 +102,55 @@ button { cursor: pointer; }
   border-radius: var(--radius);
   font: inherit;
   font-weight: 600;
+  /* a11y: 최소 터치 표적 44×44. line-height + padding 으로 ~44 확보. */
+  min-height: 44px;
+}
+
+/* 기본은 inline width — 검색·로그아웃 등 inline 액션 호환.
+   로그인/MFA 처럼 폼 width 채워야 하는 경우 .btn.full 명시. */
+.btn.full {
+  width: 100%;
+}
+
+/* form 안의 .btn 은 자동으로 폭 100% 채움 (LoginForm/MfaForm 가 inline width 명시 안 해도 동작) */
+form .btn {
+  width: 100%;
 }
 
 .btn.secondary {
   background: transparent;
   color: var(--fg);
   border: 1px solid var(--border);
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* SubmitButton 의 spinner — aria-hidden 인 시각 보조. */
+.spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: iconia-spin 0.7s linear infinite;
+}
+
+@keyframes iconia-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* OS 의 reduce-motion 설정 시 spinner 정지 (정지 상태에서도 disabled 톤으로 진행 인지). */
+@media (prefers-reduced-motion: reduce) {
+  .spinner { animation: none; }
 }
 
 .error {
