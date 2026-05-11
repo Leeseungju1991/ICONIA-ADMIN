@@ -1,14 +1,17 @@
 // ICONIA-ADMIN → ICONIA-SERVER RAG client.
-// Admin은 항상 Server를 통해 호출한다 (AI 서비스 직접 호출 금지).
-// Server는 ICONIA envelope({ ok, data, error, meta })로 응답 → 여기서 unwrap.
-// 필드명은 snake_case (서버 계약 그대로). camelCase로 변환하지 않는다.
-//
-// 참고: lib/serverApi.ts / lib/adminApi.ts 의 기존 클라이언트는 Next 서버 측에서
-// JWT bearer 로 Server 를 호출하고 ServerResult<T> 를 반환한다(throw 안 함).
-// 이 모듈은 Knowledge Console(브라우저)에서 cookie 세션으로 직접 호출하고,
-// 성공 시 data 를, 실패 시 throw 하는 계약이라 별도 helper 를 둔다.
+// 서버 측 전용 모듈: RSC / Server Action 에서 호출한다 (lib/adminApi.ts 와 동일 패턴).
+// 브라우저에서 직접 호출하지 않는다 — credentials:'include' / 'use client' / NEXT_PUBLIC_* 없음.
+// Server 는 ICONIA envelope({ ok, data, error, meta }) 로 응답 → 여기서 unwrap 해 ServerResult<T> 반환 (throw 안 함).
+// 필드명은 snake_case (서버 계약 그대로). camelCase 로 변환하지 않는다.
+// Server 의 admin RAG 라우트는 Bearer JWT(requireOperator)로 gating 되며, 호출자(RSC/Server Action)가
+// readSession() 으로 세션 JWT 를 읽어 jwt 인자로 넘긴다 (adminApi.ts 의 함수들과 동일).
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
+import { loadEnv } from "../env";
+import type { ServerEnvelope, ServerResult } from "../types";
+
+// ---------------------------------------------------------------------------
+// Types — snake_case, 서버 계약 그대로.
+// ---------------------------------------------------------------------------
 
 export type RagSource = {
   id: string;
@@ -16,17 +19,20 @@ export type RagSource = {
   chunks: number;
   updated_at: string;
 };
+
 export type RagChunk = {
   id: string;
   text: string;
   location?: { page?: number };
 };
+
 export type RagCitation = {
   source_id: string;
   text: string;
   score: number;
   location?: { page?: number; section?: string };
 };
+
 export type RagQueryData = {
   answer: string;
   citations: RagCitation[];
@@ -36,75 +42,119 @@ export type RagQueryData = {
   session_id?: string;
 };
 
-type Envelope<T> = {
-  ok: boolean;
-  data: T | null;
-  error: { code: string; message: string; retryable?: boolean } | null;
-  meta?: unknown;
-};
+// ---------------------------------------------------------------------------
+// Low-level authed request — adminApi.ts / auditApi.ts 와 동일한 인라인 패턴.
+// ---------------------------------------------------------------------------
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, {
-    credentials: "include",
-    headers: { "content-type": "application/json", ...(init?.headers ?? {}) },
-    ...init,
-  });
+async function authedRequest<T>({
+  jwt,
+  path,
+  method,
+  body,
+}: {
+  jwt: string;
+  path: string;
+  method: "GET" | "POST";
+  body?: Record<string, unknown>;
+}): Promise<ServerResult<T>> {
+  const env = loadEnv();
+  const headers: Record<string, string> = {
+    Accept: "application/json",
+    Authorization: `Bearer ${jwt}`,
+  };
+  if (body !== undefined) headers["Content-Type"] = "application/json";
 
-  let parsed: unknown = null;
+  let response: Response;
   try {
-    parsed = await res.json();
+    response = await fetch(`${env.ICONIA_SERVER_URL}${path}`, {
+      method,
+      headers,
+      body: body === undefined ? undefined : JSON.stringify(body),
+      cache: "no-store",
+    });
   } catch {
-    /* non-JSON body; fall through to text handling below */
+    return { ok: false, code: "ERR_NETWORK", message: "network_error", status: 0 };
   }
 
-  if (
-    parsed &&
-    typeof parsed === "object" &&
-    "ok" in (parsed as Record<string, unknown>)
-  ) {
-    const env = parsed as Envelope<T>;
-    if (!res.ok || env.ok === false) {
-      const code = env.error?.code ?? "ERR_RAG_UPSTREAM";
-      const msg = env.error?.message ?? `request failed (${res.status})`;
-      throw new Error(`admin/rag ${path}: ${res.status} ${code} ${msg}`);
-    }
-    return env.data as T;
+  let envelope: ServerEnvelope<T>;
+  try {
+    envelope = (await response.json()) as ServerEnvelope<T>;
+  } catch {
+    return {
+      ok: false,
+      code: "ERR_INVALID_RESPONSE",
+      message: "invalid_response",
+      status: response.status,
+    };
   }
 
-  if (!res.ok) {
-    let body = "";
-    try {
-      body = await res.text();
-    } catch {
-      /* ignore */
-    }
-    throw new Error(`admin/rag ${path}: ${res.status} ${body}`);
+  if (response.status >= 500) {
+    return {
+      ok: false,
+      code: "ERR_SERVER_UNAVAILABLE",
+      message: "server_unavailable",
+      status: response.status,
+    };
   }
 
-  return parsed as T;
+  if (envelope?.ok === true) return { ok: true, data: envelope.data };
+  if (envelope?.ok === false && envelope.error) {
+    return {
+      ok: false,
+      code: envelope.error.code,
+      message: envelope.error.message,
+      status: response.status,
+      details: envelope.error.details,
+    };
+  }
+  return {
+    ok: false,
+    code: "ERR_INVALID_RESPONSE",
+    message: "invalid_response",
+    status: response.status,
+  };
 }
 
-export const ragApi = {
-  listSources(): Promise<RagSource[]> {
-    return request<RagSource[]>("/api/v1/admin/rag/sources");
-  },
-  getChunks(sourceId: string, limit = 20): Promise<RagChunk[]> {
-    return request<RagChunk[]>(
-      `/api/v1/admin/rag/sources/${encodeURIComponent(sourceId)}/chunks?limit=${limit}`,
-    );
-  },
-  testQuery(input: {
-    question: string;
-    backendOverride?: "mock" | "bedrock";
-    topK?: number;
-  }): Promise<RagQueryData> {
-    const body: Record<string, unknown> = { question: input.question };
-    if (input.backendOverride !== undefined)
-      body.backend_override = input.backendOverride;
-    if (input.topK !== undefined) body.top_k = input.topK;
-    return request<RagQueryData>("/api/v1/admin/rag/test-query", {
-      method: "POST",
-      body: JSON.stringify(body),
-    });
-  },
-};
+// ---------------------------------------------------------------------------
+// RAG admin surface — GET /api/v1/admin/rag/* (Task 16/17 서버 라우트).
+// ---------------------------------------------------------------------------
+
+export function listRagSources(args: {
+  jwt: string;
+}): Promise<ServerResult<RagSource[]>> {
+  return authedRequest<RagSource[]>({
+    jwt: args.jwt,
+    path: `/api/v1/admin/rag/sources`,
+    method: "GET",
+  });
+}
+
+export function getRagChunks(args: {
+  jwt: string;
+  sourceId: string;
+  limit?: number;
+}): Promise<ServerResult<RagChunk[]>> {
+  const limit = args.limit ?? 20;
+  return authedRequest<RagChunk[]>({
+    jwt: args.jwt,
+    path: `/api/v1/admin/rag/sources/${encodeURIComponent(args.sourceId)}/chunks?limit=${limit}`,
+    method: "GET",
+  });
+}
+
+export function ragTestQuery(args: {
+  jwt: string;
+  question: string;
+  backendOverride?: "mock" | "bedrock";
+  topK?: number;
+}): Promise<ServerResult<RagQueryData>> {
+  const body: Record<string, unknown> = { question: args.question };
+  if (args.backendOverride !== undefined) body.backend_override = args.backendOverride;
+  if (args.topK !== undefined) body.top_k = args.topK;
+  return authedRequest<RagQueryData>({
+    jwt: args.jwt,
+    path: `/api/v1/admin/rag/test-query`,
+    method: "POST",
+    body,
+  });
+}
