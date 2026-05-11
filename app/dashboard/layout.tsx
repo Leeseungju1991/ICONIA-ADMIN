@@ -18,6 +18,7 @@ const NAV: NavItem[] = [
   { href: "/dashboard/devices", label: "디바이스", allowedRoles: ["superadmin", "sre", "secops"] },
   { href: "/dashboard/firmware", label: "펜웨어 배포", allowedRoles: ["superadmin", "sre", "secops"] },
   { href: "/dashboard/ai-health", label: "AI 상태" },
+  { href: "/dashboard/knowledge", label: "Knowledge Base" },
   { href: "/dashboard/posts", label: "게시물 모던" },
   { href: "/dashboard/audit", label: "⚱ Audit 로그", allowedRoles: ["superadmin", "sre", "secops"] },
   { href: "/dashboard/operators", label: "운영자", allowedRoles: ["superadmin"] },

@@ -203,6 +203,44 @@ table.list .cell-actions { display: flex; gap: 6px; }
 .badge.err { background: var(--error-bg); color: var(--error-fg); border-color: var(--error-bg); }
 .badge.muted { background: #1a2128; color: var(--muted); }
 
+/* ---------------- Knowledge Console (3-panel) ---------------- */
+.kb-grid {
+  display: grid; grid-template-columns: 1fr; gap: 16px; margin-top: 8px;
+}
+@media (min-width: 1000px) {
+  .kb-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+.kb-panel {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px; min-width: 0;
+}
+.kb-panel-title { font-size: 14px; margin: 0 0 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+.kb-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.kb-item {
+  display: block; width: 100%; text-align: left; background: #0f1318;
+  border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px;
+  color: var(--fg); font: inherit;
+}
+.kb-item:hover { background: #1a2128; }
+.kb-item-active { border-color: var(--accent); background: #14202f; }
+.kb-item-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+.kb-item-meta { font-size: 12px; color: var(--muted); word-break: break-all; }
+.kb-item-meta code { font-size: 11px; }
+.kb-chunk {
+  background: #0f1318; border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 10px 12px;
+}
+.kb-chunk-text {
+  margin: 6px 0 0; white-space: pre-wrap; word-break: break-word;
+  font: inherit; font-size: 13px; color: var(--fg);
+}
+.kb-result {
+  background: #0f1318; border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 12px;
+}
+.kb-result details { margin-top: 8px; }
+.kb-result summary { cursor: pointer; font-size: 13px; color: var(--muted); }
+
 /* legacy dashboard fallback (still used by /login etc.) */
 .dashboard { max-width: 720px; margin: 0 auto; padding: 32px 24px; }
 .dashboard header {
