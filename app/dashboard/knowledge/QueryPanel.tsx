@@ -53,10 +53,13 @@ export function QueryPanel() {
       <div className="form-row">
         <label htmlFor="kb-backend">backend override</label>
         <select id="kb-backend" value={backend} onChange={(e) => setBackend(e.target.value as BackendChoice)}>
-          <option value="">기본(env)</option>
-          <option value="mock">mock</option>
-          <option value="bedrock">bedrock</option>
+          <option value="">기본(env가 결정)</option>
+          <option value="mock">mock (현 슬라이스 무효 — env가 우선)</option>
+          <option value="bedrock">bedrock (현 슬라이스 무효 — env가 우선)</option>
         </select>
+        <small className="hint" style={{ display: "block", marginTop: 4, opacity: 0.85 }}>
+          ⚠ 현재 슬라이스에서는 서버 설정(<code>RAG_BACKEND</code>)이 우선합니다 — 위 선택은 종단간 no-op. <strong>실제 사용된 백엔드는 아래 응답의 <code>backend</code> 필드</strong>로 확인하세요. (AI 라우트의 <code>X-RAG-Backend</code> 헤더 독해는 후속 작업)
+        </small>
       </div>
       <button type="submit" className="btn" disabled={disabled} aria-busy={pending}>
         {pending ? "실행 중…" : "실행"}
@@ -87,6 +90,9 @@ export function QueryPanel() {
                   </li>
                 ))}
               </ul>
+              <small className="hint" style={{ display: "block", marginTop: 6, opacity: 0.75 }}>
+                score는 0~1 코사인 유사도. bedrock 백엔드의 <code>RetrieveAndGenerate</code>는 retrieval score를 제공하지 않을 수 있어 <code>0</code>으로 표기됩니다 — 정상입니다.
+              </small>
             </details>
           ) : null}
         </div>
