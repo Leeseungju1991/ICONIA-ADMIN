@@ -9,7 +9,7 @@
 | `POST /api/v1/operator/login` | email + password → `mfa_session_token` |
 | `POST /api/v1/operator/login/mfa` | `mfa_session_token` + (`totp` 또는 `recovery_code`) → JWT |
 | `POST /api/v1/operator/logout` | jti revoke (Bearer JWT) |
-| `GET  /api/v1/operator/me` | **Server 미구현** — 현재 admin-web 은 JWT payload 를 unsafe-decode 하여 email/role 만 표시 (서명 검증 없음, 인가 결정 아님). `/me` 추가 시 swap. |
+| `GET  /api/v1/operator/me` | **구현됨** (`Server/src/routes/operatorRoutes.js`, `requireOperator` 모든 role) → `data: { id, email, role }`. 표시용 신원 (서명 검증됨). 인가 결정은 여전히 서버 `requireOperator` 가 수행 — 이 응답은 신뢰 경계가 아니다. *(admin-web `readIdentityFromJwt` unsafe-decode 경로는 점진 전환 대상 — §7.7)* |
 
 > 본 라운드 admin-web 은 위 4개 endpoint 중 login / login/mfa / logout 3개만 호출합니다.
 
