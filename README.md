@@ -120,3 +120,44 @@ iconia-admin-web/
 |---|---|---|
 | `ICONIA_SERVER_URL` | ✓ | Server 베이스 URL (예: `https://api.iconia.example.com`) |
 | `NODE_ENV` | (Next.js 자동) | `production` 시 쿠키 `Secure=true` |
+
+---
+
+## 향후 필요 작업 (Roadmap)
+
+> 본 섹션은 Admin(`admin/`) 도메인의 후속 작업입니다.
+> 위 "본 라운드 비포함 (의도적)" 의 항목 중 차기 라운드에서 도입할 것들 + 단계 5 P1 follow-up 으로 구성.
+
+### P0 — RAG Slice 1 머지 후 follow-up (단계 5 P1)
+
+- [ ] **`adminRagRoutes.js` rate-limit 키 정밀화 후 화면 반영** — Server P0 와 동기. operator 식별자 기반 rate-limit 카운터 표시.
+- [ ] **test-query audit 로그 노출** (P1-4) — operator 식별자 + query hash + backend label. Knowledge 화면에 처리방침 한 줄 명시.
+- [ ] **citation `title` 렌더** (P1-2) — Server·AI 계약 확정 후 `QueryPanel.tsx` citation chip 라벨 변경.
+- [ ] **`X-RAG-Backend` 헤더 화이트리스트 검증** — Server admin test-query 가 헤더를 전달하나 현 AI 라우트 미독해. Slice 2 후속 머지 후 UI 선택지(`mock` / `bedrock`) 확정.
+
+### P1 — UI / UX 정식화
+
+- [ ] **Tailwind / shadcn 도입** — 현 minimal CSS. 디자인 시스템 라운드. App 의 Stitch 토큰과 정합 여부는 별도 결정.
+- [ ] **i18n** — 현 한국어 하드코딩. ko / en 2-locale 분리.
+- [ ] **`/me` 엔드포인트 도입** (Server 측) — 현 payload decode 로 대체 중. Server P1 와 동기.
+- [ ] **Knowledge 큐레이션 화면 확장** — KB 소스 업로드 / 청크 미리보기 / 삭제 + audit log. 현재 stub.
+
+### P1 — 보안 / 운영 강화
+
+- [ ] **CSRF 이중 제출 토큰** — mutating 화면 도입과 동시. 현 `SameSite=Strict` 1차 방어 + 토큰 2차 도입.
+- [ ] **Refresh token rotation** — Server family rotation 과 정합. Admin 측 silent refresh 흐름.
+- [ ] **IP allowlist (operator 한정)** — 운영자 계정 차단/허용 IP 범위 관리 화면.
+- [ ] **2-eye rule (Knowledge 삭제·정책 변경)** — 중요한 mutation 에 2인 승인.
+- [ ] **2FA (TOTP)** — Server P1 와 동기. 도입 시 Admin 측 enrollment + 로그인 흐름.
+
+### P2 — 테스트 / 자동화
+
+- [ ] **Playwright E2E** — 실 Server fixture 또는 docker compose 기반. Knowledge / 인증 / RAG test-query happy path.
+- [ ] **시각 회귀 (T33)** — RAG Slice 3 T33 디자인 패스 후 baseline 갱신.
+- [ ] **Sentry / OTel 도입** — Server 와 동기.
+
+### 비범위 (의도적으로 Admin 에서 처리하지 않음)
+
+- 사용자(end-user) UI — App 도메인.
+- KB 인덱싱 파이프라인 자체 — AI 도메인 (`AI/src/rag/`).
+- 디바이스 OTA 배포 트리거 — Server 측 엔드포인트 정식화 후 별 라운드.
