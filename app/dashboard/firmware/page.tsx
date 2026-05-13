@@ -22,7 +22,7 @@ export default async function FirmwarePage() {
   if (!res.ok) {
     return (
       <div className="page">
-        <h1>펜웨어 배포</h1>
+        <h1>펌웨어 배포</h1>
         <div className="error">{res.code}: {res.message}</div>
       </div>
     );
@@ -32,12 +32,12 @@ export default async function FirmwarePage() {
 
   return (
     <div className="page">
-      <h1>펜웨어 배포</h1>
-      <p className="muted">서버 매니페스트 기준 펜웨어 버전 + 배포 이력. 일시정지 / 재개는 운영자 권한 필요.</p>
+      <h1>펌웨어 배포</h1>
+      <p className="muted">서버 매니페스트 기준 펌웨어 버전 + 배포 이력. 일시정지 / 재개는 운영자 권한 필요.</p>
 
       <h2>버전</h2>
       {versions.length === 0 ? (
-        <div className="empty">등록된 펜웨어 없음</div>
+        <div className="empty">등록된 펌웨어 없음</div>
       ) : (
         <table className="list">
           <thead>
