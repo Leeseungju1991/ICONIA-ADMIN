@@ -252,12 +252,15 @@ export function getUserDetail(args: {
 export function forceLogoutUser(args: {
   jwt: string;
   userId: string;
+  reason?: string;
 }): Promise<ServerResult<ForceLogoutResult>> {
+  // reason 은 ConfirmActionForm 가 강제 (5자 이상) — server 가 body 의 reason 을 audit
+  // 로그에 기록하면 forensic 가치 회복. server 미지원 시 body 가 무시될 뿐 정상 동작.
   return authedRequest<ForceLogoutResult>({
     jwt: args.jwt,
     path: `/api/v1/admin/users/${encodeURIComponent(args.userId)}/force-logout`,
     method: "POST",
-    body: {},
+    body: args.reason ? { reason: args.reason } : {},
   });
 }
 
@@ -352,12 +355,13 @@ export function pauseDeployment(args: {
 export function resumeDeployment(args: {
   jwt: string;
   deploymentId: string;
+  reason?: string;
 }): Promise<ServerResult<{ ok: true }>> {
   return authedRequest({
     jwt: args.jwt,
     path: `/api/v1/admin/firmware/deployments/${encodeURIComponent(args.deploymentId)}/resume`,
     method: "POST",
-    body: {},
+    body: args.reason ? { reason: args.reason } : {},
   });
 }
 

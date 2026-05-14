@@ -26,6 +26,16 @@ function fd(input: Record<string, string>): FormData {
   return f;
 }
 
+function makeJwt(payload: Record<string, unknown>): string {
+  const enc = (obj: unknown) =>
+    Buffer.from(JSON.stringify(obj))
+      .toString("base64")
+      .replace(/=+$/, "")
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_");
+  return `${enc({ alg: "RS256", typ: "JWT" })}.${enc(payload)}.sig`;
+}
+
 describe("disableOperatorAction", () => {
   it("returns session-expired when no cookie", async () => {
     cookieStore.get.mockReturnValue(undefined);
@@ -62,5 +72,26 @@ describe("disableOperatorAction", () => {
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.message).toContain("ERR_OPERATOR_LAST_SUPERADMIN");
     expect(mockedRevalidate).not.toHaveBeenCalled();
+  });
+
+  it("blocks self-disable when current operator sub matches operator_id (defense in depth)", async () => {
+    cookieStore.get.mockReturnValue({
+      value: makeJwt({ sub: "me", email: "me@example.com", role: "superadmin" }),
+    });
+    const r = await disableOperatorAction(fd({ operator_id: "me", reason: "i am leaving" }));
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.message).toMatch(/본인 계정/);
+    expect(mockedDisable).not.toHaveBeenCalled();
+    expect(mockedRevalidate).not.toHaveBeenCalled();
+  });
+
+  it("allows disabling a different operator even when current sub is present", async () => {
+    cookieStore.get.mockReturnValue({
+      value: makeJwt({ sub: "me", email: "me@example.com", role: "superadmin" }),
+    });
+    mockedDisable.mockResolvedValue({ ok: true, data: { ok: true } });
+    const r = await disableOperatorAction(fd({ operator_id: "other", reason: "offboarded" }));
+    expect(r).toEqual({ ok: true });
+    expect(mockedDisable).toHaveBeenCalled();
   });
 });

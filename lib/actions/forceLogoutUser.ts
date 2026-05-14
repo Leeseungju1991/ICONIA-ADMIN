@@ -8,7 +8,12 @@ import { forceLogoutUser } from "../adminApi";
 import { readSession, clearSession } from "../authCookie";
 import type { FormState } from "../types";
 
-const schema = z.object({ user_id: z.string().min(1).max(64) });
+const schema = z.object({
+  user_id: z.string().min(1).max(64),
+  // reason 은 ConfirmActionForm 가 강제 (UI 측 5자 이상). server 측 audit 강화 이전에는
+  // optional 로 받아 body 로 전달만 — server 가 무시해도 무방.
+  reason: z.string().min(5).max(500).optional(),
+});
 
 export async function forceLogoutUserAction(
   formData: FormData,
@@ -18,7 +23,11 @@ export async function forceLogoutUserAction(
     redirect("/login?reason=expired");
   }
 
-  const parsed = schema.safeParse({ user_id: formData.get("user_id") });
+  const reasonRaw = formData.get("reason");
+  const parsed = schema.safeParse({
+    user_id: formData.get("user_id"),
+    reason: typeof reasonRaw === "string" && reasonRaw.length > 0 ? reasonRaw : undefined,
+  });
   if (!parsed.success) {
     return { status: "error", code: "ERR_VALIDATION_LOCAL" };
   }
@@ -26,6 +35,7 @@ export async function forceLogoutUserAction(
   const result = await forceLogoutUser({
     jwt: jwt!,
     userId: parsed.data.user_id,
+    reason: parsed.data.reason,
   });
 
   if (result.ok) {
