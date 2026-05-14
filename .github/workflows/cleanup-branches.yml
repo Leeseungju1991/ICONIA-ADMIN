@@ -1,0 +1,70 @@
+# Cleanup non-main branches (one-shot).
+
+name: cleanup-branches
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "DELETE" to confirm. Any other value = dry run.'
+        required: true
+        default: "dry-run"
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: List + delete non-main branches
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO_FULL: ${{ github.repository }}
+          CONFIRM: ${{ github.event.inputs.confirm }}
+        run: |
+          set -euo pipefail
+          DRY=true
+          if [ "$CONFIRM" = "DELETE" ]; then DRY=false; fi
+          echo "Dry run: $DRY"
+          echo "Repo: $REPO_FULL"
+
+          page=1
+          while :; do
+            BRANCHES=$(curl -sS \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/$REPO_FULL/branches?per_page=100&page=$page" \
+              | jq -r '.[].name')
+            [ -z "$BRANCHES" ] && break
+
+            while IFS= read -r BR; do
+              [ -z "$BR" ] && continue
+              if [ "$BR" = "main" ]; then
+                echo "  skip (main): $BR"
+                continue
+              fi
+              if [ "$DRY" = "true" ]; then
+                echo "  would delete: $BR"
+                continue
+              fi
+              echo "  deleting: $BR"
+              curl -sS -X DELETE \
+                -H "Authorization: Bearer $GH_TOKEN" \
+                -H "Accept: application/vnd.github+json" \
+                "https://api.github.com/repos/$REPO_FULL/git/refs/heads/$BR" \
+                && echo "    ok" \
+                || echo "    FAILED"
+            done <<< "$BRANCHES"
+
+            COUNT=$(echo "$BRANCHES" | wc -l)
+            [ "$COUNT" -lt 100 ] && break
+            page=$((page+1))
+          done
+
+          echo "──────────────────────────────────────────"
+          if [ "$DRY" = "true" ]; then
+            echo "DRY RUN — nothing deleted. Re-run with confirm = DELETE."
+          else
+            echo "Cleanup complete."
+          fi
