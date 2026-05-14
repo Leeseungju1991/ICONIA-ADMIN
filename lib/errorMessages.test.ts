@@ -70,6 +70,9 @@ describe("reasonMessage", () => {
     expect(reasonMessage("mfa_expired")).toBe(
       "MFA 세션이 만료되었습니다. 다시 로그인해주세요.",
     );
+    expect(reasonMessage("idle")).toBe(
+      "장시간 사용하지 않아 자동 로그아웃되었습니다. 다시 로그인해주세요.",
+    );
   });
 
   it("returns null for unknown reason", () => {

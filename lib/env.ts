@@ -51,3 +51,20 @@ export function loadIconiaEnv(): IconiaEnvName {
   // ICONIA_ENV 미설정 시 NODE_ENV 로 fallback (legacy 호환).
   return process.env.NODE_ENV === "production" ? "production" : "development";
 }
+
+// ADMIN_IDLE_TIMEOUT_MINUTES — 운영자 idle 자동 로그아웃 임계 (분).
+// 기본 30 분 (감사 §5.2 #31 / SOC2 CC6.1 권고치). 5 ≤ N ≤ 480 강제.
+// 누락/잘못된 값이면 default 30 사용 (장애 회피).
+const DEFAULT_IDLE_TIMEOUT_MIN = 30;
+const MIN_IDLE_TIMEOUT_MIN = 5;
+const MAX_IDLE_TIMEOUT_MIN = 480;
+
+export function loadIdleTimeoutMinutes(): number {
+  const raw = process.env.ADMIN_IDLE_TIMEOUT_MINUTES;
+  if (!raw) return DEFAULT_IDLE_TIMEOUT_MIN;
+  const n = Number.parseInt(raw, 10);
+  if (!Number.isFinite(n)) return DEFAULT_IDLE_TIMEOUT_MIN;
+  if (n < MIN_IDLE_TIMEOUT_MIN) return MIN_IDLE_TIMEOUT_MIN;
+  if (n > MAX_IDLE_TIMEOUT_MIN) return MAX_IDLE_TIMEOUT_MIN;
+  return n;
+}

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { loadEnv, loadIconiaEnv } from "./env";
+import { loadEnv, loadIconiaEnv, loadIdleTimeoutMinutes } from "./env";
 
 function setNodeEnv(v: string) {
   (process.env as { NODE_ENV?: string }).NODE_ENV = v;
@@ -50,7 +50,7 @@ describe("loadEnv", () => {
   });
 });
 
-describe("loadIconiaEnv", () => {
+describe("loadIconiaEnv + loadIdleTimeoutMinutes", () => {
   let original: NodeJS.ProcessEnv;
 
   beforeEach(() => {
@@ -88,5 +88,30 @@ describe("loadIconiaEnv", () => {
     delete process.env.ICONIA_ENV;
     setNodeEnv("development");
     expect(loadIconiaEnv()).toBe("development");
+  });
+
+  it("defaults to 30 when ADMIN_IDLE_TIMEOUT_MINUTES is unset", () => {
+    delete process.env.ADMIN_IDLE_TIMEOUT_MINUTES;
+    expect(loadIdleTimeoutMinutes()).toBe(30);
+  });
+
+  it("returns the parsed integer when set to a valid value", () => {
+    process.env.ADMIN_IDLE_TIMEOUT_MINUTES = "45";
+    expect(loadIdleTimeoutMinutes()).toBe(45);
+  });
+
+  it("clamps below 5 up to 5", () => {
+    process.env.ADMIN_IDLE_TIMEOUT_MINUTES = "1";
+    expect(loadIdleTimeoutMinutes()).toBe(5);
+  });
+
+  it("clamps above 480 down to 480", () => {
+    process.env.ADMIN_IDLE_TIMEOUT_MINUTES = "9999";
+    expect(loadIdleTimeoutMinutes()).toBe(480);
+  });
+
+  it("falls back to 30 when value is not a number", () => {
+    process.env.ADMIN_IDLE_TIMEOUT_MINUTES = "thirty";
+    expect(loadIdleTimeoutMinutes()).toBe(30);
   });
 });
