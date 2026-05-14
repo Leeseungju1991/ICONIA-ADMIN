@@ -55,12 +55,16 @@
 | Endpoint | 용도 |
 |---|---|
 | `GET  /api/v1/admin/firmware` | versions + deployments 목록 (`adminGate` ALL_ROLES) |
-| `POST /api/v1/admin/firmware/deployments/:deploymentId/pause` | 진행 중 deployment hold (SRE+) |
-| `POST /api/v1/admin/firmware/deployments/:deploymentId/resume` | hold → 재개 (SRE+) |
+| `POST /api/admin/firmware/deployment/:id/abort` | **pause 의미로 매핑됨** (admin client `pauseDeployment`) — Server `firmwareDeploymentRoutes.js` (SRE+) |
+| `POST /api/admin/firmware/deployment/:id/resume` | 재개 — Server `firmwareDeploymentRoutes.js` (SRE+) |
+| ~~`POST /api/v1/admin/firmware/deployments/:deploymentId/pause`~~ | ❌ adminStubRoutes 에서 항상 501 — admin client 미사용 (P0 §5.1.10c) |
+| ~~`POST /api/v1/admin/firmware/deployments/:deploymentId/resume`~~ | ❌ adminStubRoutes 에서 항상 501 — admin client 미사용 (P0 §5.1.10c) |
 | `POST /api/v1/admin/firmware/deployments` | ❌ 미구현 (새 deployment 시작) — 다음 라운드 |
 | `POST /api/v1/admin/firmware/deployments/:id/rollback` | ❌ 미구현 (N-1 rollback) — 추가 시 SuperAdmin + `legacyDeny=true` 예정 |
 
-> 별도의 `Server/src/routes/firmwareDeploymentRoutes.js` 는 HW(디바이스) 측 OTA progress 채널이며 admin-web 경계가 아니다.
+> 별도의 `Server/src/routes/firmwareDeploymentRoutes.js` 는 HW(디바이스) 측 OTA progress + 운영자 abort/resume legacy 채널.
+> admin client 의 pause/resume 은 Server v1 stub (501) 대신 이 legacy 단수형 endpoint 로 매핑됨 (drift 해소, P0 §5.1.10c).
+> "pause"=abort 의미 동등성은 후속 작업으로 Server 측에서 분리 예정.
 
 ## Reports / Moderation (게시물 모더레이션) — `/api/v1/admin/posts...` (`Server/src/routes/adminStubRoutes.js`)
 

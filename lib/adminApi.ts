@@ -339,6 +339,10 @@ export function listFirmware(args: {
   });
 }
 
+// pause/resume — Server 의 actual endpoint 는 legacy 단수형 `/api/admin/firmware/deployment/:id/...`
+// (firmwareDeploymentRoutes.js). v1 plural path 는 adminStubRoutes 에서 항상 501 을 반환한다.
+// 본 admin client 는 Server 변경 없이 동작하기 위해 actual path 로 단일화한다 (P0 §5.1.10c).
+// 일시정지 의미는 Server 측 abort 와 동일 — pause 의미를 위해선 별도 Server 작업 필요 (후속 PR).
 export function pauseDeployment(args: {
   jwt: string;
   deploymentId: string;
@@ -346,7 +350,7 @@ export function pauseDeployment(args: {
 }): Promise<ServerResult<{ ok: true }>> {
   return authedRequest({
     jwt: args.jwt,
-    path: `/api/v1/admin/firmware/deployments/${encodeURIComponent(args.deploymentId)}/pause`,
+    path: `/api/admin/firmware/deployment/${encodeURIComponent(args.deploymentId)}/abort`,
     method: "POST",
     body: { reason: args.reason ?? "" },
   });
@@ -359,7 +363,7 @@ export function resumeDeployment(args: {
 }): Promise<ServerResult<{ ok: true }>> {
   return authedRequest({
     jwt: args.jwt,
-    path: `/api/v1/admin/firmware/deployments/${encodeURIComponent(args.deploymentId)}/resume`,
+    path: `/api/admin/firmware/deployment/${encodeURIComponent(args.deploymentId)}/resume`,
     method: "POST",
     body: args.reason ? { reason: args.reason } : {},
   });
