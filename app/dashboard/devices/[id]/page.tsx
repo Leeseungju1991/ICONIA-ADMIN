@@ -2,6 +2,7 @@ import Link from "next/link";
 import { readSession } from "@/lib/authCookie";
 import { getDeviceDetail } from "@/lib/adminApi";
 import { forceUnpairAction, markLostAction } from "@/lib/actions/devices";
+import { ConfirmActionForm } from "@/app/components/ConfirmActionForm";
 
 export const dynamic = "force-dynamic";
 
@@ -64,18 +65,21 @@ export default async function DeviceDetailPage({
 
       <h2>운영 액션</h2>
       <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-        <form action={forceUnpairAction} className="card" style={{ maxWidth: 360 }}>
+        {/* 강제 언페어링 — ConfirmActionForm 으로 5자 이상 사유 강제 (P0 §5.1.10b / 감사 §2.14). */}
+        <div className="card" style={{ maxWidth: 360 }}>
           <h3 style={{ marginTop: 0, fontSize: 15 }}>강제 언페어링</h3>
           <p className="muted" style={{ fontSize: 12 }}>
-            사용자 키 + 디바이스 세션을 모두 무효화합니다.
+            사용자 키 + 디바이스 세션을 모두 무효화합니다. 이중 확인 + 사유 입력 필요.
           </p>
-          <input type="hidden" name="device_id" value={d.device_id} />
-          <div className="form-row">
-            <label>reason</label>
-            <input type="text" name="reason" required placeholder="예: 알 수 없는 소유자 결함" />
-          </div>
-          <button className="btn full danger" type="submit">강제 언페어링</button>
-        </form>
+          <ConfirmActionForm
+            action={forceUnpairAction}
+            hidden={{ device_id: d.device_id }}
+            confirmMessage={`디바이스 ${d.serial ?? d.device_id} 의 페어링을 강제로 해제하시겠어요?\n\n사용자 키 + 디바이스 세션이 모두 무효화됩니다.`}
+            reasonRequired
+            buttonLabel="강제 언페어링"
+            buttonClassName="btn full danger"
+          />
+        </div>
 
         <form action={markLostAction} className="card" style={{ maxWidth: 360 }}>
           <h3 style={{ marginTop: 0, fontSize: 15 }}>분실 표시</h3>

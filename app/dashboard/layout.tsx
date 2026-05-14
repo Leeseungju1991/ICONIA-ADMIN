@@ -4,6 +4,7 @@ import { readSession, clearSession } from "@/lib/authCookie";
 import { readIdentityFromJwt } from "@/lib/identity";
 import { roleAllowed, type OperatorRole } from "@/lib/operatorRoles";
 import { LogoutButton } from "@/app/components/LogoutButton";
+import { EnvBadge } from "@/app/components/EnvBadge";
 
 // Dashboard layout — 공유 사이드바 + auth 검사 for /dashboard/*.
 // Auth 검사는 middleware 도 하지만 레이아웃에서도 다시 — server-side 데이터 fetch 시 identity가
@@ -16,9 +17,10 @@ const NAV: NavItem[] = [
   { href: "/dashboard", label: "☰ 개요" },
   { href: "/dashboard/users", label: "사용자", allowedRoles: ["superadmin", "sre", "secops", "cs"] },
   { href: "/dashboard/devices", label: "디바이스", allowedRoles: ["superadmin", "sre", "secops"] },
-  { href: "/dashboard/firmware", label: "펜웨어 배포", allowedRoles: ["superadmin", "sre", "secops"] },
+  { href: "/dashboard/firmware", label: "펌웨어 배포", allowedRoles: ["superadmin", "sre", "secops"] },
   { href: "/dashboard/ai-health", label: "AI 상태" },
-  { href: "/dashboard/posts", label: "게시물 모던" },
+  { href: "/dashboard/knowledge", label: "Knowledge Base" },
+  { href: "/dashboard/posts", label: "게시물 모더레이션" },
   { href: "/dashboard/audit", label: "⚱ Audit 로그", allowedRoles: ["superadmin", "sre", "secops"] },
   { href: "/dashboard/operators", label: "운영자", allowedRoles: ["superadmin"] },
   { href: "/dashboard/commerce/products", label: "— 상품" },
@@ -45,7 +47,10 @@ export default function DashboardLayout({
   return (
     <main className="shell">
       <aside className="sidebar">
-        <div className="brand">ICONIA Admin</div>
+        <div className="brand">
+          <span style={{ marginRight: 8 }}>ICONIA Admin</span>
+          <EnvBadge />
+        </div>
         <nav>
           {visibleNav.map((item) => (
             <Link key={item.href} href={item.href} className="nav-link">

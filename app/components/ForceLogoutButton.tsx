@@ -1,47 +1,23 @@
 "use client";
 
-import { useFormState, useFormStatus } from "react-dom";
+// 사용자 강제 로그아웃 — refresh family 전체 revoke. 파괴적 액션이라
+// ConfirmActionForm 으로 확인 + 5자 사유 강제 (P0 §5.1.10b / 감사 §2.14).
+//
+// 결과 메시지(`{ revoked_count }`) 노출은 reason-prompt 후 transition 내부에서 일어나므로
+// 별도 state 표시 없음 — 운영자는 페이지 reload(revalidate) 결과로 결과 확인.
+
+import { ConfirmActionForm } from "@/app/components/ConfirmActionForm";
 import { forceLogoutUserAction } from "@/lib/actions/forceLogoutUser";
-import { messageForCode } from "@/lib/errorMessages";
-import type { FormState } from "@/lib/types";
-
-const initial: FormState = { status: "idle" };
-
-function Button() {
-  const { pending } = useFormStatus();
-  return (
-    <button
-      type="submit"
-      className="btn"
-      style={{ width: "auto", background: "#7a1d1d" }}
-      disabled={pending}
-    >
-      {pending ? "처리 중…" : "강제 로그아웃 (모든 세션 revoke)"}
-    </button>
-  );
-}
-
-// Wrapper because forceLogoutUserAction signature is (FormData) only — useFormState
-// expects (prev, FormData). Adapt here.
-async function action(_prev: FormState, formData: FormData): Promise<FormState> {
-  return forceLogoutUserAction(formData);
-}
 
 export function ForceLogoutButton({ userId }: { userId: string }) {
-  const [state, dispatch] = useFormState(action, initial);
-
   return (
-    <form action={dispatch}>
-      <input type="hidden" name="user_id" value={userId} />
-      {state.status === "error" ? (
-        <div className="error" role="alert">
-          {messageForCode(state.code)}
-        </div>
-      ) : null}
-      {state.status === "idle" && state.message ? (
-        <div className="notice">{state.message}</div>
-      ) : null}
-      <Button />
-    </form>
+    <ConfirmActionForm
+      action={forceLogoutUserAction}
+      hidden={{ user_id: userId }}
+      confirmMessage={`이 사용자의 모든 세션을 강제로 종료하시겠어요?\n\n사용자는 즉시 로그아웃됩니다.`}
+      reasonRequired
+      buttonLabel="강제 로그아웃 (모든 세션 revoke)"
+      buttonClassName="btn danger"
+    />
   );
 }

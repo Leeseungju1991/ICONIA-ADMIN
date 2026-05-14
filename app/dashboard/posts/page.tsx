@@ -22,7 +22,7 @@ export default async function PostsPage({
 
   return (
     <div className="page">
-      <h1>게시물 모던</h1>
+      <h1>게시물 모더레이션</h1>
       <p className="muted">신고 누적, 숨김, 내림 처리. 일반 공개 게시물은 &ldquo;전체&rdquo; 필터에서 조회. 액션은 사전 확인 + 사유 필수.</p>
 
       <form className="toolbar">

@@ -1,0 +1,16 @@
+# ICONIA-ADMIN — files excluded from the Docker build context.
+node_modules
+.git
+.github
+.next
+test
+**/*.test.ts
+**/*.test.tsx
+docs
+*.md
+.env
+.env.*
+.dockerignore
+Dockerfile
+coverage
+.turbo

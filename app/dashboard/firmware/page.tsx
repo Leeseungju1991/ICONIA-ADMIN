@@ -1,6 +1,7 @@
 import { readSession } from "@/lib/authCookie";
 import { listFirmware, type DeploymentRow, type FirmwareVersionRow } from "@/lib/adminApi";
 import { pauseDeploymentAction, resumeDeploymentAction } from "@/lib/actions/firmware";
+import { ConfirmActionForm } from "@/app/components/ConfirmActionForm";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +23,7 @@ export default async function FirmwarePage() {
   if (!res.ok) {
     return (
       <div className="page">
-        <h1>펜웨어 배포</h1>
+        <h1>펌웨어 배포</h1>
         <div className="error">{res.code}: {res.message}</div>
       </div>
     );
@@ -32,12 +33,12 @@ export default async function FirmwarePage() {
 
   return (
     <div className="page">
-      <h1>펜웨어 배포</h1>
-      <p className="muted">서버 매니페스트 기준 펜웨어 버전 + 배포 이력. 일시정지 / 재개는 운영자 권한 필요.</p>
+      <h1>펌웨어 배포</h1>
+      <p className="muted">서버 매니페스트 기준 펌웨어 버전 + 배포 이력. 일시정지 / 재개는 운영자 권한 필요.</p>
 
       <h2>버전</h2>
       {versions.length === 0 ? (
-        <div className="empty">등록된 펜웨어 없음</div>
+        <div className="empty">등록된 펌웨어 없음</div>
       ) : (
         <table className="list">
           <thead>
@@ -82,17 +83,26 @@ export default async function FirmwarePage() {
                 <td>{d.succeeded} / <span style={{ color: d.failed > 0 ? "var(--error-fg)" : "inherit" }}>{d.failed}</span></td>
                 <td>{new Date(d.updated_at).toLocaleString("ko-KR")}</td>
                 <td className="cell-actions">
+                  {/* pause/resume 모두 ConfirmActionForm — 5자 이상 사유 강제로 forensic 가치 회복
+                      (P0 §5.1.10b / 감사 §2.14). 기존 'manual_pause' 하드코딩 제거. */}
                   {d.state === "rolling" || d.state === "queued" ? (
-                    <form action={pauseDeploymentAction}>
-                      <input type="hidden" name="deployment_id" value={d.id} />
-                      <input type="hidden" name="reason" value="manual_pause" />
-                      <button className="btn small secondary" type="submit">일시정지</button>
-                    </form>
+                    <ConfirmActionForm
+                      action={pauseDeploymentAction}
+                      hidden={{ deployment_id: d.id }}
+                      confirmMessage={`배포 ${d.id.slice(0, 8)}… (${d.version}) 를 일시정지하시겠어요?`}
+                      reasonRequired
+                      buttonLabel="일시정지"
+                      buttonClassName="btn small secondary"
+                    />
                   ) : d.state === "paused" ? (
-                    <form action={resumeDeploymentAction}>
-                      <input type="hidden" name="deployment_id" value={d.id} />
-                      <button className="btn small" type="submit">재개</button>
-                    </form>
+                    <ConfirmActionForm
+                      action={resumeDeploymentAction}
+                      hidden={{ deployment_id: d.id }}
+                      confirmMessage={`배포 ${d.id.slice(0, 8)}… (${d.version}) 를 재개하시겠어요?`}
+                      reasonRequired
+                      buttonLabel="재개"
+                      buttonClassName="btn small"
+                    />
                   ) : null}
                 </td>
               </tr>

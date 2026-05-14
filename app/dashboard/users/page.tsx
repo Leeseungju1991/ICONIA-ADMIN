@@ -3,8 +3,10 @@ import { redirect } from "next/navigation";
 import { readSession, clearSession } from "@/lib/authCookie";
 import { searchUsers } from "@/lib/adminApi";
 import { messageForCode } from "@/lib/errorMessages";
-import { LogoutButton } from "@/app/components/LogoutButton";
 
+// 본 페이지는 app/dashboard/layout.tsx 의 사이드바 셸 안에서 렌더된다 — 자체 header/brand/LogoutButton
+// 을 두지 않고 형제 dashboard 페이지들과 동일한 `<div className="page"><h1>…</h1>` 컨벤션을 따른다.
+// (IMPLEMENTATION_BACKLOG §7.5 — Users 페이지 legacy no-sidebar 셸 → dashboard 셸 통일.)
 export const dynamic = "force-dynamic";
 
 function fmt(value: string | null | undefined): string {
@@ -43,16 +45,9 @@ export default async function UsersSearchPage({
   }
 
   return (
-    <main className="dashboard">
-      <header>
-        <div>
-          <strong>ICONIA Admin</strong>
-          <div className="who">
-            <Link href="/dashboard">대시보드</Link> · 사용자 검색
-          </div>
-        </div>
-        <LogoutButton />
-      </header>
+    <div className="page">
+      <h1>사용자 검색</h1>
+      <p className="muted">이메일(또는 일부)로 사용자를 검색해 상태·TOTP·가입일을 확인하고 상세로 이동합니다.</p>
 
       <section style={{ marginBottom: 20 }}>
         <form action="/dashboard/users" method="get">
@@ -122,6 +117,6 @@ export default async function UsersSearchPage({
           )}
         </section>
       ) : null}
-    </main>
+    </div>
   );
 }

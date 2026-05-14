@@ -252,12 +252,15 @@ export function getUserDetail(args: {
 export function forceLogoutUser(args: {
   jwt: string;
   userId: string;
+  reason?: string;
 }): Promise<ServerResult<ForceLogoutResult>> {
+  // reason 은 ConfirmActionForm 가 강제 (5자 이상) — server 가 body 의 reason 을 audit
+  // 로그에 기록하면 forensic 가치 회복. server 미지원 시 body 가 무시될 뿐 정상 동작.
   return authedRequest<ForceLogoutResult>({
     jwt: args.jwt,
     path: `/api/v1/admin/users/${encodeURIComponent(args.userId)}/force-logout`,
     method: "POST",
-    body: {},
+    body: args.reason ? { reason: args.reason } : {},
   });
 }
 
@@ -336,6 +339,10 @@ export function listFirmware(args: {
   });
 }
 
+// pause/resume — Server 의 actual endpoint 는 legacy 단수형 `/api/admin/firmware/deployment/:id/...`
+// (firmwareDeploymentRoutes.js). v1 plural path 는 adminStubRoutes 에서 항상 501 을 반환한다.
+// 본 admin client 는 Server 변경 없이 동작하기 위해 actual path 로 단일화한다 (P0 §5.1.10c).
+// 일시정지 의미는 Server 측 abort 와 동일 — pause 의미를 위해선 별도 Server 작업 필요 (후속 PR).
 export function pauseDeployment(args: {
   jwt: string;
   deploymentId: string;
@@ -343,7 +350,7 @@ export function pauseDeployment(args: {
 }): Promise<ServerResult<{ ok: true }>> {
   return authedRequest({
     jwt: args.jwt,
-    path: `/api/v1/admin/firmware/deployments/${encodeURIComponent(args.deploymentId)}/pause`,
+    path: `/api/admin/firmware/deployment/${encodeURIComponent(args.deploymentId)}/abort`,
     method: "POST",
     body: { reason: args.reason ?? "" },
   });
@@ -352,12 +359,13 @@ export function pauseDeployment(args: {
 export function resumeDeployment(args: {
   jwt: string;
   deploymentId: string;
+  reason?: string;
 }): Promise<ServerResult<{ ok: true }>> {
   return authedRequest({
     jwt: args.jwt,
-    path: `/api/v1/admin/firmware/deployments/${encodeURIComponent(args.deploymentId)}/resume`,
+    path: `/api/admin/firmware/deployment/${encodeURIComponent(args.deploymentId)}/resume`,
     method: "POST",
-    body: {},
+    body: args.reason ? { reason: args.reason } : {},
   });
 }
 

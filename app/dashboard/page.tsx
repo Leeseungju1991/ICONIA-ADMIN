@@ -25,7 +25,7 @@ export default async function DashboardHome() {
   return (
     <div className="page">
       <h1>개요</h1>
-      <p className="muted">앛 운영 현황 요약. 좌측 네이비게이션에서 세부 페이지로 이동.</p>
+      <p className="muted">AI 운영 현황 요약. 좌측 내비게이션에서 세부 페이지로 이동.</p>
 
       <div className="tiles">
         <div className="tile">
@@ -57,7 +57,7 @@ export default async function DashboardHome() {
       <ul className="link-list">
         <li><a href="/dashboard/users">사용자 검색</a></li>
         <li><a href="/dashboard/devices">디바이스 목록</a></li>
-        <li><a href="/dashboard/firmware">펜웨어 배포 상태</a></li>
+        <li><a href="/dashboard/firmware">펌웨어 배포 상태</a></li>
         <li><a href="/dashboard/posts">대기 중인 신고 게시물</a></li>
         <li><a href="/dashboard/commerce/orders">최근 주문</a></li>
         <li><a href="/dashboard/commerce/webhooks?only_failures=1">실패한 웹훅 이벤트</a></li>

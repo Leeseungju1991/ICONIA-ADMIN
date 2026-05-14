@@ -1,4 +1,5 @@
 import { readSession } from "@/lib/authCookie";
+import { readIdentityFromJwt } from "@/lib/identity";
 import { listOperators, type OperatorRow } from "@/lib/adminApi";
 import { disableOperatorAction } from "@/lib/actions/operators";
 import { ConfirmActionForm } from "@/app/components/ConfirmActionForm";
@@ -7,7 +8,19 @@ export const dynamic = "force-dynamic";
 
 export default async function OperatorsPage() {
   const jwt = readSession()!;
+  const identity = readIdentityFromJwt(jwt);
   const res = await listOperators({ jwt });
+
+  // self-disable 차단 — 현재 운영자가 본인 계정을 비활성화하는 시도를 UI 단에서 막음
+  // (P0 §5.1.10b / 감사 §2.14). id (JWT sub) 우선, fallback 으로 email 비교.
+  function isSelf(op: OperatorRow): boolean {
+    if (!identity) return false;
+    if (identity.id && op.id === identity.id) return true;
+    if (identity.email && op.email && op.email.toLowerCase() === identity.email.toLowerCase()) {
+      return true;
+    }
+    return false;
+  }
 
   return (
     <div className="page">
@@ -36,14 +49,27 @@ export default async function OperatorsPage() {
                 <td>{op.disabled_at ? <span className="badge err">비활성화</span> : <span className="badge ok">활성</span>}</td>
                 <td className="cell-actions">
                   {!op.disabled_at && (
-                    <ConfirmActionForm
-                      action={disableOperatorAction}
-                      hidden={{ operator_id: op.id }}
-                      confirmMessage={`운영자 ${op.email} 를 비활성화하시겠어요?\n\n이 운영자는 즉시 로그아웃되며 다시 로그인할 수 없습니다.`}
-                      reasonRequired
-                      buttonLabel="비활성화"
-                      buttonClassName="btn small danger"
-                    />
+                    isSelf(op) ? (
+                      <button
+                        type="button"
+                        className="btn small danger"
+                        disabled
+                        title="본인 계정은 비활성화할 수 없습니다"
+                        aria-label="본인 계정은 비활성화할 수 없습니다"
+                        data-testid="self-disable-blocked"
+                      >
+                        비활성화 (본인)
+                      </button>
+                    ) : (
+                      <ConfirmActionForm
+                        action={disableOperatorAction}
+                        hidden={{ operator_id: op.id }}
+                        confirmMessage={`운영자 ${op.email} 를 비활성화하시겠어요?\n\n이 운영자는 즉시 로그아웃되며 다시 로그인할 수 없습니다.`}
+                        reasonRequired
+                        buttonLabel="비활성화"
+                        buttonClassName="btn small danger"
+                      />
+                    )
                   )}
                 </td>
               </tr>

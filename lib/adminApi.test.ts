@@ -3,6 +3,8 @@ import {
   searchUsers,
   getUserDetail,
   forceLogoutUser,
+  pauseDeployment,
+  resumeDeployment,
 } from "./adminApi";
 
 const BASE = "https://api.example.com";
@@ -127,5 +129,87 @@ describe("forceLogoutUser", () => {
     expect(init.method).toBe("POST");
     expect(init.headers["Authorization"]).toBe("Bearer j");
     expect(JSON.parse(init.body)).toEqual({});
+  });
+
+  it("forwards reason in body when provided (server may record in audit)", async () => {
+    const fetchMock = mockFetchOnce({
+      status: 200,
+      body: { ok: true, data: { revoked_count: 1 }, error: null },
+    });
+    await forceLogoutUser({ jwt: "j", userId: "u1", reason: "policy violation" });
+    const [, init] = fetchMock.mock.calls[0];
+    expect(JSON.parse(init.body)).toEqual({ reason: "policy violation" });
+  });
+});
+
+// pause/resume — Server 의 actual endpoint 는 legacy 단수형 (P0 §5.1.10c).
+// 본 테스트는 admin client 가 항상 actual path 로 호출함을 강제한다 — drift 회귀 방지.
+describe("pauseDeployment", () => {
+  it("POSTs to legacy singular /api/admin/firmware/deployment/:id/abort", async () => {
+    const fetchMock = mockFetchOnce({
+      status: 200,
+      body: { ok: true, data: { ok: true }, error: null },
+    });
+    await pauseDeployment({ jwt: "j", deploymentId: "dep-1", reason: "manual" });
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe(`${BASE}/api/admin/firmware/deployment/dep-1/abort`);
+    expect(init.method).toBe("POST");
+    expect(init.headers["Authorization"]).toBe("Bearer j");
+    expect(JSON.parse(init.body)).toEqual({ reason: "manual" });
+  });
+
+  it("encodes deployment id safely", async () => {
+    const fetchMock = mockFetchOnce({
+      status: 200,
+      body: { ok: true, data: { ok: true }, error: null },
+    });
+    await pauseDeployment({ jwt: "j", deploymentId: "a/b c" });
+    const [url] = fetchMock.mock.calls[0];
+    expect(url).toBe(`${BASE}/api/admin/firmware/deployment/a%2Fb%20c/abort`);
+  });
+
+  it("does NOT call the v1 plural path (stub returns 501)", async () => {
+    const fetchMock = mockFetchOnce({
+      status: 200,
+      body: { ok: true, data: { ok: true }, error: null },
+    });
+    await pauseDeployment({ jwt: "j", deploymentId: "dep-1" });
+    const [url] = fetchMock.mock.calls[0];
+    expect(url).not.toContain("/api/v1/admin/firmware/deployments/");
+    expect(url).not.toContain("/pause");
+  });
+});
+
+describe("resumeDeployment", () => {
+  it("POSTs to legacy singular /api/admin/firmware/deployment/:id/resume", async () => {
+    const fetchMock = mockFetchOnce({
+      status: 200,
+      body: { ok: true, data: { ok: true }, error: null },
+    });
+    await resumeDeployment({ jwt: "j", deploymentId: "dep-1", reason: "verified rollback" });
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe(`${BASE}/api/admin/firmware/deployment/dep-1/resume`);
+    expect(init.method).toBe("POST");
+    expect(JSON.parse(init.body)).toEqual({ reason: "verified rollback" });
+  });
+
+  it("omits reason from body when not provided", async () => {
+    const fetchMock = mockFetchOnce({
+      status: 200,
+      body: { ok: true, data: { ok: true }, error: null },
+    });
+    await resumeDeployment({ jwt: "j", deploymentId: "dep-1" });
+    const [, init] = fetchMock.mock.calls[0];
+    expect(JSON.parse(init.body)).toEqual({});
+  });
+
+  it("does NOT call the v1 plural path (stub returns 501)", async () => {
+    const fetchMock = mockFetchOnce({
+      status: 200,
+      body: { ok: true, data: { ok: true }, error: null },
+    });
+    await resumeDeployment({ jwt: "j", deploymentId: "dep-1" });
+    const [url] = fetchMock.mock.calls[0];
+    expect(url).not.toContain("/api/v1/admin/firmware/deployments/");
   });
 });

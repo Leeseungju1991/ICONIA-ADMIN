@@ -46,6 +46,9 @@ const CSP_DIRECTIVES = [
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  // Emit a minimal self-contained server bundle (.next/standalone) for the
+  // Docker image (see admin/Dockerfile). Required by the ECS Fargate deploy.
+  output: "standalone",
   experimental: {
     serverActions: {
       // 운영 설정: env ADMIN_ALLOWED_ORIGIN 에 쉼표 구분 origin 나열 (admin.iconia.example).

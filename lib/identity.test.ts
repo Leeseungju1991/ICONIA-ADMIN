@@ -12,26 +12,35 @@ function jwtWith(payload: Record<string, unknown>): string {
 }
 
 describe("readIdentityFromJwt", () => {
-  it("returns email + null role when payload omits role", () => {
+  it("returns email + null role + null id when payload omits role/sub", () => {
     expect(readIdentityFromJwt(jwtWith({ email: "ops@example.com" }))).toEqual({
       email: "ops@example.com",
       role: null,
+      id: null,
     });
   });
 
   it("returns email + role when role is a known operator role", () => {
     expect(
       readIdentityFromJwt(jwtWith({ email: "sa@example.com", role: "superadmin" })),
-    ).toEqual({ email: "sa@example.com", role: "superadmin" });
+    ).toEqual({ email: "sa@example.com", role: "superadmin", id: null });
     expect(
       readIdentityFromJwt(jwtWith({ email: "v@example.com", role: "viewer" })),
-    ).toEqual({ email: "v@example.com", role: "viewer" });
+    ).toEqual({ email: "v@example.com", role: "viewer", id: null });
+  });
+
+  it("returns id from sub when present", () => {
+    expect(
+      readIdentityFromJwt(
+        jwtWith({ email: "sa@example.com", role: "superadmin", sub: "op-uuid-1" }),
+      ),
+    ).toEqual({ email: "sa@example.com", role: "superadmin", id: "op-uuid-1" });
   });
 
   it("returns null role for unknown role values", () => {
     expect(
       readIdentityFromJwt(jwtWith({ email: "a@b.com", role: "god", sub: "x" })),
-    ).toEqual({ email: "a@b.com", role: null });
+    ).toEqual({ email: "a@b.com", role: null, id: "x" });
   });
 
   it("returns null when email is missing", () => {
