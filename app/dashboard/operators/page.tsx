@@ -2,6 +2,7 @@ import { readSession } from "@/lib/authCookie";
 import { listOperators, type OperatorRow } from "@/lib/adminApi";
 import { disableOperatorAction } from "@/lib/actions/operators";
 import { ConfirmActionForm } from "@/app/components/ConfirmActionForm";
+import { messageForCode } from "@/lib/errorMessages";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +16,7 @@ export default async function OperatorsPage() {
       <p className="muted">쓰택 / SecOps / SRE / Superadmin 계정. TOTP 등록 여부, 마지막 로그인, 비활성화 상태. 비활성화는 이중 확인 + 사유 필수 (audit 동반).</p>
 
       {!res.ok ? (
-        <div className="error">{res.code}: {res.message}</div>
+        <div className="error" role="alert">{messageForCode(res.code, res.message)}</div>
       ) : res.data.operators.length === 0 ? (
         <div className="empty">등록된 운영자 없음</div>
       ) : (

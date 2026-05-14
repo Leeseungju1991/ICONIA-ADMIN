@@ -1,5 +1,6 @@
 import { readSession } from "@/lib/authCookie";
 import { getAiHealth } from "@/lib/adminApi";
+import { messageForCode } from "@/lib/errorMessages";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +14,7 @@ export default async function AiHealthPage() {
       <p className="muted">5분 sliding window 기준 fallback rate / latency / error code 분포.</p>
 
       {!res.ok ? (
-        <div className="error">{res.code}: {res.message}</div>
+        <div className="error" role="alert">{messageForCode(res.code, res.message)}</div>
       ) : (
         <>
           <div className="tiles">
