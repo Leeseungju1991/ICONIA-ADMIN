@@ -51,6 +51,7 @@ const REASON_TO_MESSAGE: Record<string, string> = {
   expired: "세션이 만료되었습니다. 다시 로그인해주세요.",
   invalid: "유효하지 않은 세션입니다.",
   mfa_expired: "MFA 세션이 만료되었습니다. 다시 로그인해주세요.",
+  idle: "장시간 사용하지 않아 자동 로그아웃되었습니다. 다시 로그인해주세요.",
 };
 
 export function reasonMessage(

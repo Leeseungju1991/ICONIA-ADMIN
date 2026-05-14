@@ -4,6 +4,8 @@ import { readSession, clearSession } from "@/lib/authCookie";
 import { readIdentityFromJwt } from "@/lib/identity";
 import { roleAllowed, type OperatorRole } from "@/lib/operatorRoles";
 import { LogoutButton } from "@/app/components/LogoutButton";
+import { IdleTimer } from "@/app/components/IdleTimer";
+import { loadIdleTimeoutMinutes } from "@/lib/env";
 
 // Dashboard layout — 공유 사이드바 + auth 검사 for /dashboard/*.
 // Auth 검사는 middleware 도 하지만 레이아웃에서도 다시 — server-side 데이터 fetch 시 identity가
@@ -42,6 +44,7 @@ export default function DashboardLayout({
   }
 
   const visibleNav = NAV.filter((n) => !n.allowedRoles || roleAllowed(identity.role, n.allowedRoles));
+  const idleTimeoutMinutes = loadIdleTimeoutMinutes();
 
   return (
     <main className="shell">
@@ -61,6 +64,7 @@ export default function DashboardLayout({
         </div>
       </aside>
       <section className="workspace">{children}</section>
+      <IdleTimer timeoutMinutes={idleTimeoutMinutes} />
     </main>
   );
 }
