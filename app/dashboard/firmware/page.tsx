@@ -2,6 +2,7 @@ import { readSession } from "@/lib/authCookie";
 import { listFirmware, type DeploymentRow, type FirmwareVersionRow } from "@/lib/adminApi";
 import { pauseDeploymentAction, resumeDeploymentAction } from "@/lib/actions/firmware";
 import { ConfirmActionForm } from "@/app/components/ConfirmActionForm";
+import { messageForCode } from "@/lib/errorMessages";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +25,7 @@ export default async function FirmwarePage() {
     return (
       <div className="page">
         <h1>펌웨어 배포</h1>
-        <div className="error">{res.code}: {res.message}</div>
+        <div className="error" role="alert">{messageForCode(res.code, res.message)}</div>
       </div>
     );
   }

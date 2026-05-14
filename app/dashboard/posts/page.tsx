@@ -2,6 +2,7 @@ import { readSession } from "@/lib/authCookie";
 import { listPosts, type PostRow } from "@/lib/adminApi";
 import { hidePostAction, unhidePostAction } from "@/lib/actions/posts";
 import { ConfirmActionForm } from "@/app/components/ConfirmActionForm";
+import { messageForCode } from "@/lib/errorMessages";
 
 export const dynamic = "force-dynamic";
 
@@ -35,7 +36,7 @@ export default async function PostsPage({
       </form>
 
       {!res.ok ? (
-        <div className="error">{res.code}: {res.message}</div>
+        <div className="error" role="alert">{messageForCode(res.code, res.message)}</div>
       ) : res.data.items.length === 0 ? (
         <div className="empty">결과 없음</div>
       ) : (

@@ -1,6 +1,7 @@
 import { readSession } from "@/lib/authCookie";
 import { listOrders, type AdminOrderRow } from "@/lib/adminApi";
 import { syncOrdersAction } from "@/lib/actions/commerce";
+import { messageForCode } from "@/lib/errorMessages";
 
 export const dynamic = "force-dynamic";
 
@@ -63,7 +64,7 @@ export default async function OrdersPage({
       </div>
 
       {!res.ok ? (
-        <div className="error">{res.code}: {res.message}</div>
+        <div className="error" role="alert">{messageForCode(res.code, res.message)}</div>
       ) : res.data.items.length === 0 ? (
         <div className="empty">주문 없음</div>
       ) : (

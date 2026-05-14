@@ -1,6 +1,7 @@
 import { readSession } from "@/lib/authCookie";
 import { listProducts, type ProductRow } from "@/lib/adminApi";
 import { syncProductsAction, syncCategoriesAction } from "@/lib/actions/commerce";
+import { messageForCode } from "@/lib/errorMessages";
 
 export const dynamic = "force-dynamic";
 
@@ -31,7 +32,7 @@ export default async function ProductsPage({
       </div>
 
       {!res.ok ? (
-        <div className="error">{res.code}: {res.message}</div>
+        <div className="error" role="alert">{messageForCode(res.code, res.message)}</div>
       ) : res.data.items.length === 0 ? (
         <div className="empty">동기화된 상품 없음. 상단 &ldquo;상품 동기화&rdquo; 버튼.</div>
       ) : (

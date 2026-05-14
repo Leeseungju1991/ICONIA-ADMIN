@@ -1,5 +1,6 @@
 import { readSession } from "@/lib/authCookie";
 import { listAuditLog, type AuditEntry } from "@/lib/auditApi";
+import { messageForCode } from "@/lib/errorMessages";
 
 export const dynamic = "force-dynamic";
 
@@ -65,7 +66,7 @@ export default async function AuditPage({
       </form>
 
       {!res.ok ? (
-        <div className="error">{res.code}: {res.message}</div>
+        <div className="error" role="alert">{messageForCode(res.code, res.message)}</div>
       ) : res.data.items.length === 0 ? (
         <div className="empty">조건에 맞는 기록 없음</div>
       ) : (

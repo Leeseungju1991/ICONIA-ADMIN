@@ -1,5 +1,6 @@
 import { readSession } from "@/lib/authCookie";
 import { listWebhookEvents, type WebhookEventRow } from "@/lib/adminApi";
+import { messageForCode } from "@/lib/errorMessages";
 
 export const dynamic = "force-dynamic";
 
@@ -39,7 +40,7 @@ export default async function WebhooksPage({
       </form>
 
       {!res.ok ? (
-        <div className="error">{res.code}: {res.message}</div>
+        <div className="error" role="alert">{messageForCode(res.code, res.message)}</div>
       ) : res.data.items.length === 0 ? (
         <div className="empty">이벤트 없음</div>
       ) : (

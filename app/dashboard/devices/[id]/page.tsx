@@ -3,6 +3,7 @@ import { readSession } from "@/lib/authCookie";
 import { getDeviceDetail } from "@/lib/adminApi";
 import { forceUnpairAction, markLostAction } from "@/lib/actions/devices";
 import { ConfirmActionForm } from "@/app/components/ConfirmActionForm";
+import { messageForCode } from "@/lib/errorMessages";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +19,7 @@ export default async function DeviceDetailPage({
     return (
       <div className="page">
         <h1>디바이스 상세</h1>
-        <div className="error">{res.code}: {res.message}</div>
+        <div className="error" role="alert">{messageForCode(res.code, res.message)}</div>
         <Link href="/dashboard/devices">← 목록</Link>
       </div>
     );
