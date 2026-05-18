@@ -1,3 +1,20 @@
+import Alert from "@mui/material/Alert";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Card from "@mui/material/Card";
+import CardContent from "@mui/material/CardContent";
+import CardHeader from "@mui/material/CardHeader";
+import Chip from "@mui/material/Chip";
+import MenuItem from "@mui/material/MenuItem";
+import Stack from "@mui/material/Stack";
+import Table from "@mui/material/Table";
+import TableBody from "@mui/material/TableBody";
+import TableCell from "@mui/material/TableCell";
+import TableContainer from "@mui/material/TableContainer";
+import TableHead from "@mui/material/TableHead";
+import TableRow from "@mui/material/TableRow";
+import TextField from "@mui/material/TextField";
+import Typography from "@mui/material/Typography";
 import { readSession } from "@/lib/authCookie";
 import { listPosts, type PostRow } from "@/lib/adminApi";
 import { hidePostAction, unhidePostAction } from "@/lib/actions/posts";
@@ -9,9 +26,9 @@ import { readIdentityFromJwt } from "@/lib/identity";
 export const dynamic = "force-dynamic";
 
 function StatusBadge({ status }: { status: string }) {
-  if (status === "hidden") return <span className="badge warn">숨김</span>;
-  if (status === "taken_down") return <span className="badge err">내림</span>;
-  return <span className="badge ok">공개</span>;
+  if (status === "hidden") return <Chip label="숨김" size="small" color="warning" />;
+  if (status === "taken_down") return <Chip label="내림" size="small" color="error" />;
+  return <Chip label="공개" size="small" color="success" />;
 }
 
 export default async function PostsPage({
@@ -21,93 +38,131 @@ export default async function PostsPage({
 }) {
   const jwt = readSession()!;
   const identity = readIdentityFromJwt(jwt);
-  // viewer 는 mutating 액션 차단 — 버튼 disabled + "권한 없음" tooltip (P2 round).
-  // 서버도 403 차단 (cs/secops/sre/superadmin only) — admin web 은 UX 가시화만.
   const canMutate = identity?.role !== "viewer";
   const filter = searchParams.filter ?? "reported";
   const res = await listPosts({ jwt, filter, limit: 50 });
 
   return (
-    <div className="page">
-      <h1>게시물 모더레이션</h1>
-      <p className="muted">신고 누적, 숨김, 내림 처리. 일반 공개 게시물은 &ldquo;전체&rdquo; 필터에서 조회. 액션은 사전 확인 + 사유 필수.</p>
+    <Box>
+      <Box sx={{ mb: 3 }}>
+        <Typography variant="h4" component="h1" sx={{ fontWeight: 700 }}>
+          게시물 모더레이션
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          신고 누적, 숨김, 내림 처리. 일반 공개 게시물은 &ldquo;전체&rdquo; 필터에서 조회. 액션은 사전 확인 + 사유 필수.
+        </Typography>
+      </Box>
 
-      <form className="toolbar">
-        <select name="filter" defaultValue={filter}>
-          <option value="reported">신고됨</option>
-          <option value="hidden">숨김</option>
-          <option value="all">전체</option>
-        </select>
-        <button className="btn small" type="submit">적용</button>
-      </form>
+      <Box component="form" sx={{ mb: 3 }}>
+        <Stack direction="row" spacing={2} alignItems="center">
+          <TextField
+            select
+            name="filter"
+            label="filter"
+            defaultValue={filter}
+            size="small"
+            sx={{ minWidth: 200 }}
+          >
+            <MenuItem value="reported">신고됨</MenuItem>
+            <MenuItem value="hidden">숨김</MenuItem>
+            <MenuItem value="all">전체</MenuItem>
+          </TextField>
+          <Button type="submit" variant="contained" size="medium">적용</Button>
+        </Stack>
+      </Box>
 
       {!res.ok ? (
-        <div className="error" role="alert">{messageForCode(res.code, res.message)}</div>
-      ) : res.data.items.length === 0 ? (
-        <div className="empty">결과 없음</div>
+        <Alert severity="error" role="alert">{messageForCode(res.code, res.message)}</Alert>
       ) : (
-        <table className="list">
-          <thead>
-            <tr>
-              <th>post_id</th>
-              <th>author</th>
-              <th>excerpt</th>
-              <th>신고</th>
-              <th>반응</th>
-              <th>댓글</th>
-              <th>status</th>
-              <th>created</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {res.data.items.map((p: PostRow) => (
-              <tr key={p.post_id}>
-                <td><code>{p.post_id.slice(0, 8)}…</code></td>
-                <td>{p.author_handle ?? p.author_user_id.slice(0, 8)}</td>
-                <td style={{ maxWidth: 320 }}>{p.body_excerpt}</td>
-                <td style={{ color: p.reported_count > 0 ? "var(--error-fg)" : "inherit" }}>{p.reported_count}</td>
-                <td>{p.reaction_count}</td>
-                <td>{p.comment_count}</td>
-                <td><StatusBadge status={p.status} /></td>
-                <td>{new Date(p.created_at).toLocaleString("ko-KR")}</td>
-                <td className="cell-actions">
-                  {p.status === "visible" ? (
-                    canMutate ? (
-                      <ConfirmActionForm
-                        action={hidePostAction}
-                        hidden={{ post_id: p.post_id }}
-                        confirmMessage={`이 게시물을 숨기시겠어요?\n\npost_id=${p.post_id.slice(0, 8)}…`}
-                        reasonRequired
-                        buttonLabel="숨김"
-                        buttonClassName="btn small danger"
-                      />
-                    ) : (
-                      <DisabledActionButton buttonLabel="숨김" buttonClassName="btn small danger" />
-                    )
-                  ) : p.status === "hidden" ? (
-                    canMutate ? (
-                      <ConfirmActionForm
-                        action={unhidePostAction}
-                        hidden={{ post_id: p.post_id }}
-                        confirmMessage={`숨김을 해제하시겠어요? 게시물이 다시 공개됩니다.\n\npost_id=${p.post_id.slice(0, 8)}…`}
-                        reasonRequired={false}
-                        buttonLabel="숨김 해제"
-                        buttonClassName="btn small secondary"
-                      />
-                    ) : (
-                      <DisabledActionButton
-                        buttonLabel="숨김 해제"
-                        buttonClassName="btn small secondary"
-                      />
-                    )
-                  ) : null}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <Card>
+          <CardHeader
+            title="게시물"
+            subheader={res.data.items.length === 0 ? "결과 없음" : `${res.data.items.length}개 표시`}
+          />
+          <CardContent sx={{ p: 0, "&:last-child": { pb: 0 } }}>
+            {res.data.items.length === 0 ? (
+              <Box sx={{ p: 3 }}>
+                <Alert severity="info" variant="outlined">결과 없음</Alert>
+              </Box>
+            ) : (
+              <TableContainer>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>post_id</TableCell>
+                      <TableCell>author</TableCell>
+                      <TableCell>excerpt</TableCell>
+                      <TableCell>신고</TableCell>
+                      <TableCell>반응</TableCell>
+                      <TableCell>댓글</TableCell>
+                      <TableCell>status</TableCell>
+                      <TableCell>created</TableCell>
+                      <TableCell />
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {res.data.items.map((p: PostRow) => (
+                      <TableRow key={p.post_id}>
+                        <TableCell>
+                          <Box component="code" sx={{ fontSize: "0.75rem" }}>{p.post_id.slice(0, 8)}…</Box>
+                        </TableCell>
+                        <TableCell>{p.author_handle ?? p.author_user_id.slice(0, 8)}</TableCell>
+                        <TableCell
+                          sx={{
+                            maxWidth: 320,
+                            overflow: "hidden",
+                            display: "-webkit-box",
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: "vertical",
+                          }}
+                        >
+                          {p.body_excerpt}
+                        </TableCell>
+                        <TableCell sx={{ color: p.reported_count > 0 ? "error.main" : "inherit", fontWeight: p.reported_count > 0 ? 600 : 400 }}>
+                          {p.reported_count}
+                        </TableCell>
+                        <TableCell>{p.reaction_count}</TableCell>
+                        <TableCell>{p.comment_count}</TableCell>
+                        <TableCell><StatusBadge status={p.status} /></TableCell>
+                        <TableCell>{new Date(p.created_at).toLocaleString("ko-KR")}</TableCell>
+                        <TableCell>
+                          {p.status === "visible" ? (
+                            canMutate ? (
+                              <ConfirmActionForm
+                                action={hidePostAction}
+                                hidden={{ post_id: p.post_id }}
+                                confirmMessage={`이 게시물을 숨기시겠어요?\n\npost_id=${p.post_id.slice(0, 8)}…`}
+                                reasonRequired
+                                buttonLabel="숨김"
+                                buttonClassName="btn small danger"
+                              />
+                            ) : (
+                              <DisabledActionButton buttonLabel="숨김" buttonClassName="btn small danger" />
+                            )
+                          ) : p.status === "hidden" ? (
+                            canMutate ? (
+                              <ConfirmActionForm
+                                action={unhidePostAction}
+                                hidden={{ post_id: p.post_id }}
+                                confirmMessage={`숨김을 해제하시겠어요? 게시물이 다시 공개됩니다.\n\npost_id=${p.post_id.slice(0, 8)}…`}
+                                reasonRequired={false}
+                                buttonLabel="숨김 해제"
+                                buttonClassName="btn small secondary"
+                              />
+                            ) : (
+                              <DisabledActionButton buttonLabel="숨김 해제" buttonClassName="btn small secondary" />
+                            )
+                          ) : null}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            )}
+          </CardContent>
+        </Card>
       )}
-    </div>
+    </Box>
   );
 }

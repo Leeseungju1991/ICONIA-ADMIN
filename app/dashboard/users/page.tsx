@@ -1,12 +1,28 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import Alert from "@mui/material/Alert";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Card from "@mui/material/Card";
+import CardContent from "@mui/material/CardContent";
+import CardHeader from "@mui/material/CardHeader";
+import Pagination from "@mui/material/Pagination";
+import PaginationItem from "@mui/material/PaginationItem";
+import Stack from "@mui/material/Stack";
+import Table from "@mui/material/Table";
+import TableBody from "@mui/material/TableBody";
+import TableCell from "@mui/material/TableCell";
+import TableContainer from "@mui/material/TableContainer";
+import TableHead from "@mui/material/TableHead";
+import TableRow from "@mui/material/TableRow";
+import TextField from "@mui/material/TextField";
+import Typography from "@mui/material/Typography";
+import SearchOutlined from "@mui/icons-material/SearchOutlined";
 import { readSession, clearSession } from "@/lib/authCookie";
 import { searchUsers } from "@/lib/adminApi";
 import { messageForCode } from "@/lib/errorMessages";
 
-// 본 페이지는 app/dashboard/layout.tsx 의 사이드바 셸 안에서 렌더된다 — 자체 header/brand/LogoutButton
-// 을 두지 않고 형제 dashboard 페이지들과 동일한 `<div className="page"><h1>…</h1>` 컨벤션을 따른다.
-// (IMPLEMENTATION_BACKLOG §7.5 — Users 페이지 legacy no-sidebar 셸 → dashboard 셸 통일.)
+// 본 페이지는 app/dashboard/layout.tsx 의 사이드바 셸 안에서 렌더된다.
 export const dynamic = "force-dynamic";
 
 function fmt(value: string | null | undefined): string {
@@ -14,10 +30,6 @@ function fmt(value: string | null | undefined): string {
   return new Date(value).toLocaleString("ko-KR");
 }
 
-// 페이지 단위 50건 — Server 의 GET /api/v1/admin/users 는 cursor 미지원
-// (UsersList = { users, total }). 클라이언트 사이드 페이지네이션 fallback:
-// limit=PAGE_SIZE*MAX_PAGES_FETCHED 로 한 번 받고 page=N 으로 slice.
-// (P1 §5.2 #33 — 50건 limit 의 무한 noise 회복.)
 const PAGE_SIZE = 50;
 const MAX_PAGES_FETCHED = 10; // 한 번에 최대 500건만 client 메모리에 보관
 
@@ -32,9 +44,7 @@ export default async function UsersSearchPage({
   const query = (searchParams?.email || "").trim();
   const requestedPage = Math.max(1, Number.parseInt(searchParams?.page ?? "1", 10) || 1);
 
-  let result = null as
-    | Awaited<ReturnType<typeof searchUsers>>
-    | null;
+  let result = null as Awaited<ReturnType<typeof searchUsers>> | null;
   if (query) {
     result = await searchUsers({
       jwt: jwt!,
@@ -53,119 +63,119 @@ export default async function UsersSearchPage({
     }
   }
 
-  // client-side pagination — Server cursor 미지원 시 fallback (#33).
   const allUsers = result && result.ok ? result.data.users : [];
   const totalPages = Math.max(1, Math.ceil(allUsers.length / PAGE_SIZE));
   const page = Math.min(requestedPage, totalPages);
   const sliceStart = (page - 1) * PAGE_SIZE;
   const pageUsers = allUsers.slice(sliceStart, sliceStart + PAGE_SIZE);
-  const hasMore = page < totalPages;
-  const hasPrev = page > 1;
 
   return (
-    <div className="page">
-      <h1>사용자 검색</h1>
-      <p className="muted">이메일(또는 일부)로 사용자를 검색해 상태·TOTP·가입일을 확인하고 상세로 이동합니다.</p>
+    <Box>
+      <Box sx={{ mb: 3 }}>
+        <Typography variant="h4" component="h1" sx={{ fontWeight: 700 }}>
+          사용자 검색
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          이메일(또는 일부)로 사용자를 검색해 상태·TOTP·가입일을 확인하고 상세로 이동합니다.
+        </Typography>
+      </Box>
 
-      <section style={{ marginBottom: 20 }}>
-        <form action="/dashboard/users" method="get">
-          <div className="form-row">
-            <label htmlFor="email">이메일 또는 일부 (예: alice 또는 @example.com)</label>
-            <input
-              id="email"
-              name="email"
-              type="text"
-              defaultValue={query}
-              placeholder="alice"
-              autoFocus
-            />
-          </div>
-          <button className="btn" type="submit" style={{ width: "auto" }}>
-            검색
-          </button>
-        </form>
-      </section>
+      <Card sx={{ mb: 3 }}>
+        <CardContent>
+          <form action="/dashboard/users" method="get">
+            <Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems={{ sm: "flex-end" }}>
+              <TextField
+                id="email"
+                name="email"
+                type="text"
+                label="이메일 또는 일부"
+                placeholder="alice 또는 @example.com"
+                defaultValue={query}
+                autoFocus
+                size="small"
+                fullWidth
+              />
+              <Button type="submit" variant="contained" startIcon={<SearchOutlined />} sx={{ minWidth: 120 }}>
+                검색
+              </Button>
+            </Stack>
+          </form>
+        </CardContent>
+      </Card>
 
       {result && !result.ok ? (
-        <div className="error" role="alert">
+        <Alert severity="error" role="alert">
           {messageForCode(result.code)}
-        </div>
+        </Alert>
       ) : null}
 
       {result && result.ok ? (
-        <section>
-          <h2 style={{ marginBottom: 8 }}>
-            결과 ({allUsers.length}건{allUsers.length >= PAGE_SIZE * MAX_PAGES_FETCHED ? "+" : ""})
-          </h2>
-          {allUsers.length === 0 ? (
-            <p style={{ color: "var(--muted)" }}>일치하는 사용자가 없습니다.</p>
-          ) : (
-            <>
-              <p style={{ color: "var(--muted)", fontSize: 13 }}>
-                페이지 {page} / {totalPages} · 보기 {sliceStart + 1}–
-                {sliceStart + pageUsers.length}
-              </p>
-              <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                <thead>
-                  <tr style={{ textAlign: "left", color: "var(--muted)", fontSize: 13 }}>
-                    <th style={{ padding: "8px 4px", borderBottom: "1px solid var(--border)" }}>이메일</th>
-                    <th style={{ padding: "8px 4px", borderBottom: "1px solid var(--border)" }}>상태</th>
-                    <th style={{ padding: "8px 4px", borderBottom: "1px solid var(--border)" }}>TOTP</th>
-                    <th style={{ padding: "8px 4px", borderBottom: "1px solid var(--border)" }}>가입일</th>
-                    <th style={{ padding: "8px 4px", borderBottom: "1px solid var(--border)" }}>액션</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {pageUsers.map((u) => (
-                    <tr key={u.id}>
-                      <td style={{ padding: "10px 4px", borderBottom: "1px solid var(--border)" }}>
-                        {u.email}
-                      </td>
-                      <td style={{ padding: "10px 4px", borderBottom: "1px solid var(--border)" }}>
-                        {u.account_status ?? "—"}
-                      </td>
-                      <td style={{ padding: "10px 4px", borderBottom: "1px solid var(--border)" }}>
-                        {u.totp_enabled ? "✓" : "—"}
-                      </td>
-                      <td style={{ padding: "10px 4px", borderBottom: "1px solid var(--border)", color: "var(--muted)", fontSize: 13 }}>
-                        {fmt(u.created_at)}
-                      </td>
-                      <td style={{ padding: "10px 4px", borderBottom: "1px solid var(--border)" }}>
-                        <Link href={`/dashboard/users/${u.id}`}>상세</Link>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              <nav
-                aria-label="페이지네이션"
-                style={{ display: "flex", gap: 16, marginTop: 16, fontSize: 14 }}
-              >
-                {hasPrev ? (
-                  <Link
-                    href={`?email=${encodeURIComponent(query)}&page=${page - 1}`}
-                    rel="prev"
-                  >
-                    ← 이전
-                  </Link>
-                ) : (
-                  <span style={{ color: "var(--muted)" }}>← 이전</span>
-                )}
-                {hasMore ? (
-                  <Link
-                    href={`?email=${encodeURIComponent(query)}&page=${page + 1}`}
-                    rel="next"
-                  >
-                    다음 →
-                  </Link>
-                ) : (
-                  <span style={{ color: "var(--muted)" }}>다음 →</span>
-                )}
-              </nav>
-            </>
-          )}
-        </section>
+        <Card>
+          <CardHeader
+            title={`결과 (${allUsers.length}건${allUsers.length >= PAGE_SIZE * MAX_PAGES_FETCHED ? "+" : ""})`}
+            subheader={
+              allUsers.length === 0
+                ? "일치하는 사용자가 없습니다."
+                : `페이지 ${page} / ${totalPages} · 보기 ${sliceStart + 1}–${sliceStart + pageUsers.length}`
+            }
+          />
+          <CardContent sx={{ p: 0, "&:last-child": { pb: 0 } }}>
+            {allUsers.length === 0 ? (
+              <Box sx={{ p: 3 }}>
+                <Alert severity="info" variant="outlined">일치하는 사용자가 없습니다.</Alert>
+              </Box>
+            ) : (
+              <>
+                <TableContainer>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>이메일</TableCell>
+                        <TableCell>상태</TableCell>
+                        <TableCell>TOTP</TableCell>
+                        <TableCell>가입일</TableCell>
+                        <TableCell>액션</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {pageUsers.map((u) => (
+                        <TableRow key={u.id}>
+                          <TableCell>{u.email}</TableCell>
+                          <TableCell>{u.account_status ?? "—"}</TableCell>
+                          <TableCell>{u.totp_enabled ? "✓" : "—"}</TableCell>
+                          <TableCell sx={{ color: "text.secondary", fontSize: "0.8125rem" }}>
+                            {fmt(u.created_at)}
+                          </TableCell>
+                          <TableCell>
+                            <Link href={`/dashboard/users/${u.id}`}>상세</Link>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+                {totalPages > 1 ? (
+                  <Box sx={{ p: 2, display: "flex", justifyContent: "center" }}>
+                    <Pagination
+                      count={totalPages}
+                      page={page}
+                      siblingCount={1}
+                      boundaryCount={1}
+                      renderItem={(item) => (
+                        <PaginationItem
+                          component={Link}
+                          href={`?email=${encodeURIComponent(query)}&page=${item.page}`}
+                          {...item}
+                        />
+                      )}
+                    />
+                  </Box>
+                ) : null}
+              </>
+            )}
+          </CardContent>
+        </Card>
       ) : null}
-    </div>
+    </Box>
   );
 }

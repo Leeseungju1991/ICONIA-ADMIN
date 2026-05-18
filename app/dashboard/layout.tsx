@@ -1,34 +1,22 @@
 import { redirect } from "next/navigation";
-import Link from "next/link";
-import { readSession, clearSession } from "@/lib/authCookie";
+import Box from "@mui/material/Box";
+import { readSession } from "@/lib/authCookie";
 import { readIdentityFromJwt } from "@/lib/identity";
-import { roleAllowed, type OperatorRole } from "@/lib/operatorRoles";
-import { LogoutButton } from "@/app/components/LogoutButton";
-import { EnvBadge } from "@/app/components/EnvBadge";
+import { roleAllowed } from "@/lib/operatorRoles";
 import { IdleTimer } from "@/app/components/IdleTimer";
 import { loadIdleTimeoutMinutes } from "@/lib/env";
+import { Sidebar, SIDEBAR_WIDTH } from "@/app/components/dashboard/Sidebar";
+import { DashboardAppBar } from "@/app/components/dashboard/AppBar";
+import { NAV_ITEMS } from "@/app/components/dashboard/navConfig";
 
-// Dashboard layout — 공유 사이드바 + auth 검사 for /dashboard/*.
-// Auth 검사는 middleware 도 하지만 레이아웃에서도 다시 — server-side 데이터 fetch 시 identity가
-// 필요하고, role 기반 네비 숨김도 여기서 처리.
+// Dashboard layout — 다크 사이드바 + 투명 AppBar(브레드크럼) shell.
+// Auth 검사는 middleware 도 하지만 layout 에서도 다시 — server-side fetch 시 identity 가
+// 필요하고, role 기반 nav 숨김도 여기서.
+//
+// 주의: invalid identity 분기에서 clearSession() 호출하지 않는다 (working-copy 의도).
+//       login 페이지로 redirect 만.
 
 export const dynamic = "force-dynamic";
-
-type NavItem = { href: string; label: string; allowedRoles?: OperatorRole[] };
-const NAV: NavItem[] = [
-  { href: "/dashboard", label: "☰ 개요" },
-  { href: "/dashboard/users", label: "사용자", allowedRoles: ["superadmin", "sre", "secops", "cs"] },
-  { href: "/dashboard/devices", label: "디바이스", allowedRoles: ["superadmin", "sre", "secops"] },
-  { href: "/dashboard/firmware", label: "펌웨어 배포", allowedRoles: ["superadmin", "sre", "secops"] },
-  { href: "/dashboard/ai-health", label: "AI 상태" },
-  { href: "/dashboard/knowledge", label: "Knowledge Base" },
-  { href: "/dashboard/posts", label: "게시물 모더레이션" },
-  { href: "/dashboard/audit", label: "⚱ Audit 로그", allowedRoles: ["superadmin", "sre", "secops"] },
-  { href: "/dashboard/operators", label: "운영자", allowedRoles: ["superadmin"] },
-  { href: "/dashboard/commerce/products", label: "— 상품" },
-  { href: "/dashboard/commerce/orders", label: "— 주문" },
-  { href: "/dashboard/commerce/webhooks", label: "— 웹훅" },
-];
 
 export default function DashboardLayout({
   children,
@@ -39,36 +27,33 @@ export default function DashboardLayout({
   if (!jwt) redirect("/login");
 
   const identity = readIdentityFromJwt(jwt);
-  if (!identity) {
-    clearSession();
-    redirect("/login?reason=invalid");
-  }
+  if (!identity) redirect("/login?reason=invalid");
 
-  const visibleNav = NAV.filter((n) => !n.allowedRoles || roleAllowed(identity.role, n.allowedRoles));
+  const visibleNav = NAV_ITEMS.filter(
+    (n) => !n.allowedRoles || roleAllowed(identity.role, n.allowedRoles),
+  );
   const idleTimeoutMinutes = loadIdleTimeoutMinutes();
 
   return (
-    <main className="shell">
-      <aside className="sidebar">
-        <div className="brand">
-          <span style={{ marginRight: 8 }}>ICONIA Admin</span>
-          <EnvBadge />
-        </div>
-        <nav>
-          {visibleNav.map((item) => (
-            <Link key={item.href} href={item.href} className="nav-link">
-              {item.label}
-            </Link>
-          ))}
-        </nav>
-        <div className="sidebar-foot">
-          <div className="who">{identity.email}</div>
-          {identity.role ? <div className="who" style={{ color: "var(--accent)" }}>{identity.role}</div> : null}
-          <LogoutButton />
-        </div>
-      </aside>
-      <section className="workspace">{children}</section>
+    <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "background.default" }}>
+      <Sidebar
+        visibleNav={visibleNav}
+        identity={{ email: identity.email ?? null, role: identity.role ?? null }}
+      />
+      <Box
+        component="main"
+        sx={{
+          flexGrow: 1,
+          ml: { md: `${SIDEBAR_WIDTH}px` },
+          px: { xs: 2, sm: 3, md: 4 },
+          py: { xs: 2, md: 3 },
+          minWidth: 0,
+        }}
+      >
+        <DashboardAppBar />
+        <Box sx={{ pt: 1 }}>{children}</Box>
+      </Box>
       <IdleTimer timeoutMinutes={idleTimeoutMinutes} />
-    </main>
+    </Box>
   );
 }

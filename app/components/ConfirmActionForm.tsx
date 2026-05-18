@@ -2,15 +2,16 @@
 
 // 운영자 파괴적 액션에 사전 확인 + 사유 입력 강제.
 //
-// 표 내 액션에 사용 — 서버 액션을 자체 호출하는 세는 클라이언트 컴포넌트.
+// 표 내 액션에 사용 — 서버 액션을 자체 호출하는 클라이언트 컴포넌트.
 //   1. confirm("정말 X하시겠어요?")
 //   2. (reasonRequired=true 일 때) prompt("사유를 입력하세요 — 최소 5자")
 //   3. FormData 구성 후 server action 호출
 //
-// 권장: hide/unhide, force-unpair, mark-lost, disable 등 돌이키기 따로 조작이 드는 액션에
-// 모두 적용. 일반 조회/삭제 아닌 트리거 액션은 일반 form 그대로 사용.
+// window.confirm/prompt/alert 유지 — 테스트가 stub 하므로 MUI Dialog 로 바꾸지 않는다.
+// MUI Button 으로 스킨만 변경, buttonClassName 은 그대로 forward (DisabledActionButton 과 동일 패턴).
 
 import { useTransition } from "react";
+import Button from "@mui/material/Button";
 
 export type ConfirmActionFormProps = {
   action: (formData: FormData) => Promise<unknown>;
@@ -20,6 +21,23 @@ export type ConfirmActionFormProps = {
   buttonLabel: string;
   buttonClassName?: string;
 };
+
+// buttonClassName 단서로 MUI Button props 추출.
+//   "danger" → color="error", "secondary" → variant="outlined", "small" → size="small",
+//   "full" → fullWidth.
+function deriveButtonProps(className: string) {
+  const tokens = className.split(/\s+/).filter(Boolean);
+  const isDanger = tokens.includes("danger");
+  const isSecondary = tokens.includes("secondary");
+  const isSmall = tokens.includes("small");
+  const isFull = tokens.includes("full");
+  return {
+    color: isDanger ? ("error" as const) : ("primary" as const),
+    variant: isSecondary ? ("outlined" as const) : ("contained" as const),
+    size: isSmall ? ("small" as const) : ("medium" as const),
+    fullWidth: isFull,
+  };
+}
 
 export function ConfirmActionForm({
   action,
@@ -55,15 +73,21 @@ export function ConfirmActionForm({
     });
   };
 
+  const { color, variant, size, fullWidth } = deriveButtonProps(buttonClassName);
+
   return (
-    <button
+    <Button
       onClick={onClick}
       disabled={pending}
       className={buttonClassName}
       type="button"
       aria-busy={pending}
+      color={color}
+      variant={variant}
+      size={size}
+      fullWidth={fullWidth}
     >
       {pending ? "…" : buttonLabel}
-    </button>
+    </Button>
   );
 }

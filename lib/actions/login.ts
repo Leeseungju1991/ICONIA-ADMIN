@@ -22,7 +22,12 @@ function makeLocalBypassSession(): { jwt: string; expiresAt: string } {
     JSON.stringify({ alg: "none", typ: "JWT" }),
   ).toString("base64url");
   const payload = Buffer.from(
-    JSON.stringify({ sub: "soom", role: "superadmin", exp: expSec }),
+    JSON.stringify({
+      sub: "soom",
+      email: "soom@local",
+      role: "superadmin",
+      exp: expSec,
+    }),
   ).toString("base64url");
   return {
     jwt: `${header}.${payload}.local`,

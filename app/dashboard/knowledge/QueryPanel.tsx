@@ -1,12 +1,20 @@
 "use client";
 
-// 쿼리 테스트 패널 — textarea + backend override 토글 + "실행" 버튼.
-// testQueryAction({question, backendOverride}) 을 useTransition 으로 호출,
-// 반환된 RagQueryData(answer / citations / backend / latency_ms) 를 렌더. snake_case 그대로.
-
 import { useState, useTransition } from "react";
+import Accordion from "@mui/material/Accordion";
+import AccordionDetails from "@mui/material/AccordionDetails";
+import AccordionSummary from "@mui/material/AccordionSummary";
+import Alert from "@mui/material/Alert";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Stack from "@mui/material/Stack";
+import TextField from "@mui/material/TextField";
+import Typography from "@mui/material/Typography";
+import ExpandMoreOutlined from "@mui/icons-material/ExpandMoreOutlined";
 import { testQueryAction } from "./actions";
 import type { RagQueryData } from "@/lib/api/rag";
+
+// 쿼리 테스트 패널 — textarea + backend override 토글 + "실행" 버튼.
 
 type BackendChoice = "" | "mock" | "bedrock";
 
@@ -39,64 +47,123 @@ export function QueryPanel() {
   };
 
   return (
-    <form onSubmit={onSubmit} data-testid="query-panel">
-      <div className="form-row">
-        <label htmlFor="kb-q">질문</label>
-        <textarea
+    <Box component="form" onSubmit={onSubmit} data-testid="query-panel">
+      <Stack spacing={2}>
+        <TextField
           id="kb-q"
-          rows={3}
+          label="질문"
+          multiline
+          minRows={3}
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="예: ICONIA 보증 기간은?"
+          fullWidth
+          size="small"
+          inputProps={{ "aria-label": "질문" }}
         />
-      </div>
-      <div className="form-row">
-        <label htmlFor="kb-backend">backend override</label>
-        <select id="kb-backend" value={backend} onChange={(e) => setBackend(e.target.value as BackendChoice)}>
+        {/* native <select> 사용 — page.test.tsx 가 fireEvent.change(getByLabelText("backend override")) 로 호출. */}
+        <TextField
+          select
+          id="kb-backend"
+          label="backend override"
+          value={backend}
+          onChange={(e) => setBackend(e.target.value as BackendChoice)}
+          fullWidth
+          size="small"
+          inputProps={{ "aria-label": "backend override" }}
+          SelectProps={{ native: true }}
+          helperText="현재 슬라이스에서는 서버 설정(RAG_BACKEND)이 우선합니다 — 위 선택은 종단간 no-op. 실제 사용된 백엔드는 응답의 backend 필드로 확인."
+        >
           <option value="">기본(env가 결정)</option>
           <option value="mock">mock (현 슬라이스 무효 — env가 우선)</option>
           <option value="bedrock">bedrock (현 슬라이스 무효 — env가 우선)</option>
-        </select>
-        <small className="hint" style={{ display: "block", marginTop: 4, opacity: 0.85 }}>
-          ⚠ 현재 슬라이스에서는 서버 설정(<code>RAG_BACKEND</code>)이 우선합니다 — 위 선택은 종단간 no-op. <strong>실제 사용된 백엔드는 아래 응답의 <code>backend</code> 필드</strong>로 확인하세요. (AI 라우트의 <code>X-RAG-Backend</code> 헤더 독해는 후속 작업)
-        </small>
-      </div>
-      <button type="submit" className="btn" disabled={disabled} aria-busy={pending}>
-        {pending ? "실행 중…" : "실행"}
-      </button>
+        </TextField>
+        <Button
+          type="submit"
+          variant="contained"
+          className="btn"
+          disabled={disabled}
+          aria-busy={pending}
+          sx={{ alignSelf: "flex-start" }}
+        >
+          {pending ? "실행 중…" : "실행"}
+        </Button>
 
-      {error ? <div className="error" style={{ marginTop: 14 }}>{error}</div> : null}
+        {error ? <Alert severity="error">{error}</Alert> : null}
 
-      {result ? (
-        <div className="kb-result" data-testid="query-result" style={{ marginTop: 14 }}>
-          <div className="kb-item-meta">
-            backend: {result.backend} · {result.latency_ms}ms · citations: {result.citations.length}
-            {result.truncated ? " · truncated" : ""}
-            {result.session_id ? <> · session_id: <code>{result.session_id}</code></> : null}
-          </div>
-          <pre className="kb-chunk-text">{result.answer}</pre>
-          {result.citations.length > 0 ? (
-            <details>
-              <summary>citations ({result.citations.length})</summary>
-              <ul className="kb-list">
-                {result.citations.map((c, i) => (
-                  <li key={`${c.source_id}-${i}`} className="kb-chunk">
-                    <div className="kb-item-meta">
-                      <code>{c.source_id}</code> · score {c.score}
-                      {c.location?.page != null ? <> · page {c.location.page}</> : null}
-                      {c.location?.section ? <> · {c.location.section}</> : null}
-                    </div>
-                    <pre className="kb-chunk-text">{c.text}</pre>
-                  </li>
-                ))}
-              </ul>
-              <small className="hint" style={{ display: "block", marginTop: 6, opacity: 0.75 }}>
-                score는 0~1 코사인 유사도. bedrock 백엔드의 <code>RetrieveAndGenerate</code>는 retrieval score를 제공하지 않을 수 있어 <code>0</code>으로 표기됩니다 — 정상입니다.
-              </small>
-            </details>
-          ) : null}
-        </div>
-      ) : null}
-    </form>
+        {result ? (
+          <Box data-testid="query-result" sx={{ p: 1.5, border: 1, borderColor: "divider", borderRadius: 1, backgroundColor: "background.default" }}>
+            <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1 }}>
+              backend: {result.backend} · {result.latency_ms}ms · citations: {result.citations.length}
+              {result.truncated ? " · truncated" : ""}
+              {result.session_id ? (
+                <> · session_id: <Box component="code" sx={{ fontSize: "0.6875rem" }}>{result.session_id}</Box></>
+              ) : null}
+            </Typography>
+            <Box
+              component="pre"
+              sx={{
+                m: 0,
+                whiteSpace: "pre-wrap",
+                wordBreak: "break-word",
+                fontSize: "0.8125rem",
+                fontFamily: "inherit",
+                color: "text.primary",
+              }}
+            >
+              {result.answer}
+            </Box>
+            {result.citations.length > 0 ? (
+              <Accordion disableGutters sx={{ mt: 1.5 }}>
+                <AccordionSummary expandIcon={<ExpandMoreOutlined fontSize="small" />}>
+                  <Typography variant="body2" color="text.secondary">
+                    citations ({result.citations.length})
+                  </Typography>
+                </AccordionSummary>
+                <AccordionDetails sx={{ p: 0 }}>
+                  <Stack component="ul" spacing={1} sx={{ m: 0, p: 0, listStyle: "none" }}>
+                    {result.citations.map((c, i) => (
+                      <Box
+                        component="li"
+                        key={`${c.source_id}-${i}`}
+                        sx={{
+                          p: 1.5,
+                          borderRadius: 1,
+                          border: 1,
+                          borderColor: "divider",
+                          backgroundColor: "background.paper",
+                        }}
+                      >
+                        <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.5 }}>
+                          <Box component="code" sx={{ fontSize: "0.6875rem" }}>{c.source_id}</Box>
+                          {" · score "}{c.score}
+                          {c.location?.page != null ? <> · page {c.location.page}</> : null}
+                          {c.location?.section ? <> · {c.location.section}</> : null}
+                        </Typography>
+                        <Box
+                          component="pre"
+                          sx={{
+                            m: 0,
+                            whiteSpace: "pre-wrap",
+                            wordBreak: "break-word",
+                            fontSize: "0.8125rem",
+                            fontFamily: "inherit",
+                          }}
+                        >
+                          {c.text}
+                        </Box>
+                      </Box>
+                    ))}
+                  </Stack>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
+                    score는 0~1 코사인 유사도. bedrock 백엔드의 RetrieveAndGenerate는 retrieval score를 제공하지 않을 수 있어 0으로 표기됩니다 — 정상입니다.
+                  </Typography>
+                </AccordionDetails>
+              </Accordion>
+            ) : null}
+          </Box>
+        ) : null}
+      </Stack>
+    </Box>
   );
 }

@@ -1,21 +1,25 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Dialog from "@mui/material/Dialog";
+import DialogActions from "@mui/material/DialogActions";
+import DialogContent from "@mui/material/DialogContent";
+import DialogTitle from "@mui/material/DialogTitle";
+import Typography from "@mui/material/Typography";
 import { idleLogoutAction } from "@/lib/actions/idleLogout";
 
 // IdleTimer — 운영자 idle 자동 로그아웃 (감사 §5.2 #31 / SOC2 CC6.1).
+//
+// MUI Dialog 로 재스킨 (UI만). 기존 timer/activity/multi-tab 로직 보존.
+// data-testid 들은 Dialog 의 PaperProps 와 DialogContent 내부에 매핑 — 테스트 호환.
 //
 // 동작:
 //   - mouse / keyboard / touch / scroll / visibility 이벤트로 lastActivity 갱신.
 //   - timeoutMs - WARNING_LEAD_MS 시점에 경고 다이얼로그 표시.
 //   - 경고 다이얼로그에서 "계속 사용" 클릭 → 타이머 리셋.
 //   - 경고를 무시하고 timeoutMs 도달 → idleLogoutAction 호출 → /login?reason=idle.
-//
-// 주의:
-//   - tab visibilitychange "hidden" 동안에는 timer 가 일시정지하지 않음
-//     (보안 정책: 자리 비움 = idle 로 간주).
-//   - storage event 로 multi-tab 활동 동기화 — 한 탭에서 활동하면 모든 탭 reset.
-//   - cookie 만료 / network 끊김 등은 catch 하지 않음 (logoutAction 이 best-effort).
 
 const ACTIVITY_EVENTS = [
   "mousemove",
@@ -29,8 +33,7 @@ const ACTIVITY_EVENTS = [
 // 경고 다이얼로그를 띄우는 lead time (ms). 5분 전.
 const WARNING_LEAD_MS = 5 * 60 * 1000;
 
-// 활동 이벤트 throttle (ms) — mousemove 가 너무 자주 발생하면 setState 폭주 방지.
-// 1초 throttle: 사용자 체감엔 영향 없고 reset 정확도 충분.
+// 활동 이벤트 throttle (ms).
 const ACTIVITY_THROTTLE_MS = 1000;
 
 // LocalStorage key — 멀티탭 동기화용.
@@ -38,7 +41,6 @@ const STORAGE_KEY = "iconia_admin_last_activity_ms";
 
 export function IdleTimer({ timeoutMinutes }: { timeoutMinutes: number }) {
   const timeoutMs = Math.max(60_000, timeoutMinutes * 60 * 1000);
-  // 경고 lead time 이 timeout 보다 크면 (e.g. 5분 timeout) 경고는 timeout 의 절반 시점에.
   const warningLeadMs = Math.min(WARNING_LEAD_MS, Math.floor(timeoutMs / 2));
 
   const [showWarning, setShowWarning] = useState(false);
@@ -67,8 +69,6 @@ export function IdleTimer({ timeoutMinutes }: { timeoutMinutes: number }) {
 
   const triggerLogout = useCallback(() => {
     clearTimers();
-    // idleLogoutAction 은 redirect 까지 처리.
-    // network 실패 / cookie 이미 만료 등은 무시 (server side 가 best-effort).
     void idleLogoutAction();
   }, [clearTimers]);
 
@@ -80,7 +80,6 @@ export function IdleTimer({ timeoutMinutes }: { timeoutMinutes: number }) {
     const warnAfter = Math.max(0, timeoutMs - warningLeadMs);
     warnTimerRef.current = setTimeout(() => {
       setShowWarning(true);
-      // countdown
       const countdownStart = Date.now();
       countdownRef.current = setInterval(() => {
         const elapsed = Date.now() - countdownStart;
@@ -91,7 +90,6 @@ export function IdleTimer({ timeoutMinutes }: { timeoutMinutes: number }) {
           countdownRef.current = null;
         }
       }, 1000);
-      // 최종 로그아웃 타이머
       logoutTimerRef.current = setTimeout(triggerLogout, warningLeadMs);
     }, warnAfter);
   }, [clearTimers, timeoutMs, warningLeadMs, triggerLogout]);
@@ -99,7 +97,6 @@ export function IdleTimer({ timeoutMinutes }: { timeoutMinutes: number }) {
   const resetActivity = useCallback(
     (broadcast: boolean) => {
       const now = Date.now();
-      // throttle: 1초 미만 간격은 무시.
       if (now - lastActivityRef.current < ACTIVITY_THROTTLE_MS && !showWarning) {
         return;
       }
@@ -117,7 +114,6 @@ export function IdleTimer({ timeoutMinutes }: { timeoutMinutes: number }) {
     [scheduleTimers, showWarning],
   );
 
-  // 초기 마운트 + 이벤트 리스너 설정.
   useEffect(() => {
     scheduleTimers();
 
@@ -126,8 +122,6 @@ export function IdleTimer({ timeoutMinutes }: { timeoutMinutes: number }) {
       window.addEventListener(ev, onActivity, { passive: true });
     }
 
-    // visibility 가 visible 로 돌아올 때 — 자리 비웠다가 돌아온 경우 lastActivity 검사.
-    // hidden 동안 timeout 초과했으면 즉시 로그아웃.
     const onVisibility = () => {
       if (document.visibilityState === "visible") {
         const elapsed = Date.now() - lastActivityRef.current;
@@ -138,7 +132,6 @@ export function IdleTimer({ timeoutMinutes }: { timeoutMinutes: number }) {
     };
     document.addEventListener("visibilitychange", onVisibility);
 
-    // multi-tab 동기화 — 다른 탭이 활동했으면 lastActivity 만 업데이트.
     const onStorage = (e: StorageEvent) => {
       if (e.key !== STORAGE_KEY || !e.newValue) return;
       const ts = Number.parseInt(e.newValue, 10);
@@ -157,9 +150,6 @@ export function IdleTimer({ timeoutMinutes }: { timeoutMinutes: number }) {
       document.removeEventListener("visibilitychange", onVisibility);
       window.removeEventListener("storage", onStorage);
     };
-    // intentionally exclude resetActivity to keep listener identity stable —
-    // resetActivity captures showWarning, but we close over the latest
-    // scheduleTimers via closure here.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timeoutMs]);
 
@@ -178,51 +168,42 @@ export function IdleTimer({ timeoutMinutes }: { timeoutMinutes: number }) {
       ? `${minutes}분 ${seconds.toString().padStart(2, "0")}초`
       : `${seconds}초`;
 
-  // 다이얼로그 — 기존 .card / .btn 스타일 재사용. role="alertdialog" 로 a11y.
+  // PaperProps 에 data-testid="idle-warning" — 테스트가 getByTestId 로 접근.
   return (
-    <div
-      className="idle-overlay"
-      role="alertdialog"
-      aria-modal="true"
+    <Dialog
+      open
       aria-labelledby="idle-title"
       aria-describedby="idle-desc"
-      data-testid="idle-warning"
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(0,0,0,0.55)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 9999,
-      }}
+      role="alertdialog"
+      maxWidth="xs"
+      fullWidth
+      PaperProps={{ "data-testid": "idle-warning" } as Record<string, unknown>}
     >
-      <div
-        className="card"
-        style={{ maxWidth: 400, width: "90%", padding: 24 }}
-      >
-        <h2 id="idle-title" style={{ marginTop: 0 }}>
-          자동 로그아웃 안내
-        </h2>
-        <p id="idle-desc">
+      <DialogTitle id="idle-title">자동 로그아웃 안내</DialogTitle>
+      <DialogContent>
+        <Typography id="idle-desc" variant="body2" sx={{ mb: 1 }}>
           장시간 입력이 없어 곧 자동 로그아웃됩니다.
-          <br />
+        </Typography>
+        <Typography variant="body1">
           <strong data-testid="idle-countdown">{display}</strong> 후 로그아웃됩니다.
-        </p>
-        <form action={idleLogoutAction} style={{ display: "inline-block", marginRight: 8 }}>
-          <button type="submit" className="btn small secondary">
+        </Typography>
+      </DialogContent>
+      <DialogActions sx={{ px: 3, pb: 2, gap: 1 }}>
+        <Box component="form" action={idleLogoutAction} sx={{ display: "inline-block" }}>
+          <Button type="submit" variant="outlined" size="small" color="inherit">
             지금 로그아웃
-          </button>
-        </form>
-        <button
+          </Button>
+        </Box>
+        <Button
           type="button"
-          className="btn small"
+          variant="contained"
+          size="small"
           onClick={onContinue}
           data-testid="idle-continue"
         >
           계속 사용
-        </button>
-      </div>
-    </div>
+        </Button>
+      </DialogActions>
+    </Dialog>
   );
 }
