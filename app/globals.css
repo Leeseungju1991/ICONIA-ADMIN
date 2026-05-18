@@ -1,31 +1,100 @@
-/* ICONIA Admin — minimal global CSS.
- * MUI ThemeProvider + CssBaseline 이 대부분의 베이스를 담당. 여기에는 다음만 남긴다:
- *   1. .spinner keyframe — LoginForm/MfaForm pending 표시.
- *   2. .kb-item-active 마커 — knowledge/SourcesPanel active 셀, page.test.tsx 가 className 확인.
- *   3. .btn / .btn.small / .btn.full / .btn.danger / .btn.secondary 마커 클래스 —
- *      DisabledActionButton.test.tsx 의 `toHaveClass("btn","small","foo")` 호환용.
- *      MUI Button 이 className 을 그대로 forward 하므로 빈 클래스라도 존재만 하면 OK.
- */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-html, body { padding: 0; margin: 0; }
-
-a { color: inherit; }
-
-/* 마커 클래스 — DOM 에서 존재하기만 하면 됨 (스타일은 MUI 가 담당). */
-.btn,
-.btn.small,
-.btn.full,
-.btn.danger,
-.btn.secondary {
-  /* intentionally empty — used as marker classNames forwarded to MUI Buttons */
+:root {
+  color-scheme: light;
 }
 
-/* knowledge SourcesPanel active state 마커 (테스트 의존). */
-.kb-item-active {
-  /* visual styling은 SourcesPanel 내부 MUI sx 로. 클래스 자체는 testid 외 fallback marker. */
+.text-muted { @apply text-slate-500; }
+
+html, body {
+  min-height: 100%;
+  padding: 0;
+  margin: 0;
 }
 
-/* LoginForm / MfaForm 의 pending spinner. */
+body {
+  background: linear-gradient(135deg, #c7d2fe 0%, #e9d5ff 42%, #fbcfe8 100%);
+  background-image:
+    radial-gradient(900px circle at 18% 20%, rgba(96, 165, 250, 0.45), transparent 60%),
+    radial-gradient(900px circle at 82% 12%, rgba(236, 72, 153, 0.35), transparent 60%),
+    radial-gradient(900px circle at 50% 92%, rgba(109, 93, 254, 0.30), transparent 60%),
+    linear-gradient(135deg, #c7d2fe 0%, #e9d5ff 42%, #fbcfe8 100%);
+  min-height: 100dvh;
+  overflow-x: hidden;
+  font-family: var(--font-noto-sans-kr), var(--font-roboto), system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+a { color: inherit; text-decoration: none; }
+
+.scroll-x-touch {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+@layer components {
+  .glass {
+    @apply bg-white/70 backdrop-blur-xl border border-white/50;
+  }
+
+  .glass-card {
+    @apply glass rounded-2xl shadow-card;
+  }
+
+  .glass-panel {
+    @apply glass shadow-card;
+  }
+
+  .btn-primary {
+    @apply rounded-xl px-4 py-2 font-semibold text-white shadow-soft;
+    background-image: linear-gradient(90deg, #6D5DFE 0%, #8B5CF6 52%, #EC4899 100%);
+  }
+
+  .btn-primary:disabled {
+    @apply opacity-50 cursor-not-allowed;
+  }
+
+  .btn-outline {
+    @apply rounded-xl px-4 py-2 font-semibold bg-white/60 border border-white/60 shadow-card text-slate-700;
+  }
+
+  .btn-danger {
+    @apply rounded-xl px-4 py-2 font-semibold text-white shadow-soft;
+    background-image: linear-gradient(90deg, #ef4444 0%, #f97316 100%);
+  }
+
+  .input {
+    @apply w-full rounded-xl px-3 py-2 bg-white/85 border border-slate-200/80 outline-none;
+    @apply focus:ring-2 focus:ring-accent/30;
+  }
+
+  .select {
+    @apply w-full rounded-xl px-3 py-2 bg-white/85 border border-slate-200/80 outline-none;
+    @apply focus:ring-2 focus:ring-accent/30;
+  }
+
+  .table-head {
+    @apply text-xs text-slate-500 border-b border-white/60;
+  }
+
+  .chip {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium;
+  }
+
+  .chip-info { @apply bg-blue-100/80 text-blue-700; }
+  .chip-warn { @apply bg-amber-100/80 text-amber-700; }
+  .chip-error { @apply bg-rose-100/80 text-rose-700; }
+  .chip-success { @apply bg-emerald-100/80 text-emerald-700; }
+  .chip-muted { @apply bg-slate-100/80 text-slate-600; }
+}
+
 .spinner {
   display: inline-block;
   width: 14px;
@@ -36,10 +105,27 @@ a { color: inherit; }
   animation: iconia-spin 0.7s linear infinite;
 }
 
-@keyframes iconia-spin {
-  to { transform: rotate(360deg); }
-}
+@keyframes iconia-spin { to { transform: rotate(360deg); } }
 
 @media (prefers-reduced-motion: reduce) {
   .spinner { animation: none; }
+}
+
+@media print {
+  .no-print { display: none !important; }
+  body { background: #fff !important; }
+  .shadow-card, .glass-card, .glass-panel, .btn-outline, .btn-primary { box-shadow: none !important; }
+  .glass, .glass-card, .glass-panel, .btn-outline {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: #fff !important;
+    border: 0 !important;
+  }
+  aside, nav { display: none !important; }
+}
+
+html { -webkit-text-size-adjust: 100%; }
+
+@media (max-width: 640px) {
+  .input, .select, textarea { font-size: 16px; }
 }

@@ -1,181 +1,136 @@
-import Link from "next/link";
-import { redirect } from "next/navigation";
-import Alert from "@mui/material/Alert";
-import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
-import Card from "@mui/material/Card";
-import CardContent from "@mui/material/CardContent";
-import CardHeader from "@mui/material/CardHeader";
-import Pagination from "@mui/material/Pagination";
-import PaginationItem from "@mui/material/PaginationItem";
-import Stack from "@mui/material/Stack";
-import Table from "@mui/material/Table";
-import TableBody from "@mui/material/TableBody";
-import TableCell from "@mui/material/TableCell";
-import TableContainer from "@mui/material/TableContainer";
-import TableHead from "@mui/material/TableHead";
-import TableRow from "@mui/material/TableRow";
-import TextField from "@mui/material/TextField";
-import Typography from "@mui/material/Typography";
-import SearchOutlined from "@mui/icons-material/SearchOutlined";
-import { readSession, clearSession } from "@/lib/authCookie";
-import { searchUsers } from "@/lib/adminApi";
-import { messageForCode } from "@/lib/errorMessages";
+"use client";
 
-// 본 페이지는 app/dashboard/layout.tsx 의 사이드바 셸 안에서 렌더된다.
-export const dynamic = "force-dynamic";
+import { useMemo, useState } from "react";
+import { PanelCard } from "../_components/PanelCard";
+import { DataTable, type Column } from "../_components/DataTable";
+import { mockUsers, formatDate, type UserRow } from "@/lib/mockData";
 
-function fmt(value: string | null | undefined): string {
-  if (!value) return "—";
-  return new Date(value).toLocaleString("ko-KR");
-}
+const statusChip: Record<UserRow["account_status"], string> = {
+  active: "chip chip-success",
+  paused: "chip chip-warn",
+  deleted: "chip chip-muted",
+  pending_deletion: "chip chip-error",
+};
 
-const PAGE_SIZE = 50;
-const MAX_PAGES_FETCHED = 10; // 한 번에 최대 500건만 client 메모리에 보관
+const statusLabel: Record<UserRow["account_status"], string> = {
+  active: "활성",
+  paused: "일시정지",
+  deleted: "삭제됨",
+  pending_deletion: "탈퇴 대기",
+};
 
-export default async function UsersSearchPage({
-  searchParams,
-}: {
-  searchParams: { email?: string; page?: string };
-}) {
-  const jwt = readSession();
-  if (!jwt) redirect("/login");
+export default function UsersPage() {
+  const [q, setQ] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | UserRow["account_status"]>("all");
+  const [selected, setSelected] = useState<UserRow | null>(null);
 
-  const query = (searchParams?.email || "").trim();
-  const requestedPage = Math.max(1, Number.parseInt(searchParams?.page ?? "1", 10) || 1);
-
-  let result = null as Awaited<ReturnType<typeof searchUsers>> | null;
-  if (query) {
-    result = await searchUsers({
-      jwt: jwt!,
-      email: query,
-      limit: PAGE_SIZE * MAX_PAGES_FETCHED,
+  const filtered = useMemo(() => {
+    return mockUsers.filter((u) => {
+      if (statusFilter !== "all" && u.account_status !== statusFilter) return false;
+      if (q) {
+        const s = q.toLowerCase();
+        return u.email.toLowerCase().includes(s) || u.display_name.toLowerCase().includes(s) || u.id.includes(s);
+      }
+      return true;
     });
-    if (
-      !result.ok &&
-      (result.code === "ERR_OPERATOR_AUTH_EXPIRED" ||
-        result.code === "ERR_OPERATOR_AUTH_INVALID")
-    ) {
-      clearSession();
-      redirect(
-        `/login?reason=${result.code === "ERR_OPERATOR_AUTH_EXPIRED" ? "expired" : "invalid"}`,
-      );
-    }
-  }
+  }, [q, statusFilter]);
 
-  const allUsers = result && result.ok ? result.data.users : [];
-  const totalPages = Math.max(1, Math.ceil(allUsers.length / PAGE_SIZE));
-  const page = Math.min(requestedPage, totalPages);
-  const sliceStart = (page - 1) * PAGE_SIZE;
-  const pageUsers = allUsers.slice(sliceStart, sliceStart + PAGE_SIZE);
+  const columns: Column<UserRow>[] = [
+    { key: "id", header: "ID", render: (r) => <span className="font-mono text-xs text-muted">{r.id}</span> },
+    { key: "name", header: "이름", render: (r) => <span className="font-medium text-slate-800">{r.display_name}</span> },
+    { key: "email", header: "이메일", render: (r) => r.email },
+    { key: "status", header: "상태", render: (r) => <span className={statusChip[r.account_status]}>{statusLabel[r.account_status]}</span> },
+    { key: "mfa", header: "MFA", render: (r) => r.totp_enabled ? <span className="chip chip-info">ON</span> : <span className="chip chip-muted">OFF</span> },
+    { key: "dolls", header: "인형", align: "right", render: (r) => r.doll_count },
+    { key: "last", header: "최근 로그인", render: (r) => <span className="text-xs text-muted">{formatDate(r.last_login_at)}</span> },
+    {
+      key: "actions",
+      header: "",
+      align: "right",
+      render: (r) => (
+        <button className="btn-outline text-xs" onClick={() => setSelected(r)} type="button">
+          상세
+        </button>
+      ),
+    },
+  ];
 
   return (
-    <Box>
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="h4" component="h1" sx={{ fontWeight: 700 }}>
-          사용자 검색
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          이메일(또는 일부)로 사용자를 검색해 상태·TOTP·가입일을 확인하고 상세로 이동합니다.
-        </Typography>
-      </Box>
+    <div className="space-y-6">
+      <PanelCard
+        title="회원 검색"
+        description="이메일·이름·ID로 회원을 찾고 상세 정보 및 운영자 액션을 수행합니다."
+        actions={
+          <>
+            <input
+              className="input max-w-[260px]"
+              placeholder="이메일/이름/ID 검색"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+            />
+            <select
+              className="select max-w-[160px]"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
+            >
+              <option value="all">전체 상태</option>
+              <option value="active">활성</option>
+              <option value="paused">일시정지</option>
+              <option value="pending_deletion">탈퇴 대기</option>
+              <option value="deleted">삭제됨</option>
+            </select>
+          </>
+        }
+      >
+        <DataTable columns={columns} rows={filtered} empty="조건에 해당하는 회원이 없습니다." />
+      </PanelCard>
 
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <form action="/dashboard/users" method="get">
-            <Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems={{ sm: "flex-end" }}>
-              <TextField
-                id="email"
-                name="email"
-                type="text"
-                label="이메일 또는 일부"
-                placeholder="alice 또는 @example.com"
-                defaultValue={query}
-                autoFocus
-                size="small"
-                fullWidth
-              />
-              <Button type="submit" variant="contained" startIcon={<SearchOutlined />} sx={{ minWidth: 120 }}>
-                검색
-              </Button>
-            </Stack>
-          </form>
-        </CardContent>
-      </Card>
+      {selected ? <UserDetailDrawer user={selected} onClose={() => setSelected(null)} /> : null}
+    </div>
+  );
+}
 
-      {result && !result.ok ? (
-        <Alert severity="error" role="alert">
-          {messageForCode(result.code)}
-        </Alert>
-      ) : null}
+function UserDetailDrawer({ user, onClose }: { user: UserRow; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-40 flex items-end sm:items-center justify-center sm:justify-end p-3 sm:p-6 bg-black/30">
+      <div className="w-full max-w-md glass-panel rounded-3xl p-6 relative">
+        <button
+          className="absolute right-4 top-4 rounded-xl px-3 py-1.5 bg-white/70 border border-white/70 text-xs text-slate-600"
+          onClick={onClose}
+          type="button"
+        >
+          닫기
+        </button>
+        <h3 className="text-lg font-bold text-slate-900">회원 상세</h3>
+        <p className="text-xs text-muted mt-0.5">{user.id}</p>
 
-      {result && result.ok ? (
-        <Card>
-          <CardHeader
-            title={`결과 (${allUsers.length}건${allUsers.length >= PAGE_SIZE * MAX_PAGES_FETCHED ? "+" : ""})`}
-            subheader={
-              allUsers.length === 0
-                ? "일치하는 사용자가 없습니다."
-                : `페이지 ${page} / ${totalPages} · 보기 ${sliceStart + 1}–${sliceStart + pageUsers.length}`
-            }
-          />
-          <CardContent sx={{ p: 0, "&:last-child": { pb: 0 } }}>
-            {allUsers.length === 0 ? (
-              <Box sx={{ p: 3 }}>
-                <Alert severity="info" variant="outlined">일치하는 사용자가 없습니다.</Alert>
-              </Box>
-            ) : (
-              <>
-                <TableContainer>
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>이메일</TableCell>
-                        <TableCell>상태</TableCell>
-                        <TableCell>TOTP</TableCell>
-                        <TableCell>가입일</TableCell>
-                        <TableCell>액션</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {pageUsers.map((u) => (
-                        <TableRow key={u.id}>
-                          <TableCell>{u.email}</TableCell>
-                          <TableCell>{u.account_status ?? "—"}</TableCell>
-                          <TableCell>{u.totp_enabled ? "✓" : "—"}</TableCell>
-                          <TableCell sx={{ color: "text.secondary", fontSize: "0.8125rem" }}>
-                            {fmt(u.created_at)}
-                          </TableCell>
-                          <TableCell>
-                            <Link href={`/dashboard/users/${u.id}`}>상세</Link>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-                {totalPages > 1 ? (
-                  <Box sx={{ p: 2, display: "flex", justifyContent: "center" }}>
-                    <Pagination
-                      count={totalPages}
-                      page={page}
-                      siblingCount={1}
-                      boundaryCount={1}
-                      renderItem={(item) => (
-                        <PaginationItem
-                          component={Link}
-                          href={`?email=${encodeURIComponent(query)}&page=${item.page}`}
-                          {...item}
-                        />
-                      )}
-                    />
-                  </Box>
-                ) : null}
-              </>
-            )}
-          </CardContent>
-        </Card>
-      ) : null}
-    </Box>
+        <dl className="mt-5 space-y-3 text-sm">
+          <Row k="이름" v={user.display_name} />
+          <Row k="이메일" v={user.email} />
+          <Row k="상태" v={<span className={statusChip[user.account_status]}>{statusLabel[user.account_status]}</span>} />
+          <Row k="MFA" v={user.totp_enabled ? "활성화" : "비활성"} />
+          <Row k="보유 인형" v={`${user.doll_count}개`} />
+          <Row k="가입일" v={formatDate(user.created_at)} />
+          <Row k="최근 로그인" v={formatDate(user.last_login_at)} />
+        </dl>
+
+        <div className="mt-6 grid grid-cols-2 gap-2">
+          <button className="btn-outline text-sm" type="button">강제 로그아웃</button>
+          <button className="btn-outline text-sm" type="button">계정 일시정지</button>
+          <button className="btn-outline text-sm" type="button">MFA 초기화</button>
+          <button className="btn-danger text-sm" type="button">탈퇴 처리</button>
+        </div>
+        <p className="text-[11px] text-muted mt-3">※ 데모 환경 — 액션 실행은 백엔드 연동 시 활성화됩니다.</p>
+      </div>
+    </div>
+  );
+}
+
+function Row({ k, v }: { k: string; v: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-xl bg-white/55 border border-white/50 px-3 py-2">
+      <dt className="text-xs text-muted">{k}</dt>
+      <dd className="text-sm text-slate-800 font-medium">{v}</dd>
+    </div>
   );
 }
