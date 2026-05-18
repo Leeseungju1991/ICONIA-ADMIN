@@ -42,11 +42,11 @@ export function LoginForm({ reason }: { reason?: string }) {
         </div>
       ) : null}
       <div className="form-row">
-        <label htmlFor="email">이메일</label>
+        <label htmlFor="username">아이디</label>
         <input
-          id="email"
-          name="email"
-          type="email"
+          id="username"
+          name="username"
+          type="text"
           required
           autoComplete="username"
           aria-invalid={hasError ? true : undefined}

@@ -41,17 +41,34 @@ function fd(input: Record<string, string>): FormData {
 }
 
 describe("loginAction", () => {
-  it("returns ERR_VALIDATION_LOCAL when email missing", async () => {
+  it("returns ERR_VALIDATION_LOCAL when username missing", async () => {
     const result = await loginAction(undefined, fd({ password: "p" }));
     expect(result.status).toBe("error");
     expect(result.code).toBe("ERR_VALIDATION_LOCAL");
     expect(mockedStep1).not.toHaveBeenCalled();
   });
 
-  it("returns ERR_VALIDATION_LOCAL when email malformed", async () => {
-    const result = await loginAction(undefined, fd({ email: "no-at-sign", password: "p" }));
+  it("returns ERR_VALIDATION_LOCAL when password missing", async () => {
+    const result = await loginAction(undefined, fd({ username: "operator" }));
     expect(result.status).toBe("error");
     expect(result.code).toBe("ERR_VALIDATION_LOCAL");
+  });
+
+  it("writes a local session cookie and redirects /dashboard for soom/soom", async () => {
+    const url = await expectRedirect(() =>
+      loginAction(undefined, fd({ username: "soom", password: "soom" })),
+    );
+    expect(url).toBe("/dashboard");
+    expect(cookieStore.set).toHaveBeenCalledTimes(1);
+    expect(mockedStep1).not.toHaveBeenCalled();
+    const written = cookieStore.set.mock.calls[0][0].value as string;
+    const payloadSegment = written.split(".")[1];
+    const padded =
+      payloadSegment.replace(/-/g, "+").replace(/_/g, "/") +
+      "===".slice((payloadSegment.length + 3) % 4);
+    const payload = JSON.parse(Buffer.from(padded, "base64").toString("utf8"));
+    expect(payload.role).toBe("superadmin");
+    expect(payload.sub).toBe("soom");
   });
 
   it("redirects to /login/mfa with token on mfa_required", async () => {
@@ -60,7 +77,7 @@ describe("loginAction", () => {
       data: { mfa_session_token: "tok-abc", mfa_required: true },
     });
     const url = await expectRedirect(() =>
-      loginAction(undefined, fd({ email: "a@b.com", password: "p" })),
+      loginAction(undefined, fd({ username: "a@b.com", password: "p" })),
     );
     expect(url).toBe("/login/mfa?token=tok-abc");
     expect(cookieStore.set).not.toHaveBeenCalled();
@@ -76,7 +93,7 @@ describe("loginAction", () => {
       },
     });
     const url = await expectRedirect(() =>
-      loginAction(undefined, fd({ email: "a@b.com", password: "p" })),
+      loginAction(undefined, fd({ username: "a@b.com", password: "p" })),
     );
     expect(url).toBe("/dashboard");
     expect(cookieStore.set).toHaveBeenCalledTimes(1);
@@ -90,7 +107,7 @@ describe("loginAction", () => {
       message: "bad",
       status: 401,
     });
-    const result = await loginAction(undefined, fd({ email: "a@b.com", password: "p" }));
+    const result = await loginAction(undefined, fd({ username: "a@b.com", password: "p" }));
     expect(result.status).toBe("error");
     expect(result.code).toBe("ERR_OPERATOR_INVALID_CREDENTIALS");
     expect(cookieStore.set).not.toHaveBeenCalled();
@@ -103,7 +120,7 @@ describe("loginAction", () => {
       message: "x",
       status: 403,
     });
-    const result = await loginAction(undefined, fd({ email: "a@b.com", password: "p" }));
+    const result = await loginAction(undefined, fd({ username: "a@b.com", password: "p" }));
     expect(result.status).toBe("error");
     expect(result.code).toBe("ERR_OPERATOR_SUSPENDED");
   });

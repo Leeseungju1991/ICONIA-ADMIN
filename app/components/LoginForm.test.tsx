@@ -28,9 +28,9 @@ beforeEach(() => {
 });
 
 describe("LoginForm", () => {
-  it("renders email + password fields and the submit button", () => {
+  it("renders username + password fields and the submit button", () => {
     render(<LoginForm />);
-    expect(screen.getByLabelText("이메일")).toBeInTheDocument();
+    expect(screen.getByLabelText("아이디")).toBeInTheDocument();
     expect(screen.getByLabelText("비밀번호")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "로그인" })).toBeInTheDocument();
   });
@@ -48,11 +48,11 @@ describe("LoginForm", () => {
   it("calls loginAction with the form data on submit", async () => {
     render(<LoginForm />);
     await act(async () => {
-      submitLastFormAction(fd({ email: "a@b.com", password: "secret" }));
+      submitLastFormAction(fd({ username: "soom", password: "secret" }));
     });
     expect(loginAction).toHaveBeenCalledTimes(1);
     const passed = loginAction.mock.calls[0][1] as FormData;
-    expect(passed.get("email")).toBe("a@b.com");
+    expect(passed.get("username")).toBe("soom");
     expect(passed.get("password")).toBe("secret");
   });
 
@@ -60,7 +60,7 @@ describe("LoginForm", () => {
     loginAction.mockResolvedValue({ status: "error", code: "ERR_OPERATOR_INVALID_CREDENTIALS" });
     render(<LoginForm />);
     await act(async () => {
-      submitLastFormAction(fd({ email: "a@b.com", password: "x" }));
+      submitLastFormAction(fd({ username: "soom", password: "x" }));
     });
     const alert = await screen.findByRole("alert");
     expect(alert).toHaveTextContent("이메일 또는 비밀번호가 올바르지 않습니다.");
