@@ -7,33 +7,15 @@ import { operatorLoginStep1 } from "../serverApi";
 import { writeSession } from "../authCookie";
 import type { FormState } from "../types";
 
+// P0 보안 정상화 (2026-05-19):
+//   - 이전 라운드의 `soom/soom` local bypass + alg:none JWT 발급 dead code 완전 제거.
+//   - 본 server action 은 오직 Server 측 `/api/v1/operator/login` 만 호출한다.
+//   - 자격증명 검증/JWT 발급/세션 만료 — 전 권한은 Server 가 보유.
+
 const schema = z.object({
   username: z.string().min(1).max(254),
   password: z.string().min(1).max(256),
 });
-
-const LOCAL_BYPASS_USERNAME = "soom";
-const LOCAL_BYPASS_PASSWORD = "soom";
-
-function makeLocalBypassSession(): { jwt: string; expiresAt: string } {
-  const nowSec = Math.floor(Date.now() / 1000);
-  const expSec = nowSec + 24 * 60 * 60;
-  const header = Buffer.from(
-    JSON.stringify({ alg: "none", typ: "JWT" }),
-  ).toString("base64url");
-  const payload = Buffer.from(
-    JSON.stringify({
-      sub: "soom",
-      email: "soom@local",
-      role: "superadmin",
-      exp: expSec,
-    }),
-  ).toString("base64url");
-  return {
-    jwt: `${header}.${payload}.local`,
-    expiresAt: new Date(expSec * 1000).toISOString(),
-  };
-}
 
 export async function loginAction(
   _prev: FormState | undefined,
@@ -45,15 +27,6 @@ export async function loginAction(
   });
   if (!parsed.success) {
     return { status: "error", code: "ERR_VALIDATION_LOCAL" };
-  }
-
-  if (
-    parsed.data.username === LOCAL_BYPASS_USERNAME &&
-    parsed.data.password === LOCAL_BYPASS_PASSWORD
-  ) {
-    const session = makeLocalBypassSession();
-    writeSession(session);
-    redirect("/dashboard");
   }
 
   const result = await operatorLoginStep1({

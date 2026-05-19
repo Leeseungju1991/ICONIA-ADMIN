@@ -10,3 +10,31 @@ next-env.d.ts
 .tsbuildinfo
 *.tsbuildinfo
 .claude/
+
+# P2 §8 (2026-05-19) — secret 자산 차단 (실수 commit 방지)
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa
+id_rsa.*
+id_ed25519
+id_ed25519.*
+*.crt
+*.csr
+*.jks
+.secrets/
+
+# === ICONIA 일관 보안 라인 (CI 표준 / 2026-05-19) ===
+# 6. CI/.gitignore 와 동일 패턴. 멱등 — 중복은 git 이 무시.
+*.cer
+secrets/
+.aws/credentials
+.aws/config
+
+# Terraform 상태/변수 (안전망).
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfvars.json
+.terraform/

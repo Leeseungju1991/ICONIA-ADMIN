@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState, type ReactNode } from "react";
-import { logout } from "@/lib/soomAuth";
+import { usePathname } from "next/navigation";
+import { useEffect, useState, useTransition, type ReactNode } from "react";
+import { logoutAction } from "@/lib/actions/logout";
 
 type NavItem = {
   to: string;
@@ -46,7 +46,6 @@ function subtitleFor(to: string): string {
 }
 
 export default function Sidebar({ children }: { children: ReactNode }) {
-  const router = useRouter();
   const pathname = usePathname() ?? "/dashboard";
   const [navOpen, setNavOpen] = useState(false);
   const { title, subtitle } = pageTitle(pathname);
@@ -74,7 +73,7 @@ export default function Sidebar({ children }: { children: ReactNode }) {
             <aside className="hidden md:block w-72 shrink-0 p-6 border-r border-white/50">
               <Brand />
               <NavMenu pathname={pathname} />
-              <LogoutButton onLogout={() => router.replace("/login")} />
+              <LogoutButton />
             </aside>
 
             {navOpen ? (
@@ -96,7 +95,7 @@ export default function Sidebar({ children }: { children: ReactNode }) {
                     </button>
                   </div>
                   <NavMenu pathname={pathname} />
-                  <LogoutButton onLogout={() => router.replace("/login")} />
+                  <LogoutButton />
                 </aside>
               </div>
             ) : null}
@@ -124,7 +123,7 @@ export default function Sidebar({ children }: { children: ReactNode }) {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <span className="chip chip-success">운영자: soom</span>
+                  <span className="chip chip-success">운영자</span>
                 </div>
               </header>
 
@@ -179,18 +178,22 @@ function NavMenu({ pathname }: { pathname: string }) {
   );
 }
 
-function LogoutButton({ onLogout }: { onLogout: () => void }) {
+function LogoutButton() {
+  const [isPending, startTransition] = useTransition();
   return (
     <div className="mt-6">
       <button
-        className="w-full rounded-2xl px-4 py-3 text-sm bg-white/50 border border-white/60 hover:bg-white/70 transition text-slate-700"
+        className="w-full rounded-2xl px-4 py-3 text-sm bg-white/50 border border-white/60 hover:bg-white/70 transition text-slate-700 disabled:opacity-60"
         type="button"
+        disabled={isPending}
         onClick={() => {
-          logout();
-          onLogout();
+          startTransition(async () => {
+            // server action: cookie 정리 + Server /api/v1/operator/logout 호출 + redirect.
+            await logoutAction();
+          });
         }}
       >
-        로그아웃
+        {isPending ? "로그아웃 중..." : "로그아웃"}
       </button>
     </div>
   );

@@ -54,21 +54,21 @@ describe("loginAction", () => {
     expect(result.code).toBe("ERR_VALIDATION_LOCAL");
   });
 
-  it("writes a local session cookie and redirects /dashboard for soom/soom", async () => {
-    const url = await expectRedirect(() =>
-      loginAction(undefined, fd({ username: "soom", password: "soom" })),
+  it("does NOT short-circuit soom/soom — calls server like any other credential pair (P0 보안 정상화)", async () => {
+    mockedStep1.mockResolvedValue({
+      ok: false,
+      code: "ERR_OPERATOR_INVALID_CREDENTIALS",
+      message: "bad",
+      status: 401,
+    });
+    const result = await loginAction(
+      undefined,
+      fd({ username: "soom", password: "soom" }),
     );
-    expect(url).toBe("/dashboard");
-    expect(cookieStore.set).toHaveBeenCalledTimes(1);
-    expect(mockedStep1).not.toHaveBeenCalled();
-    const written = cookieStore.set.mock.calls[0][0].value as string;
-    const payloadSegment = written.split(".")[1];
-    const padded =
-      payloadSegment.replace(/-/g, "+").replace(/_/g, "/") +
-      "===".slice((payloadSegment.length + 3) % 4);
-    const payload = JSON.parse(Buffer.from(padded, "base64").toString("utf8"));
-    expect(payload.role).toBe("superadmin");
-    expect(payload.sub).toBe("soom");
+    expect(result.status).toBe("error");
+    expect(result.code).toBe("ERR_OPERATOR_INVALID_CREDENTIALS");
+    expect(cookieStore.set).not.toHaveBeenCalled();
+    expect(mockedStep1).toHaveBeenCalledTimes(1);
   });
 
   it("redirects to /login/mfa with token on mfa_required", async () => {

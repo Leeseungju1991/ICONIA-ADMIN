@@ -1,27 +1,26 @@
-"use client";
+import { redirect } from "next/navigation";
+import { type ReactNode } from "react";
+import { readSession } from "@/lib/authCookie";
+import { decodeJwtPayloadUnsafe } from "@/lib/jwt";
 
-import { useEffect, useState, type ReactNode } from "react";
-import { useRouter } from "next/navigation";
-import { isAuthed } from "@/lib/soomAuth";
+// P0 보안 정상화 (2026-05-19):
+//   - localStorage 의존 제거 → Server Component 에서 httpOnly cookie 직접 확인.
+//   - middleware.ts 가 1차 차단하지만, dashboard layout 에서도 redirect → 이중 방어.
+//   - JWT exp 가 과거이면 /login?reason=expired 로 redirect.
 
 export default function RequireAuth({ children }: { children: ReactNode }) {
-  const router = useRouter();
-  const [ready, setReady] = useState(false);
+  const jwt = readSession();
+  if (!jwt) {
+    redirect("/login?reason=missing");
+  }
 
-  useEffect(() => {
-    if (!isAuthed()) {
-      router.replace("/login");
-      return;
+  const payload = decodeJwtPayloadUnsafe(jwt);
+  const exp = typeof payload?.exp === "number" ? payload.exp : null;
+  if (exp !== null) {
+    const nowSec = Math.floor(Date.now() / 1000);
+    if (exp <= nowSec) {
+      redirect("/login?reason=expired");
     }
-    setReady(true);
-  }, [router]);
-
-  if (!ready) {
-    return (
-      <div className="min-h-[50vh] flex items-center justify-center text-slate-500 text-sm">
-        세션 확인 중…
-      </div>
-    );
   }
 
   return <>{children}</>;
