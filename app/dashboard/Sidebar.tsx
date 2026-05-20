@@ -5,6 +5,11 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState, useTransition, type ReactNode } from "react";
 import { logoutAction } from "@/lib/actions/logout";
 import type { IconiaEnvName } from "@/lib/env";
+import {
+  ROLE_LABEL,
+  canAccessPath,
+  type OperatorRole,
+} from "@/lib/operatorRoles";
 
 type NavItem = {
   to: string;
@@ -57,10 +62,16 @@ function subtitleFor(to: string): string {
 export default function Sidebar({
   children,
   env = "development",
+  role = "viewer",
+  operatorEmail = null,
 }: {
   children: ReactNode;
   /** ICONIA_ENV — 헤더 env 배지 표시용. server-side `loadIconiaEnv()` 가 layout 에서 주입. */
   env?: IconiaEnvName;
+  /** 운영자 역할 — RBAC 네비게이션 게이팅 + 헤더 배지. */
+  role?: OperatorRole;
+  /** 운영자 이메일 — 헤더 표시용 (마스킹 없이 본인 식별). */
+  operatorEmail?: string | null;
 }) {
   const pathname = usePathname() ?? "/dashboard";
   const [navOpen, setNavOpen] = useState(false);
@@ -88,7 +99,7 @@ export default function Sidebar({
           <div className="relative flex min-h-[calc(100dvh-48px)]">
             <aside className="hidden md:block w-72 shrink-0 p-6 border-r border-white/50">
               <Brand />
-              <NavMenu pathname={pathname} />
+              <NavMenu pathname={pathname} role={role} />
               <LogoutButton />
             </aside>
 
@@ -110,7 +121,7 @@ export default function Sidebar({
                       닫기
                     </button>
                   </div>
-                  <NavMenu pathname={pathname} />
+                  <NavMenu pathname={pathname} role={role} />
                   <LogoutButton />
                 </aside>
               </div>
@@ -140,7 +151,7 @@ export default function Sidebar({
 
                 <div className="flex items-center gap-2">
                   <EnvBadge env={env} />
-                  <span className="chip chip-success">운영자</span>
+                  <RoleBadge role={role} email={operatorEmail} />
                 </div>
               </header>
 
@@ -181,6 +192,33 @@ function EnvBadge({ env }: { env: IconiaEnvName }) {
   );
 }
 
+// RoleBadge — 현재 운영자의 RBAC 역할을 헤더에 표시. 권한 색상 구분으로
+// 운영자가 자신의 접근 범위를 즉시 인지 (superadmin 빨강·sre/secops 파랑·cs 청록·viewer 회색).
+function RoleBadge({
+  role,
+  email,
+}: {
+  role: OperatorRole;
+  email: string | null;
+}) {
+  const chip: Record<OperatorRole, string> = {
+    superadmin: "chip chip-error",
+    sre: "chip chip-info",
+    secops: "chip chip-info",
+    cs: "chip chip-success",
+    viewer: "chip chip-muted",
+  };
+  return (
+    <span
+      className={chip[role]}
+      title={email ? `운영자: ${email} · 역할: ${ROLE_LABEL[role]}` : `역할: ${ROLE_LABEL[role]}`}
+      aria-label={`운영자 역할: ${ROLE_LABEL[role]}`}
+    >
+      {ROLE_LABEL[role]}
+    </span>
+  );
+}
+
 function Brand({ compact }: { compact?: boolean }) {
   return (
     <div className={compact ? "mb-2" : "mb-6"}>
@@ -197,10 +235,13 @@ function Brand({ compact }: { compact?: boolean }) {
   );
 }
 
-function NavMenu({ pathname }: { pathname: string }) {
+function NavMenu({ pathname, role }: { pathname: string; role: OperatorRole }) {
+  // RBAC — 현재 역할이 접근 불가한 메뉴는 애초 숨김 (viewer 가 비활성 버튼을 누르고
+  // 403 을 받는 대신 링크 자체 제거). 강제 차단은 middleware 가 별도 수행.
+  const visibleNav = nav.filter((item) => canAccessPath(role, item.to));
   return (
     <nav className="space-y-1">
-      {nav.map((item) => {
+      {visibleNav.map((item) => {
         const isActive = item.to === "/dashboard"
           ? pathname === "/dashboard"
           : pathname.startsWith(item.to);

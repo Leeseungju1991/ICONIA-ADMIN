@@ -26,6 +26,7 @@ const stateInfo: Record<PushRow["state"], { label: string; chip: string }> = {
 
 export default function PushPage() {
   const [composing, setComposing] = useState(false);
+  const [editing, setEditing] = useState<PushRow | null>(null);
   const [stateFilter, setStateFilter] = useState<"all" | PushRow["state"]>("all");
   const [auditTick, setAuditTick] = useState(0);
   const [toast, setToast] = useState<string | null>(null);
@@ -113,9 +114,21 @@ export default function PushPage() {
       align: "right",
       render: (r) => (
         <div className="flex justify-end gap-1">
-          <button className="btn-outline text-xs" type="button">복사</button>
+          <button
+            className="btn-outline text-xs"
+            type="button"
+            onClick={() => setEditing({ ...r, id: "", state: "draft", sent_at: null })}
+          >
+            복사
+          </button>
           {r.state === "draft" || r.state === "scheduled" ? (
-            <button className="btn-outline text-xs" type="button">편집</button>
+            <button
+              className="btn-outline text-xs"
+              type="button"
+              onClick={() => setEditing(r)}
+            >
+              편집
+            </button>
           ) : null}
         </div>
       ),
@@ -253,14 +266,79 @@ export default function PushPage() {
         </div>
       ) : null}
 
-      {composing ? <PushComposer onClose={() => setComposing(false)} /> : null}
+      {composing ? (
+        <PushComposer
+          onClose={() => setComposing(false)}
+          onSubmit={(msg) => {
+            setComposing(false);
+            setToast(msg);
+          }}
+        />
+      ) : null}
+      {editing ? (
+        <PushComposer
+          source={editing}
+          onClose={() => setEditing(null)}
+          onSubmit={(msg) => {
+            setEditing(null);
+            setToast(msg);
+          }}
+        />
+      ) : null}
     </div>
   );
 }
 
-function PushComposer({ onClose }: { onClose: () => void }) {
-  const [title, setTitle] = useState("");
-  const [body, setBody] = useState("");
+// PushComposer — 신규 작성 / 편집 / 복사 겸용. source 가 있으면 초기값 채움.
+function PushComposer({
+  source,
+  onClose,
+  onSubmit,
+}: {
+  source?: PushRow;
+  onClose: () => void;
+  onSubmit: (toastMessage: string) => void;
+}) {
+  const isEdit = Boolean(source?.id);
+  const [title, setTitle] = useState(source?.title ?? "");
+  const [body, setBody] = useState(source?.body ?? "");
+  const [audience, setAudience] = useState<PushRow["audience"]>(source?.audience ?? "all");
+  const [scheduledAt, setScheduledAt] = useState(
+    source?.scheduled_at ? source.scheduled_at.slice(0, 16) : "",
+  );
+  const [error, setError] = useState<string | null>(null);
+
+  function validate(): boolean {
+    if (!title.trim()) {
+      setError("제목을 입력하세요.");
+      return false;
+    }
+    if (!body.trim()) {
+      setError("본문을 입력하세요.");
+      return false;
+    }
+    setError(null);
+    return true;
+  }
+
+  function saveDraft() {
+    if (!validate()) return;
+    // TODO(server-wire-up): `/api/v1/admin/push` POST (state=draft).
+    onSubmit(`"${title.trim()}" 임시저장 요청을 기록했습니다. (백엔드 연동 후 저장)`);
+  }
+
+  function schedule() {
+    if (!validate()) return;
+    if (!scheduledAt) {
+      setError("예약 발송은 예약 시각이 필요합니다.");
+      return;
+    }
+    // TODO(server-wire-up): `/api/v1/admin/push` POST (state=scheduled).
+    onSubmit(
+      `"${title.trim()}" ${isEdit ? "수정" : "예약"} 요청을 기록했습니다. (대상: ${audienceLabel[audience]} · 백엔드 연동 후 발송)`,
+    );
+  }
+
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center p-3 bg-black/30">
       <div className="w-full max-w-lg glass-panel rounded-3xl p-6 relative">
@@ -271,18 +349,36 @@ function PushComposer({ onClose }: { onClose: () => void }) {
         >
           닫기
         </button>
-        <h3 className="text-lg font-bold text-slate-900">새 푸시 캠페인</h3>
+        <h3 className="text-lg font-bold text-slate-900">
+          {isEdit ? "푸시 캠페인 편집" : "새 푸시 캠페인"}
+        </h3>
 
         <div className="mt-5 space-y-3">
           <label className="block text-xs text-slate-600">제목
-            <input className="input mt-1" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="알림 제목" maxLength={50} />
+            <input
+              className="input mt-1"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="알림 제목"
+              maxLength={50}
+            />
           </label>
           <label className="block text-xs text-slate-600">본문
-            <textarea className="input mt-1 min-h-[100px]" value={body} onChange={(e) => setBody(e.target.value)} placeholder="알림 본문" maxLength={200} />
+            <textarea
+              className="input mt-1 min-h-[100px]"
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
+              placeholder="알림 본문"
+              maxLength={200}
+            />
           </label>
           <div className="grid grid-cols-2 gap-3">
             <label className="block text-xs text-slate-600">대상
-              <select className="select mt-1">
+              <select
+                className="select mt-1"
+                value={audience}
+                onChange={(e) => setAudience(e.target.value as PushRow["audience"])}
+              >
                 <option value="all">전체</option>
                 <option value="premium">프리미엄</option>
                 <option value="owners">인형 보유자</option>
@@ -290,7 +386,12 @@ function PushComposer({ onClose }: { onClose: () => void }) {
               </select>
             </label>
             <label className="block text-xs text-slate-600">예약 시각
-              <input className="input mt-1" type="datetime-local" />
+              <input
+                className="input mt-1"
+                type="datetime-local"
+                value={scheduledAt}
+                onChange={(e) => setScheduledAt(e.target.value)}
+              />
             </label>
           </div>
 
@@ -302,12 +403,19 @@ function PushComposer({ onClose }: { onClose: () => void }) {
               <div className="text-xs text-white/85">{body || "알림 본문이 표시됩니다."}</div>
             </div>
           </div>
+          {error ? (
+            <p className="text-xs text-rose-600 bg-rose-50/80 border border-rose-200 rounded-xl px-3 py-2">
+              {error}
+            </p>
+          ) : null}
         </div>
 
         <div className="mt-6 flex justify-end gap-2">
           <button className="btn-outline text-sm" type="button" onClick={onClose}>취소</button>
-          <button className="btn-outline text-sm" type="button">임시저장</button>
-          <button className="btn-primary text-sm" type="button">예약 발송</button>
+          <button className="btn-outline text-sm" type="button" onClick={saveDraft}>임시저장</button>
+          <button className="btn-primary text-sm" type="button" onClick={schedule}>
+            {isEdit ? "예약 수정" : "예약 발송"}
+          </button>
         </div>
       </div>
     </div>
