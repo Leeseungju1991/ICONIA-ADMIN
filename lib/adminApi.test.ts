@@ -9,6 +9,8 @@ import {
   listOrders,
   listWebhookEvents,
   listPosts,
+  getOperatorMe,
+  getAiHealth,
 } from "./adminApi";
 
 const BASE = "https://api.example.com";
@@ -314,5 +316,74 @@ describe("resumeDeployment", () => {
     await resumeDeployment({ jwt: "j", deploymentId: "dep-1" });
     const [url] = fetchMock.mock.calls[0];
     expect(url).not.toContain("/api/v1/admin/firmware/deployments/");
+  });
+});
+
+describe("getOperatorMe", () => {
+  it("calls GET /api/v1/operator/me with Bearer JWT and unwraps id/email/role", async () => {
+    const fetchMock = mockFetchOnce({
+      status: 200,
+      body: {
+        ok: true,
+        data: { id: "op-1", email: "owner@example.com", role: "superadmin" },
+        error: null,
+      },
+    });
+    const r = await getOperatorMe({ jwt: "jwt-xyz" });
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.data).toEqual({ id: "op-1", email: "owner@example.com", role: "superadmin" });
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe(`${BASE}/api/v1/operator/me`);
+    expect(init.method).toBe("GET");
+    expect(init.headers.Authorization).toBe("Bearer jwt-xyz");
+  });
+
+  it("surfaces a 401 as an unauthenticated error result", async () => {
+    mockFetchOnce({
+      status: 401,
+      body: { ok: false, data: null, error: { code: "ERR_UNAUTHORIZED", message: "no" } },
+    });
+    const r = await getOperatorMe({ jwt: "bad" });
+    expect(r.ok).toBe(false);
+    if (!r.ok) {
+      expect(r.code).toBe("ERR_UNAUTHORIZED");
+      expect(r.status).toBe(401);
+    }
+  });
+});
+
+describe("getAiHealth", () => {
+  it("calls GET /api/v1/admin/ai-health and unwraps the aiHealthTracker snapshot", async () => {
+    const snapshot = {
+      window_ms: 300000,
+      window_total: 80,
+      fallback_count: 3,
+      fallback_rate: 0.0375,
+      fallback_breakdown: { timeout: 3 },
+      error_count: 1,
+      error_rate: 0.0125,
+      latency_ms: { p50: 700, p95: 2100, p99: 2900, max: 4100 },
+      prompt_tokens_total: 30000,
+      completion_tokens_total: 12000,
+      calls_last_minute: 14,
+      by_model: [],
+    };
+    const fetchMock = mockFetchOnce({
+      status: 200,
+      body: { ok: true, data: snapshot, error: null },
+    });
+    const r = await getAiHealth({ jwt: "j" });
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.data.latency_ms.p95).toBe(2100);
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe(`${BASE}/api/v1/admin/ai-health`);
+    expect(init.method).toBe("GET");
+  });
+
+  it("maps a 5xx to ERR_SERVER_UNAVAILABLE so callers can degrade to mock", async () => {
+    mockFetchOnce({ status: 503, body: { ok: false, data: null, error: null } });
+    const r = await getAiHealth({ jwt: "j" });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.code).toBe("ERR_SERVER_UNAVAILABLE");
   });
 });

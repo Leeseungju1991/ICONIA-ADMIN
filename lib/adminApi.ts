@@ -59,15 +59,29 @@ export type FirmwareList = {
   deployments: DeploymentRow[];
 };
 
+// AI 호출 운영 관측 — Server `GET /api/v1/admin/ai-health` 응답.
+// 정본 shape 는 Server `services/aiHealthTracker.js` 의 `snapshot()` 출력과 1:1 정합.
+// 5분 sliding window in-memory 통계 (fallback rate · p50/p95/p99 latency · 모델별 분해).
 export type AiHealthSnapshot = {
-  window_seconds: number;
-  total_calls: number;
+  window_ms: number;
+  window_total: number;
   fallback_count: number;
-  fallback_rate: number;
-  p50_latency_ms: number | null;
-  p95_latency_ms: number | null;
-  errors: Array<{ code: string; count: number }>;
-  last_updated_at: string;
+  fallback_rate: number; // 0~1
+  fallback_breakdown: Record<string, number>;
+  error_count: number;
+  error_rate: number; // 0~1
+  latency_ms: { p50: number; p95: number; p99: number; max: number };
+  prompt_tokens_total: number;
+  completion_tokens_total: number;
+  calls_last_minute: number;
+  by_model: Array<{
+    model: string;
+    calls: number;
+    fallback_count: number;
+    prompt_tokens: number;
+    completion_tokens: number;
+    avg_latency_ms: number;
+  }>;
 };
 
 export type PostRow = {
@@ -93,6 +107,15 @@ export type OperatorRow = {
   created_at: string;
 };
 export type OperatorsList = { operators: OperatorRow[] };
+
+// 현재 운영자 세션 신원 — Server `GET /api/v1/operator/me` 응답.
+// id / email / role 은 Server 가 JWT 를 서명 검증한 뒤 신뢰 가능한 값으로 반환한다.
+// Admin 의 unsafe JWT decode (`decodeJwtPayloadUnsafe`) 를 대체하는 정본 소스.
+export type OperatorMe = {
+  id: string;
+  email: string;
+  role: string;
+};
 
 export type ProductRow = {
   id: string;
@@ -356,6 +379,25 @@ export function unhidePost(args: {
     path: `/api/v1/admin/posts/${encodeURIComponent(args.postId)}/unhide`,
     method: "POST",
     body: {},
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Operator identity
+// ---------------------------------------------------------------------------
+
+/**
+ * 현재 운영자 세션 신원 조회 — Server `GET /api/v1/operator/me` (모든 role 허용).
+ * Server 가 JWT 서명을 검증한 뒤 id/email/role 을 반환하므로, Admin 의
+ * client-decodable unsafe JWT decode 보다 신뢰 가능한 정본 소스다.
+ */
+export function getOperatorMe(args: {
+  jwt: string;
+}): Promise<ServerResult<OperatorMe>> {
+  return authedRequest<OperatorMe>({
+    jwt: args.jwt,
+    path: `/api/v1/operator/me`,
+    method: "GET",
   });
 }
 

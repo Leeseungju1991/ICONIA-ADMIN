@@ -34,6 +34,8 @@ import {
 import { lookupErrorCode, operatorLabelForCode } from "@/lib/errorCatalog";
 import { recordOpsAuditWithSilentRetry } from "@/lib/opsAuditTrail";
 import { recordOperatorAuditAction } from "@/lib/actions/auditLog";
+import { getAiHealthAction } from "@/lib/actions/aiHealth";
+import type { AiHealthSnapshot } from "@/lib/adminApi";
 
 // 운영 안정성 9항목 통합 표면 — Round 3 (2026-05-20).
 //
@@ -204,76 +206,143 @@ function ObservabilityBlock() {
 
 // ── 1-b) AI timeout / fallback 모니터링 ────────────────────────
 // 출시준비 라운드 §7 — AI timeout monitoring (Gemini fallback rate · p95 · 504/429).
-// 데이터 소스:
-//   - p50/p95: health probe 의 ai-worker / persona 값.
-//   - fallback rate: 서버 에러 중 GEMINI_GATEWAY_TIMEOUT + GEMINI_RATE_LIMITED 합 / 총.
-//   - 마지막 fallback 발생 시각: ai-worker 5xx 의 last_seen.
-// 백엔드 연동 시 `/api/v1/admin/ops/ai-health` (미정) 시계열로 교체.
+//
+// 데이터 소스 — Server `GET /api/v1/admin/ai-health` 실 연동 (aiHealthTracker 5분
+// sliding window). `getAiHealthAction()` server action 경유 — JWT 노출 차단.
+//   - p50/p95/p99: tracker `latency_ms` (실측 AI 호출 latency).
+//   - fallback rate: tracker `fallback_rate` (fallback_kind 가 붙은 호출 / 전체).
+//   - 모델별 분해: tracker `by_model`.
+// Server 도달 불가(network/5xx) 시 `mockHealthProbes` + `mockServerErrors` 로
+// graceful degrade — 패널이 사라지지 않고 mock 배지를 노출한다.
 function AiTimeoutBlock() {
+  const [snapshot, setSnapshot] = useState<AiHealthSnapshot | null>(null);
+  const [live, setLive] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    getAiHealthAction()
+      .then((res) => {
+        if (cancelled) return;
+        if (res.ok) {
+          setSnapshot(res.snapshot);
+          setLive(true);
+        } else {
+          setLive(false);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setLive(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // mock fallback 산출 — Server 미연동 환경에서의 근사값.
   const aiProbe = mockHealthProbes.find(
     (p) => p.service === "ai-worker" && p.region === "KR",
   );
   const personaProbe = mockHealthProbes.find(
     (p) => p.service === "persona" && p.region === "KR",
   );
-
   const aiTimeoutCount = mockServerErrors
     .filter((e) => e.path.includes("/persona") || e.service === "ai-worker")
     .reduce((s, e) => s + e.count, 0);
   const totalServerErrors = mockServerErrors.reduce((s, e) => s + e.count, 0);
-  const fallbackRate =
+  const mockFallbackRate =
     totalServerErrors > 0 ? (aiTimeoutCount / totalServerErrors) * 100 : 0;
 
-  const lastFallback =
-    mockServerErrors
-      .filter((e) => e.service === "ai-worker")
-      .map((e) => e.last_seen)
-      .sort()
-      .at(-1) ?? null;
-
-  const p95 = aiProbe?.latency_p95_ms ?? 0;
-  // p95 임계 — Gemini SLA 권고선 3,000ms. 초과 시 warn.
-  const p95Healthy = p95 <= 3000;
+  // live 우선, 없으면 mock — 표시 값 단일화.
+  const p95 = live && snapshot ? snapshot.latency_ms.p95 : aiProbe?.latency_p95_ms ?? 0;
+  const p50 = live && snapshot ? snapshot.latency_ms.p50 : null;
+  const p95Healthy = p95 <= 3000; // Gemini SLA 권고선 3,000ms.
+  const fallbackRate =
+    live && snapshot ? snapshot.fallback_rate * 100 : mockFallbackRate;
+  const fallbackCount =
+    live && snapshot ? snapshot.fallback_count : aiTimeoutCount;
+  const windowTotal = live && snapshot ? snapshot.window_total : totalServerErrors;
+  const callsLastMinute = live && snapshot ? snapshot.calls_last_minute : null;
 
   return (
     <PanelCard
       title="① -b AI 호출 모니터링 — timeout · fallback · p95"
-      description="Gemini gateway timeout / rate-limit 비율과 ai-worker p95 latency. Bedrock fallback flag 와 함께 운영."
+      description={
+        live
+          ? "Server /api/v1/admin/ai-health 실 연동 — aiHealthTracker 5분 윈도우 (fallback rate · p50/p95/p99)."
+          : "Gemini gateway timeout / rate-limit 비율과 ai-worker p95 latency. Bedrock fallback flag 와 함께 운영."
+      }
     >
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
-          label="ai-worker p95 (KR)"
+          label={live ? "AI 호출 p95" : "ai-worker p95 (KR)"}
           value={`${p95.toLocaleString()}ms`}
           delta={p95Healthy ? "정상" : "임계 초과"}
           deltaTone={p95Healthy ? "up" : "down"}
-          hint="Gemini SLA ≤ 3,000ms"
+          hint={
+            p50 != null
+              ? `p50 ${p50.toLocaleString()}ms · SLA ≤ 3,000ms`
+              : "Gemini SLA ≤ 3,000ms"
+          }
           accent={p95Healthy ? "blue" : "pink"}
         />
         <StatCard
-          label="persona p95"
-          value={`${personaProbe?.latency_p95_ms.toLocaleString() ?? "—"}ms`}
-          hint="응답 합성 포함 e2e"
+          label={live ? "AI 호출 p99" : "persona p95"}
+          value={
+            live && snapshot
+              ? `${snapshot.latency_ms.p99.toLocaleString()}ms`
+              : `${personaProbe?.latency_p95_ms.toLocaleString() ?? "—"}ms`
+          }
+          hint={live ? "꼬리 latency — 타임아웃 위험" : "응답 합성 포함 e2e"}
           accent="teal"
         />
         <StatCard
           label="AI fallback rate"
           value={`${fallbackRate.toFixed(1)}%`}
-          delta={`${aiTimeoutCount.toLocaleString()}건`}
-          deltaTone={fallbackRate > 30 ? "down" : "flat"}
-          hint="timeout + rate-limit / 전 서버에러"
+          delta={`${fallbackCount.toLocaleString()}건 / ${windowTotal.toLocaleString()}`}
+          deltaTone={fallbackRate > 10 ? "down" : "flat"}
+          hint={live ? "fallback_kind 호출 / 전체 (5분)" : "timeout + rate-limit / 전 서버에러"}
           accent="orange"
         />
         <StatCard
-          label="마지막 fallback"
-          value={lastFallback ? formatDate(lastFallback) : "—"}
-          hint="ai-worker 5xx 최근 발생"
+          label={live ? "최근 1분 호출" : "마지막 fallback"}
+          value={
+            live && callsLastMinute != null
+              ? `${callsLastMinute.toLocaleString()}건`
+              : (() => {
+                  const lastFallback = mockServerErrors
+                    .filter((e) => e.service === "ai-worker")
+                    .map((e) => e.last_seen)
+                    .sort()
+                    .at(-1);
+                  return lastFallback ? formatDate(lastFallback) : "—";
+                })()
+          }
+          hint={live ? "Gemini quota 근사 (분당 호출 수)" : "ai-worker 5xx 최근 발생"}
           accent="pink"
         />
       </div>
+      {live && snapshot && snapshot.by_model.length > 0 ? (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {snapshot.by_model.map((m) => (
+            <span
+              key={m.model}
+              className="text-[11px] rounded-full bg-slate-100 px-2.5 py-1 text-slate-600"
+            >
+              {m.model}: {m.calls.toLocaleString()}회 · fallback {m.fallback_count} · avg{" "}
+              {m.avg_latency_ms.toLocaleString()}ms
+            </span>
+          ))}
+        </div>
+      ) : null}
       <p className="text-[11px] text-muted mt-3">
-        ※ 백엔드 미연동 — fallback rate 는 `mockServerErrors` 기반. `/api/v1/admin/ops/ai-health`
-        도입 후 Gemini timeout / 429 / Bedrock fallback 적중률을 별도 카운터로 노출. feature flag
-        `ai.bedrock_fallback` 활성 여부와 연동 표시.
+        {live ? (
+          <>※ Server `/api/v1/admin/ai-health` 실 연동 — `aiHealthTracker` 5분 sliding
+          window. fallback_breakdown / 모델별 토큰은 Server snapshot 에 포함.</>
+        ) : (
+          <>※ Server 미도달 — `mockHealthProbes` · `mockServerErrors` 근사값 표시 중.
+          Server `/api/v1/admin/ai-health` 도달 시 실측 fallback rate / p50·p95·p99 로
+          자동 전환.</>
+        )}
       </p>
     </PanelCard>
   );

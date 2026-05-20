@@ -94,7 +94,7 @@
 | 4 | AWS staging 환경 배지 | **신규 (본 라운드)** | Sidebar 헤더 우측 `<EnvBadge>` (PROD/STAGING/DEV) | `loadIconiaEnv()` (server-side) → Sidebar client prop |
 | 5 | 실시간 로그 · tracing | OK | `/dashboard/firmware-errors` · `/server-errors` · `/app-errors` · `/dashboard/ops` tracing 패널 | 폴링형 mock — 백엔드 stream 도입 시 교체 |
 | 6 | crash analytics | **확장 (본 라운드)** | `/dashboard/app-errors` 4 신규 StatCard | JS/Native 분리 · crash-free session · Sentry 연동 자리 명시 |
-| 7 | AI timeout monitoring | **신규 (본 라운드)** | `/dashboard/ops` AI 호출 모니터링 패널 (4 StatCard) | p50/p95 · fallback rate · 마지막 fallback 시각 |
+| 7 | AI timeout monitoring | OK · **실 연동** | `/dashboard/ops` AI 호출 모니터링 패널 (4 StatCard + 모델별 chip) | `GET /api/v1/admin/ai-health` 실 연동 — p50/p95/p99 · fallback rate · 모델별 분해. Server 미도달 시 mock degrade |
 | 8 | battery / power 분포 | **신규 (본 라운드)** | `/dashboard/devices` 배터리 분포 4-구간 카드 | high ≥60% · mid 25~59% · low 10~24% · critical <10% |
 | 9 | BLE 페어링 안정성 | **신규 (본 라운드)** | `/dashboard/devices` BLE 4 StatCard | 실패 수 · 실패율 · 시도 · kill switch 참조 |
 | 10 | push delivery 가시화 | **확장 (본 라운드)** | `/dashboard/push` 신규 4 StatCard | 성공률 · invalidated · 실패 캠페인 · Expo Receipts 자리 |
@@ -133,7 +133,7 @@ lib/
 ├── types.ts                ServerEnvelope · ServerResult 등 도메인 타입
 ├── httpClient.ts           authedRequest — Bearer JWT + envelope unwrap + 5xx 합성
 ├── serverApi.ts            /operator/login · /mfa · /logout
-├── adminApi.ts             /admin/users · /admin/devices · /admin/firmware · /admin/ai-health · /admin/posts · /commerce · /operators
+├── adminApi.ts             /admin/users · /admin/devices · /admin/firmware · /admin/ai-health · /admin/posts · /commerce · /operators · /operator/me
 ├── auditApi.ts             listAuditLog / appendAuditLog (canonical hash chain)
 ├── errorCatalog.ts         15종 카탈로그 + userVisibility + serverAliases
 ├── errorMessages.ts        운영자 인증·세션 에러 → 한국어 토스트
@@ -142,7 +142,7 @@ lib/
 ├── opsInfraMock.ts         9 항목 통합 mock (probes · alerts · traces · dead-letters · kill-switches · feature-flags)
 ├── mockData.ts             18종 mock (users · reports · firmware/server/app errors · personas · devices · OTA · stats · SLO)
 ├── silentRetry.ts          runWithSilentRetry — 3회 backoff + transient 휴리스틱
-├── identity.ts             JWT payload → { email } (단일 사용자, role 무시)
+├── identity.ts             readIdentityFromJwt (JWT fallback) + resolveIdentity (Server /operator/me 서명검증 우선)
 ├── jwt.ts                  display-only payload decode
 ├── authCookie.ts           쿠키 단일 소유 (httpOnly + Strict)
 ├── maskPii.ts              운영자 표시용 마스킹
@@ -151,7 +151,9 @@ lib/
     ├── login.ts · mfa.ts · logout.ts · idleLogout.ts
     ├── forceLogoutUser.ts (server action — server canonical audit 자동)
     ├── auditLog.ts  recordOperatorAuditAction
-    ├── posts.ts · commerce.ts
+    ├── aiHealth.ts  getAiHealthAction (/api/v1/admin/ai-health 실 연동)
+    ├── operators.ts  listOperatorsAction · disableOperatorAction
+    ├── posts.ts · commerce.ts · devices.ts · firmware.ts
 ```
 
 ---
@@ -228,18 +230,52 @@ v1.0 출시 점검 — 마지막 RBAC 갭 해소:
 - **server action 강화**: `disableOperatorAction` 에 사유 5자 server-side 검증 추가 (UI 가드 우회 차단). `listOperatorsAction` 신설 — JWT 는 httpOnly 쿠키에서만 읽어 client 노출 차단.
 - 4종 신규 테스트 (`listOperatorsAction` happy/error/세션만료 + disable 사유 길이 가드).
 
-### 3.8 검증
+### 3.8 Server endpoint 실 연동 라운드 (2026-05-20)
+
+ICONIA-Server 라우트 (`src/routes/`) 를 직접 교차 점검 후, **실재하는 endpoint** 에 대해
+README §4.1 의 mock → real swap 을 수행:
+
+- **운영자 신원 — `GET /api/v1/operator/me` 실 연동**: Server 가 JWT 서명을 검증한 뒤
+  `{ id, email, role }` 을 반환하는 라우트 (`operatorRoutes.js`, 모든 role 허용)를 연동.
+  `lib/adminApi.ts` 에 `getOperatorMe()` 추가, `lib/identity.ts` 에 `resolveIdentity()`
+  신설 — Server 신원 우선, 도달 불가(network/5xx) 시 JWT payload 로 graceful fallback,
+  401/403 은 신원 없음(null). `Identity.source` (`server` | `jwt`) 로 신뢰도 구분.
+  `app/dashboard/layout.tsx` · `/dashboard/operators` · `disableOperatorAction` 의
+  unsafe JWT decode 를 Server 검증 신원으로 교체 — 위·변조된 JWT payload 로
+  self-disable 가드를 우회하는 경로 차단.
+- **AI 호출 모니터링 — `GET /api/v1/admin/ai-health` 실 연동**: Server `aiHealthTracker`
+  의 5분 sliding window 통계 (`fallback_rate` · `latency_ms.{p50,p95,p99}` · `by_model`)
+  를 연동. `lib/actions/aiHealth.ts` 의 `getAiHealthAction()` server action (JWT 노출
+  차단) → `/dashboard/ops` AI 패널이 실측값 표시. `AiHealthSnapshot` 타입을 Server
+  `snapshot()` 출력과 1:1 정합하도록 정정. Server 도달 불가 시 `mockHealthProbes` ·
+  `mockServerErrors` 근사값으로 graceful degrade (패널 유지 + mock 배지).
+- 신규 테스트 16건 — `resolveIdentity` 9건 (server 우선 · JWT fallback · 401/403 null ·
+  unknown role · throw 안전) · `getOperatorMe` / `getAiHealth` 계약 4건 ·
+  `getAiHealthAction` 3건 · 서버검증 신원 기반 self-disable 가드 1건.
+
+### 3.9 검증
 
 - `npm run typecheck` 그린 (tsc --noEmit).
 - `npm run lint` 그린 (No ESLint warnings or errors).
-- `npm test` 그린 (244 tests passed — 27 test files, 회귀 0).
-- `npm run build` 그린 (20 페이지 + 미들웨어 41kB 빌드, ICONIA_SERVER_URL env 만 필요).
+- `npm test` 그린 (260 tests passed — 28 test files, 회귀 0).
+- `npm run build` 그린 (18 페이지 + 미들웨어 41kB 빌드, ICONIA_SERVER_URL env 만 필요).
 
 ---
 
 ## 4. 향후 작업 필요한 범위
 
 ### 4.1 백엔드 endpoint 연동 (mock → real swap)
+
+> **Server 라우트 교차 점검 (2026-05-20)**: ICONIA-Server `src/routes/` 를 직접 확인.
+> 실재하는 endpoint (`/api/v1/operator/me`, `/api/v1/admin/ai-health`,
+> `/api/v1/admin/audit-log`, `/api/v1/operator/admin/operators*`,
+> `/api/v1/admin/users*`, `/api/v1/admin/devices*`, `/api/v1/admin/firmware*`,
+> `/api/v1/admin/posts*`, `/api/v1/admin/commerce/*`) 는 연동 완료. 아래 표에서
+> "**실 연동 완료**" 로 표기된 행이 본 라운드 swap 대상. 나머지 (`ops/probes` ·
+> `ops/alerts` · `ops/traces` · `dead-letters` · `kill-switches` · `feature-flags` ·
+> `error-slo` · `expo-receipts` · `battery-distribution` · `users/signups` ·
+> `users/activity` · `pipa/*` · `devices/pairings`) 는 Server 에 라우트가 **아직
+> 존재하지 않아** mock 유지 — Server 도입 후 후속 swap.
 
 | 항목 | 현 상태 | 백엔드 endpoint (도입 시 교체 지점) |
 |---|---|---|
@@ -249,7 +285,7 @@ v1.0 출시 점검 — 마지막 RBAC 갭 해소:
 | 디바이스별 FW 에러 누적 | `mockFirmwareErrors` device_id 그룹화 | `/api/v1/admin/devices/<id>/firmware-errors?since=24h` |
 | **BLE 페어링 실패율** | timeout / (paired + timeout) 근사 | `/api/v1/admin/devices/pairings` 의 (attempt, success) 카운터 |
 | **배터리 분포** | `mockDevices.battery_pct` 정적 | `/api/v1/admin/devices/battery-distribution` 시계열 |
-| **AI fallback rate / p95** | server error code + probe latency 근사 | `/api/v1/admin/ops/ai-health` (Gemini timeout · 429 · Bedrock fallback 적중률) |
+| **AI fallback rate / p95** | **실 연동 완료** — `/dashboard/ops` AI 패널이 `GET /api/v1/admin/ai-health` (`aiHealthTracker` 5분 윈도우: `fallback_rate` · p50/p95/p99 · `by_model`) 호출. Server 도달 불가 시 mock graceful degrade | — |
 | **Push delivery 성공률 / invalidated** | total - delivered 산술 | `/api/v1/admin/push/expo-receipts` (DeviceNotRegistered · InvalidCredentials · MessageRateExceeded) |
 | **JS/Native crash analytics** | error_type prefix 분류 | Sentry release health (`/projects/iconia-app/releases/<v>/health`) |
 | Health probe 시계열 | 정적 7건 | `/api/v1/admin/ops/probes` |
@@ -261,7 +297,7 @@ v1.0 출시 점검 — 마지막 RBAC 갭 해소:
 | Feature flag 편집 | UI state + audit trail | `/api/v1/admin/ops/feature-flags` (LaunchDarkly 또는 in-house) |
 | SLO 시계열 (사용자 인지 에러율) | `mockUserPerceivedErrorRate` 7일 mock | `/api/v1/admin/error-slo` |
 | 세션 audit trail | sessionStorage | `appendAuditLog(...)` 호출로 내부만 교체 — UI 계약 그대로. Server `ALLOWED_ACTIONS` zod enum 에 `ops.*`/`recovery.*`/`kill_switch.*`/`feature_flag.*` 등록 필요 |
-| 운영자 이메일 표시 | `"(현재 운영자 세션)"` | Server `/api/v1/operator/me` (P1 후속) |
+| 운영자 신원 (이메일 / 역할 / id) | **실 연동 완료** — `resolveIdentity()` 가 `GET /api/v1/operator/me` (서명검증) 우선 조회, 도달 불가 시 JWT payload fallback. layout · `/dashboard/operators` · `disableOperatorAction` self-disable 가드에 적용 | — |
 | `listOperators / disableOperator` | **실 연동 완료** — `/dashboard/operators` 가 `GET /api/v1/operator/admin/operators` (superadmin gate) 조회 + `POST .../:id/disable` mutation 호출 | — |
 | 운영자 초대 (invite / role grant) | `/dashboard/operators` 초대 모달 — 입력 검증 + 세션 audit trail 만 | Server `POST /api/v1/operator/admin/operators` 초대 라우트 미존재 — 도입 후 `inviteOperator()` 연결 |
 
@@ -275,10 +311,17 @@ v1.0 출시 점검 — 마지막 RBAC 갭 해소:
 
 ### 4.3 보안 / 운영 강화
 
-- **CSRF 이중 제출 토큰** — mutating 화면 도입 시 추가. 현재 `SameSite=Strict` 1차 방어.
+- **CSRF** — 현 구조상 **추가 토큰 불요**. 모든 mutation 은 Next.js Server Action 경유로,
+  Next 14 가 Server Action 호출에 Origin/Host 동일출처 검증을 기본 강제한다. 여기에
+  세션 쿠키 `SameSite=Strict` + `httpOnly` 가 더해져 이중 방어. 클래식 form→API POST
+  경로가 없으므로 hand-rolled double-submit 토큰은 중복. (API 라우트 직접 노출 시 재검토.)
+- **운영자 신원 서명검증** — ✅ 완료 (§3.8). `resolveIdentity()` 가 Server
+  `/api/v1/operator/me` 로 신원을 서명검증 — client-decodable JWT decode 의존 제거.
 - **Refresh token rotation** — Server family rotation 정합. Admin 측 silent refresh 흐름.
-- **IP allowlist (operator 한정)** — 운영자 계정 차단/허용 IP 범위 화면.
-- **2-eye rule** — Knowledge 삭제 / 정책 변경 등 중요 mutation 에 2인 승인.
+- **IP allowlist (operator 한정)** — 운영자 계정 차단/허용 IP 범위 화면. Server 라우트
+  미존재 — 도입 후 화면화.
+- **2-eye rule** — Knowledge 삭제 / 정책 변경 등 중요 mutation 에 2인 승인. Server
+  승인 워크플로 라우트 미존재 — 도입 후 화면화.
 - **2FA TOTP 정식화** — scaffold (`/security/2fa`) 존재 — Server P1 와 동기 활성화.
 
 ### 4.4 UI / UX 정식화
@@ -292,7 +335,9 @@ v1.0 출시 점검 — 마지막 RBAC 갭 해소:
 - **MAU 카드** — `/dashboard/stats` 에 30일 활성 사용자.
 - **상품별 SKU 분포** — `/dashboard/stats` 매출 패널 확장.
 - **24h/7d 트렌드 시각화** — 각 에러 페이지의 StatCard 단순 카운트 → `/dashboard/stats` 시계열에 통합.
-- **Gemini Bedrock fallback 적중률 시계열** — 본 라운드 fallback rate 정적 → feature flag `ai.bedrock_fallback` 활성 시 시계열로 확장.
+- **Gemini Bedrock fallback 적중률 시계열** — fallback rate 는 `/api/v1/admin/ai-health`
+  실 연동 완료(§3.8)이나 현재는 5분 윈도우 point-in-time 값. Server 가 시계열 endpoint
+  를 제공하면 7일 추세 차트로 확장.
 
 ### 4.6 테스트 / 자동화
 

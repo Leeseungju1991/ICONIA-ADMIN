@@ -6,21 +6,32 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("@/lib/adminApi", () => ({
   disableOperator: vi.fn(),
   listOperators: vi.fn(),
+  getOperatorMe: vi.fn(),
 }));
 
-import { disableOperator, listOperators } from "@/lib/adminApi";
+import { disableOperator, listOperators, getOperatorMe } from "@/lib/adminApi";
 import { revalidatePath } from "next/cache";
 import { disableOperatorAction, listOperatorsAction } from "./operators";
 
 const mockedDisable = disableOperator as unknown as ReturnType<typeof vi.fn>;
 const mockedList = listOperators as unknown as ReturnType<typeof vi.fn>;
+const mockedGetMe = getOperatorMe as unknown as ReturnType<typeof vi.fn>;
 const mockedRevalidate = revalidatePath as unknown as ReturnType<typeof vi.fn>;
 
 beforeEach(() => {
   cookieStore.get.mockReset();
   mockedDisable.mockReset();
   mockedList.mockReset();
+  mockedGetMe.mockReset();
   mockedRevalidate.mockReset();
+  // 기본: Server /operator/me 도달 불가 → disableOperatorAction 의 self-disable
+  // 가드는 JWT payload fallback 으로 동작 (resolveIdentity).
+  mockedGetMe.mockResolvedValue({
+    ok: false,
+    code: "ERR_NETWORK",
+    message: "network_error",
+    status: 0,
+  });
 });
 
 function fd(input: Record<string, string>): FormData {
@@ -103,6 +114,22 @@ describe("disableOperatorAction", () => {
     const r = await disableOperatorAction(fd({ operator_id: "o1", reason: "abc" }));
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.message).toMatch(/5자/);
+    expect(mockedDisable).not.toHaveBeenCalled();
+  });
+
+  it("blocks self-disable using server-verified identity even when JWT sub is forged", async () => {
+    // 위·변조된 JWT 는 sub=other 라 우회를 시도하지만, Server /operator/me 가
+    // 정본 id=me 를 반환하므로 self-disable 가드가 동작해야 한다.
+    cookieStore.get.mockReturnValue({
+      value: makeJwt({ sub: "other", email: "x@example.com", role: "superadmin" }),
+    });
+    mockedGetMe.mockResolvedValue({
+      ok: true,
+      data: { id: "me", email: "me@example.com", role: "superadmin" },
+    });
+    const r = await disableOperatorAction(fd({ operator_id: "me", reason: "i am leaving" }));
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.message).toMatch(/본인 계정/);
     expect(mockedDisable).not.toHaveBeenCalled();
   });
 });

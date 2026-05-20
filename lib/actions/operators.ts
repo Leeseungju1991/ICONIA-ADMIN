@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { readSession } from "@/lib/authCookie";
-import { readIdentityFromJwt } from "@/lib/identity";
+import { resolveIdentity } from "@/lib/identity";
 import { disableOperator, listOperators, type OperatorRow } from "@/lib/adminApi";
 
 export type DisableOperatorResult = { ok: true } | { ok: false; message: string };
@@ -22,7 +22,9 @@ export async function disableOperatorAction(
 
   // self-disable 차단 — UI 가드와 별개로 server action 단에서도 한 번 더 검증
   // (P0 §5.1.10b / 감사 §2.14). server 측 정책은 별도. 이는 UX-defense layer.
-  const identity = readIdentityFromJwt(jwt);
+  // Server `/api/v1/operator/me` 서명검증 신원으로 본인 id 를 확인 — 위·변조된
+  // JWT payload 로 self-disable 가드를 우회하는 경로를 차단한다.
+  const identity = await resolveIdentity(jwt);
   if (identity?.id && identity.id === operatorId) {
     return { ok: false, message: "본인 계정은 비활성화할 수 없습니다" };
   }

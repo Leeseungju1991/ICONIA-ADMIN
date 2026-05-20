@@ -1,6 +1,6 @@
 import { listOperatorsAction } from "@/lib/actions/operators";
 import { readSession } from "@/lib/authCookie";
-import { readIdentityFromJwt } from "@/lib/identity";
+import { resolveIdentity } from "@/lib/identity";
 import OperatorsClient from "./OperatorsClient";
 
 export const dynamic = "force-dynamic";
@@ -12,8 +12,9 @@ export default async function OperatorsPage() {
   const result = await listOperatorsAction();
 
   // 현재 로그인한 운영자 식별 — self-disable UI 가드 + audit 표시용.
+  // Server `/api/v1/operator/me` 서명검증 신원 우선, 도달 불가 시 JWT fallback.
   const jwt = readSession();
-  const identity = jwt ? readIdentityFromJwt(jwt) : null;
+  const identity = await resolveIdentity(jwt);
 
   return (
     <OperatorsClient
