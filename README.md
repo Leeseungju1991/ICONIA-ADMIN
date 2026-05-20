@@ -207,12 +207,22 @@ lib/
 - **§9 BLE 안정성**: `/dashboard/devices` 에 BLE 페어링 실패 / 실패율 / 시도 / kill switch 참조 4 StatCard. 실패율 임계 10% 초과 시 chip-pink + "임계 초과" delta.
 - **§10 push delivery**: `/dashboard/push` 에 Push 성공률 (95% 임계) · invalidated 토큰 (DeviceNotRegistered/InvalidCredentials) · 실패 캠페인 수 · Expo Receipts endpoint 자리 4 StatCard.
 
-### 3.6 검증
+### 3.6 상용 운영 패널 완성 라운드 (2026-05-20)
+
+미구현 / 부분구현 / dead button 일괄 점검 후 출시 수준으로 완성:
+
+- **RBAC 강제 활성화**: `middleware.ts` 가 JWT `role` 클레임으로 경로별 접근을 1차 차단 (권한 미달 시 `?reason=forbidden` redirect). `PATH_REQUIRED_ROLES` 를 실제 라우트에 매핑 (ops/ota/personas = SRE 이상, devices = secops 이상, users/reports = cs 이상). `Sidebar` 가 `canAccessPath` 로 네비게이션 링크 역할별 필터링 + 역할 배지 노출.
+- **신고 처리 액션 wire**: 차단 / 반려 / 경고 / 계정정지 4개 dead button 실연결 — 차단·계정정지는 EXECUTE 2단계 확인, 전 액션 사유 입력 + 세션 audit trail 기록. 처리 현황 KPI 4종 추가.
+- **공지 관리**: 편집 모달 (신규/편집 겸용) + 게시 중지/재개 토글 + 입력 검증.
+- **푸시 관리**: 작성 / 편집 / 복사 모달 wire + 임시저장 / 예약발송 검증.
+- **대시보드 홈 KPI**: 활성 디바이스 · DAU · 사용자 인지 에러율 · 큐 적체 · 24h 에러 · 서버 헬스 · 신고 대기 · 펌웨어 크리티컬 8개 KPI 를 underlying mock 에서 직접 집계. RBAC 차단 안내 배너 (`ForbiddenNotice`) 추가.
+
+### 3.7 검증
 
 - `npm run typecheck` 그린 (tsc --noEmit).
 - `npm run lint` 그린 (No ESLint warnings or errors).
-- `npm test` 그린 (221 tests passed — 26 test files, 본 라운드 회귀 0).
-- `npm run build` 그린 (19 페이지 정적 빌드, ICONIA_SERVER_URL env 만 필요).
+- `npm test` 그린 (240 tests passed — 27 test files, `operatorRoles.test.ts` 19종 신규, 회귀 0).
+- `npm run build` 그린 (19 페이지 + 미들웨어 41kB 빌드, ICONIA_SERVER_URL env 만 필요).
 
 ---
 
@@ -243,12 +253,12 @@ lib/
 | 운영자 이메일 표시 | `"(현재 운영자 세션)"` | Server `/api/v1/operator/me` (P1 후속) |
 | `listOperators / disableOperator` | `/api/v1/operator/admin/operators*` 호출 코드 있음 | Server 측 라우트 미확인 — PR 동기 또는 admin UI 비활성 결정 필요 |
 
-### 4.2 RBAC (multi-operator)
+### 4.2 RBAC (multi-operator) — 1차 구현 완료 (2026-05-20)
 
-- 현 web 은 **단일 owner 가정** — RBAC UI gating 비활성.
-- `lib/operatorRoles.ts` 의 `OperatorRole` enum + `PATH_REQUIRED_ROLES` 매트릭스는 골격만 보존.
-- 도입 시: `parseRoleFromJwtPayload` + `findRequiredRoles` 활성 → `RequireAuth` 에 role 비교 → 사이드바 메뉴 hidden gating.
-- 실제 권한 결정은 **항상 Server**. Admin 의 role check 는 UX 표시일 뿐.
+- ✅ `middleware.ts` 경로별 JWT `role` 차단 + `Sidebar` 역할별 메뉴 필터링 + 역할 배지 활성 (§3.6).
+- ✅ `lib/operatorRoles.ts` 의 `PATH_REQUIRED_ROLES` 매트릭스가 실제 라우트에 매핑되어 동작.
+- 남은 후속: `/dashboard/operators` 운영자 관리 페이지 신설 (server action `disableOperatorAction` 은 이미 존재), 운영자 초대 / 역할 부여 UI.
+- 실제 권한 결정은 **항상 Server**. Admin 의 role check 는 1차 방어 + UX 표시.
 
 ### 4.3 보안 / 운영 강화
 
