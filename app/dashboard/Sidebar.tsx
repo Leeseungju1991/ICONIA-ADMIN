@@ -31,6 +31,7 @@ const nav: NavItem[] = [
   { to: "/dashboard/server-errors", label: "서버 에러", icon: ServerIcon },
   { to: "/dashboard/app-errors", label: "앱 에러", icon: PhoneIcon },
   { to: "/dashboard/ops", label: "운영 안정성", icon: ShieldIcon },
+  { to: "/dashboard/operators", label: "운영자 관리", icon: KeyIcon },
 ];
 
 function pageTitle(pathname: string): { title: string; subtitle: string } {
@@ -55,6 +56,7 @@ function subtitleFor(to: string): string {
     case "/dashboard/server-errors": return "AWS API/서비스 5xx·예외·헬스 상태.";
     case "/dashboard/app-errors": return "RN Expo 모바일 앱 크래시·런타임 에러.";
     case "/dashboard/ops": return "observability · tracing · alerting · audit · replay · recovery · kill switch · feature flag.";
+    case "/dashboard/operators": return "운영 콘솔 접근 권한 — 운영자 초대·역할 부여·비활성화 (최고관리자 전용).";
     default: return "";
   }
 }
@@ -385,6 +387,14 @@ function ShieldIcon({ className }: { className?: string }) {
     <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2">
       <path d="M12 3l8 3v6c0 4.5-3.5 8-8 9-4.5-1-8-4.5-8-9V6l8-3z" />
       <path d="M9 12l2 2 4-4" />
+    </svg>
+  );
+}
+function KeyIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2">
+      <circle cx="8" cy="15" r="5" />
+      <path d="M11.5 11.5L20 3M17 6l2 2M14 9l2 2" />
     </svg>
   );
 }

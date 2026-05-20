@@ -82,6 +82,7 @@
 | `/dashboard/server-errors` | 표 + drawer · 코드 추정 (`inferCatalogCode`) | retry → `server.*` 세션 | `mockServerErrors` |
 | `/dashboard/app-errors` | 4 StatCard (총·영향·iOS·Android) + **4 (JS crash·Native crash·crash-free session·Sentry 자리)** · 표 · drawer | create_issue · mark_resolved · force_update_hint → `app.*` 세션 | `mockAppErrors` |
 | `/dashboard/ops` | 9 항목 통합 — observability(probe+SLO) · **AI timeout/fallback/p95** · alerting · tracing · replay/force-retry · recovery · kill switch · feature flag · audit log | ack · replay_force · recovery (일부 destructive **EXECUTE**) · kill_switch.* **EXECUTE** · feature_flag.update → 세션 trail (user.* 만 server canonical) | `mockHealthProbes` · `mockOpsAlerts` · `mockTraces` · `mockDeadLetters` · `mockKillSwitches` · `mockFeatureFlags` · `mockServerErrors` |
+| `/dashboard/operators` | 4 StatCard (활성·최고관리자·2FA 미등록·비활성) · 운영자 표 · 초대 모달 | disable **EXECUTE** + 사유 5자 → `operator.*` 세션 trail (+ Server `operator_role_changed` canonical) · invite (사유 5자) | `listOperators` **실 연동** |
 
 ### 2.2 출시 진단 10 항목 — Admin 책임 매핑
 
@@ -217,12 +218,22 @@ lib/
 - **푸시 관리**: 작성 / 편집 / 복사 모달 wire + 임시저장 / 예약발송 검증.
 - **대시보드 홈 KPI**: 활성 디바이스 · DAU · 사용자 인지 에러율 · 큐 적체 · 24h 에러 · 서버 헬스 · 신고 대기 · 펌웨어 크리티컬 8개 KPI 를 underlying mock 에서 직접 집계. RBAC 차단 안내 배너 (`ForbiddenNotice`) 추가.
 
-### 3.7 검증
+### 3.7 v1.0 정식 출시 라운드 (2026-05-20)
+
+v1.0 출시 점검 — 마지막 RBAC 갭 해소:
+
+- **운영자 관리 페이지 신설** (`/dashboard/operators`): superadmin 전용 — `middleware.ts` 의 `PATH_REQUIRED_ROLES` 가 1차 차단, Sidebar 가 역할별로 메뉴 노출. 서버 컴포넌트가 `listOperatorsAction()` → `GET /api/v1/operator/admin/operators` (실 연동) 로 운영자 목록 조회, 로딩/에러/빈 상태 모두 처리.
+- **운영자 비활성화**: 표의 비활성화 버튼이 EXECUTE 2단계 확인 + 사유 5자 → `disableOperatorAction()` (실 server mutation `POST .../:id/disable`, Server `operator_role_changed` canonical audit) 호출. 본인 계정 self-disable UI/서버 양단 차단.
+- **운영자 초대 모달**: 이메일/역할/사유 입력 검증 — Server 초대 라우트 부재로 세션 audit trail 기록 (dead button 방지, TODO 명시).
+- **server action 강화**: `disableOperatorAction` 에 사유 5자 server-side 검증 추가 (UI 가드 우회 차단). `listOperatorsAction` 신설 — JWT 는 httpOnly 쿠키에서만 읽어 client 노출 차단.
+- 4종 신규 테스트 (`listOperatorsAction` happy/error/세션만료 + disable 사유 길이 가드).
+
+### 3.8 검증
 
 - `npm run typecheck` 그린 (tsc --noEmit).
 - `npm run lint` 그린 (No ESLint warnings or errors).
-- `npm test` 그린 (240 tests passed — 27 test files, `operatorRoles.test.ts` 19종 신규, 회귀 0).
-- `npm run build` 그린 (19 페이지 + 미들웨어 41kB 빌드, ICONIA_SERVER_URL env 만 필요).
+- `npm test` 그린 (244 tests passed — 27 test files, 회귀 0).
+- `npm run build` 그린 (20 페이지 + 미들웨어 41kB 빌드, ICONIA_SERVER_URL env 만 필요).
 
 ---
 
@@ -251,13 +262,15 @@ lib/
 | SLO 시계열 (사용자 인지 에러율) | `mockUserPerceivedErrorRate` 7일 mock | `/api/v1/admin/error-slo` |
 | 세션 audit trail | sessionStorage | `appendAuditLog(...)` 호출로 내부만 교체 — UI 계약 그대로. Server `ALLOWED_ACTIONS` zod enum 에 `ops.*`/`recovery.*`/`kill_switch.*`/`feature_flag.*` 등록 필요 |
 | 운영자 이메일 표시 | `"(현재 운영자 세션)"` | Server `/api/v1/operator/me` (P1 후속) |
-| `listOperators / disableOperator` | `/api/v1/operator/admin/operators*` 호출 코드 있음 | Server 측 라우트 미확인 — PR 동기 또는 admin UI 비활성 결정 필요 |
+| `listOperators / disableOperator` | **실 연동 완료** — `/dashboard/operators` 가 `GET /api/v1/operator/admin/operators` (superadmin gate) 조회 + `POST .../:id/disable` mutation 호출 | — |
+| 운영자 초대 (invite / role grant) | `/dashboard/operators` 초대 모달 — 입력 검증 + 세션 audit trail 만 | Server `POST /api/v1/operator/admin/operators` 초대 라우트 미존재 — 도입 후 `inviteOperator()` 연결 |
 
 ### 4.2 RBAC (multi-operator) — 1차 구현 완료 (2026-05-20)
 
 - ✅ `middleware.ts` 경로별 JWT `role` 차단 + `Sidebar` 역할별 메뉴 필터링 + 역할 배지 활성 (§3.6).
 - ✅ `lib/operatorRoles.ts` 의 `PATH_REQUIRED_ROLES` 매트릭스가 실제 라우트에 매핑되어 동작.
-- 남은 후속: `/dashboard/operators` 운영자 관리 페이지 신설 (server action `disableOperatorAction` 은 이미 존재), 운영자 초대 / 역할 부여 UI.
+- ✅ `/dashboard/operators` 운영자 관리 페이지 신설 (v1.0, 2026-05-20) — `listOperators` 실 연동 조회, `disableOperatorAction` EXECUTE 비활성화, 운영자 초대 모달.
+- 남은 후속: Server 운영자 초대 라우트 도입 후 invite 모달의 audit-only 동작을 실 mutation 으로 교체.
 - 실제 권한 결정은 **항상 Server**. Admin 의 role check 는 1차 방어 + UX 표시.
 
 ### 4.3 보안 / 운영 강화
