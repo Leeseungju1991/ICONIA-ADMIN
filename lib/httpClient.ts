@@ -16,6 +16,12 @@ import type { ServerEnvelope, ServerResult } from "./types";
 
 export type HttpMethod = "GET" | "POST" | "PATCH" | "DELETE";
 
+// 양산화 — Server 응답 hang 으로부터 관리자 패널 보호.
+//   Server 가 멈추거나 네트워크가 끊긴 채 소켓이 살아 있으면 fetch 는 무한 대기한다.
+//   대량 트래픽 상황에서 이런 hang 한 건이 RSC 렌더를 통째로 멈출 수 있으므로,
+//   AbortController 로 상한선을 두어 timeout 을 ERR_NETWORK 로 graceful 매핑한다.
+const DEFAULT_TIMEOUT_MS = 10_000;
+
 export type AuthedRequestArgs = {
   jwt: string;
   path: string;
@@ -27,6 +33,8 @@ export type AuthedRequestArgs = {
    */
   idempotencyKey?: string;
   requestId?: string;
+  /** 요청 timeout (ms). 미지정 시 10,000ms. 0 이하면 timeout 비활성. */
+  timeoutMs?: number;
 };
 
 /**
@@ -53,6 +61,14 @@ export async function authedRequest<T>(
   if (args.idempotencyKey) headers["Idempotency-Key"] = args.idempotencyKey;
   if (args.requestId) headers["X-Request-Id"] = args.requestId;
 
+  // timeout guard — AbortController 로 hang 한 요청을 끊는다.
+  const timeoutMs = args.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+  const controller = timeoutMs > 0 ? new AbortController() : null;
+  const timer =
+    controller != null
+      ? setTimeout(() => controller.abort(), timeoutMs)
+      : null;
+
   let response: Response;
   try {
     response = await fetch(`${env.ICONIA_SERVER_URL}${args.path}`, {
@@ -60,9 +76,20 @@ export async function authedRequest<T>(
       headers,
       body: args.body === undefined ? undefined : JSON.stringify(args.body),
       cache: "no-store",
+      signal: controller?.signal,
     });
-  } catch {
-    return { ok: false, code: "ERR_NETWORK", message: "network_error", status: 0 };
+  } catch (err) {
+    // abort (timeout) 와 일반 네트워크 실패를 구분해 메시지만 다르게 — 코드는 동일.
+    const isTimeout =
+      err instanceof Error && err.name === "AbortError";
+    return {
+      ok: false,
+      code: "ERR_NETWORK",
+      message: isTimeout ? "request_timeout" : "network_error",
+      status: 0,
+    };
+  } finally {
+    if (timer != null) clearTimeout(timer);
   }
 
   let envelope: ServerEnvelope<T>;

@@ -136,4 +136,41 @@ describe("authedRequest (shared httpClient)", () => {
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.code).toBe("ERR_INVALID_RESPONSE");
   });
+
+  it("aborts a hanging request after timeoutMs and maps to ERR_NETWORK", async () => {
+    // fetch 가 abort signal 을 받으면 AbortError 로 reject 하는 hang 모킹.
+    const fetchMock = vi.fn(
+      (_url: string, init: { signal?: AbortSignal }) =>
+        new Promise((_resolve, reject) => {
+          init.signal?.addEventListener("abort", () => {
+            const e = new Error("aborted");
+            e.name = "AbortError";
+            reject(e);
+          });
+        }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const r = await authedRequest({
+      jwt: "j",
+      path: "/api/v1/slow",
+      method: "GET",
+      timeoutMs: 20,
+    });
+    expect(r.ok).toBe(false);
+    if (!r.ok) {
+      expect(r.code).toBe("ERR_NETWORK");
+      expect(r.message).toBe("request_timeout");
+      expect(r.status).toBe(0);
+    }
+  });
+
+  it("passes an AbortSignal to fetch by default", async () => {
+    const fetchMock = mockFetchOnce({
+      status: 200,
+      body: { ok: true, data: { ok: true }, error: null },
+    });
+    await authedRequest({ jwt: "j", path: "/api/v1/x", method: "GET" });
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init.signal).toBeInstanceOf(AbortSignal);
+  });
 });
