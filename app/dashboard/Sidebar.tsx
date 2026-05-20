@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, useTransition, type ReactNode } from "react";
 import { logoutAction } from "@/lib/actions/logout";
+import type { IconiaEnvName } from "@/lib/env";
 
 type NavItem = {
   to: string;
@@ -14,6 +15,9 @@ type NavItem = {
 const nav: NavItem[] = [
   { to: "/dashboard", label: "대시보드", icon: DashboardIcon },
   { to: "/dashboard/users", label: "회원 관리", icon: UsersIcon },
+  { to: "/dashboard/devices", label: "디바이스 모니터링", icon: DeviceIcon },
+  { to: "/dashboard/ota", label: "OTA 관리", icon: UploadIcon },
+  { to: "/dashboard/personas", label: "AI 페르소나", icon: SparkleIcon },
   { to: "/dashboard/reports", label: "리뷰·신고 관리", icon: FlagIcon },
   { to: "/dashboard/notices", label: "공지/배너 관리", icon: MegaphoneIcon },
   { to: "/dashboard/push", label: "푸시 알림 관리", icon: BellIcon },
@@ -21,6 +25,7 @@ const nav: NavItem[] = [
   { to: "/dashboard/firmware-errors", label: "펌웨어 에러", icon: ChipIcon },
   { to: "/dashboard/server-errors", label: "서버 에러", icon: ServerIcon },
   { to: "/dashboard/app-errors", label: "앱 에러", icon: PhoneIcon },
+  { to: "/dashboard/ops", label: "운영 안정성", icon: ShieldIcon },
 ];
 
 function pageTitle(pathname: string): { title: string; subtitle: string } {
@@ -34,6 +39,9 @@ function pageTitle(pathname: string): { title: string; subtitle: string } {
 function subtitleFor(to: string): string {
   switch (to) {
     case "/dashboard/users": return "회원 정보 조회·계정 상태·강제 로그아웃 등 정보 관리.";
+    case "/dashboard/devices": return "ESP32 인형의 last seen·배터리·펌웨어 버전·연결 상태 모니터링.";
+    case "/dashboard/ota": return "펌웨어 업로드·채널 배포·롤백 관리 (ESP32 OTA).";
+    case "/dashboard/personas": return "SOUL 파일 업로드·검수·라이브 전환·롤백.";
     case "/dashboard/reports": return "이용자 리뷰와 신고된 게시물을 검토·처리합니다.";
     case "/dashboard/notices": return "앱·웹 공지사항과 메인 배너를 등록·관리합니다.";
     case "/dashboard/push": return "전체/세그먼트 푸시 캠페인을 발송하고 결과를 확인합니다.";
@@ -41,11 +49,19 @@ function subtitleFor(to: string): string {
     case "/dashboard/firmware-errors": return "ESP32 OTA 실패·런타임 크래시 로그.";
     case "/dashboard/server-errors": return "AWS API/서비스 5xx·예외·헬스 상태.";
     case "/dashboard/app-errors": return "RN Expo 모바일 앱 크래시·런타임 에러.";
+    case "/dashboard/ops": return "observability · tracing · alerting · audit · replay · recovery · kill switch · feature flag.";
     default: return "";
   }
 }
 
-export default function Sidebar({ children }: { children: ReactNode }) {
+export default function Sidebar({
+  children,
+  env = "development",
+}: {
+  children: ReactNode;
+  /** ICONIA_ENV — 헤더 env 배지 표시용. server-side `loadIconiaEnv()` 가 layout 에서 주입. */
+  env?: IconiaEnvName;
+}) {
   const pathname = usePathname() ?? "/dashboard";
   const [navOpen, setNavOpen] = useState(false);
   const { title, subtitle } = pageTitle(pathname);
@@ -123,6 +139,7 @@ export default function Sidebar({ children }: { children: ReactNode }) {
                 </div>
 
                 <div className="flex items-center gap-2">
+                  <EnvBadge env={env} />
                   <span className="chip chip-success">운영자</span>
                 </div>
               </header>
@@ -133,6 +150,34 @@ export default function Sidebar({ children }: { children: ReactNode }) {
         </div>
       </div>
     </div>
+  );
+}
+
+// EnvBadge — 운영자가 현재 콘솔의 환경 (prod/staging/dev) 을 한 눈에 구분.
+// prod 는 강조(빨강), staging 은 주황, dev 는 회색. 잘못된 환경에서의 운영자 실수 차단.
+function EnvBadge({ env }: { env: IconiaEnvName }) {
+  const map: Record<IconiaEnvName, { label: string; chip: string; title: string }> = {
+    production: {
+      label: "PROD",
+      chip: "chip chip-error",
+      title: "운영 환경 (production) — 실 사용자 데이터입니다. 모든 액션은 즉시 영향.",
+    },
+    staging: {
+      label: "STAGING",
+      chip: "chip chip-warn",
+      title: "스테이징 환경 — QA / 회귀 테스트 전용. 실 사용자 데이터 아님.",
+    },
+    development: {
+      label: "DEV",
+      chip: "chip chip-muted",
+      title: "개발 환경 — 로컬/테스트. mock 데이터.",
+    },
+  };
+  const meta = map[env];
+  return (
+    <span className={meta.chip} title={meta.title} aria-label={`현재 환경: ${meta.label}`}>
+      {meta.label}
+    </span>
   );
 }
 
@@ -268,6 +313,37 @@ function PhoneIcon({ className }: { className?: string }) {
     <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2">
       <rect x="7" y="2" width="10" height="20" rx="2" />
       <path d="M11 18h2" />
+    </svg>
+  );
+}
+function DeviceIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M12 3a4 4 0 0 0-4 4v3a4 4 0 1 0 8 0V7a4 4 0 0 0-4-4z" />
+      <path d="M5 14h14M7 14v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-5" />
+    </svg>
+  );
+}
+function UploadIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M12 3v12M7 8l5-5 5 5" />
+      <path d="M5 21h14" />
+    </svg>
+  );
+}
+function SparkleIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M12 3v6M12 15v6M3 12h6M15 12h6M6 6l3 3M15 15l3 3M18 6l-3 3M9 15l-3 3" />
+    </svg>
+  );
+}
+function ShieldIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M12 3l8 3v6c0 4.5-3.5 8-8 9-4.5-1-8-4.5-8-9V6l8-3z" />
+      <path d="M9 12l2 2 4-4" />
     </svg>
   );
 }

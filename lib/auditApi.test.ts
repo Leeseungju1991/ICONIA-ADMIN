@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { listAuditLog } from "./auditApi";
+import { appendAuditLog, listAuditLog } from "./auditApi";
 
 const BASE = "https://api.example.com";
 
@@ -146,5 +146,84 @@ describe("listAuditLog", () => {
     const r = await listAuditLog({ jwt: "j" });
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.code).toBe("ERR_INVALID_RESPONSE");
+  });
+});
+
+// canonical operator-audit append contract — Server `/api/v1/admin/audit-log` POST.
+// Server-side recordOperatorAuditAction action 이 사용하는 단일 진입점.
+describe("appendAuditLog", () => {
+  it("POSTs to /api/v1/admin/audit-log with snake_case body and Bearer JWT", async () => {
+    const fetchMock = mockFetchOnce({
+      status: 200,
+      body: { ok: true, data: { id: "ent_1" }, error: null },
+    });
+    const r = await appendAuditLog({
+      jwt: "j",
+      input: {
+        action: "user.force_logout",
+        targetUserId: "u1",
+        targetResourceType: "user",
+        targetResourceId: "u1",
+        payloadHash: "deadbeef",
+        reasonText: "policy violation",
+      },
+    });
+    expect(r.ok).toBe(true);
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(String(url)).toBe(`${BASE}/api/v1/admin/audit-log`);
+    expect(init.method).toBe("POST");
+    expect(init.headers["Authorization"]).toBe("Bearer j");
+    expect(init.headers["Content-Type"]).toBe("application/json");
+    // 본문은 snake_case (서버 계약).
+    expect(JSON.parse(init.body)).toEqual({
+      action: "user.force_logout",
+      target_user_id: "u1",
+      target_resource_type: "user",
+      target_resource_id: "u1",
+      payload_hash: "deadbeef",
+      reason_text: "policy violation",
+    });
+  });
+
+  it("omits optional fields when not provided", async () => {
+    const fetchMock = mockFetchOnce({
+      status: 200,
+      body: { ok: true, data: { id: "ent_2" }, error: null },
+    });
+    await appendAuditLog({
+      jwt: "j",
+      input: { action: "user.pii_unmasked" },
+    });
+    const [, init] = fetchMock.mock.calls[0];
+    const body = JSON.parse(init.body);
+    expect(body).toEqual({ action: "user.pii_unmasked" });
+    expect(body).not.toHaveProperty("target_user_id");
+    expect(body).not.toHaveProperty("payload_hash");
+  });
+
+  it("propagates 403 ERR_OPERATOR_FORBIDDEN as ServerErr", async () => {
+    mockFetchOnce({
+      status: 403,
+      body: { ok: false, data: null, error: { code: "ERR_OPERATOR_FORBIDDEN", message: "x" } },
+    });
+    const r = await appendAuditLog({
+      jwt: "j",
+      input: { action: "user.force_logout", targetUserId: "u1" },
+    });
+    expect(r.ok).toBe(false);
+    if (!r.ok) {
+      expect(r.code).toBe("ERR_OPERATOR_FORBIDDEN");
+      expect(r.status).toBe(403);
+    }
+  });
+
+  it("propagates 5xx via shared httpClient mapping (ERR_SERVER_UNAVAILABLE)", async () => {
+    mockFetchOnce({
+      status: 503,
+      body: { ok: false, data: null, error: { code: "X", message: "y" } },
+    });
+    const r = await appendAuditLog({ jwt: "j", input: { action: "user.force_logout" } });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.code).toBe("ERR_SERVER_UNAVAILABLE");
   });
 });

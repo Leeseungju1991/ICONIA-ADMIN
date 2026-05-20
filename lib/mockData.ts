@@ -171,6 +171,110 @@ export const mockStatsTimeseries = [
   { day: "05-18", dau: 12840, signups: 181, revenue: 7210000 },
 ];
 
+// ── SLO: 사용자 인지된 에러율 시계열 ───────────────────────────────
+//
+// 정책 (Router → Admin 라운드 2, 2026-05-20):
+//   - `total_errors` : 24h 누적 에러 발생 (전 카테고리).
+//   - `user_visible` : 그 중 사용자가 명확히 에러로 인지한 건수 (visible 만).
+//   - `in_character` : 캐릭터 라인으로 완충된 건수.
+//   - `silent`       : 사용자가 인지하지 못한 건수.
+//
+// SLO 카드는 `user_visible / total_errors` 를 핵심 지표로 사용한다.
+// 목표선: ≤ 1.5% (운영자 OKR). 백엔드 미연동 — `/api/v1/admin/error-slo`
+// 도입 시 교체.
+export type UserPerceivedErrorPoint = {
+  day: string;
+  total_errors: number;
+  user_visible: number;
+  in_character: number;
+  silent: number;
+};
+
+export const mockUserPerceivedErrorRate: UserPerceivedErrorPoint[] = [
+  { day: "05-12", total_errors: 1422, user_visible: 28, in_character: 510, silent: 884 },
+  { day: "05-13", total_errors: 1380, user_visible: 22, in_character: 488, silent: 870 },
+  { day: "05-14", total_errors: 1510, user_visible: 31, in_character: 540, silent: 939 },
+  { day: "05-15", total_errors: 1602, user_visible: 38, in_character: 612, silent: 952 },
+  { day: "05-16", total_errors: 1430, user_visible: 18, in_character: 502, silent: 910 },
+  { day: "05-17", total_errors: 1389, user_visible: 20, in_character: 491, silent: 878 },
+  { day: "05-18", total_errors: 1243, user_visible: 14, in_character: 420, silent: 809 },
+];
+
+/** SLO 목표 — 사용자 인지된 에러율 (visible / total) 상한선. 1.5% */
+export const USER_PERCEIVED_ERROR_SLO_TARGET = 0.015;
+
+// ── OTA 관리 ───────────────────────────────────────────────
+export type OtaFirmwareRow = {
+  id: string;
+  version: string;
+  channel: "stable" | "beta" | "canary";
+  size_bytes: number;
+  uploaded_at: string;
+  notes: string;
+  state: "draft" | "rolling_out" | "completed" | "rolled_back";
+  target_count: number;
+  applied_count: number;
+  failed_count: number;
+};
+
+export const mockOtaFirmwares: OtaFirmwareRow[] = [
+  { id: "fw_1_4_2", version: "1.4.2", channel: "stable", size_bytes: 1_842_320, uploaded_at: "2026-05-12T01:00:00Z", notes: "BLE 안정성 + 배터리 ADC 보정", state: "rolling_out", target_count: 12000, applied_count: 8420, failed_count: 32 },
+  { id: "fw_1_4_1", version: "1.4.1", channel: "stable", size_bytes: 1_840_010, uploaded_at: "2026-04-22T10:00:00Z", notes: "캠 초기화 retry 로직 추가", state: "completed", target_count: 11800, applied_count: 11770, failed_count: 30 },
+  { id: "fw_1_5_0_rc1", version: "1.5.0-rc1", channel: "beta", size_bytes: 1_910_400, uploaded_at: "2026-05-16T07:30:00Z", notes: "신규 페르소나 핸드오프 API + 저전력 모드 v2", state: "rolling_out", target_count: 540, applied_count: 312, failed_count: 4 },
+  { id: "fw_1_5_0_dev", version: "1.5.0-dev.b3", channel: "canary", size_bytes: 1_920_180, uploaded_at: "2026-05-18T03:11:00Z", notes: "내부 테스트용. 외부 배포 금지.", state: "draft", target_count: 12, applied_count: 0, failed_count: 0 },
+  { id: "fw_1_4_0", version: "1.4.0", channel: "stable", size_bytes: 1_830_000, uploaded_at: "2026-03-30T09:00:00Z", notes: "RTC GPIO panic 회귀 — 1.4.1 로 롤백.", state: "rolled_back", target_count: 9000, applied_count: 1200, failed_count: 240 },
+];
+
+// ── AI 페르소나(SOUL) 관리 ──────────────────────────────────
+export type PersonaRow = {
+  id: string;
+  name: string;
+  display_label: string;
+  language: "ko" | "en" | "ja";
+  voice_id: string;
+  state: "live" | "staged" | "draft" | "archived";
+  version: string;
+  soul_size_bytes: number;
+  updated_at: string;
+  published_at: string | null;
+  active_sessions: number;
+  description: string;
+};
+
+export const mockPersonas: PersonaRow[] = [
+  { id: "psn_lumi", name: "lumi", display_label: "루미", language: "ko", voice_id: "tts_ko_lumi_v2", state: "live", version: "v3.2.1", soul_size_bytes: 184_220, updated_at: "2026-05-14T10:11:00Z", published_at: "2026-05-15T00:00:00Z", active_sessions: 4210, description: "친근한 일상 대화 + 가벼운 위트. 기본 캐릭터." },
+  { id: "psn_aria", name: "aria", display_label: "아리아", language: "ko", voice_id: "tts_ko_aria_v1", state: "live", version: "v2.4.0", soul_size_bytes: 162_880, updated_at: "2026-05-08T07:00:00Z", published_at: "2026-05-09T00:00:00Z", active_sessions: 1820, description: "차분하고 사색적인 톤. 야간 대화에 최적화." },
+  { id: "psn_taro", name: "taro", display_label: "타로", language: "ko", voice_id: "tts_ko_taro_v1", state: "staged", version: "v1.2.0-rc2", soul_size_bytes: 178_400, updated_at: "2026-05-17T22:50:00Z", published_at: null, active_sessions: 0, description: "유머러스한 남성 페르소나. 5/22 라이브 전환 예정." },
+  { id: "psn_kai", name: "kai", display_label: "카이", language: "en", voice_id: "tts_en_kai_v1", state: "draft", version: "v0.9.3", soul_size_bytes: 142_010, updated_at: "2026-05-18T02:30:00Z", published_at: null, active_sessions: 0, description: "영어 페르소나 베타. 글로벌 출시 준비 중." },
+  { id: "psn_yuna_old", name: "yuna", display_label: "유나(구)", language: "ko", voice_id: "tts_ko_yuna_v0", state: "archived", version: "v1.8.2", soul_size_bytes: 154_900, updated_at: "2026-02-12T11:00:00Z", published_at: "2026-02-15T00:00:00Z", active_sessions: 0, description: "신규 아리아로 대체. 운영자 페어 복원용으로만 보관." },
+];
+
+// ── 디바이스 모니터링 ─────────────────────────────────────
+export type DeviceRow = {
+  id: string;
+  serial: string;
+  owner_user_id: string | null;
+  firmware_version: string;
+  last_seen_at: string;
+  online: boolean;
+  battery_pct: number;
+  wifi_rssi: number;
+  region: "KR" | "JP" | "US";
+  paired_at: string;
+  silenced: boolean;
+};
+
+export const mockDevices: DeviceRow[] = [
+  { id: "dev_aa11", serial: "ICN-25-AA11", owner_user_id: "usr_001", firmware_version: "1.4.2", last_seen_at: "2026-05-18T11:31:00Z", online: true, battery_pct: 84, wifi_rssi: -52, region: "KR", paired_at: "2026-02-01T10:00:00Z", silenced: false },
+  { id: "dev_bb22", serial: "ICN-25-BB22", owner_user_id: "usr_002", firmware_version: "1.4.2", last_seen_at: "2026-05-18T10:14:00Z", online: true, battery_pct: 41, wifi_rssi: -68, region: "KR", paired_at: "2026-02-12T09:20:00Z", silenced: false },
+  { id: "dev_cc33", serial: "ICN-25-CC33", owner_user_id: "usr_004", firmware_version: "1.4.0", last_seen_at: "2026-05-15T03:50:00Z", online: false, battery_pct: 12, wifi_rssi: -82, region: "KR", paired_at: "2026-03-22T18:00:00Z", silenced: true },
+  { id: "dev_dd44", serial: "ICN-25-DD44", owner_user_id: "usr_006", firmware_version: "1.4.2", last_seen_at: "2026-05-18T11:25:00Z", online: true, battery_pct: 67, wifi_rssi: -47, region: "JP", paired_at: "2026-04-04T12:11:00Z", silenced: false },
+  { id: "dev_ee55", serial: "ICN-25-EE55", owner_user_id: "usr_008", firmware_version: "1.4.2", last_seen_at: "2026-05-17T22:00:00Z", online: false, battery_pct: 3, wifi_rssi: -90, region: "KR", paired_at: "2026-04-30T09:00:00Z", silenced: false },
+  { id: "dev_ff66", serial: "ICN-25-FF66", owner_user_id: null, firmware_version: "1.5.0-rc1", last_seen_at: "2026-05-18T11:00:00Z", online: true, battery_pct: 92, wifi_rssi: -39, region: "KR", paired_at: "2026-05-16T08:00:00Z", silenced: false },
+  { id: "dev_gg77", serial: "ICN-25-GG77", owner_user_id: "usr_005", firmware_version: "1.4.1", last_seen_at: "2026-05-10T01:10:00Z", online: false, battery_pct: 0, wifi_rssi: -100, region: "US", paired_at: "2025-12-10T17:00:00Z", silenced: false },
+  { id: "dev_hh88", serial: "ICN-25-HH88", owner_user_id: "usr_001", firmware_version: "1.5.0-rc1", last_seen_at: "2026-05-18T11:32:00Z", online: true, battery_pct: 71, wifi_rssi: -55, region: "KR", paired_at: "2026-05-02T10:30:00Z", silenced: false },
+];
+
 export function formatDate(iso: string): string {
   try {
     const d = new Date(iso);

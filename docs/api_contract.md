@@ -133,6 +133,22 @@ Server 측 RBAC 매트릭스는 **실재**한다 — 4단계 role: **CS / SRE / 
 `legacyDeny: true` 로 표시된 강권한 endpoint (deployment rollback, operator create/disable, audit-log)
 는 레거시 토큰으로 접근 불가 — Operator JWT 필수.
 
+## 에러 코드 카탈로그 (정합 노트, E2E QC 2026-05-20)
+
+`admin/lib/errorCatalog.ts` 는 **운영 대시보드 표시용** 디바이스/인프라/런타임 에러 분류 (`OTA_DOWNLOAD_FAIL`, `BLE_GATT_TIMEOUT`, `PG_POOL_EXHAUSTED`, `GEMINI_GATEWAY_TIMEOUT`, `GEMINI_RATE_LIMITED`, `WOO_BAD_GATEWAY`, `EFS_MOUNT_LAG`, `JS_TypeError`, `Native_BLE`, `Native_Audio`, `JS_Promise`, `Native_Storage`, `PANIC_RTC_GPIO`, `BATTERY_ADC_OUT_OF_RANGE`, `CAM_INIT_FAIL` — 총 12종 + 미분류 fallback)다. 이 코드들은 **Server 응답 봉투의 `error.code` 와는 별개 네임스페이스**다.
+
+| 카탈로그 | 정본 위치 | 사용처 |
+|---|---|---|
+| Server 응답 `error.code` (정본 ~120종) | `Server/docs/error-codes.md` §1~§11 | App 분기, Server 라우트, AI fallback, RAG 라우트 |
+| admin operator 인증 에러 → 한국어 메시지 | `admin/lib/errorMessages.ts` | login/MFA/logout 화면 |
+| admin 운영 대시보드 에러 분류 (디바이스/인프라/런타임) | `admin/lib/errorCatalog.ts` | firmware-errors / server-errors / app-errors 표시 |
+
+**현재 한계**: `errorCatalog.ts` 의 12종 코드는 Server 정본(`ERR_*` 접두 카탈로그)과 **이름 체계가 다르며 매핑이 없다**. 예를 들어 `GEMINI_GATEWAY_TIMEOUT` 은 Server 의 `ERR_LLM_TIMEOUT` 과 의미상 동치이지만 카탈로그에 그 동치성이 명시되어 있지 않다. Server 에서 발생한 `ERR_LLM_TIMEOUT` 이 운영 대시보드에 들어올 때 `errorCatalog.lookupErrorCode("ERR_LLM_TIMEOUT")` 호출은 "unknown" 으로 fallback 한다.
+
+**조치 backlog (위임 — `aws-infra` / `admin` 도메인 코드 변경)**:
+1. `errorCatalog.ts` 에 Server 정본 `ERR_*` 코드(`ERR_LLM_TIMEOUT/UNAVAILABLE/BLOCKED`, `ERR_VISION_*`, `ERR_TTS_*`, `ERR_RATE_LIMIT`, `ERR_RAG_*`, `ERR_DEPENDENCY_UNAVAILABLE` 등)에 대한 entry 추가 또는 `aliasOf` 매핑 도입.
+2. Server `error-codes.md` § 11 (도메인별 코드) 변경 시 admin `errorCatalog.ts` 동시 갱신을 정합성 책무에 추가 (`docs/api-contracts.md` §8 표).
+
 ## CSRF / 보안
 
 - 모든 mutating endpoint 는 `X-CSRF-Token` 헤더 필요 (Server 측에서 cookie ↔ header double-submit pattern).

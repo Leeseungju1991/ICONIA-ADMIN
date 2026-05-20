@@ -4,7 +4,10 @@ import { useMemo, useState } from "react";
 import { PanelCard } from "../_components/PanelCard";
 import { DataTable, type Column } from "../_components/DataTable";
 import { StatCard } from "../_components/StatCard";
+import { OpsAuditTrailPanel } from "../_components/OpsAuditTrailPanel";
 import { mockPush, formatDate, type PushRow } from "@/lib/mockData";
+import { mockOpsActions, OPS_KIND_LABEL } from "@/lib/mockOpsActions";
+import { recordOpsAuditWithSilentRetry } from "@/lib/opsAuditTrail";
 
 const audienceLabel: Record<PushRow["audience"], string> = {
   all: "전체",
@@ -24,6 +27,37 @@ const stateInfo: Record<PushRow["state"], { label: string; chip: string }> = {
 export default function PushPage() {
   const [composing, setComposing] = useState(false);
   const [stateFilter, setStateFilter] = useState<"all" | PushRow["state"]>("all");
+  const [auditTick, setAuditTick] = useState(0);
+  const [toast, setToast] = useState<string | null>(null);
+
+  async function runRetry(target_id: string, target_label: string) {
+    const reason = window.prompt("푸시 재발송 사유 (5자 이상, 감사 로그에 기록).");
+    if (!reason || reason.trim().length < 5) {
+      setToast("사유가 5자 이상 필요합니다.");
+      return;
+    }
+    // 일시 실패는 silent retry — 운영자 액션이므로 transient 실패를 노출하지 않는다.
+    const result = await recordOpsAuditWithSilentRetry({
+      action: "push.retry",
+      target_label,
+      target_id,
+      reason: reason.trim(),
+      operator: "(현재 운영자 세션)",
+      outcome: "queued",
+    });
+    setAuditTick((t) => t + 1);
+    if (result.ok) {
+      setToast(`푸시 재발송을 audit trail 에 기록했습니다. (대상: ${target_label})`);
+    } else {
+      setToast(
+        `푸시 재발송 큐 적재 최종 실패 — 운영자 확인 필요. (대상: ${target_label}) [${result.attempts}회 시도]`,
+      );
+    }
+  }
+
+  const failedPushOps = mockOpsActions.filter(
+    (a) => a.kind === "push_send" && (a.status === "failed" || a.status === "queued"),
+  );
 
   const filtered = useMemo(
     () => mockPush.filter((p) => stateFilter === "all" || p.state === stateFilter),
@@ -37,6 +71,23 @@ export default function PushPage() {
     const openRate = delivered > 0 ? `${((opened / delivered) * 100).toFixed(1)}%` : "—";
     const scheduled = mockPush.filter((p) => p.state === "scheduled").length;
     return { delivered, opened, openRate, scheduled };
+  }, []);
+
+  // 출시준비 라운드 §10 — Expo Push delivery 성공률 · invalidated 토큰.
+  // 데이터 모델:
+  //   - delivery_success_rate = delivered / total (캠페인 완료된 것)
+  //   - invalidated_tokens   = total - delivered (APNs/FCM 측 무효 토큰 + 기기 제거)
+  //   - 실패 캠페인 (state==="failed") 카운트
+  // 백엔드 연동 시 `/api/v1/admin/push/expo-receipts` (DeviceNotRegistered / InvalidCredentials
+  // / MessageRateExceeded 분류) 로 교체.
+  const deliveryHealth = useMemo(() => {
+    const sent = mockPush.filter((p) => p.state === "sent");
+    const total = sent.reduce((s, p) => s + p.total, 0);
+    const delivered = sent.reduce((s, p) => s + p.delivered, 0);
+    const successRate = total > 0 ? (delivered / total) * 100 : 0;
+    const invalidated = Math.max(0, total - delivered);
+    const failedCampaigns = mockPush.filter((p) => p.state === "failed").length;
+    return { total, delivered, successRate, invalidated, failedCampaigns };
   }, []);
 
   const columns: Column<PushRow>[] = [
@@ -80,6 +131,44 @@ export default function PushPage() {
         <StatCard label="예약된 캠페인" value={String(summary.scheduled)} hint="대기 중" accent="teal" />
       </section>
 
+      {/* 출시준비 라운드 §10 — Expo Push delivery 성공률 · invalidated 토큰. */}
+      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard
+          label="Push 성공률"
+          value={`${deliveryHealth.successRate.toFixed(1)}%`}
+          delta={deliveryHealth.successRate >= 95 ? "정상" : "주의"}
+          deltaTone={deliveryHealth.successRate >= 95 ? "up" : "down"}
+          hint={`${deliveryHealth.delivered.toLocaleString()} / ${deliveryHealth.total.toLocaleString()}`}
+          accent={deliveryHealth.successRate >= 95 ? "teal" : "pink"}
+        />
+        <StatCard
+          label="Invalidated 토큰"
+          value={deliveryHealth.invalidated.toLocaleString()}
+          delta={`${
+            deliveryHealth.total > 0
+              ? ((deliveryHealth.invalidated / deliveryHealth.total) * 100).toFixed(1)
+              : "0"
+          }%`}
+          deltaTone="flat"
+          hint="DeviceNotRegistered / InvalidCredentials"
+          accent="pink"
+        />
+        <StatCard
+          label="실패 캠페인"
+          value={String(deliveryHealth.failedCampaigns)}
+          hint="state===failed (재발송 패널 참조)"
+          accent="orange"
+        />
+        <StatCard
+          label="Expo Receipts"
+          value="미연동"
+          delta="자리만 확보"
+          deltaTone="flat"
+          hint="`/api/v1/admin/push/expo-receipts`"
+          accent="blue"
+        />
+      </section>
+
       <PanelCard
         title="푸시 캠페인"
         description="앱 푸시 알림 캠페인을 작성·예약·발송하고 결과를 모니터링합니다."
@@ -105,6 +194,64 @@ export default function PushPage() {
       >
         <DataTable columns={columns} rows={filtered} empty="해당 상태의 캠페인이 없습니다." />
       </PanelCard>
+
+      <PanelCard
+        title="실패한 푸시 발송"
+        description="APNs/FCM 발송 실패 또는 대기 중 캠페인. 재발송 시 세션 audit trail 에 기록."
+      >
+        {failedPushOps.length === 0 ? (
+          <div className="py-8 text-center text-xs text-muted">실패한 푸시 발송이 없습니다.</div>
+        ) : (
+          <ul className="space-y-2">
+            {failedPushOps.map((r) => (
+              <li
+                key={r.id}
+                className="rounded-2xl bg-white/55 border border-white/60 px-4 py-3 text-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
+              >
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className={r.status === "failed" ? "chip chip-error" : "chip chip-info"}>
+                      {r.status === "failed" ? "실패" : "대기"}
+                    </span>
+                    <span className="chip chip-muted">{OPS_KIND_LABEL[r.kind]}</span>
+                    <span className="font-mono text-xs text-slate-700 truncate max-w-[220px]">
+                      {r.target_label}
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-muted mt-1">
+                    {r.failure_reason ?? "대기 중"} · 재시도 {r.retry_count}회
+                  </div>
+                </div>
+                <div className="flex gap-2 shrink-0">
+                  <button
+                    className="btn-outline text-xs"
+                    type="button"
+                    onClick={() => runRetry(r.target_id, r.target_label)}
+                  >
+                    재발송
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </PanelCard>
+
+      <OpsAuditTrailPanel
+        prefix="push."
+        title="푸시 운영자 액션 audit (세션)"
+        description="재발송·캠페인 취소 등 운영자 액션 기록. 백엔드 연동 후 Server audit_log 와 머지."
+        refresh={{ tick: auditTick }}
+      />
+
+      {toast ? (
+        <div className="fixed bottom-6 right-6 z-50 rounded-2xl bg-slate-900/85 text-white text-sm px-4 py-3 shadow-card">
+          {toast}
+          <button className="ml-3 underline opacity-80" onClick={() => setToast(null)} type="button">
+            닫기
+          </button>
+        </div>
+      ) : null}
 
       {composing ? <PushComposer onClose={() => setComposing(false)} /> : null}
     </div>

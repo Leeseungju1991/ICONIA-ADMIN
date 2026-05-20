@@ -5,6 +5,10 @@ import {
   forceLogoutUser,
   pauseDeployment,
   resumeDeployment,
+  listDevices,
+  listOrders,
+  listWebhookEvents,
+  listPosts,
 } from "./adminApi";
 
 const BASE = "https://api.example.com";
@@ -177,6 +181,105 @@ describe("pauseDeployment", () => {
     const [url] = fetchMock.mock.calls[0];
     expect(url).not.toContain("/api/v1/admin/firmware/deployments/");
     expect(url).not.toContain("/pause");
+  });
+});
+
+// Cursor/limit contract — list endpoints follow the same envelope shape
+// `{ items, next_cursor }` (admin/commerce) or `{ items, next_cursor, since }`
+// (audit-log). 본 라운드는 cursor/limit 파라미터 직렬화 + envelope unwrap 회귀
+// 방지 차원.
+describe("list-endpoint paging contract", () => {
+  it("listDevices forwards cursor + limit + status + q on /api/v1/admin/devices", async () => {
+    const fetchMock = mockFetchOnce({
+      status: 200,
+      body: { ok: true, data: { items: [], next_cursor: "next" }, error: null },
+    });
+    const r = await listDevices({
+      jwt: "j",
+      query: "ICN",
+      status: "active",
+      cursor: "c0",
+      limit: 25,
+    });
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.data.next_cursor).toBe("next");
+    const [url] = fetchMock.mock.calls[0];
+    expect(String(url).startsWith(`${BASE}/api/v1/admin/devices?`)).toBe(true);
+    expect(String(url)).toContain("q=ICN");
+    expect(String(url)).toContain("status=active");
+    expect(String(url)).toContain("cursor=c0");
+    expect(String(url)).toContain("limit=25");
+  });
+
+  it("listOrders excludes payment fields per admin scope (server projection trusted)", async () => {
+    const fetchMock = mockFetchOnce({
+      status: 200,
+      body: {
+        ok: true,
+        data: {
+          items: [
+            {
+              id: "o1",
+              woo_id: 42,
+              status: "completed",
+              customer_email: "x@y.z",
+              total_amount: "10000",
+              currency: "KRW",
+              item_count: 1,
+              paid_at: "2026-05-18T00:00:00Z",
+              completed_at: null,
+              created_at: "2026-05-17T00:00:00Z",
+            },
+          ],
+          next_cursor: null,
+        },
+        error: null,
+      },
+    });
+    const r = await listOrders({ jwt: "j", cursor: "c", status: "completed", limit: 10 });
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      const row = r.data.items[0] as Record<string, unknown>;
+      // 본 type 에서 payment_method/transaction_id 가 *존재하지 않아야* 함.
+      expect(row).not.toHaveProperty("payment_method");
+      expect(row).not.toHaveProperty("transaction_id");
+    }
+    const [url] = fetchMock.mock.calls[0];
+    expect(String(url)).toContain("/api/v1/admin/commerce/orders");
+    expect(String(url)).toContain("cursor=c");
+    expect(String(url)).toContain("status=completed");
+    expect(String(url)).toContain("limit=10");
+  });
+
+  it("listWebhookEvents forwards only_failures=1 when truthy, omits when falsy", async () => {
+    const fetchMock = mockFetchOnce({
+      status: 200,
+      body: { ok: true, data: { items: [], next_cursor: null }, error: null },
+    });
+    await listWebhookEvents({ jwt: "j", onlyFailures: true });
+    const [url1] = fetchMock.mock.calls[0];
+    expect(String(url1)).toContain("only_failures=1");
+
+    const fetchMock2 = mockFetchOnce({
+      status: 200,
+      body: { ok: true, data: { items: [], next_cursor: null }, error: null },
+    });
+    await listWebhookEvents({ jwt: "j" });
+    const [url2] = fetchMock2.mock.calls[0];
+    expect(String(url2)).not.toContain("only_failures");
+  });
+
+  it("listPosts forwards filter + cursor + limit", async () => {
+    const fetchMock = mockFetchOnce({
+      status: 200,
+      body: { ok: true, data: { items: [], next_cursor: null }, error: null },
+    });
+    await listPosts({ jwt: "j", filter: "reported", cursor: "c", limit: 5 });
+    const [url] = fetchMock.mock.calls[0];
+    expect(String(url)).toContain("/api/v1/admin/posts");
+    expect(String(url)).toContain("filter=reported");
+    expect(String(url)).toContain("cursor=c");
+    expect(String(url)).toContain("limit=5");
   });
 });
 

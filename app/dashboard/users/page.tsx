@@ -3,9 +3,24 @@
 import { useMemo, useState, useTransition } from "react";
 import { PanelCard } from "../_components/PanelCard";
 import { DataTable, type Column } from "../_components/DataTable";
+import { StatCard } from "../_components/StatCard";
 import { mockUsers, formatDate, type UserRow } from "@/lib/mockData";
 import { maskEmail, maskUserId, maskName } from "@/lib/maskPii";
 import { recordOperatorAuditAction } from "@/lib/actions/auditLog";
+
+// 강력 액션 2단계 확인 — /dashboard/ops 페이지와 같은 정책 (EXECUTE 정확 입력).
+const TWO_STEP_PHRASE = "EXECUTE";
+function twoStepConfirm(label: string): boolean {
+  if (typeof window === "undefined") return false;
+  const phrase = window.prompt(
+    `${label}\n\n강력 액션입니다. 실행하려면 정확히 "${TWO_STEP_PHRASE}" 를 입력하세요.`,
+  );
+  return phrase === TWO_STEP_PHRASE;
+}
+
+// 오늘(현 mock 기준) 가입 회원 카운트 — created_at 이 마지막 2일 이내.
+// 백엔드 미연동: 실 production 은 server time + day window 로 결정.
+const TODAY_WINDOW_HOURS = 48;
 
 // P1 §7 (2026-05-19) — 기본 표시는 마스킹. "마스킹 해제" 액션은 audit log + 향후 2FA 재확인.
 // P1 §5 — drawer 의 운영자 액션 (강제 로그아웃 등) 은 server audit action 호출.
@@ -61,6 +76,33 @@ export default function UsersPage() {
     });
   }, [q, statusFilter]);
 
+  // 라이프사이클 가시화 stats — 라운드 4 (2026-05-20) E2E QC.
+  const lifecycleStats = useMemo(() => {
+    const now = Date.now();
+    const windowMs = TODAY_WINDOW_HOURS * 60 * 60 * 1000;
+    const signupsToday = mockUsers.filter(
+      (u) => now - new Date(u.created_at).getTime() <= windowMs,
+    ).length;
+    const dauWindowMs = 24 * 60 * 60 * 1000;
+    const dau = mockUsers.filter(
+      (u) =>
+        u.account_status === "active" &&
+        now - new Date(u.last_login_at).getTime() <= dauWindowMs,
+    ).length;
+    const paused = mockUsers.filter((u) => u.account_status === "paused").length;
+    const pendingDeletion = mockUsers.filter(
+      (u) => u.account_status === "pending_deletion",
+    ).length;
+    const active = mockUsers.filter((u) => u.account_status === "active").length;
+    const deleted = mockUsers.filter((u) => u.account_status === "deleted").length;
+    return { signupsToday, dau, paused, pendingDeletion, active, deleted };
+  }, []);
+
+  const pipaTrackList = useMemo(
+    () => mockUsers.filter((u) => u.account_status === "pending_deletion"),
+    [],
+  );
+
   const columns: Column<UserRow>[] = [
     {
       key: "id",
@@ -103,6 +145,81 @@ export default function UsersPage() {
 
   return (
     <div className="space-y-6">
+      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard
+          label="오늘 가입"
+          value={String(lifecycleStats.signupsToday)}
+          hint={`최근 ${TODAY_WINDOW_HOURS}h (mock)`}
+          accent="pink"
+        />
+        <StatCard
+          label="DAU (활성·24h)"
+          value={String(lifecycleStats.dau)}
+          delta={`${lifecycleStats.active} 활성`}
+          deltaTone="up"
+          hint="last_login_at 기준"
+          accent="blue"
+        />
+        <StatCard
+          label="일시정지"
+          value={String(lifecycleStats.paused)}
+          hint="paused — 해제 대기"
+          accent="orange"
+        />
+        <StatCard
+          label="탈퇴 대기"
+          value={String(lifecycleStats.pendingDeletion)}
+          delta={`${lifecycleStats.deleted} 삭제됨`}
+          deltaTone={lifecycleStats.pendingDeletion > 0 ? "down" : "flat"}
+          hint="PIPA 보류 (30일)"
+          accent="teal"
+        />
+      </section>
+
+      {pipaTrackList.length > 0 ? (
+        <PanelCard
+          title="PIPA 권리 추적 — 탈퇴 보류 / 데이터 export 요청"
+          description="개인정보보호법(PIPA) 제35조 열람 청구 + 제36조 삭제 요청. 보류 기간 30일 내 운영자가 export·복구 처리 가능. (mock — `/api/v1/admin/users/pipa` 미연동)"
+        >
+          <ul className="space-y-2">
+            {pipaTrackList.map((u) => (
+              <li
+                key={u.id}
+                className="rounded-2xl bg-white/55 border border-white/60 px-4 py-3 text-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
+              >
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="chip chip-error">탈퇴 대기</span>
+                    <span className="chip chip-info">export 가능</span>
+                    <span className="font-mono text-xs text-slate-700 truncate max-w-[260px]">
+                      {unmaskedIds.has(u.id) ? u.email : maskEmail(u.email)}
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-muted mt-1">
+                    가입 {formatDate(u.created_at)} · 최근 로그인 {formatDate(u.last_login_at)} · ID{" "}
+                    <span className="font-mono">{unmaskedIds.has(u.id) ? u.id : maskUserId(u.id)}</span>
+                  </div>
+                </div>
+                <div className="flex gap-2 shrink-0">
+                  <button
+                    className="btn-outline text-xs"
+                    type="button"
+                    onClick={() => setSelected(u)}
+                  >
+                    상세
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+          <p className="text-[11px] text-muted mt-3">
+            ※ 본 목록은 `account_status === &quot;pending_deletion&quot;` 만 표시. export 다운로드 / 복구
+            확정은 백엔드 endpoint (`/api/v1/admin/users/&lt;id&gt;/pipa/export`) 도입 후 활성화.
+            모든 처리는 server canonical audit log 에 기록됩니다.
+          </p>
+        </PanelCard>
+      ) : null}
+
       <PanelCard
         title="회원 검색"
         description="이메일·이름·ID로 회원을 찾고 상세 정보 및 운영자 액션을 수행합니다. 기본 표시는 PII 마스킹되어 있으며, 해제는 감사 로그에 기록됩니다."
@@ -171,12 +288,22 @@ function UserDetailDrawer({
 }) {
   const [isPending, startTransition] = useTransition();
 
+  // E2E QC 라운드 (2026-05-20): 파괴적 액션 (강제 로그아웃 / 탈퇴) 은 EXECUTE 2단계 확인.
+  const DESTRUCTIVE_ACTIONS = new Set([
+    "user.force_logout",
+    "user.account_deleted",
+  ]);
+
   function runAction(action:
     | "user.force_logout"
     | "user.account_paused"
     | "user.mfa_reset"
     | "user.account_deleted",
   label: string) {
+    if (DESTRUCTIVE_ACTIONS.has(action) && !twoStepConfirm(label)) {
+      onToast(`${label} 실행 취소 — 확인 문구 불일치.`);
+      return;
+    }
     const reason = window.prompt(`${label} 사유를 입력하세요 (감사 로그에 기록됩니다, 5자 이상).`);
     if (!reason || reason.trim().length < 5) {
       onToast("사유가 5자 이상 필요합니다. 액션을 취소했습니다.");
