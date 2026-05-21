@@ -5,7 +5,6 @@ import { PanelCard } from "../_components/PanelCard";
 import { DataTable, type Column } from "../_components/DataTable";
 import { StatCard } from "../_components/StatCard";
 import {
-  mockDevices,
   mockFirmwareErrors,
   mockOtaFirmwares,
   formatDate,
@@ -63,16 +62,53 @@ function rssiLabel(rssi: number): string {
   return "끊김";
 }
 
+// Phase 13-C — Server `ServerDeviceRow` (lib/adminApi) → mockData DeviceRow shape adapter.
+// 누락 필드(region/wifi_rssi/silenced) fallback. 부수 UI 코드 보존.
+function adaptServerDevice(s: ServerDeviceRow): DeviceRow {
+  return {
+    id: s.device_id,
+    serial: s.serial ?? s.device_id,
+    owner_user_id: s.user_id,
+    firmware_version: s.firmware_version ?? "unknown",
+    last_seen_at: s.last_seen_at ?? new Date(0).toISOString(),
+    online: s.online,
+    battery_pct: typeof s.last_battery_percent === "number" ? s.last_battery_percent : 0,
+    wifi_rssi: -70, // Server schema 미존재 — 중간값 fallback (UI 표시는 "중")
+    region: "KR", // Server schema 미존재 — 기본값
+    paired_at: s.paired_at ?? new Date(0).toISOString(),
+    silenced: false, // Server schema 미존재 — 기본 false
+  };
+}
+
 export default function DevicesPage() {
   const [q, setQ] = useState("");
   const [state, setState] = useState<"all" | "online" | "offline" | "low_battery">("all");
   const [region, setRegion] = useState<"all" | DeviceRow["region"]>("all");
   const [picked, setPicked] = useState<DeviceRow | null>(null);
+
+  // Phase 13-C — Server `/api/v1/admin/devices` fetch.
+  const [devices, setDevices] = useState<DeviceRow[]>([]);
+  const [devicesError, setDevicesError] = useState<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    listDevicesAction({ limit: 200 })
+      .then((r) => {
+        if (cancelled) return;
+        if (!r.ok) {
+          setDevicesError(r.message);
+        } else {
+          setDevices(r.items.map(adaptServerDevice));
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   const [toast, setToast] = useState<string | null>(null);
 
   const filtered = useMemo(
     () =>
-      mockDevices.filter((d) => {
+      devices.filter((d) => {
         if (region !== "all" && d.region !== region) return false;
         if (state === "online" && !d.online) return false;
         if (state === "offline" && d.online) return false;
@@ -87,22 +123,22 @@ export default function DevicesPage() {
         }
         return true;
       }),
-    [q, state, region],
+    [q, state, region, devices],
   );
 
   const stats = useMemo(() => {
-    const total = mockDevices.length;
-    const online = mockDevices.filter((d) => d.online).length;
-    const low = mockDevices.filter((d) => d.battery_pct < 25).length;
-    const unpaired = mockDevices.filter((d) => !d.owner_user_id).length;
+    const total = devices.length;
+    const online = devices.filter((d) => d.online).length;
+    const low = devices.filter((d) => d.battery_pct < 25).length;
+    const unpaired = devices.filter((d) => !d.owner_user_id).length;
     return { total, online, low, unpaired };
-  }, []);
+  }, [devices]);
 
   // 라운드 4 (2026-05-20) E2E QC: 디바이스 라이프사이클 지표 추가.
   const lifecycle = useMemo(() => {
     const now = Date.now();
     const windowMs = PAIRING_WINDOW_HOURS * 60 * 60 * 1000;
-    const pairedRecent = mockDevices.filter(
+    const pairedRecent = devices.filter(
       (d) => d.owner_user_id && now - new Date(d.paired_at).getTime() <= windowMs,
     ).length;
     const fwErrCount = mockFirmwareErrors.reduce((s, e) => s + e.count, 0);
@@ -112,7 +148,7 @@ export default function DevicesPage() {
     const rolloutPct =
       rolloutTarget > 0 ? Math.round((rolloutApplied / rolloutTarget) * 100) : 0;
     return { pairedRecent, fwErrCount, rolling, rolloutPct };
-  }, []);
+  }, [devices]);
 
   // 출시준비 라운드 §8 — 배터리 분포 (high ≥60%, mid 25~59%, low 10~24%, critical <10%).
   const batteryDistribution = useMemo(() => {
@@ -120,15 +156,15 @@ export default function DevicesPage() {
     let mid = 0;
     let low = 0;
     let critical = 0;
-    for (const d of mockDevices) {
+    for (const d of devices) {
       if (d.battery_pct >= 60) high++;
       else if (d.battery_pct >= 25) mid++;
       else if (d.battery_pct >= 10) low++;
       else critical++;
     }
-    const total = mockDevices.length;
+    const total = devices.length;
     return { high, mid, low, critical, total };
-  }, []);
+  }, [devices]);
 
   // 출시준비 라운드 §9 — BLE 페어링 안정성. firmware error 의 BLE_GATT_TIMEOUT 비중과
   // 최근 24h 페어링 시도 추정(=최근 페어링 카운트) 으로 실패율 근사.
@@ -140,14 +176,14 @@ export default function DevicesPage() {
       .reduce((s, e) => s + e.count, 0);
     const now = Date.now();
     const windowMs = PAIRING_WINDOW_HOURS * 60 * 60 * 1000;
-    const pairedRecent = mockDevices.filter(
+    const pairedRecent = devices.filter(
       (d) => d.owner_user_id && now - new Date(d.paired_at).getTime() <= windowMs,
     ).length;
     // 페어링 시도 estimate = 성공 + timeout (보수적). 백엔드 연동 후 실 카운터로 교체.
     const attempts = pairedRecent + bleTimeouts;
     const failureRate = attempts > 0 ? (bleTimeouts / attempts) * 100 : 0;
     return { bleTimeouts, attempts, failureRate };
-  }, []);
+  }, [devices]);
 
   // 디바이스별 펌웨어 에러 카운트 — 같은 device_id 의 fw error 누적.
   const fwErrorsByDevice = useMemo(() => {
@@ -566,7 +602,7 @@ function invariantBadgeLabel(data: DeviceBootInvariants): string {
 }
 
 // V1.0 #6/#11 — Server `/api/v1/admin/devices` 실 디바이스 리스트.
-// 기존 mockDevices 통계는 그대로 두고 (디자인/리포트 호환), 페이지 상단에 실 데이터 패널 추가.
+// 기존 devices 통계는 그대로 두고 (디자인/리포트 호환), 페이지 상단에 실 데이터 패널 추가.
 function LiveDevicesPanel() {
   const [items, setItems] = useState<ServerDeviceRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
