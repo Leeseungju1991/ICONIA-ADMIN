@@ -334,6 +334,49 @@ function AiTimeoutBlock() {
           ))}
         </div>
       ) : null}
+      {live && snapshot && snapshot.by_kind ? (
+        <div className="mt-3">
+          <div className="text-[11px] text-muted mb-1">응답 종류별 (V2.0 #13 — text / voice / vision)</div>
+          <div className="flex flex-wrap gap-2">
+            {(["text", "voice", "vision"] as const)
+              .map((k) => ({ k, e: snapshot.by_kind?.[k] }))
+              .filter((x) => x.e && x.e.total > 0)
+              .map(({ k, e }) => (
+                <span
+                  key={k}
+                  className="text-[11px] rounded-full bg-white/70 border border-white/70 px-2.5 py-1 text-slate-700"
+                >
+                  {k}: {e!.total}회 · success {(e!.success_rate * 100).toFixed(1)}% · fallback{" "}
+                  {(e!.fallback_rate * 100).toFixed(1)}% · avg{" "}
+                  {e!.latency_ms_avg.toLocaleString()}ms
+                </span>
+              ))}
+          </div>
+        </div>
+      ) : null}
+      {live && snapshot && snapshot.by_soul_catalog_id ? (
+        <div className="mt-3">
+          <div className="text-[11px] text-muted mb-1">SOUL 카탈로그별 (상위 5개)</div>
+          <div className="flex flex-wrap gap-2">
+            {Object.entries(snapshot.by_soul_catalog_id)
+              .filter(([, e]) => e.total > 0)
+              .sort((a, b) => b[1].total - a[1].total)
+              .slice(0, 5)
+              .map(([soul, e]) => (
+                <span
+                  key={soul}
+                  className="text-[11px] rounded-full bg-white/70 border border-white/70 px-2.5 py-1 text-slate-700"
+                >
+                  {soul}: {e.total}회 · fallback {(e.fallback_rate * 100).toFixed(1)}% · avg{" "}
+                  {e.latency_ms_avg.toLocaleString()}ms
+                </span>
+              ))}
+            {Object.values(snapshot.by_soul_catalog_id).every((e) => e.total === 0) ? (
+              <span className="text-[11px] text-muted">집계 없음 (AI 서비스 재시작 직후일 수 있음)</span>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
       <p className="text-[11px] text-muted mt-3">
         {live ? (
           <>※ Server `/api/v1/admin/ai-health` 실 연동 — `aiHealthTracker` 5분 sliding
