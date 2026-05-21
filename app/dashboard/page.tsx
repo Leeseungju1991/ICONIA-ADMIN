@@ -14,6 +14,7 @@ import {
 } from "@/lib/mockData";
 import { mockHealthProbes, mockDeadLetters } from "@/lib/opsInfraMock";
 import { fetchAdminOverviewAction } from "@/lib/actions/overview";
+import { fetchLocalServicesHealthAction } from "@/lib/actions/localServicesHealth";
 
 const accentPalette = ["blue", "pink", "orange", "teal"] as const;
 
@@ -28,6 +29,9 @@ export default async function DashboardHome() {
   // Server overview 시도 — 실패 시 mock fallback.
   const overviewResult = await fetchAdminOverviewAction();
   const sv = overviewResult.ok ? overviewResult.data : null;
+
+  // V1.0 #1 — DEPLOY_TARGET=local 일 때 5개 로컬 서비스 health 한 화면 표시.
+  const localHealth = await fetchLocalServicesHealthAction();
 
   const pendingReports = mockReports.filter((r) => r.status === "pending");
   const criticalFw = mockFirmwareErrors.filter((e) => e.severity === "critical");
@@ -106,6 +110,38 @@ export default async function DashboardHome() {
   return (
     <div className="space-y-6">
       <ForbiddenNotice />
+
+      {localHealth.deploy_target === "local" ? (
+        <PanelCard
+          title="로컬 개발 환경 — 5개 서비스 상태"
+          description="DEPLOY_TARGET=local. 각 서비스가 켜져 있는지 한 화면에서 확인합니다."
+        >
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+            {localHealth.services.map((s) => (
+              <div
+                key={s.name}
+                className="rounded-2xl border border-white/60 bg-white/55 px-3 py-2"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-semibold uppercase">{s.name}</span>
+                  <span
+                    className={
+                      s.status === "ok"
+                        ? "chip chip-success"
+                        : s.status === "down"
+                          ? "chip chip-error"
+                          : "chip chip-muted"
+                    }
+                  >
+                    {s.status}
+                  </span>
+                </div>
+                <div className="mt-1 text-[11px] text-muted line-clamp-2">{s.detail}</div>
+              </div>
+            ))}
+          </div>
+        </PanelCard>
+      ) : null}
 
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {kpis.map((m, i) => (

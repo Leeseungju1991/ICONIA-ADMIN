@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { PanelCard } from "../_components/PanelCard";
 import { DataTable, type Column } from "../_components/DataTable";
 import { StatCard } from "../_components/StatCard";
@@ -9,6 +9,8 @@ import { mockOtaFirmwares, formatDate, type OtaFirmwareRow } from "@/lib/mockDat
 import { mockOpsActions, OPS_KIND_LABEL, type OpsActionRow } from "@/lib/mockOpsActions";
 import { lookupErrorCode, operatorLabelForCode } from "@/lib/errorCatalog";
 import { recordOpsAuditWithSilentRetry } from "@/lib/opsAuditTrail";
+import { listFirmwareCatalogAction } from "@/lib/actions/firmwareList";
+import type { FirmwareVersionRow, DeploymentRow } from "@/lib/adminApi";
 
 // OTA 관리 — 펌웨어 업로드, 채널(stable/beta/canary) 배포, 진행률, 롤백.
 // 데모 mock. 백엔드 연동 시 lib/adminApi.ts 로 교체.
@@ -123,6 +125,8 @@ export default function OtaPage() {
         />
         <StatCard label="실패" value={stats.failed.toLocaleString()} hint="누적 OTA 실패" accent="pink" />
       </section>
+
+      <LiveDeploymentsPanel />
 
       <PanelCard
         title="펌웨어 빌드"
@@ -477,5 +481,104 @@ function Row({ k, v }: { k: string; v: React.ReactNode }) {
       <dt className="text-xs text-muted">{k}</dt>
       <dd className="text-sm text-slate-800 font-medium">{v}</dd>
     </div>
+  );
+}
+
+// V1.0 #13 / V2.0 #24 — Server `/api/v1/admin/firmware` 실 배포 ledger 표시.
+// 기존 mockOtaFirmwares 통계는 보존 (디자인 호환), 실시간 배포 패널만 신설.
+function LiveDeploymentsPanel() {
+  const [versions, setVersions] = useState<FirmwareVersionRow[] | null>(null);
+  const [deployments, setDeployments] = useState<DeploymentRow[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    listFirmwareCatalogAction()
+      .then((r) => {
+        if (cancelled) return;
+        if (!r.ok) {
+          setError(r.message);
+          return;
+        }
+        setVersions(r.versions);
+        setDeployments(r.deployments);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const stateChip = (state: string) =>
+    state === "completed"
+      ? "chip chip-success"
+      : state === "aborted"
+        ? "chip chip-error"
+        : state === "paused" || state === "holding"
+          ? "chip chip-warn"
+          : "chip chip-info";
+
+  return (
+    <PanelCard
+      title="실시간 펌웨어 빌드 / 배포 (Server)"
+      description="Server /api/v1/admin/firmware — firmwareDeploymentService 의 canary/wave 진행률 + 자동 hold/rollback ledger."
+    >
+      {loading ? (
+        <div className="text-sm text-muted">불러오는 중</div>
+      ) : error ? (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          Server 도달 실패: {error}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <div>
+            <div className="text-xs text-muted mb-2">등록 빌드 카탈로그</div>
+            {!versions || versions.length === 0 ? (
+              <div className="text-sm text-muted">빌드가 없습니다.</div>
+            ) : (
+              <ul className="space-y-1 text-xs">
+                {versions.slice(0, 10).map((v) => (
+                  <li
+                    key={v.version}
+                    className="rounded-xl border border-white/60 bg-white/55 px-3 py-2 flex items-center justify-between"
+                  >
+                    <span className="font-mono">{v.version}</span>
+                    <span className="chip chip-muted">{v.channel}</span>
+                    <span className="text-muted">{v.released_at}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+          <div>
+            <div className="text-xs text-muted mb-2">진행 중 / 최근 배포</div>
+            {!deployments || deployments.length === 0 ? (
+              <div className="text-sm text-muted">배포 이력이 없습니다.</div>
+            ) : (
+              <ul className="space-y-1 text-xs">
+                {deployments.slice(0, 10).map((d) => (
+                  <li
+                    key={d.id}
+                    className="rounded-xl border border-white/60 bg-white/55 px-3 py-2"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-mono">{d.version}</span>
+                      <span className={stateChip(d.state)}>{d.state}</span>
+                    </div>
+                    <div className="mt-1 text-muted">
+                      progress {d.rollout_percent}% · ✓ {d.succeeded} · ✗ {d.failed}
+                      {d.cohort_id ? ` · cohort ${d.cohort_id}` : ""}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      )}
+    </PanelCard>
   );
 }

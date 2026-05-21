@@ -12,7 +12,8 @@ import {
   type DeviceRow,
 } from "@/lib/mockData";
 import { fetchDeviceOwnershipHistoryAction } from "@/lib/actions/deviceOwnership";
-import type { OwnershipHop } from "@/lib/adminApi";
+import { listDevicesAction } from "@/lib/actions/devices";
+import type { OwnershipHop, DeviceRow as ServerDeviceRow } from "@/lib/adminApi";
 
 // 강력 액션 2단계 확인 — /dashboard/ops 와 동일 정책.
 const TWO_STEP_PHRASE = "EXECUTE";
@@ -225,6 +226,8 @@ export default function DevicesPage() {
         <StatCard label="저전력 (<25%)" value={String(stats.low)} hint="알림 권장" accent="pink" />
         <StatCard label="미페어링" value={String(stats.unpaired)} hint="소유자 미할당" accent="orange" />
       </section>
+
+      <LiveDevicesPanel />
 
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
@@ -456,6 +459,75 @@ function DeviceDrawer({
         <p className="text-[11px] text-muted mt-3">※ 디바이스 액션은 데모, 소유권 이력은 Server `/api/v1/admin/devices/:id/ownership-history` 실 연동.</p>
       </div>
     </div>
+  );
+}
+
+// V1.0 #6/#11 — Server `/api/v1/admin/devices` 실 디바이스 리스트.
+// 기존 mockDevices 통계는 그대로 두고 (디자인/리포트 호환), 페이지 상단에 실 데이터 패널 추가.
+function LiveDevicesPanel() {
+  const [items, setItems] = useState<ServerDeviceRow[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    listDevicesAction({ limit: 20 })
+      .then((r) => {
+        if (cancelled) return;
+        if (!r.ok) {
+          setError(r.message);
+          setItems(null);
+        } else {
+          setItems(r.items);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return (
+    <PanelCard
+      title="실시간 디바이스 (Server)"
+      description="Server /api/v1/admin/devices — adminStub→prisma 실 결합 (Phase1-A). last_battery_percent · firmware_version 정본."
+    >
+      {loading ? (
+        <div className="text-sm text-muted">불러오는 중</div>
+      ) : error ? (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          Server 도달 실패: {error}
+        </div>
+      ) : !items || items.length === 0 ? (
+        <div className="text-sm text-muted">등록된 디바이스가 없습니다.</div>
+      ) : (
+        <ul className="space-y-2">
+          {items.slice(0, 20).map((d) => (
+            <li
+              key={d.device_id}
+              className="rounded-xl border border-white/60 bg-white/55 px-3 py-2 text-sm"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-mono text-xs">{d.serial ?? d.device_id}</span>
+                <span className={d.online ? "chip chip-success" : "chip chip-muted"}>
+                  {d.online ? "online" : "offline"}
+                </span>
+              </div>
+              <div className="mt-1 text-xs text-muted">
+                fw {d.firmware_version ?? "—"}
+                {typeof d.last_battery_percent === "number"
+                  ? ` · 배터리 ${d.last_battery_percent}%`
+                  : ""}
+                {" · 최근 통신 "}
+                {d.last_seen_at ?? "—"}
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </PanelCard>
   );
 }
 

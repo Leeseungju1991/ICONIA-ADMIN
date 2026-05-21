@@ -5,7 +5,30 @@ import { readSession } from "@/lib/authCookie";
 import {
   forceUnpairDevice,
   markDeviceLost,
+  listDevices,
+  type DeviceRow,
 } from "@/lib/adminApi";
+
+export type ListDevicesResult =
+  | { ok: true; items: DeviceRow[]; next_cursor: string | null }
+  | { ok: false; message: string; code?: string };
+
+export async function listDevicesAction(args?: {
+  query?: string;
+  status?: string;
+  limit?: number;
+}): Promise<ListDevicesResult> {
+  const jwt = readSession();
+  if (!jwt) return { ok: false, message: "세션이 만료되었습니다." };
+  const res = await listDevices({
+    jwt,
+    query: args?.query,
+    status: args?.status,
+    limit: args?.limit ?? 50,
+  });
+  if (!res.ok) return { ok: false, message: res.message, code: res.code };
+  return { ok: true, items: res.data.items, next_cursor: res.data.next_cursor };
+}
 
 export async function forceUnpairAction(formData: FormData) {
   const jwt = readSession();
