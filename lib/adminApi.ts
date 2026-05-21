@@ -1340,6 +1340,42 @@ export function verifyOperatorTotpEnroll(args: {
   });
 }
 
+/**
+ * Phase 12 #12 / Phase 15 — Server stub endpoint 4종.
+ * 현재는 빈 list 반환 (source: "stub"). Phase 15-A 가 notices/push 실 데이터 wire 시 자동 채워짐.
+ */
+export type StubListItem = Record<string, unknown>;
+export type StubListResponse = {
+  items: StubListItem[];
+  total: number;
+  source: string;
+};
+
+export function listNotices(args: { jwt: string }): Promise<ServerResult<StubListResponse>> {
+  return authedRequest({ jwt: args.jwt, path: `/api/v1/admin/notices`, method: "GET" });
+}
+export function listPushCampaigns(args: { jwt: string }): Promise<ServerResult<StubListResponse>> {
+  return authedRequest({
+    jwt: args.jwt,
+    path: `/api/v1/admin/push/campaigns`,
+    method: "GET",
+  });
+}
+export function listServerErrors(args: { jwt: string }): Promise<ServerResult<StubListResponse>> {
+  return authedRequest({
+    jwt: args.jwt,
+    path: `/api/v1/admin/errors/server`,
+    method: "GET",
+  });
+}
+export function listAppErrors(args: { jwt: string }): Promise<ServerResult<StubListResponse>> {
+  return authedRequest({
+    jwt: args.jwt,
+    path: `/api/v1/admin/errors/app`,
+    method: "GET",
+  });
+}
+
 // ---------------------------------------------------------------------------
 // 양산직전 #15 — Fleet 디바이스 분포 (Phase5-A)
 //   Server: GET /api/v1/admin/devices/distribution?by=version|region|cohort|fw_state
