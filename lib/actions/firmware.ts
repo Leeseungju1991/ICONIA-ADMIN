@@ -2,7 +2,31 @@
 
 import { revalidatePath } from "next/cache";
 import { readSession } from "@/lib/authCookie";
-import { pauseDeployment, resumeDeployment } from "@/lib/adminApi";
+import {
+  pauseDeployment,
+  resumeDeployment,
+  listFirmwareFailures,
+  type FirmwareFailureList,
+} from "@/lib/adminApi";
+
+export type ListFirmwareFailuresResult =
+  | { ok: true; data: FirmwareFailureList }
+  | { ok: false; message: string; code?: string };
+
+export async function listFirmwareFailuresAction(args?: {
+  version?: string;
+  since?: string;
+}): Promise<ListFirmwareFailuresResult> {
+  const jwt = readSession();
+  if (!jwt) return { ok: false, message: "세션이 만료되었습니다." };
+  const res = await listFirmwareFailures({
+    jwt,
+    version: args?.version,
+    since: args?.since,
+  });
+  if (!res.ok) return { ok: false, message: res.message, code: res.code };
+  return { ok: true, data: res.data };
+}
 
 export async function pauseDeploymentAction(formData: FormData) {
   const jwt = readSession();

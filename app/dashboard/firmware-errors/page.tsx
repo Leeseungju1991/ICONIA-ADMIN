@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { PanelCard } from "../_components/PanelCard";
 import { DataTable, type Column } from "../_components/DataTable";
 import { StatCard } from "../_components/StatCard";
@@ -20,6 +20,10 @@ import {
   type ExportColumn,
 } from "@/lib/exportData";
 import { recordOpsAuditWithSilentRetry } from "@/lib/opsAuditTrail";
+import {
+  listFirmwareFailuresAction,
+  type ListFirmwareFailuresResult,
+} from "@/lib/actions/firmware";
 
 const severityChip: Record<FirmwareErrorRow["severity"], string> = {
   critical: "chip chip-error",
@@ -172,6 +176,8 @@ export default function FirmwareErrorsPage() {
         <StatCard label="Error" value={String(counts.error ?? 0)} hint="조사 필요" accent="orange" />
         <StatCard label="Warn" value={String(counts.warn ?? 0)} hint="추적 중" accent="teal" />
       </section>
+
+      <LiveFirmwareFailures />
 
       <PanelCard
         title="펌웨어 에러 로그"
@@ -329,5 +335,82 @@ function Row({ k, v }: { k: string; v: React.ReactNode }) {
       <dt className="text-xs text-muted">{k}</dt>
       <dd className="text-sm text-slate-800 font-medium">{v}</dd>
     </div>
+  );
+}
+
+// V1.0 #5 / V3.0 #17 — Server `/api/v1/admin/firmware/failures` 실시간 집계.
+// otaTelemetry GROUP BY error_code 결과를 상위 5개 카드로 표시.
+function LiveFirmwareFailures() {
+  const [state, setState] = useState<ListFirmwareFailuresResult | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    listFirmwareFailuresAction()
+      .then((r) => setState(r))
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) {
+    return (
+      <PanelCard title="실시간 OTA 실패 집계" description="Server /api/v1/admin/firmware/failures 조회 중...">
+        <div className="text-sm text-muted">불러오는 중</div>
+      </PanelCard>
+    );
+  }
+  if (!state || !state.ok) {
+    return (
+      <PanelCard
+        title="실시간 OTA 실패 집계"
+        description="Server /api/v1/admin/firmware/failures (otaTelemetry · firmware_deployment_failure 결합)"
+      >
+        <div className="text-sm text-muted">
+          Server 도달 실패{state && !state.ok ? ` (${state.code ?? "ERR"}): ${state.message}` : ""}.
+          아래 mock 누적 표시.
+        </div>
+      </PanelCard>
+    );
+  }
+  const { data } = state;
+  return (
+    <PanelCard
+      title={`실시간 OTA 실패 집계 — ${data.total}건 (since ${data.since})${data.version ? ` · v${data.version}` : ""}`}
+      description="Server /api/v1/admin/firmware/failures — 운영자가 cohort/version 별 실패 패턴을 빠르게 분류"
+    >
+      {data.by_reason.length === 0 ? (
+        <div className="text-sm text-muted">최근 24시간 OTA 실패 없음 (정상).</div>
+      ) : (
+        <div className="flex flex-wrap gap-2 mb-3">
+          {data.by_reason.slice(0, 8).map((r) => (
+            <span
+              key={r.error_code}
+              className="text-xs rounded-full bg-orange-50 border border-orange-200 px-2.5 py-1 text-orange-700"
+            >
+              <span className="font-mono">{r.error_code}</span>
+              <span className="ml-1.5">{r.count}건</span>
+            </span>
+          ))}
+        </div>
+      )}
+      {data.devices.length > 0 ? (
+        <div className="text-xs">
+          <div className="text-muted mb-1">최근 실패 기기 (상위 10건)</div>
+          <ul className="space-y-1">
+            {data.devices.slice(0, 10).map((d, i) => (
+              <li
+                key={`${d.device_id_hash ?? "x"}-${i}`}
+                className="rounded-lg bg-white/60 border border-white/60 px-2.5 py-1 flex items-center justify-between"
+              >
+                <span className="font-mono">{d.device_id_hash ?? "—"}</span>
+                <span>
+                  <span className="text-orange-700 font-mono">{d.error_code}</span>
+                  <span className="text-muted ml-2">{d.phase}</span>
+                  <span className="text-muted ml-2">{d.at}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+    </PanelCard>
   );
 }
