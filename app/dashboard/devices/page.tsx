@@ -504,7 +504,7 @@ function BootInvariantsPanel({ deviceId }: { deviceId: string }) {
 
   return (
     <div className="mt-3 rounded-2xl border border-white/60 bg-white/30 p-3">
-      <div className="text-sm font-semibold mb-1">출하 잠금 invariant</div>
+      <div className="text-sm font-semibold mb-1">출하 잠금 invariant (8-bit)</div>
       {loading ? (
         <div className="text-xs text-muted">불러오는 중</div>
       ) : error ? (
@@ -514,10 +514,10 @@ function BootInvariantsPanel({ deviceId }: { deviceId: string }) {
       ) : !data ? (
         <div className="text-xs text-muted">자료 없음</div>
       ) : (
-        <div className="space-y-1 text-xs">
-          <div className="flex items-center gap-2">
-            <span className={data.ok ? "chip chip-success" : "chip chip-error"}>
-              {data.ok ? "안전" : "위반"}
+        <div className="space-y-2 text-xs">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className={invariantBadgeClass(data)}>
+              {invariantBadgeLabel(data)}
             </span>
             <span className="font-mono">
               mask 0x{(data.boot_invariant_mask ?? 0).toString(16).padStart(2, "0")} /
@@ -526,17 +526,43 @@ function BootInvariantsPanel({ deviceId }: { deviceId: string }) {
           </div>
           {data.missing_bits.length > 0 ? (
             <div className="text-amber-700">
-              누락 비트: {data.missing_bits.join(", ")}
+              누락 비트: <span className="font-mono">{data.missing_bits.join(", ")}</span>
             </div>
           ) : null}
           <div className="text-muted">
             fw {data.fw_version ?? "—"} · last boot {data.last_boot_at ?? "—"} · count{" "}
             {data.boot_count ?? "—"}
           </div>
+          <div className="text-[11px] text-muted italic">
+            ※ 운영자 전용 진단. 사용자(소비자)에게는 노출되지 않습니다. 비트 정의는 1.HW/docs/boot_invariants.md.
+          </div>
         </div>
       )}
     </div>
   );
+}
+
+// V3.0 #27 (hw-fw Phase6-B) 권고 — 위반 분류별 카피·톤.
+//   0x01/0x02/0x04 누락 → 출하 차단 (회수 검토) — 빨강
+//   0x40 누락 → OTA 안티-롤백 미활성 (펌웨어 리빌드) — 빨강
+//   0x08/0x10/0x20 누락 → 정책 강화 옵션 미충족 (출하 가능) — 노랑
+//   누락 0 → 정상 — 녹색
+function invariantBadgeClass(data: DeviceBootInvariants): string {
+  if (data.ok) return "chip chip-success";
+  const criticalBits = ["SECURE_BOOT_ENABLED", "FLASH_ENC_ENABLED", "JTAG_DISABLED", "OTA_ANTI_ROLLBACK_ARMED"];
+  const hasCritical = data.missing_bits.some((b) => criticalBits.includes(b));
+  return hasCritical ? "chip chip-error" : "chip chip-warn";
+}
+function invariantBadgeLabel(data: DeviceBootInvariants): string {
+  if (data.ok) return "출하 잠금 정상";
+  const criticalBits = ["SECURE_BOOT_ENABLED", "FLASH_ENC_ENABLED", "JTAG_DISABLED"];
+  if (data.missing_bits.some((b) => criticalBits.includes(b))) {
+    return "출하 잠금 미충족 — 회수 검토";
+  }
+  if (data.missing_bits.includes("OTA_ANTI_ROLLBACK_ARMED")) {
+    return "안티-롤백 미활성 — 펌웨어 재빌드";
+  }
+  return "강화 옵션 미충족 (출하 가능)";
 }
 
 // V1.0 #6/#11 — Server `/api/v1/admin/devices` 실 디바이스 리스트.
