@@ -1210,6 +1210,31 @@ export function getDeviceBootInvariants(args: {
 }
 
 // ---------------------------------------------------------------------------
+// 양산직전 #15 — Fleet 디바이스 분포 (Phase5-A)
+//   Server: GET /api/v1/admin/devices/distribution?by=version|region|cohort|fw_state
+// ---------------------------------------------------------------------------
+
+export type DistributionBy = "version" | "region" | "cohort" | "fw_state";
+
+export type DistributionItem = {
+  key: string;
+  count: number;
+  percent: number;
+};
+
+export function listDeviceDistribution(args: {
+  jwt: string;
+  by: DistributionBy;
+}): Promise<ServerResult<{ by: DistributionBy; items: DistributionItem[] }>> {
+  const params = new URLSearchParams({ by: args.by });
+  return authedRequest({
+    jwt: args.jwt,
+    path: `/api/v1/admin/devices/distribution?${params.toString()}`,
+    method: "GET",
+  });
+}
+
+// ---------------------------------------------------------------------------
 // 기존 V3.0 #14 production 영역 client (계속)
 // ---------------------------------------------------------------------------
 
