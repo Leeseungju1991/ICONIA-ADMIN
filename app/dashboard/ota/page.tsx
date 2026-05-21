@@ -10,7 +10,12 @@ import { mockOpsActions, OPS_KIND_LABEL, type OpsActionRow } from "@/lib/mockOps
 import { lookupErrorCode, operatorLabelForCode } from "@/lib/errorCatalog";
 import { recordOpsAuditWithSilentRetry } from "@/lib/opsAuditTrail";
 import { listFirmwareCatalogAction } from "@/lib/actions/firmwareList";
-import type { FirmwareVersionRow, DeploymentRow } from "@/lib/adminApi";
+import { listDeploymentsAction } from "@/lib/actions/deployments";
+import type {
+  FirmwareVersionRow,
+  DeploymentRow,
+  DeploymentLedgerRow,
+} from "@/lib/adminApi";
 
 // OTA 관리 — 펌웨어 업로드, 채널(stable/beta/canary) 배포, 진행률, 롤백.
 // 데모 mock. 백엔드 연동 시 lib/adminApi.ts 로 교체.
@@ -127,6 +132,8 @@ export default function OtaPage() {
       </section>
 
       <LiveDeploymentsPanel />
+
+      <DeploymentLedgerPanel />
 
       <PanelCard
         title="펌웨어 빌드"
@@ -481,6 +488,86 @@ function Row({ k, v }: { k: string; v: React.ReactNode }) {
       <dt className="text-xs text-muted">{k}</dt>
       <dd className="text-sm text-slate-800 font-medium">{v}</dd>
     </div>
+  );
+}
+
+// V2.0 #24 — Phase4-A deployment ledger 표시. firmware_deployment 테이블 cursor 페이지네이션.
+function DeploymentLedgerPanel() {
+  const [items, setItems] = useState<DeploymentLedgerRow[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    listDeploymentsAction({ limit: 30 })
+      .then((r) => {
+        if (cancelled) return;
+        if (!r.ok) {
+          setError(r.message);
+          return;
+        }
+        setItems(r.items);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const stateChip = (state: string) =>
+    state === "completed"
+      ? "chip chip-success"
+      : state === "aborted"
+        ? "chip chip-error"
+        : state === "paused" || state === "holding"
+          ? "chip chip-warn"
+          : "chip chip-info";
+
+  return (
+    <PanelCard
+      title="배포 ledger — 최근 30건"
+      description="Server /api/v1/admin/deployments — firmware_deployment 테이블 cursor 페이지네이션. rollback_window_until 까지 표시."
+    >
+      {loading ? (
+        <div className="text-sm text-muted">불러오는 중</div>
+      ) : error ? (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          Server 도달 실패: {error}
+        </div>
+      ) : !items || items.length === 0 ? (
+        <div className="text-sm text-muted">배포 ledger 가 비어 있습니다.</div>
+      ) : (
+        <ul className="space-y-2 text-sm">
+          {items.map((d) => (
+            <li
+              key={d.id}
+              className="rounded-xl border border-white/60 bg-white/55 px-3 py-2"
+            >
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <span className="font-mono">{d.version}</span>
+                <span className={stateChip(d.state)}>{d.state}</span>
+                <span className="text-xs text-muted">
+                  {d.started_at ?? "—"} → {d.completed_at ?? "진행 중"}
+                </span>
+              </div>
+              {d.hold_reason || d.abort_reason ? (
+                <div className="mt-1 text-xs text-amber-700">
+                  {d.hold_reason ? `hold: ${d.hold_reason}` : ""}
+                  {d.abort_reason ? `abort: ${d.abort_reason}` : ""}
+                </div>
+              ) : null}
+              {d.rollback_window_until ? (
+                <div className="mt-1 text-[11px] text-muted">
+                  rollback window until {d.rollback_window_until}
+                </div>
+              ) : null}
+            </li>
+          ))}
+        </ul>
+      )}
+    </PanelCard>
   );
 }
 

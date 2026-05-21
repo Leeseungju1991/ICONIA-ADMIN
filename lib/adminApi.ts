@@ -825,6 +825,12 @@ export function batchIssueSerials(args: {
 //   Server: GET /api/v1/admin/overview
 // ---------------------------------------------------------------------------
 
+export type DomainHealth = {
+  status: "ok" | "degraded" | "down" | "not_applicable";
+  detail: string;
+  observed_at: string;
+};
+
 export type AdminOverview = {
   active_devices: number;
   dau: number;
@@ -834,6 +840,15 @@ export type AdminOverview = {
   server_health: "ok" | "degraded" | "down";
   firmware_critical_count: number;
   reports_pending: number;
+  /** Phase4-A — 6도메인 health probe. AWS는 DEPLOY_TARGET=local 일 때 not_applicable. */
+  domains?: {
+    hw: DomainHealth;
+    server: DomainHealth;
+    ai: DomainHealth;
+    app: DomainHealth;
+    admin: DomainHealth;
+    aws: DomainHealth;
+  };
 };
 
 export function fetchAdminOverview(args: {
@@ -1127,6 +1142,70 @@ export function runOpsReport(args: {
     path: `/api/v1/admin/reports/run`,
     method: "POST",
     body: { kind: args.kind },
+  });
+}
+
+// ---------------------------------------------------------------------------
+// V1.0 #12 / V2.0 #24 — Deployment ledger (Phase4-A)
+//   Server: GET /api/v1/admin/deployments?cursor=&limit=&since=
+// ---------------------------------------------------------------------------
+
+export type DeploymentLedgerRow = {
+  id: string;
+  version: string;
+  state: string;
+  started_at: string | null;
+  completed_at: string | null;
+  hold_reason?: string | null;
+  abort_reason?: string | null;
+  rollback_window_until?: string | null;
+};
+
+export function listDeployments(args: {
+  jwt: string;
+  cursor?: string | null;
+  limit?: number;
+  since?: string;
+}): Promise<
+  ServerResult<{ items: DeploymentLedgerRow[]; next_cursor: string | null }>
+> {
+  const params = new URLSearchParams();
+  if (args.cursor) params.set("cursor", args.cursor);
+  if (args.limit) params.set("limit", String(args.limit));
+  if (args.since) params.set("since", args.since);
+  const qs = params.toString();
+  return authedRequest({
+    jwt: args.jwt,
+    path: `/api/v1/admin/deployments${qs ? `?${qs}` : ""}`,
+    method: "GET",
+  });
+}
+
+// ---------------------------------------------------------------------------
+// V3.0 #27 — Device boot invariants (Phase4-A)
+//   Server: GET /api/v1/admin/devices/:id/boot-invariants
+//   (Secure Boot / Flash Encryption / JTAG Disabled invariant mask 검사)
+// ---------------------------------------------------------------------------
+
+export type DeviceBootInvariants = {
+  device_id: string;
+  boot_invariant_mask: number | null;
+  required_mask: number;
+  ok: boolean;
+  missing_bits: string[];
+  last_boot_at: string | null;
+  boot_count: number | null;
+  fw_version: string | null;
+};
+
+export function getDeviceBootInvariants(args: {
+  jwt: string;
+  deviceId: string;
+}): Promise<ServerResult<DeviceBootInvariants>> {
+  return authedRequest({
+    jwt: args.jwt,
+    path: `/api/v1/admin/devices/${encodeURIComponent(args.deviceId)}/boot-invariants`,
+    method: "GET",
   });
 }
 

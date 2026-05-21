@@ -13,7 +13,12 @@ import {
 } from "@/lib/mockData";
 import { fetchDeviceOwnershipHistoryAction } from "@/lib/actions/deviceOwnership";
 import { listDevicesAction } from "@/lib/actions/devices";
-import type { OwnershipHop, DeviceRow as ServerDeviceRow } from "@/lib/adminApi";
+import { getDeviceBootInvariantsAction } from "@/lib/actions/bootInvariants";
+import type {
+  OwnershipHop,
+  DeviceRow as ServerDeviceRow,
+  DeviceBootInvariants,
+} from "@/lib/adminApi";
 
 // 강력 액션 2단계 확인 — /dashboard/ops 와 동일 정책.
 const TWO_STEP_PHRASE = "EXECUTE";
@@ -455,9 +460,76 @@ function DeviceDrawer({
         </div>
 
         <OwnershipTimeline deviceId={device.id} />
+        <BootInvariantsPanel deviceId={device.id} />
 
         <p className="text-[11px] text-muted mt-3">※ 디바이스 액션은 데모, 소유권 이력은 Server `/api/v1/admin/devices/:id/ownership-history` 실 연동.</p>
       </div>
+    </div>
+  );
+}
+
+// V3.0 #27 — 디바이스 출하 잠금 invariant 검사.
+// Server `/api/v1/admin/devices/:id/boot-invariants` 가 boot_invariant_mask 와 ENV
+// `REQUIRED_BOOT_INVARIANT_MASK` 의 비트 AND 결과를 검증. 위반 시 audit_log 자동.
+function BootInvariantsPanel({ deviceId }: { deviceId: string }) {
+  const [data, setData] = useState<DeviceBootInvariants | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    getDeviceBootInvariantsAction({ deviceId })
+      .then((r) => {
+        if (cancelled) return;
+        if (!r.ok) {
+          setError(r.message);
+        } else {
+          setData(r.data);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [deviceId]);
+
+  return (
+    <div className="mt-3 rounded-2xl border border-white/60 bg-white/30 p-3">
+      <div className="text-sm font-semibold mb-1">출하 잠금 invariant</div>
+      {loading ? (
+        <div className="text-xs text-muted">불러오는 중</div>
+      ) : error ? (
+        <div className="text-xs text-amber-700 bg-amber-50/80 border border-amber-200 rounded-xl px-3 py-2">
+          Server 도달 실패: {error}
+        </div>
+      ) : !data ? (
+        <div className="text-xs text-muted">자료 없음</div>
+      ) : (
+        <div className="space-y-1 text-xs">
+          <div className="flex items-center gap-2">
+            <span className={data.ok ? "chip chip-success" : "chip chip-error"}>
+              {data.ok ? "안전" : "위반"}
+            </span>
+            <span className="font-mono">
+              mask 0x{(data.boot_invariant_mask ?? 0).toString(16).padStart(2, "0")} /
+              required 0x{data.required_mask.toString(16).padStart(2, "0")}
+            </span>
+          </div>
+          {data.missing_bits.length > 0 ? (
+            <div className="text-amber-700">
+              누락 비트: {data.missing_bits.join(", ")}
+            </div>
+          ) : null}
+          <div className="text-muted">
+            fw {data.fw_version ?? "—"} · last boot {data.last_boot_at ?? "—"} · count{" "}
+            {data.boot_count ?? "—"}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

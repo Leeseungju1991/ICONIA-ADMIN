@@ -143,6 +143,40 @@ export default async function DashboardHome() {
         </PanelCard>
       ) : null}
 
+      {sv?.domains ? (
+        <PanelCard
+          title="시스템 6도메인 health (Server overview)"
+          description="HW · Server · AI · App · Admin · AWS — Server /api/v1/admin/overview.domains 정본."
+        >
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            {(["hw", "server", "ai", "app", "admin", "aws"] as const).map((k) => {
+              const d = sv.domains![k];
+              const chip =
+                d.status === "ok"
+                  ? "chip chip-success"
+                  : d.status === "down"
+                    ? "chip chip-error"
+                    : d.status === "degraded"
+                      ? "chip chip-warn"
+                      : "chip chip-muted";
+              return (
+                <div
+                  key={k}
+                  className="rounded-2xl border border-white/60 bg-white/55 px-3 py-2"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-semibold uppercase">{k}</span>
+                    <span className={chip}>{d.status}</span>
+                  </div>
+                  <div className="mt-1 text-[11px] text-muted line-clamp-2">{d.detail}</div>
+                  <div className="mt-1 text-[10px] text-muted">{d.observed_at}</div>
+                </div>
+              );
+            })}
+          </div>
+        </PanelCard>
+      ) : null}
+
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {kpis.map((m, i) => (
           <StatCard
