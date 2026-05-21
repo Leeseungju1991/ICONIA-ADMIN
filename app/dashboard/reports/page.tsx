@@ -1,125 +1,169 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { PanelCard } from "../_components/PanelCard";
 import { DataTable, type Column } from "../_components/DataTable";
 import { StatCard } from "../_components/StatCard";
 import { OpsAuditTrailPanel } from "../_components/OpsAuditTrailPanel";
-import { mockReports, formatDate, type ReportRow } from "@/lib/mockData";
+import { MockDataBanner } from "../_components/MockDataBanner";
 import { recordOpsAuditWithSilentRetry } from "@/lib/opsAuditTrail";
+import { listPosts, hidePost, unhidePost, type PostRow } from "@/lib/adminApi";
+import { readSession } from "@/lib/authCookie";
 
-const typeLabel: Record<ReportRow["type"], string> = {
-  review: "리뷰",
-  post: "게시물",
-  comment: "댓글",
-  user: "사용자",
+// Phase 14-B — reports 재설계.
+// Server `GET /api/v1/admin/posts?filter=reported` (Phase 1 adminStubRoutes) 단일 source.
+// 응답: { items: PostRow[], next_cursor }
+//
+// 이전: mockReports 가 review/post/comment/user 4 유형 통합. Server 는 posts 만 매핑.
+// 재설계: posts 신고만 표시 + review/comment/user 는 endpoint 부재 명시 (별도 라운드).
+
+const statusChip: Record<string, string> = {
+  visible: "chip chip-warn",
+  hidden: "chip chip-error",
+  taken_down: "chip chip-error",
+};
+const statusLabel: Record<string, string> = {
+  visible: "검토 대기",
+  hidden: "숨김 처리됨",
+  taken_down: "영구 차단",
 };
 
-const statusInfo: Record<ReportRow["status"], { label: string; chip: string }> = {
-  pending: { label: "검토 대기", chip: "chip chip-warn" },
-  resolved: { label: "처리 완료", chip: "chip chip-success" },
-  rejected: { label: "반려", chip: "chip chip-muted" },
-  hidden: { label: "차단됨", chip: "chip chip-error" },
-};
+async function fetchReportedPosts(): Promise<
+  { ok: true; items: PostRow[] } | { ok: false; message: string }
+> {
+  const jwt = readSession();
+  if (!jwt) return { ok: false, message: "세션 만료" };
+  const res = await listPosts({ jwt, filter: "reported", limit: 200 });
+  if (!res.ok) return { ok: false, message: res.message };
+  return { ok: true, items: res.data.items };
+}
+
+async function runHide(postId: string, reason: string) {
+  const jwt = readSession();
+  if (!jwt) return { ok: false, message: "세션 만료" };
+  const res = await hidePost({ jwt, postId, reason });
+  if (!res.ok) return { ok: false, message: res.message };
+  return { ok: true as const };
+}
+
+async function runUnhide(postId: string) {
+  const jwt = readSession();
+  if (!jwt) return { ok: false, message: "세션 만료" };
+  const res = await unhidePost({ jwt, postId });
+  if (!res.ok) return { ok: false, message: res.message };
+  return { ok: true as const };
+}
 
 export default function ReportsPage() {
-  const [tab, setTab] = useState<"all" | ReportRow["status"]>("pending");
-  const [typeFilter, setTypeFilter] = useState<"all" | ReportRow["type"]>("all");
-  const [picked, setPicked] = useState<ReportRow | null>(null);
+  const [tab, setTab] = useState<"all" | "visible" | "hidden">("visible");
+  const [picked, setPicked] = useState<PostRow | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [auditTick, setAuditTick] = useState(0);
-  // 신고 처리 결과를 세션 내 로컬 상태로 반영 — 백엔드 미연동, 새로고침 시 초기화.
-  // TODO(server-wire-up): `/api/v1/admin/reports/:id/resolve` 연동 후 server 상태로 교체.
-  const [statusOverrides, setStatusOverrides] = useState<Record<string, ReportRow["status"]>>({});
+  const [posts, setPosts] = useState<PostRow[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, startLoad] = useTransition();
 
-  const reports = useMemo(
-    () => mockReports.map((r) => ({ ...r, status: statusOverrides[r.id] ?? r.status })),
-    [statusOverrides],
-  );
+  function reload() {
+    startLoad(async () => {
+      const r = await fetchReportedPosts();
+      if (!r.ok) {
+        setError(r.message);
+        setPosts([]);
+      } else {
+        setError(null);
+        setPosts(r.items);
+      }
+    });
+  }
 
-  const filtered = useMemo(
-    () =>
-      reports.filter((r) => {
-        if (tab !== "all" && r.status !== tab) return false;
-        if (typeFilter !== "all" && r.type !== typeFilter) return false;
-        return true;
-      }),
-    [reports, tab, typeFilter],
-  );
+  useEffect(() => {
+    reload();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  const counts = useMemo(() => {
-    const c: Record<string, number> = { all: reports.length };
-    for (const r of reports) c[r.status] = (c[r.status] ?? 0) + 1;
-    return c;
-  }, [reports]);
+  const filtered = useMemo(() => {
+    return posts.filter((p) => {
+      if (tab === "all") return true;
+      if (tab === "visible") return p.status === "visible";
+      if (tab === "hidden") return p.status === "hidden" || p.status === "taken_down";
+      return true;
+    });
+  }, [posts, tab]);
 
-  // 신고 처리 액션 — 사유 입력 → 세션 audit trail 기록 → 로컬 상태 갱신.
-  async function resolveReport(
-    report: ReportRow,
-    action: "hide" | "reject" | "warn" | "suspend",
-  ) {
-    const labels: Record<typeof action, string> = {
-      hide: "콘텐츠 차단(숨김)",
-      reject: "신고 반려",
-      warn: "경고 메시지 발송",
-      suspend: "신고 대상 계정 정지",
-    };
-    const label = labels[action];
-    if ((action === "hide" || action === "suspend") && typeof window !== "undefined") {
+  const summary = useMemo(() => {
+    const pending = posts.filter((p) => p.status === "visible").length;
+    const hidden = posts.filter(
+      (p) => p.status === "hidden" || p.status === "taken_down",
+    ).length;
+    const highVolume = posts.filter(
+      (p) => p.status === "visible" && p.reported_count >= 5,
+    ).length;
+    return { pending, hidden, highVolume, total: posts.length };
+  }, [posts]);
+
+  async function handleHide(p: PostRow) {
+    if (typeof window !== "undefined") {
       const phrase = window.prompt(
-        `${label}\n\n강력 액션입니다. 실행하려면 정확히 "EXECUTE" 를 입력하세요.`,
+        `게시물 숨김 처리\n\n강력 액션입니다. 실행하려면 정확히 "EXECUTE" 를 입력하세요.`,
       );
       if (phrase !== "EXECUTE") {
-        setToast(`${label} 실행 취소 — 확인 문구 불일치.`);
+        setToast("실행 취소 — 확인 문구 불일치.");
         return;
       }
     }
-    const reason = window.prompt(`${label} 사유를 입력하세요 (감사 로그에 기록됩니다, 5자 이상).`);
+    const reason = window.prompt("숨김 사유 (감사 로그에 기록, 5자 이상):");
     if (!reason || reason.trim().length < 5) {
-      setToast("사유가 5자 이상 필요합니다. 액션을 취소했습니다.");
+      setToast("사유가 5자 이상 필요합니다.");
       return;
     }
-    const result = await recordOpsAuditWithSilentRetry({
-      action: `report.${action}`,
-      target_label: `${typeLabel[report.type]} · ${report.target_id}`,
-      target_id: report.id,
+    const r = await runHide(p.post_id, reason.trim());
+    if (!r.ok) {
+      setToast(`숨김 처리 실패: ${r.message}`);
+      return;
+    }
+    await recordOpsAuditWithSilentRetry({
+      action: "report.hide_post",
+      target_label: `게시물 · ${p.post_id}`,
+      target_id: p.post_id,
       reason: reason.trim(),
       operator: "(현재 운영자 세션)",
-      outcome: "queued",
+      outcome: "succeeded",
     });
     setAuditTick((t) => t + 1);
-    if (!result.ok) {
-      setToast(`${label} 큐 적재 최종 실패 — 운영자 확인 필요. [${result.attempts}회 시도]`);
-      return;
-    }
-    // 처리 결과를 신고 상태에 반영. reject → rejected, 그 외 → hidden/resolved.
-    const nextStatus: ReportRow["status"] =
-      action === "reject" ? "rejected" : action === "warn" ? "resolved" : "hidden";
-    setStatusOverrides((prev) => ({ ...prev, [report.id]: nextStatus }));
     setPicked(null);
-    setToast(`${label} 처리를 완료하고 감사 로그에 기록했습니다. (대상: ${report.target_id})`);
+    setToast(`게시물 ${p.post_id} 숨김 처리 완료.`);
+    reload();
   }
 
-  const summary = useMemo(() => {
-    const pending = reports.filter((r) => r.status === "pending").length;
-    const hidden = reports.filter((r) => r.status === "hidden").length;
-    const resolved = reports.filter((r) => r.status === "resolved").length;
-    const highVolume = reports.filter((r) => r.status === "pending" && r.reported_count >= 5).length;
-    return { pending, hidden, resolved, highVolume };
-  }, [reports]);
+  async function handleUnhide(p: PostRow) {
+    const r = await runUnhide(p.post_id);
+    if (!r.ok) {
+      setToast(`복구 실패: ${r.message}`);
+      return;
+    }
+    await recordOpsAuditWithSilentRetry({
+      action: "report.unhide_post",
+      target_label: `게시물 · ${p.post_id}`,
+      target_id: p.post_id,
+      reason: "운영자 검토 후 복구",
+      operator: "(현재 운영자 세션)",
+      outcome: "succeeded",
+    });
+    setAuditTick((t) => t + 1);
+    setPicked(null);
+    setToast(`게시물 ${p.post_id} 복구 완료.`);
+    reload();
+  }
 
-  const columns: Column<ReportRow>[] = [
-    { key: "type", header: "유형", render: (r) => <span className="chip chip-info">{typeLabel[r.type]}</span> },
-    { key: "target", header: "대상", render: (r) => <span className="font-mono text-xs">{r.target_id}</span> },
-    { key: "reason", header: "사유", render: (r) => r.reason },
-    {
-      key: "excerpt",
-      header: "내용 발췌",
-      render: (r) => <span className="text-slate-700 line-clamp-1 max-w-[300px] inline-block align-middle">{r.excerpt}</span>,
-    },
-    { key: "cnt", header: "신고 수", align: "right", render: (r) => r.reported_count },
-    { key: "status", header: "상태", render: (r) => <span className={statusInfo[r.status].chip}>{statusInfo[r.status].label}</span> },
-    { key: "date", header: "신고일", render: (r) => <span className="text-xs text-muted">{formatDate(r.created_at)}</span> },
+  type Row = PostRow & { id: string };
+  const columns: Column<Row>[] = [
+    { key: "post", header: "게시물 ID", render: (r) => <span className="font-mono text-xs">{r.post_id}</span> },
+    { key: "author", header: "작성자", render: (r) => <span className="font-mono text-xs">{r.author_handle ?? r.author_user_id}</span> },
+    { key: "body", header: "내용 발췌", render: (r) => <span className="text-slate-700 line-clamp-1 max-w-[300px] inline-block align-middle">{r.body_excerpt}</span> },
+    { key: "reports", header: "신고 수", align: "right", render: (r) => r.reported_count },
+    { key: "reactions", header: "반응", align: "right", render: (r) => `${r.reaction_count}/${r.comment_count}` },
+    { key: "status", header: "상태", render: (r) => <span className={statusChip[r.status] ?? "chip chip-muted"}>{statusLabel[r.status] ?? r.status}</span> },
+    { key: "date", header: "작성일", render: (r) => <span className="text-xs text-muted">{r.created_at}</span> },
     {
       key: "actions",
       header: "",
@@ -132,23 +176,21 @@ export default function ReportsPage() {
     },
   ];
 
-  const tabs: Array<{ key: typeof tab; label: string }> = [
-    { key: "pending", label: "검토 대기" },
-    { key: "hidden", label: "차단됨" },
-    { key: "resolved", label: "완료" },
-    { key: "rejected", label: "반려" },
-    { key: "all", label: "전체" },
+  const tabs: Array<{ key: "visible" | "hidden" | "all"; label: string; count: number }> = [
+    { key: "visible", label: "검토 대기", count: summary.pending },
+    { key: "hidden", label: "숨김 처리됨", count: summary.hidden },
+    { key: "all", label: "전체", count: summary.total },
   ];
 
   return (
     <div className="space-y-6">
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
-          label="검토 대기"
+          label="검토 대기 (visible)"
           value={String(summary.pending)}
           delta={summary.pending > 0 ? "처리 필요" : "없음"}
           deltaTone={summary.pending > 0 ? "down" : "up"}
-          hint="pending 신고"
+          hint="신고 들어온 visible 게시물"
           accent="orange"
         />
         <StatCard
@@ -157,27 +199,34 @@ export default function ReportsPage() {
           hint="우선 검토 권장"
           accent="pink"
         />
-        <StatCard label="차단 처리됨" value={String(summary.hidden)} hint="누적" accent="blue" />
-        <StatCard label="처리 완료" value={String(summary.resolved)} hint="경고/조치 완료" accent="teal" />
+        <StatCard label="숨김 처리됨" value={String(summary.hidden)} hint="누적" accent="blue" />
+        <StatCard label="전체 신고 게시물" value={String(summary.total)} hint="Server 정본" accent="teal" />
       </section>
 
+      <MockDataBanner
+        reason="현재는 게시물(FeedPost) 신고만 표시. 리뷰·댓글·사용자 신고 endpoint 는 별도 라운드."
+        endpoint="/api/v1/admin/reports/{reviews,comments,users} (TBD)"
+      />
+
       <PanelCard
-        title="신고 처리 현황"
-        description="이용자가 신고한 리뷰·게시물·댓글·사용자를 검토하고 운영 처리합니다."
+        title="신고 처리 — 게시물 (Server 정본)"
+        description="Server /api/v1/admin/posts?filter=reported — FeedReport 가 걸린 FeedPost 만. 숨김·복구는 Server mutation 으로 적용."
         actions={
-          <select
-            className="select max-w-[160px]"
-            value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value as typeof typeFilter)}
+          <button
+            type="button"
+            onClick={reload}
+            disabled={loading}
+            className="rounded-xl bg-accent px-3 py-1.5 text-xs text-white disabled:opacity-60"
           >
-            <option value="all">전체 유형</option>
-            <option value="review">리뷰</option>
-            <option value="post">게시물</option>
-            <option value="comment">댓글</option>
-            <option value="user">사용자</option>
-          </select>
+            {loading ? "조회 중..." : "새로고침"}
+          </button>
         }
       >
+        {error ? (
+          <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 mb-3">
+            Server 도달 실패: {error}
+          </div>
+        ) : null}
         <div className="flex flex-wrap gap-2 mb-4">
           {tabs.map((t) => (
             <button
@@ -191,18 +240,22 @@ export default function ReportsPage() {
                   : "bg-white/40 border-white/50 text-slate-600 hover:bg-white/60",
               ].join(" ")}
             >
-              {t.label} <span className="text-muted ml-1">{t.key === "all" ? counts.all : counts[t.key] ?? 0}</span>
+              {t.label} <span className="text-muted ml-1">{t.count}</span>
             </button>
           ))}
         </div>
-
-        <DataTable columns={columns} rows={filtered} empty="해당 조건의 신고가 없습니다." />
+        <DataTable
+          columns={columns}
+          rows={filtered.map((p) => ({ ...p, id: p.post_id }))}
+          rowKey={(r) => r.post_id}
+          empty="해당 조건의 신고 게시물이 없습니다."
+        />
       </PanelCard>
 
       <OpsAuditTrailPanel
         prefix="report."
         title="신고 처리 운영자 액션 audit (세션)"
-        description="콘텐츠 차단·반려·경고·계정 정지 등 운영자 조치 기록. 백엔드 연동 후 Server audit_log 와 머지."
+        description="콘텐츠 숨김·복구 등 운영자 조치 기록. Server audit_log 와 자동 머지 — adminStub posts 라우트가 audit_log 자동 기록."
         refresh={{ tick: auditTick }}
       />
 
@@ -217,9 +270,10 @@ export default function ReportsPage() {
 
       {picked ? (
         <ReportDrawer
-          report={picked}
+          post={picked}
           onClose={() => setPicked(null)}
-          onResolve={(action) => resolveReport(picked, action)}
+          onHide={() => handleHide(picked)}
+          onUnhide={() => handleUnhide(picked)}
         />
       ) : null}
     </div>
@@ -227,15 +281,17 @@ export default function ReportsPage() {
 }
 
 function ReportDrawer({
-  report,
+  post,
   onClose,
-  onResolve,
+  onHide,
+  onUnhide,
 }: {
-  report: ReportRow;
+  post: PostRow;
   onClose: () => void;
-  onResolve: (action: "hide" | "reject" | "warn" | "suspend") => void;
+  onHide: () => void;
+  onUnhide: () => void;
 }) {
-  const isClosed = report.status !== "pending";
+  const isHidden = post.status === "hidden" || post.status === "taken_down";
   return (
     <div className="fixed inset-0 z-40 flex items-end sm:items-center justify-center sm:justify-end p-3 sm:p-6 bg-black/30">
       <div className="w-full max-w-md glass-panel rounded-3xl p-6 relative">
@@ -246,62 +302,35 @@ function ReportDrawer({
         >
           닫기
         </button>
-        <h3 className="text-lg font-bold text-slate-900">신고 상세</h3>
-        <p className="text-xs text-muted mt-0.5">{report.id}</p>
+        <h3 className="text-lg font-bold text-slate-900">신고 게시물 상세</h3>
+        <p className="text-xs text-muted mt-0.5 font-mono">{post.post_id}</p>
 
-        <div className="mt-5 space-y-3 text-sm">
-          <RowBlock label="유형" value={typeLabel[report.type]} />
-          <RowBlock label="대상 ID" value={<span className="font-mono">{report.target_id}</span>} />
-          <RowBlock label="신고자" value={<span className="font-mono">{report.reporter_id}</span>} />
-          <RowBlock label="사유" value={report.reason} />
-          <RowBlock label="신고 수" value={`${report.reported_count}회`} />
-          <RowBlock label="상태" value={<span className={statusInfo[report.status].chip}>{statusInfo[report.status].label}</span>} />
-          <RowBlock label="신고일" value={formatDate(report.created_at)} />
+        <dl className="mt-5 space-y-3 text-sm">
+          <RowBlock label="작성자" value={<span className="font-mono">{post.author_handle ?? post.author_user_id}</span>} />
+          <RowBlock label="신고 수" value={`${post.reported_count}회`} />
+          <RowBlock label="반응/댓글" value={`👍 ${post.reaction_count} · 💬 ${post.comment_count}`} />
+          <RowBlock label="상태" value={<span className={statusChip[post.status] ?? "chip chip-muted"}>{statusLabel[post.status] ?? post.status}</span>} />
+          <RowBlock label="작성일" value={post.created_at} />
           <div className="rounded-xl bg-white/60 border border-white/60 p-3">
             <div className="text-xs text-muted mb-1">내용 발췌</div>
-            <p className="text-sm text-slate-800">{report.excerpt}</p>
+            <p className="text-sm text-slate-800">{post.body_excerpt}</p>
           </div>
-        </div>
+        </dl>
 
-        {isClosed ? (
-          <div className="mt-6 text-xs text-amber-700 bg-amber-50/80 border border-amber-200 rounded-xl px-3 py-2">
-            ⚠ 이미 처리된 신고입니다 ({statusInfo[report.status].label}). 추가 조치가 필요하면 새 신고로 접수하세요.
-          </div>
-        ) : (
-          <div className="mt-6 grid grid-cols-2 gap-2">
-            <button
-              className="btn-primary text-sm"
-              type="button"
-              onClick={() => onResolve("hide")}
-            >
-              차단(숨김)
+        <div className="mt-6 grid grid-cols-2 gap-2">
+          {isHidden ? (
+            <button className="btn-primary text-sm col-span-2" type="button" onClick={onUnhide}>
+              복구 (unhide)
             </button>
-            <button
-              className="btn-outline text-sm"
-              type="button"
-              onClick={() => onResolve("reject")}
-            >
-              반려
+          ) : (
+            <button className="btn-danger text-sm col-span-2" type="button" onClick={onHide}>
+              숨김 처리 (hide)
             </button>
-            <button
-              className="btn-outline text-sm"
-              type="button"
-              onClick={() => onResolve("warn")}
-            >
-              경고 메시지
-            </button>
-            <button
-              className="btn-danger text-sm"
-              type="button"
-              onClick={() => onResolve("suspend")}
-            >
-              계정 정지
-            </button>
-          </div>
-        )}
+          )}
+        </div>
         <p className="text-[11px] text-muted mt-3">
-          ※ 차단·계정정지는 EXECUTE 2단계 확인 필수. 모든 조치는 사유 입력 후 세션 audit trail 에
-          기록됩니다. 실제 콘텐츠 mutation 은 백엔드 연동 후 활성화. {/* TODO(server-wire-up) */}
+          ※ 숨김은 EXECUTE 2단계 확인 + 5자 사유 prompt 필수. 모든 조치는 Server audit_log + 세션
+          audit trail 양쪽에 기록됩니다.
         </p>
       </div>
     </div>
