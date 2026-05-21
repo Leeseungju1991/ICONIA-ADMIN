@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { PanelCard } from "../_components/PanelCard";
 import { DataTable, type Column } from "../_components/DataTable";
 import { StatCard } from "../_components/StatCard";
@@ -14,7 +14,13 @@ import {
   mfaResetUserAction,
   type UserMutationResult,
 } from "@/lib/actions/userMutations";
-import { finalizePipaDeletionAction } from "@/lib/actions/pipa";
+import {
+  finalizePipaDeletionAction,
+  listPipaUsersAction,
+  triggerPipaExportAction,
+  type PipaActionResult,
+} from "@/lib/actions/pipa";
+import type { PipaUserRow } from "@/lib/adminApi";
 
 // 강력 액션 2단계 확인 — /dashboard/ops 페이지와 같은 정책 (EXECUTE 정확 입력).
 const TWO_STEP_PHRASE = "EXECUTE";
@@ -55,11 +61,38 @@ export default function UsersPage() {
   const [toast, setToast] = useState<string | null>(null);
 
   async function handleUnmask(userId: string) {
-    // P1 §7 — PII 마스킹 해제는 매 클릭마다 audit log. (향후 2FA 재확인 prompt 삽입 지점.)
+    // V1.0 #12+#19+#20 (Phase 7) — PIPA 마스킹 해제 3중 가드:
+    //   (a) 경고 모달 (사용자 인지) — confirm()
+    //   (b) 사유 입력 (자유 텍스트 5자 이상) — prompt()
+    //   (c) 감사 로그 기록 (이미 구현, action=admin_pii_unmasked)
+    // TOTP 2차 검증은 Server endpoint 결정 후 후속 라운드. 본 라운드는 경고+사유.
+    const confirmed =
+      typeof window === "undefined"
+        ? false
+        : window.confirm(
+            "이 사용자의 PII 마스킹을 해제합니다.\n\n" +
+              "⚠ 이 행동은 영구 감사 로그(hash chain)에 기록되며 취소할 수 없습니다.\n" +
+              "PIPA 안전성 확보 조치에 따라 정당한 사유가 있을 때만 수행하세요.\n\n" +
+              "계속하시겠습니까?",
+          );
+    if (!confirmed) {
+      setToast("마스킹 해제를 취소했습니다.");
+      return;
+    }
+    const reasonText =
+      typeof window !== "undefined"
+        ? window.prompt(
+            "마스킹 해제 사유를 입력하세요 (감사 로그에 기록, 5자 이상). 예: CS 문의 #1234 / 보안 조사 등.",
+          )
+        : null;
+    if (!reasonText || reasonText.trim().length < 5) {
+      setToast("사유가 5자 이상 필요합니다. 마스킹 해제가 취소되었습니다.");
+      return;
+    }
     const res = await recordOperatorAuditAction({
       action: "user.pii_unmasked",
       targetUserId: userId,
-      reasonText: "운영자가 상세 화면에서 PII 마스킹을 해제했습니다.",
+      reasonText: reasonText.trim(),
     });
     if (res.status === "error") {
       setToast("감사 로그 기록에 실패했습니다. 마스킹 해제가 차단되었습니다.");
@@ -184,10 +217,12 @@ export default function UsersPage() {
         />
       </section>
 
+      <LivePipaPanel />
+
       {pipaTrackList.length > 0 ? (
         <PanelCard
           title="PIPA 권리 추적 — 탈퇴 보류 / 데이터 export 요청"
-          description="개인정보보호법(PIPA) 제35조 열람 청구 + 제36조 삭제 요청. 보류 기간 30일 내 운영자가 export·복구 처리 가능. (mock — `/api/v1/admin/users/pipa` 미연동)"
+          description="개인정보보호법(PIPA) 제35조 열람 청구 + 제36조 삭제 요청. 보류 기간 30일 내 운영자가 export·복구 처리 가능. (mock — Phase 7 LivePipaPanel 가 Server 정본 표시 중)"
         >
           <ul className="space-y-2">
             {pipaTrackList.map((u) => (
@@ -451,5 +486,135 @@ function Row({ k, v }: { k: string; v: React.ReactNode }) {
       <dt className="text-xs text-muted">{k}</dt>
       <dd className="text-sm text-slate-800 font-medium">{v}</dd>
     </div>
+  );
+}
+
+// V2.0 #15 — Server `/api/v1/admin/users/pipa` (Phase2-A) 실 연동 패널.
+// 기존 mockUsers 기반 pipaTrackList 와 병존 — Server 도달 시 실 데이터 표시.
+function LivePipaPanel() {
+  const [pendingItems, setPendingItems] = useState<PipaUserRow[] | null>(null);
+  const [exportItems, setExportItems] = useState<PipaUserRow[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [exportToast, setExportToast] = useState<string | null>(null);
+
+  async function reload() {
+    setLoading(true);
+    setError(null);
+    const [r1, r2] = await Promise.all([
+      listPipaUsersAction({ status: "pending_deletion" }),
+      listPipaUsersAction({ status: "recent_export" }),
+    ]);
+    if (!r1.ok || !r2.ok) {
+      const msg = !r1.ok ? r1.message : !r2.ok ? r2.message : "unknown";
+      setError(msg);
+      setPendingItems(null);
+      setExportItems(null);
+    } else {
+      setPendingItems(r1.data.items);
+      setExportItems(r2.data.items);
+    }
+    setLoading(false);
+  }
+
+  useEffect(() => {
+    reload();
+  }, []);
+
+  async function runExport(userId: string) {
+    const reason = window.prompt(
+      "PIPA export 트리거 사유를 입력하세요 (감사 로그에 기록, 5자 이상).",
+    );
+    if (!reason || reason.trim().length < 5) {
+      setExportToast("사유가 5자 이상 필요합니다. 취소되었습니다.");
+      return;
+    }
+    const r: PipaActionResult<{ id: string; status: string }> = await triggerPipaExportAction({
+      userId,
+      reason: reason.trim(),
+    });
+    if (!r.ok) {
+      setExportToast(`실패 (${r.code ?? "ERR"}): ${r.message}`);
+      return;
+    }
+    setExportToast(`export job ${r.data.id} 생성됨 (status=${r.data.status})`);
+    reload();
+  }
+
+  return (
+    <PanelCard
+      title="PIPA 실시간 추적 (Server)"
+      description="Server /api/v1/admin/users/pipa — 탈퇴 대기 / 최근 export 요청. SUPERADMIN_ONLY."
+    >
+      {loading ? (
+        <div className="text-sm text-muted">불러오는 중</div>
+      ) : error ? (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          Server 도달 실패: {error}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <div>
+            <div className="text-xs text-muted mb-2">
+              탈퇴 대기 (pending_deletion) — {pendingItems?.length ?? 0}건
+            </div>
+            {pendingItems && pendingItems.length > 0 ? (
+              <ul className="space-y-1">
+                {pendingItems.slice(0, 10).map((u) => (
+                  <li
+                    key={u.user_id}
+                    className="rounded-xl border border-white/60 bg-white/55 px-3 py-2 text-xs"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-mono">{u.user_id}</span>
+                      <button
+                        type="button"
+                        onClick={() => runExport(u.user_id)}
+                        className="rounded-lg bg-accent px-2 py-0.5 text-white text-[11px]"
+                      >
+                        export 강제
+                      </button>
+                    </div>
+                    <div className="text-muted mt-1">
+                      pending {u.pending_deletion_at ?? "—"} · purge{" "}
+                      {u.scheduled_purge_at ?? "—"}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className="text-xs text-muted">대기 사용자 없음.</div>
+            )}
+          </div>
+          <div>
+            <div className="text-xs text-muted mb-2">
+              최근 export (recent_export) — {exportItems?.length ?? 0}건
+            </div>
+            {exportItems && exportItems.length > 0 ? (
+              <ul className="space-y-1">
+                {exportItems.slice(0, 10).map((u) => (
+                  <li
+                    key={u.user_id}
+                    className="rounded-xl border border-white/60 bg-white/55 px-3 py-2 text-xs"
+                  >
+                    <div className="font-mono">{u.user_id}</div>
+                    <div className="text-muted mt-1">
+                      export {u.recent_export_at ?? "—"}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className="text-xs text-muted">최근 export 없음.</div>
+            )}
+          </div>
+        </div>
+      )}
+      {exportToast ? (
+        <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+          {exportToast}
+        </div>
+      ) : null}
+    </PanelCard>
   );
 }
