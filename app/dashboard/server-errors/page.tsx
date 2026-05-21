@@ -5,6 +5,7 @@ import { PanelCard } from "../_components/PanelCard";
 import { DataTable, type Column } from "../_components/DataTable";
 import { StatCard } from "../_components/StatCard";
 import { OpsAuditTrailPanel } from "../_components/OpsAuditTrailPanel";
+import { MockDataBanner } from "../_components/MockDataBanner";
 import { mockServerErrors, formatDate, type ServerErrorRow } from "@/lib/mockData";
 import {
   CATEGORY_LABEL,
@@ -171,6 +172,10 @@ export default function ServerErrorsPage() {
 
   return (
     <div className="space-y-6">
+      <MockDataBanner
+        reason="Server 측 server_errors 수집 endpoint 미구현 — 운영 에러 로그는 CloudWatch + Sentry 가 정본. 본 화면은 운영자 점검 UI 검증 데모."
+        endpoint="/api/v1/admin/errors/server (TBD)"
+      />
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard label="총 에러 (24h)" value={stats.total.toLocaleString()} hint="모든 서비스" accent="orange" />
         <StatCard label="5xx" value={stats.fivexx.toLocaleString()} delta="서버 측" deltaTone="down" accent="pink" />

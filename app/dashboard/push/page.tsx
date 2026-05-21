@@ -5,6 +5,7 @@ import { PanelCard } from "../_components/PanelCard";
 import { DataTable, type Column } from "../_components/DataTable";
 import { StatCard } from "../_components/StatCard";
 import { OpsAuditTrailPanel } from "../_components/OpsAuditTrailPanel";
+import { MockDataBanner } from "../_components/MockDataBanner";
 import { mockPush, formatDate, type PushRow } from "@/lib/mockData";
 import { mockOpsActions, OPS_KIND_LABEL } from "@/lib/mockOpsActions";
 import { recordOpsAuditWithSilentRetry } from "@/lib/opsAuditTrail";
@@ -137,6 +138,10 @@ export default function PushPage() {
 
   return (
     <div className="space-y-6">
+      <MockDataBanner
+        reason="Server 측 푸시 캠페인 endpoint 미구현 — expoPushService 직접 발송 정본은 proactiveScheduler 가 처리 중. 본 화면은 캠페인 UI 검증 데모."
+        endpoint="/api/v1/admin/push/campaigns (TBD)"
+      />
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard label="총 도달 (완료된 캠페인)" value={summary.delivered.toLocaleString()} hint="누적" accent="blue" />
         <StatCard label="총 오픈" value={summary.opened.toLocaleString()} hint="누적" accent="pink" />

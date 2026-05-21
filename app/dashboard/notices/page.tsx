@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { PanelCard } from "../_components/PanelCard";
 import { DataTable, type Column } from "../_components/DataTable";
+import { MockDataBanner } from "../_components/MockDataBanner";
 import { mockNotices, formatDate, type NoticeRow } from "@/lib/mockData";
 
 const audienceLabel: Record<NoticeRow["audience"], string> = {
@@ -99,6 +100,10 @@ export default function NoticesPage() {
 
   return (
     <div className="space-y-6">
+      <MockDataBanner
+        reason="Server 측 공지/배너 endpoint 미구현 — UI 설계 검증용 데모."
+        endpoint="/api/v1/admin/notices (TBD)"
+      />
       <PanelCard
         title="공지·배너 목록"
         description="인 앱/웹 공지와 메인 화면 배너를 등록·관리합니다."

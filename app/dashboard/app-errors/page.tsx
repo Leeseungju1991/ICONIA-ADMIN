@@ -5,6 +5,7 @@ import { PanelCard } from "../_components/PanelCard";
 import { DataTable, type Column } from "../_components/DataTable";
 import { StatCard } from "../_components/StatCard";
 import { OpsAuditTrailPanel } from "../_components/OpsAuditTrailPanel";
+import { MockDataBanner } from "../_components/MockDataBanner";
 import { mockAppErrors, formatDate, type AppErrorRow } from "@/lib/mockData";
 import {
   CATEGORY_LABEL,
@@ -192,6 +193,10 @@ export default function AppErrorsPage() {
 
   return (
     <div className="space-y-6">
+      <MockDataBanner
+        reason="Server 측 app_errors 수집 endpoint 미구현 — RN App 의 errorReporter 가 향후 Sentry 또는 별도 collect endpoint 로 전송할 예정. 본 화면은 운영자 점검 UI 검증 데모."
+        endpoint="/api/v1/admin/errors/app (TBD)"
+      />
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard label="총 발생" value={stats.total.toLocaleString()} hint="24시간" accent="orange" />
         <StatCard label="영향 사용자" value={stats.users.toLocaleString()} hint="고유" accent="pink" />
