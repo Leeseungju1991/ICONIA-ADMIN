@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { PanelCard } from "../_components/PanelCard";
 import { DataTable, type Column } from "../_components/DataTable";
 import { StatCard } from "../_components/StatCard";
@@ -8,6 +8,7 @@ import { OpsAuditTrailPanel } from "../_components/OpsAuditTrailPanel";
 import { mockPersonas, formatDate, type PersonaRow } from "@/lib/mockData";
 import { mockOpsActions, OPS_KIND_LABEL } from "@/lib/mockOpsActions";
 import { recordOpsAuditWithSilentRetry } from "@/lib/opsAuditTrail";
+import { listPersonasAction, type ListPersonasResult } from "@/lib/actions/personas";
 
 // AI 페르소나 관리 — SOUL 파일 업로드 / 검수 / 라이브 전환 / 롤백.
 // 데모 mock. 백엔드 연동 시 lib/adminApi.ts 로 교체.
@@ -122,6 +123,8 @@ export default function PersonasPage() {
         <StatCard label="검수 중" value={String(stats.staged)} hint="라이브 전환 대기" accent="orange" />
         <StatCard label="활성 세션" value={stats.sessions.toLocaleString()} hint="현재 대화 중" accent="pink" />
       </section>
+
+      <LivePersonaStatus />
 
       <PanelCard
         title="페르소나 목록"
@@ -416,5 +419,110 @@ function Row({ k, v }: { k: string; v: React.ReactNode }) {
       <dt className="text-xs text-muted">{k}</dt>
       <dd className="text-sm text-slate-800 font-medium">{v}</dd>
     </div>
+  );
+}
+
+// V1.0 #3 — Server `/api/v1/admin/personas` 실시간 카탈로그.
+// 본 카드는 mockPersonas 와 독립적으로 동작 — Server 가 ok 면 실 데이터, 아니면 안내.
+function LivePersonaStatus() {
+  const [state, setState] = useState<ListPersonasResult | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    listPersonasAction()
+      .then((r) => setState(r))
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) {
+    return (
+      <PanelCard title="실시간 페르소나 상태" description="Server /api/v1/admin/personas 조회 중...">
+        <div className="text-sm text-muted">불러오는 중</div>
+      </PanelCard>
+    );
+  }
+  if (!state || !state.ok) {
+    return (
+      <PanelCard
+        title="실시간 페르소나 상태"
+        description="Server /api/v1/admin/personas (PersonaClient.listCatalog + aiHealthTracker 결합)"
+      >
+        <div className="text-sm text-muted">
+          Server 도달 실패{state && !state.ok ? ` (${state.code ?? "ERR"}): ${state.message}` : ""}.
+          아래 mock 카탈로그를 임시 표시합니다.
+        </div>
+      </PanelCard>
+    );
+  }
+  if (state.personas.length === 0) {
+    return (
+      <PanelCard
+        title="실시간 페르소나 상태"
+        description="Server /api/v1/admin/personas 응답 — 카탈로그 비어 있음"
+      >
+        {state.catalog_error ? (
+          <div className="text-xs text-amber-700 bg-amber-50/80 border border-amber-200 rounded-xl px-3 py-2">
+            ⚠ AI 카탈로그 호출 오류: {state.catalog_error.code} — {state.catalog_error.message}
+          </div>
+        ) : (
+          <div className="text-sm text-muted">AI 서비스에 등록된 SOUL 이 없습니다.</div>
+        )}
+      </PanelCard>
+    );
+  }
+  return (
+    <PanelCard
+      title="실시간 페르소나 상태"
+      description="Server /api/v1/admin/personas — PersonaClient.listCatalog + aiHealthTracker SOUL 분해"
+    >
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        {state.personas.map((p) => (
+          <div
+            key={p.soul_catalog_id}
+            className="rounded-xl border border-white/60 bg-white/60 px-3 py-2"
+          >
+            <div className="flex items-center justify-between">
+              <div className="font-medium text-slate-800">{p.name}</div>
+              <span
+                className={
+                  p.status === "live"
+                    ? "chip chip-success"
+                    : p.status === "staged"
+                      ? "chip chip-info"
+                      : "chip chip-muted"
+                }
+              >
+                {p.status}
+              </span>
+            </div>
+            <div className="mt-1 text-[11px] text-muted font-mono">{p.soul_catalog_id}</div>
+            <div className="mt-2 flex items-center gap-3 text-xs">
+              <span>
+                fallback{" "}
+                <span
+                  className={
+                    typeof p.fallback_rate === "number" && p.fallback_rate > 0.1
+                      ? "text-red-600"
+                      : "text-slate-700"
+                  }
+                >
+                  {typeof p.fallback_rate === "number"
+                    ? `${(p.fallback_rate * 100).toFixed(1)}%`
+                    : "—"}
+                </span>
+              </span>
+              <span className="text-muted">
+                last {p.last_response_ts ?? "—"}
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+      {state.catalog_error ? (
+        <div className="mt-3 text-xs text-amber-700 bg-amber-50/80 border border-amber-200 rounded-xl px-3 py-2">
+          ⚠ AI 카탈로그 일부 누락: {state.catalog_error.code} — {state.catalog_error.message}
+        </div>
+      ) : null}
+    </PanelCard>
   );
 }
