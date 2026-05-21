@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 import { PanelCard } from "../_components/PanelCard";
 import { DataTable, type Column } from "../_components/DataTable";
 import { StatCard } from "../_components/StatCard";
-import { mockUsers, formatDate, type UserRow } from "@/lib/mockData";
+import { formatDate, type UserRow } from "@/lib/mockData";
 import { maskEmail, maskUserId, maskName } from "@/lib/maskPii";
 import { recordOperatorAuditAction } from "@/lib/actions/auditLog";
 import {
@@ -54,12 +54,52 @@ const statusLabel: Record<UserRow["account_status"], string> = {
   pending_deletion: "탈퇴 대기",
 };
 
+// Phase 13-A — Server adapter: ServerUserRow (lib/adminApi) → mockData UserRow shape.
+// mockData 에만 있는 필드(display_name·doll_count) 는 fallback. 기존 UI 코드 무수정.
+function adaptServerUser(s: ServerUserRow): UserRow {
+  return {
+    id: s.id,
+    email: s.email,
+    display_name: s.display_name ?? s.email.split("@")[0] ?? "사용자",
+    account_status: (s.account_status ?? "active") as UserRow["account_status"],
+    created_at: s.created_at ?? new Date().toISOString(),
+    last_login_at: s.last_login_at ?? s.created_at ?? new Date().toISOString(),
+    totp_enabled: Boolean(s.totp_enabled),
+    doll_count: 0,
+  };
+}
+
 export default function UsersPage() {
   const [q, setQ] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | UserRow["account_status"]>("all");
   const [selected, setSelected] = useState<UserRow | null>(null);
   const [unmaskedIds, setUnmaskedIds] = useState<Set<string>>(new Set());
   const [toast, setToast] = useState<string | null>(null);
+
+  // Phase 13-A — Server `/api/v1/admin/users` fetch. 도달 실패 시 빈 list + 에러 안내.
+  const [users, setUsers] = useState<UserRow[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    listUsersAction({ limit: 200 })
+      .then((r) => {
+        if (cancelled) return;
+        if (!r.ok) {
+          setLoadError(r.message);
+          setUsers([]);
+        } else {
+          setUsers(r.users.map(adaptServerUser));
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function handleUnmask(userId: string) {
     // V1.0 #12+#19+#20 (Phase 7) — PIPA 마스킹 해제 3중 가드:
@@ -108,7 +148,7 @@ export default function UsersPage() {
   }
 
   const filtered = useMemo(() => {
-    return mockUsers.filter((u) => {
+    return users.filter((u) => {
       if (statusFilter !== "all" && u.account_status !== statusFilter) return false;
       if (q) {
         const s = q.toLowerCase();
@@ -116,33 +156,33 @@ export default function UsersPage() {
       }
       return true;
     });
-  }, [q, statusFilter]);
+  }, [q, statusFilter, users]);
 
   // 라이프사이클 가시화 stats — 라운드 4 (2026-05-20) E2E QC.
   const lifecycleStats = useMemo(() => {
     const now = Date.now();
     const windowMs = TODAY_WINDOW_HOURS * 60 * 60 * 1000;
-    const signupsToday = mockUsers.filter(
+    const signupsToday = users.filter(
       (u) => now - new Date(u.created_at).getTime() <= windowMs,
     ).length;
     const dauWindowMs = 24 * 60 * 60 * 1000;
-    const dau = mockUsers.filter(
+    const dau = users.filter(
       (u) =>
         u.account_status === "active" &&
         now - new Date(u.last_login_at).getTime() <= dauWindowMs,
     ).length;
-    const paused = mockUsers.filter((u) => u.account_status === "paused").length;
-    const pendingDeletion = mockUsers.filter(
+    const paused = users.filter((u) => u.account_status === "paused").length;
+    const pendingDeletion = users.filter(
       (u) => u.account_status === "pending_deletion",
     ).length;
-    const active = mockUsers.filter((u) => u.account_status === "active").length;
-    const deleted = mockUsers.filter((u) => u.account_status === "deleted").length;
+    const active = users.filter((u) => u.account_status === "active").length;
+    const deleted = users.filter((u) => u.account_status === "deleted").length;
     return { signupsToday, dau, paused, pendingDeletion, active, deleted };
-  }, []);
+  }, [users]);
 
   const pipaTrackList = useMemo(
-    () => mockUsers.filter((u) => u.account_status === "pending_deletion"),
-    [],
+    () => users.filter((u) => u.account_status === "pending_deletion"),
+    [users],
   );
 
   const columns: Column<UserRow>[] = [
@@ -493,7 +533,7 @@ function Row({ k, v }: { k: string; v: React.ReactNode }) {
 }
 
 // Phase 10-C — Server `/api/v1/admin/users` 실 사용자 목록 패널.
-// 가짜 구현 카탈로그 #1 (mockUsers import) 의 1차 wiring — 페이지 본문 통계는 mock
+// 가짜 구현 카탈로그 #1 (users import) 의 1차 wiring — 페이지 본문 통계는 mock
 // 유지하되 상단에 Server 실 데이터를 우선 노출. 다음 라운드에 DataTable rows 까지 swap.
 function LiveUsersPanel() {
   const [items, setItems] = useState<ServerUserRow[] | null>(null);
@@ -568,7 +608,7 @@ function LiveUsersPanel() {
 }
 
 // V2.0 #15 — Server `/api/v1/admin/users/pipa` (Phase2-A) 실 연동 패널.
-// 기존 mockUsers 기반 pipaTrackList 와 병존 — Server 도달 시 실 데이터 표시.
+// 기존 users 기반 pipaTrackList 와 병존 — Server 도달 시 실 데이터 표시.
 function LivePipaPanel() {
   const [pendingItems, setPendingItems] = useState<PipaUserRow[] | null>(null);
   const [exportItems, setExportItems] = useState<PipaUserRow[] | null>(null);
