@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { PanelCard } from "../_components/PanelCard";
 import { StatCard } from "../_components/StatCard";
 import {
@@ -8,6 +8,8 @@ import {
   mockUserPerceivedErrorRate,
   USER_PERCEIVED_ERROR_SLO_TARGET,
 } from "@/lib/mockData";
+import { getAiHealthAction } from "@/lib/actions/aiHealth";
+import type { AiHealthSnapshot } from "@/lib/adminApi";
 
 type Metric = "dau" | "signups" | "revenue";
 
@@ -38,6 +40,8 @@ export default function StatsPage() {
         <StatCard label="매출 (오늘)" value={"₩ " + mockStatsTimeseries.at(-1)!.revenue.toLocaleString()} delta="+1.8%" deltaTone="up" hint="전일 대비" accent="orange" />
         <StatCard label="결제 전환율" value="3.8%" delta="+0.4%p" deltaTone="up" hint="7일 평균" accent="teal" />
       </section>
+
+      <CostDashboardPanel />
 
       <PanelCard
         title="7일 추세"
@@ -295,5 +299,111 @@ function BarChart({ metric }: { metric: Metric }) {
         })}
       </div>
     </div>
+  );
+}
+
+// V2.0 #17 — Server `/api/v1/admin/ai-health` 의 cost 차원을 Admin 으로 가시화.
+// AI metricsBuffer (cost_usd_sum) → Server aiHealthTracker.snapshot().cost → 본 패널.
+function CostDashboardPanel() {
+  const [snap, setSnap] = useState<AiHealthSnapshot | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    getAiHealthAction()
+      .then((r) => {
+        if (cancelled) return;
+        if (!r.ok) {
+          setError(r.message);
+        } else {
+          setSnap(r.snapshot);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (loading) {
+    return (
+      <PanelCard title="AI 비용 (Server)" description="Server /api/v1/admin/ai-health 의 cost 차원 (Phase 8 #17)">
+        <div className="text-sm text-muted">불러오는 중</div>
+      </PanelCard>
+    );
+  }
+  if (error || !snap) {
+    return (
+      <PanelCard title="AI 비용 (Server)" description="Server /api/v1/admin/ai-health 의 cost 차원 (Phase 8 #17)">
+        <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          Server 도달 실패: {error ?? "snapshot 없음"}
+        </div>
+      </PanelCard>
+    );
+  }
+  const cost = snap.cost;
+  if (!cost) {
+    return (
+      <PanelCard title="AI 비용 (Server)" description="Server /api/v1/admin/ai-health 의 cost 차원 (Phase 8 #17)">
+        <div className="text-sm text-muted">
+          Server snapshot 에 cost 차원이 없습니다. (AI service 재시작 직후 또는 운영 환경 변수 미설정)
+        </div>
+      </PanelCard>
+    );
+  }
+  return (
+    <PanelCard
+      title={`AI 비용 (Server) — $${cost.total_usd.toFixed(4)} / ₩${Math.round(cost.total_krw).toLocaleString()}`}
+      description="aiHealthTracker.snapshot().cost — pricing.json + AI_COST_USD_TO_KRW (기본 1380) 환산."
+    >
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div>
+          <div className="text-xs text-muted mb-2">응답 종류별 (text / voice / vision)</div>
+          {cost.by_kind ? (
+            <ul className="space-y-1 text-xs">
+              {(["text", "voice", "vision"] as const).map((k) =>
+                cost.by_kind && cost.by_kind[k] ? (
+                  <li
+                    key={k}
+                    className="rounded-xl border border-white/60 bg-white/55 px-3 py-2 flex items-center justify-between"
+                  >
+                    <span className="uppercase font-semibold">{k}</span>
+                    <span>
+                      ${cost.by_kind[k].usd.toFixed(4)} · ₩
+                      {Math.round(cost.by_kind[k].krw).toLocaleString()}
+                    </span>
+                  </li>
+                ) : null,
+              )}
+            </ul>
+          ) : (
+            <div className="text-xs text-muted">분면 데이터 없음</div>
+          )}
+        </div>
+        <div>
+          <div className="text-xs text-muted mb-2">모델별 (Flash / Pro / cached)</div>
+          {cost.by_model && Object.keys(cost.by_model).length > 0 ? (
+            <ul className="space-y-1 text-xs">
+              {Object.entries(cost.by_model).map(([model, c]) => (
+                <li
+                  key={model}
+                  className="rounded-xl border border-white/60 bg-white/55 px-3 py-2 flex items-center justify-between"
+                >
+                  <span className="font-mono">{model}</span>
+                  <span>
+                    ${c.usd.toFixed(4)} · {c.calls.toLocaleString()}회
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className="text-xs text-muted">모델 호출 없음</div>
+          )}
+        </div>
+      </div>
+    </PanelCard>
   );
 }

@@ -110,6 +110,17 @@ export type AiHealthSnapshot = {
   by_soul_catalog_id?: Record<string, AiBreakdownEntry>;
   /** 응답 종류 (text / voice / vision) 별 분해. */
   by_kind?: Record<"text" | "voice" | "vision", AiBreakdownEntry>;
+  /**
+   * Phase 8 #17 — 비용 차원. Server `aiHealthTracker.snapshot()` 가 AI service
+   * snapshot 의 by_user_id.cost_usd_sum 합계로 합성하여 forward.
+   * 운영 환경 변수 AI_PRICING_KRW_PER_USD (기본 1380) 가 환율 결정.
+   */
+  cost?: {
+    total_usd: number;
+    total_krw: number;
+    by_kind?: Record<string, { usd: number; krw: number }>;
+    by_model?: Record<string, { usd: number; krw: number; calls: number }>;
+  };
 };
 
 export type PostRow = {
