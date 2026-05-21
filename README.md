@@ -175,3 +175,29 @@ ICONIA 운영자 콘솔. ICONIA-Server 의 `/api/v1/operator/*` · `/api/v1/admi
 - 사용자(end-user) UI — App 도메인.
 - KB 인덱싱 파이프라인 — AI 도메인.
 - 운영자 권한 결정 — 항상 Server JWT 검증이 정본.
+
+---
+
+## 5. 최근 라운드 (Phase 5~11) 누적 변경
+
+Server 측 신규 33개 endpoint 와 1:1 정합하는 운영자 화면 라운드. 신규 페이지 9개 + Live*Panel 12개 +
+PII 마스킹 해제 3중 가드 + TOTP 백업 코드 흐름. 기존 화면·라우팅은 그대로 두고 추가.
+
+### 5.1 신규 페이지 9개
+- `/dashboard/cs` — CS lookup (전화/이메일 정규화)
+- `/dashboard/knowledge` — RAG KB 검수
+- `/dashboard/factory-test` — 양산 라인 self-test 결과 조회
+- `/dashboard/as` — AS 교환 티켓
+- `/dashboard/reports-archive` — 월간/분기 OpsReport 아카이브
+- 신규 client 함수 **33개** (Server 측 신규 admin endpoint 와 1:1 매핑)
+
+### 5.2 Live*Panel 12개
+`LiveUsersPanel` · `LivePipaPanel` · `LiveDevicesPanel` · `FleetDistributionPanel` ·
+`OwnershipTimeline` · `BootInvariantsPanel` · `LivePersonaStatus` · `LiveFirmwareFailures` ·
+`LiveDeploymentsPanel` · `DeploymentLedgerPanel` · `LiveDlqSubPanel` · `CostDashboardPanel`
+
+### 5.3 운영 안정성 / 보안
+- `MockDataBanner` — Server 미구현 페이지(notices / push / server-errors / app-errors)에서
+  **데모 데이터임을 명시**. 운영자가 mock 을 실데이터로 오인하지 않도록 시각 가드.
+- **PII 마스킹 해제 3중 가드** — 경고 모달 → 사유 prompt(5자 이상) → audit 기록 (Server `?unmask=true` 와 정합).
+- `BackupCodePanel` — TOTP 10개 백업 코드 발급 + CSV 다운로드 + 단일 사용 표시.
