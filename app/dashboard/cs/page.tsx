@@ -2,98 +2,42 @@
 
 import { useState, useTransition } from "react";
 import { PanelCard } from "../_components/PanelCard";
+import { csLookupAction, type CsLookupActionResult } from "@/lib/actions/cs";
 
 // V1.0 #7 — CS 1차 응대 통합 조회 화면.
 //
-// 운영자가 이메일 / 시리얼 / 사용자 UUID / 디바이스 UUID 중 하나를 입력하면
 // Server `GET /api/v1/admin/cs/lookup?q=` 가 사용자 · 보유 기기 · 최근 audit ·
 // 최근 오류 · 활성 세션 · PIPA 상태를 한 응답으로 반환한다.
-//
-// 본 페이지는 그 응답을 4분면(사용자/기기/오류/조치) 으로 표시한다.
-// Server endpoint 가 아직 wiring 되지 않은 동안에는 fetch 가 ERR_NOT_FOUND 를
-// 반환해도 페이지가 깨지지 않도록 graceful fallback 한다.
-//
-// TODO(server-wire-up): 현재는 임시로 Next route handler `/api/cs/lookup` 에 fetch
-// 한다. aws-infra 가 Server `/api/v1/admin/cs/lookup` 추가 완료 후, `lib/actions/cs.ts`
-// 에 server action 추가하고 useFormState 로 마이그레이션 (PII 가 URL 에 노출되지
-// 않도록 POST 본문 + httpOnly JWT cookie).
-
-type CsLookupResult = {
-  user?: {
-    id: string;
-    email: string | null;
-    phone: string | null;
-    account_status: string;
-    pipa_state?: string;
-  } | null;
-  devices?: Array<{
-    id: string;
-    serial: string;
-    fw_version: string | null;
-    online: boolean;
-    last_seen: string | null;
-  }>;
-  recent_audits?: Array<{
-    id: string;
-    action: string;
-    created_at: string;
-    operator_role: string | null;
-  }>;
-  recent_errors?: Array<{
-    id: string;
-    kind: string;
-    message: string;
-    occurred_at: string;
-  }>;
-  active_session?: {
-    ip?: string;
-    last_seen?: string;
-    location_hint?: string;
-  } | null;
-};
+// JWT 는 server action 에서 httpOnly cookie 로 읽어 클라이언트 노출 차단.
 
 export default function CsLookupPage() {
   const [q, setQ] = useState("");
-  const [result, setResult] = useState<CsLookupResult | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [state, setState] = useState<CsLookupActionResult | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  function runLookup(e: React.FormEvent) {
+  function runLookup(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setError(null);
-    setResult(null);
-    if (q.trim().length < 3) {
-      setError("검색어는 3자 이상 입력하세요 (이메일/시리얼/UUID).");
-      return;
-    }
+    setState(null);
+    const fd = new FormData(e.currentTarget);
     startTransition(async () => {
-      try {
-        const r = await fetch(`/api/cs/lookup?q=${encodeURIComponent(q.trim())}`, {
-          method: "GET",
-          credentials: "include",
-        });
-        if (r.status === 404) {
-          setError("일치하는 사용자 또는 기기가 없습니다.");
-          return;
-        }
-        if (!r.ok) {
-          setError("Server 응답 오류 — 잠시 후 다시 시도하세요.");
-          return;
-        }
-        const body = (await r.json()) as CsLookupResult;
-        setResult(body);
-      } catch {
-        setError("네트워크 오류 — 운영 서버에 연결할 수 없습니다.");
-      }
+      const res = await csLookupAction(fd);
+      setState(res);
     });
   }
 
+  const result = state?.ok ? state.result : null;
+  const errorMessage = state && !state.ok ? state.message : null;
+
   return (
     <div className="space-y-4">
-      <PanelCard title="CS 1차 응대 — 통합 조회" description="이메일 · 시리얼 · 사용자/디바이스 UUID 중 하나로 검색">
+      <PanelCard
+        title="CS 1차 응대 — 통합 조회"
+        description="이메일 · 시리얼 · 사용자/디바이스 UUID 중 하나로 검색"
+      >
         <form onSubmit={runLookup} className="flex gap-2">
           <input
             type="text"
+            name="q"
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="예: user@iconia.example  또는  IC-A1B2C3D4  또는  UUID"
@@ -109,9 +53,14 @@ export default function CsLookupPage() {
             {isPending ? "조회 중..." : "조회"}
           </button>
         </form>
-        {error ? (
+        {errorMessage ? (
           <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">
-            {error}
+            {errorMessage}
+          </div>
+        ) : null}
+        {result?.note ? (
+          <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-700">
+            {result.note}
           </div>
         ) : null}
       </PanelCard>
@@ -123,9 +72,25 @@ export default function CsLookupPage() {
               <dl className="space-y-1 text-sm">
                 <Row label="UUID" value={result.user.id} mono />
                 <Row label="이메일" value={result.user.email ?? "—"} />
-                <Row label="전화" value={result.user.phone ?? "—"} />
-                <Row label="계정 상태" value={result.user.account_status} />
-                <Row label="PIPA 상태" value={result.user.pipa_state ?? "—"} />
+                <Row label="계정 상태" value={result.user.account_status ?? "—"} />
+                {result.pipa_state ? (
+                  <>
+                    <Row
+                      label="동의 약관 버전"
+                      value={result.pipa_state.consent_terms_version ?? "—"}
+                    />
+                    <Row
+                      label="동의 일시"
+                      value={result.pipa_state.consent_accepted_at ?? "—"}
+                    />
+                    {result.pipa_state.pending_deletion_at ? (
+                      <Row
+                        label="탈퇴 예정"
+                        value={result.pipa_state.pending_deletion_at}
+                      />
+                    ) : null}
+                  </>
+                ) : null}
                 {result.active_session ? (
                   <>
                     <Row label="활성 세션 IP" value={result.active_session.ip ?? "—"} />
@@ -150,13 +115,11 @@ export default function CsLookupPage() {
                     className="rounded-xl border border-white/60 bg-white/50 px-3 py-2"
                   >
                     <div className="flex items-center justify-between">
-                      <span className="font-mono">{d.serial}</span>
-                      <span className={d.online ? "chip chip-success" : "chip chip-muted"}>
-                        {d.online ? "online" : "offline"}
-                      </span>
+                      <span className="font-mono">{d.device_id}</span>
+                      <span className="chip chip-muted">{d.status}</span>
                     </div>
                     <div className="mt-1 text-xs text-muted">
-                      fw {d.fw_version ?? "—"} · last seen {d.last_seen ?? "—"}
+                      fw {d.firmware_version ?? "—"} · paired {d.paired_at ?? "—"}
                     </div>
                   </li>
                 ))}
@@ -169,13 +132,9 @@ export default function CsLookupPage() {
           <PanelCard title="최근 오류 (10건)">
             {result.recent_errors && result.recent_errors.length > 0 ? (
               <ul className="space-y-2 text-sm">
-                {result.recent_errors.map((e) => (
-                  <li key={e.id} className="rounded-xl border border-white/60 bg-white/40 px-3 py-2">
-                    <div className="flex items-center justify-between">
-                      <span className="chip chip-warn">{e.kind}</span>
-                      <span className="text-xs text-muted">{e.occurred_at}</span>
-                    </div>
-                    <div className="mt-1 text-xs">{e.message}</div>
+                {result.recent_errors.map((e, idx) => (
+                  <li key={idx} className="rounded-xl border border-white/60 bg-white/40 px-3 py-2">
+                    <pre className="text-xs overflow-x-auto">{JSON.stringify(e, null, 2)}</pre>
                   </li>
                 ))}
               </ul>

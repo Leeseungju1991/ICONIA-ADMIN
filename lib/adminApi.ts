@@ -319,10 +319,12 @@ export function listFirmware(args: {
   });
 }
 
-// pause/resume — Server 의 actual endpoint 는 legacy 단수형 `/api/admin/firmware/deployment/:id/...`
-// (firmwareDeploymentRoutes.js). v1 plural path 는 adminStubRoutes 에서 항상 501 을 반환한다.
-// 본 admin client 는 Server 변경 없이 동작하기 위해 actual path 로 단일화한다 (P0 §5.1.10c).
-// 일시정지 의미는 Server 측 abort 와 동일 — pause 의미를 위해선 별도 Server 작업 필요 (후속 PR).
+// pause/resume — Server 의 actual endpoint 는 단수형 `/api/admin/firmware/deployment/:id/...`
+// (firmwareDeploymentRoutes.js:136~). pause 는 abort 와 다른 별도 endpoint (state="holding"
+// + hold_at / hold_reason / resumed_at 컬럼으로 추적) — 본 라운드에서 abort 우회 버그 정정.
+//
+// 일시정지: state="holding" 으로 전환, OTA serving 즉시 중단. resume 으로 동일 deployment 재개.
+// abort 는 별도 destroyer 함수로 후속 라운드에 분리 노출 예정.
 export function pauseDeployment(args: {
   jwt: string;
   deploymentId: string;
@@ -330,7 +332,7 @@ export function pauseDeployment(args: {
 }): Promise<ServerResult<{ ok: true }>> {
   return authedRequest({
     jwt: args.jwt,
-    path: `/api/admin/firmware/deployment/${encodeURIComponent(args.deploymentId)}/abort`,
+    path: `/api/admin/firmware/deployment/${encodeURIComponent(args.deploymentId)}/pause`,
     method: "POST",
     body: { reason: args.reason ?? "" },
   });
@@ -538,5 +540,345 @@ export function listWebhookEvents(args: {
     jwt: args.jwt,
     path: `/api/v1/admin/commerce/webhooks${qs ? `?${qs}` : ""}`,
     method: "GET",
+  });
+}
+
+// ---------------------------------------------------------------------------
+// V1.0 #1 — Admin user actions (pause / resume / mfa-reset)
+//   Server: POST /api/v1/admin/users/:id/{pause,resume,mfa-reset}
+//   audit_log 자동 기록. pending_deletion 사용자에 대한 resume 은 409.
+// ---------------------------------------------------------------------------
+
+export function pauseUser(args: {
+  jwt: string;
+  userId: string;
+  reason?: string;
+}): Promise<ServerResult<{ user: UserRow; already_paused: boolean }>> {
+  return authedRequest({
+    jwt: args.jwt,
+    path: `/api/v1/admin/users/${encodeURIComponent(args.userId)}/pause`,
+    method: "POST",
+    body: args.reason ? { reason: args.reason } : {},
+  });
+}
+
+export function resumeUser(args: {
+  jwt: string;
+  userId: string;
+  reason?: string;
+}): Promise<ServerResult<{ user: UserRow; already_active: boolean }>> {
+  return authedRequest({
+    jwt: args.jwt,
+    path: `/api/v1/admin/users/${encodeURIComponent(args.userId)}/resume`,
+    method: "POST",
+    body: args.reason ? { reason: args.reason } : {},
+  });
+}
+
+export function mfaResetUser(args: {
+  jwt: string;
+  userId: string;
+  reason?: string;
+}): Promise<ServerResult<{ reset: boolean; was_enrolled: boolean }>> {
+  return authedRequest({
+    jwt: args.jwt,
+    path: `/api/v1/admin/users/${encodeURIComponent(args.userId)}/mfa-reset`,
+    method: "POST",
+    body: args.reason ? { reason: args.reason } : {},
+  });
+}
+
+// ---------------------------------------------------------------------------
+// V1.0 #3 — AI 페르소나 admin 표면
+//   Server: GET /api/v1/admin/personas
+//   PersonaClient.listCatalog 결과 + aiHealthTracker 의 SOUL 별 분해 (있을 때) 결합.
+// ---------------------------------------------------------------------------
+
+export type AdminPersonaRow = {
+  soul_catalog_id: string;
+  name: string;
+  status: string;
+  fallback_rate: number | null;
+  last_response_ts: string | null;
+};
+
+export function listPersonas(args: {
+  jwt: string;
+}): Promise<
+  ServerResult<{
+    personas: AdminPersonaRow[];
+    catalog_error: { code: string; message: string } | null;
+  }>
+> {
+  return authedRequest({
+    jwt: args.jwt,
+    path: `/api/v1/admin/personas`,
+    method: "GET",
+  });
+}
+
+// ---------------------------------------------------------------------------
+// V1.0 #5 / V3.0 #17 — 펌웨어 실패 기기 목록
+//   Server: GET /api/v1/admin/firmware/failures?version=&since=
+// ---------------------------------------------------------------------------
+
+export type FirmwareFailureDevice = {
+  device_id_hash: string | null;
+  deployment_id: string | null;
+  error_code: string;
+  phase: "failed" | "rolled_back";
+  cohort: string | null;
+  at: string;
+};
+
+export type FirmwareFailureList = {
+  total: number;
+  since: string;
+  version: string | null;
+  by_reason: Array<{ error_code: string; count: number }>;
+  devices: FirmwareFailureDevice[];
+};
+
+export function listFirmwareFailures(args: {
+  jwt: string;
+  version?: string;
+  since?: string;
+}): Promise<ServerResult<FirmwareFailureList>> {
+  const params = new URLSearchParams();
+  if (args.version) params.set("version", args.version);
+  if (args.since) params.set("since", args.since);
+  const qs = params.toString();
+  return authedRequest({
+    jwt: args.jwt,
+    path: `/api/v1/admin/firmware/failures${qs ? `?${qs}` : ""}`,
+    method: "GET",
+  });
+}
+
+// ---------------------------------------------------------------------------
+// V1.0 #7 — CS 통합 조회
+//   Server: GET /api/v1/admin/cs/lookup?q=
+// ---------------------------------------------------------------------------
+
+export type CsLookupResult = {
+  query: string;
+  query_kind: "email" | "uuid" | "device_id" | "unknown";
+  user: UserRow | null;
+  devices: Array<{
+    id: string;
+    device_id: string;
+    firmware_version: string | null;
+    owner_user_id: string | null;
+    status: string;
+    paired_at: string | null;
+  }>;
+  recent_audits: Array<{
+    id: string;
+    action: string;
+    created_at: string;
+    operator_role: string | null;
+  }>;
+  recent_errors: unknown[];
+  active_session: {
+    family_id: string;
+    ip: string | null;
+    last_seen: string;
+    location_hint: string | null;
+  } | null;
+  pipa_state: {
+    account_status: string;
+    paused_at: string | null;
+    pending_deletion_at: string | null;
+    scheduled_purge_at: string | null;
+    consent_terms_version: string | null;
+    consent_privacy_version: string | null;
+    consent_accepted_at: string | null;
+    marketing_opt_in: boolean;
+  } | null;
+  note?: string;
+};
+
+export function csLookup(args: {
+  jwt: string;
+  q: string;
+}): Promise<ServerResult<CsLookupResult>> {
+  const params = new URLSearchParams({ q: args.q });
+  return authedRequest({
+    jwt: args.jwt,
+    path: `/api/v1/admin/cs/lookup?${params.toString()}`,
+    method: "GET",
+  });
+}
+
+// ---------------------------------------------------------------------------
+// V2.0 #10 — Dead-letter queue (목록 / 재처리)
+//   Server: GET /api/v1/admin/dead-letter?status=&cursor=&limit=
+//           POST /api/v1/admin/dead-letter/:id/retry
+// ---------------------------------------------------------------------------
+
+export type DeadLetterRow = {
+  id: string;
+  event_id: string;
+  status: "pending" | "exhausted";
+  attempts: number;
+  next_attempt_after: string | null;
+  last_error_code: string | null;
+  last_error_message: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export function listDeadLetter(args: {
+  jwt: string;
+  status?: "pending" | "exhausted";
+  cursor?: string | null;
+  limit?: number;
+}): Promise<ServerResult<{ items: DeadLetterRow[]; next_cursor: string | null }>> {
+  const params = new URLSearchParams();
+  if (args.status) params.set("status", args.status);
+  if (args.cursor) params.set("cursor", args.cursor);
+  if (args.limit) params.set("limit", String(args.limit));
+  const qs = params.toString();
+  return authedRequest({
+    jwt: args.jwt,
+    path: `/api/v1/admin/dead-letter${qs ? `?${qs}` : ""}`,
+    method: "GET",
+  });
+}
+
+export function retryDeadLetter(args: {
+  jwt: string;
+  id: string;
+}): Promise<
+  ServerResult<{
+    id: string;
+    event_id: string;
+    exhausted: boolean;
+    next_attempt_after: string;
+  }>
+> {
+  return authedRequest({
+    jwt: args.jwt,
+    path: `/api/v1/admin/dead-letter/${encodeURIComponent(args.id)}/retry`,
+    method: "POST",
+    body: {},
+  });
+}
+
+// ---------------------------------------------------------------------------
+// V3.0 #14 — 제조 LOT / 시리얼 / 출고 테스트
+//   Server: POST /api/v1/admin/lots
+//           POST /api/v1/admin/lots/:lot_id/serials/batch
+//           POST /api/v1/admin/factory-test
+// ---------------------------------------------------------------------------
+
+export type ProductionLotRow = {
+  id: string;
+  lot_code: string;
+  planned_qty: number;
+  status: "planned" | "in_production" | "completed" | "shipped";
+};
+
+export function createProductionLot(args: {
+  jwt: string;
+  lot_code: string;
+  planned_qty?: number;
+  notes?: string;
+}): Promise<ServerResult<{ lot: ProductionLotRow }>> {
+  return authedRequest({
+    jwt: args.jwt,
+    path: `/api/v1/admin/lots`,
+    method: "POST",
+    body: {
+      lot_code: args.lot_code,
+      ...(typeof args.planned_qty === "number" ? { planned_qty: args.planned_qty } : {}),
+      ...(args.notes ? { notes: args.notes } : {}),
+    },
+  });
+}
+
+export function batchIssueSerials(args: {
+  jwt: string;
+  lotId: string;
+  count: number;
+  serial_prefix?: string;
+}): Promise<
+  ServerResult<{
+    lot_id: string;
+    count: number;
+    serials: Array<{ serial: string; qr_token: string }>;
+  }>
+> {
+  return authedRequest({
+    jwt: args.jwt,
+    path: `/api/v1/admin/lots/${encodeURIComponent(args.lotId)}/serials/batch`,
+    method: "POST",
+    body: {
+      count: args.count,
+      ...(args.serial_prefix ? { serial_prefix: args.serial_prefix } : {}),
+    },
+  });
+}
+
+export type FactoryTestSubmission = {
+  camera_ok?: boolean;
+  mic_ok?: boolean;
+  speaker_ok?: boolean;
+  battery_ok?: boolean;
+  wifi_ok?: boolean;
+  https_rtt_ms?: number;
+};
+
+/**
+ * 공장 fixture 가 production_test 결과를 업로드. 두 인증 경로:
+ *   - 운영자 JWT (Admin 콘솔에서 수동 입력) — `jwt` 전달
+ *   - factory token (양산 라인 fixture) — `factoryToken` 전달 → Basic auth
+ */
+export function submitFactoryTest(args: {
+  jwt?: string;
+  factoryToken?: string;
+  serial: string;
+  results: FactoryTestSubmission;
+  tester_id?: string;
+  raw_payload?: Record<string, unknown>;
+}): Promise<
+  ServerResult<{ serial: string; passed: boolean; test_result_id: string }>
+> {
+  if (args.factoryToken) {
+    // factory client path — Basic auth via shared httpClient 의 별도 헤더 변형은
+    // 본 라운드 범위 밖. 일시적으로 authedRequest 의 jwt 자리에 factoryToken 을
+    // Bearer 로 전달 (Server adminProductionRoutes 가 FACTORY_TOKEN basic+bearer
+    // 둘다 수용하도록 구현됨). 정식 BasicAuth 헬퍼는 후속 라운드.
+    return authedRequest({
+      jwt: args.factoryToken,
+      path: `/api/v1/admin/factory-test`,
+      method: "POST",
+      body: {
+        serial: args.serial,
+        results: args.results,
+        ...(args.tester_id ? { tester_id: args.tester_id } : {}),
+        ...(args.raw_payload ? { raw_payload: args.raw_payload } : {}),
+      },
+    });
+  }
+  if (!args.jwt) {
+    const err: ServerResult<{ serial: string; passed: boolean; test_result_id: string }> = {
+      ok: false,
+      status: 401,
+      code: "ERR_AUTH_REQUIRED",
+      message: "운영자 JWT 또는 factory token 이 필요합니다.",
+    };
+    return Promise.resolve(err);
+  }
+  return authedRequest({
+    jwt: args.jwt,
+    path: `/api/v1/admin/factory-test`,
+    method: "POST",
+    body: {
+      serial: args.serial,
+      results: args.results,
+      ...(args.tester_id ? { tester_id: args.tester_id } : {}),
+      ...(args.raw_payload ? { raw_payload: args.raw_payload } : {}),
+    },
   });
 }

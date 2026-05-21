@@ -148,17 +148,18 @@ describe("forceLogoutUser", () => {
   });
 });
 
-// pause/resume — Server 의 actual endpoint 는 legacy 단수형 (P0 §5.1.10c).
-// 본 테스트는 admin client 가 항상 actual path 로 호출함을 강제한다 — drift 회귀 방지.
+// pause/resume — Server 의 actual endpoint 는 단수형 (firmwareDeploymentRoutes.js:136~).
+// pause 는 abort 와 별도 endpoint — state="holding" 으로만 전환하고 deployment 는 보존.
+// 이전 라운드에서 admin client 가 abort 로 우회 호출하던 버그를 정정 (V1.0 #5).
 describe("pauseDeployment", () => {
-  it("POSTs to legacy singular /api/admin/firmware/deployment/:id/abort", async () => {
+  it("POSTs to /api/admin/firmware/deployment/:id/pause (별도 endpoint)", async () => {
     const fetchMock = mockFetchOnce({
       status: 200,
       body: { ok: true, data: { ok: true }, error: null },
     });
     await pauseDeployment({ jwt: "j", deploymentId: "dep-1", reason: "manual" });
     const [url, init] = fetchMock.mock.calls[0];
-    expect(url).toBe(`${BASE}/api/admin/firmware/deployment/dep-1/abort`);
+    expect(url).toBe(`${BASE}/api/admin/firmware/deployment/dep-1/pause`);
     expect(init.method).toBe("POST");
     expect(init.headers["Authorization"]).toBe("Bearer j");
     expect(JSON.parse(init.body)).toEqual({ reason: "manual" });
@@ -171,18 +172,18 @@ describe("pauseDeployment", () => {
     });
     await pauseDeployment({ jwt: "j", deploymentId: "a/b c" });
     const [url] = fetchMock.mock.calls[0];
-    expect(url).toBe(`${BASE}/api/admin/firmware/deployment/a%2Fb%20c/abort`);
+    expect(url).toBe(`${BASE}/api/admin/firmware/deployment/a%2Fb%20c/pause`);
   });
 
-  it("does NOT call the v1 plural path (stub returns 501)", async () => {
+  it("does NOT call /abort — pause must be distinct from abort", async () => {
     const fetchMock = mockFetchOnce({
       status: 200,
       body: { ok: true, data: { ok: true }, error: null },
     });
     await pauseDeployment({ jwt: "j", deploymentId: "dep-1" });
     const [url] = fetchMock.mock.calls[0];
+    expect(url).not.toContain("/abort");
     expect(url).not.toContain("/api/v1/admin/firmware/deployments/");
-    expect(url).not.toContain("/pause");
   });
 });
 
