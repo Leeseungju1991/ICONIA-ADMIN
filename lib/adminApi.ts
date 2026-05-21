@@ -62,6 +62,30 @@ export type FirmwareList = {
 // AI 호출 운영 관측 — Server `GET /api/v1/admin/ai-health` 응답.
 // 정본 shape 는 Server `services/aiHealthTracker.js` 의 `snapshot()` 출력과 1:1 정합.
 // 5분 sliding window in-memory 통계 (fallback rate · p50/p95/p99 latency · 모델별 분해).
+/**
+ * AI 응답 종합 차원 — soul_catalog_id 또는 kind(text/voice/vision) 별로
+ * `metricsBuffer` 가 분해한 누계. AI 측이 비어 있어도 빈 객체 `{}` 가 들어온다.
+ *
+ * 정본: `3. AI/src/observability/metricsBuffer.js` → `_serializeBreakdown()`.
+ */
+export type AiBreakdownEntry = {
+  success: number;
+  fallback: number;
+  error: number;
+  total: number;
+  success_rate: number; // 0~1
+  fallback_rate: number; // 0~1
+  latency_ms_avg: number;
+  latency_ms_count: number;
+  last_ts: number | null;
+};
+
+// AI 호출 운영 관측 — Server `GET /api/v1/admin/ai-health` 응답.
+// 정본 shape 는 Server `services/aiHealthTracker.js` 의 `snapshot()` 출력과 1:1 정합.
+// 5분 sliding window in-memory 통계 (fallback rate · p50/p95/p99 latency · 모델별 분해).
+//
+// by_soul_catalog_id / by_kind 는 AI service 의 `/v1/metrics/snapshot` 차원을
+// Server 가 그대로 후방위임한다 (서비스 재시작 시 0 으로 리셋되는 in-memory 누계).
 export type AiHealthSnapshot = {
   window_ms: number;
   window_total: number;
@@ -82,6 +106,10 @@ export type AiHealthSnapshot = {
     completion_tokens: number;
     avg_latency_ms: number;
   }>;
+  /** SOUL 카탈로그 id 별 분해 — 비어 있을 수도 있음. (AI service 재시작 시 0). */
+  by_soul_catalog_id?: Record<string, AiBreakdownEntry>;
+  /** 응답 종류 (text / voice / vision) 별 분해. */
+  by_kind?: Record<"text" | "voice" | "vision", AiBreakdownEntry>;
 };
 
 export type PostRow = {
