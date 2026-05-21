@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { PanelCard } from "../_components/PanelCard";
 import { DataTable, type Column } from "../_components/DataTable";
 import { StatCard } from "../_components/StatCard";
@@ -35,7 +35,11 @@ import { lookupErrorCode, operatorLabelForCode } from "@/lib/errorCatalog";
 import { recordOpsAuditWithSilentRetry } from "@/lib/opsAuditTrail";
 import { recordOperatorAuditAction } from "@/lib/actions/auditLog";
 import { getAiHealthAction } from "@/lib/actions/aiHealth";
-import type { AiHealthSnapshot } from "@/lib/adminApi";
+import type { AiHealthSnapshot, IncidentAlertRow } from "@/lib/adminApi";
+import {
+  listIncidentAlertsAction,
+  ackIncidentAlertAction,
+} from "@/lib/actions/alerts";
 
 // 운영 안정성 9항목 통합 표면 — Round 3 (2026-05-20).
 //
@@ -400,6 +404,34 @@ function AlertingBlock({
   onRefreshAudit: () => void;
 }) {
   const [alerts, setAlerts] = useState(mockOpsAlerts);
+  const [serverAlerts, setServerAlerts] = useState<IncidentAlertRow[] | null>(null);
+  const [serverAlertsError, setServerAlertsError] = useState<string | null>(null);
+
+  useEffect(() => {
+    listIncidentAlertsAction({ status: "open", limit: 20 }).then((r) => {
+      if (r.ok) {
+        setServerAlerts(r.items);
+      } else {
+        setServerAlertsError(r.message);
+      }
+    });
+  }, []);
+
+  async function ackServerAlert(id: string) {
+    const note = askReason("Server alert ack (5자 이상)");
+    if (!note) {
+      onToast("사유 5자 이상 필요.");
+      return;
+    }
+    const r = await ackIncidentAlertAction({ id, note });
+    if (!r.ok) {
+      onToast(`ack 실패 (${r.code ?? "ERR"}): ${r.message}`);
+      return;
+    }
+    setServerAlerts((prev) => (prev ? prev.filter((a) => a.id !== id) : prev));
+    onToast(`Server alert ack 완료 — ${r.alert.kind}`);
+    onRefreshAudit();
+  }
 
   async function ackAlert(id: string) {
     const reason = askReason("알람 확인(ack)");
@@ -484,9 +516,67 @@ function AlertingBlock({
           ))}
         </ul>
       )}
+      {/* V2.0 #12 — Server `/api/v1/admin/alerts` (Phase2-A) 실 wiring sub-section */}
+      <div className="mt-5 rounded-2xl border border-white/60 bg-white/30 p-3">
+        <div className="flex items-center justify-between mb-2">
+          <div className="text-sm font-semibold">Server IncidentAlert (open)</div>
+          <span
+            className={
+              (serverAlerts?.length ?? 0) > 0 ? "chip chip-error" : "chip chip-success"
+            }
+          >
+            {serverAlerts?.length ?? 0}건 open
+          </span>
+        </div>
+        {serverAlertsError ? (
+          <div className="text-xs text-red-700 bg-red-50 border border-red-200 rounded-xl px-3 py-2">
+            Server `/api/v1/admin/alerts` 도달 실패: {serverAlertsError}
+          </div>
+        ) : serverAlerts === null ? (
+          <div className="text-xs text-muted">불러오는 중</div>
+        ) : serverAlerts.length === 0 ? (
+          <div className="text-xs text-muted">현재 open 상태 IncidentAlert 가 없습니다.</div>
+        ) : (
+          <ul className="space-y-2">
+            {serverAlerts.map((a) => (
+              <li
+                key={a.id}
+                className="rounded-xl bg-white/55 border border-white/60 px-3 py-2 text-xs flex items-start justify-between gap-3"
+              >
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span
+                      className={
+                        a.severity === "critical"
+                          ? "chip chip-error"
+                          : a.severity === "warning"
+                            ? "chip chip-warn"
+                            : "chip chip-info"
+                      }
+                    >
+                      {a.severity}
+                    </span>
+                    <span className="chip chip-muted">{a.kind}</span>
+                    <span className="text-muted">{a.source}</span>
+                  </div>
+                  <div className="mt-1 font-medium text-slate-800">{a.message}</div>
+                  <div className="text-muted">opened {a.opened_at}</div>
+                </div>
+                <button
+                  className="btn-outline text-xs shrink-0"
+                  type="button"
+                  onClick={() => ackServerAlert(a.id)}
+                >
+                  ack
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
       <p className="text-[11px] text-muted mt-3">
-        ※ 백엔드 미연동 — `/api/v1/admin/ops/alerts` 도입 후 실시간 stream 으로 교체. Slack webhook
-        등은 표시만 (실 발송은 Server CloudWatch alarm 측).
+        ※ 상단 mock 카드는 in-app banner 데모. 하단 IncidentAlert sub-section 이 Server 실 연동
+        (`/api/v1/admin/alerts`) — aiHealthTracker fallback threshold 알람 자동 insert.
       </p>
     </PanelCard>
   );
@@ -496,6 +586,29 @@ function AlertingBlock({
 function TracingBlock() {
   const [q, setQ] = useState("");
   const [picked, setPicked] = useState<TraceEvent | null>(null);
+  const [serverTrace, setServerTrace] = useState<{
+    trace_id: string;
+    hops: Array<{ at: string; hop_kind: string; source: string; payload: Record<string, unknown> }>;
+  } | null>(null);
+  const [serverTraceErr, setServerTraceErr] = useState<string | null>(null);
+  const [traceQuery, setTraceQuery] = useState("");
+  const [tracePending, startTraceTransition] = useTransition();
+
+  async function runServerTraceLookup(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setServerTrace(null);
+    setServerTraceErr(null);
+    const fd = new FormData(e.currentTarget);
+    startTraceTransition(async () => {
+      const { fetchAdminTraceAction } = await import("@/lib/actions/trace");
+      const r = await fetchAdminTraceAction(fd);
+      if (!r.ok) {
+        setServerTraceErr(r.message);
+        return;
+      }
+      setServerTrace({ trace_id: r.trace_id, hops: r.hops });
+    });
+  }
 
   const filtered = useMemo(() => {
     if (!q) return mockTraces;
@@ -572,9 +685,79 @@ function TracingBlock() {
           </div>
         )}
         <p className="text-[11px] text-muted mt-3">
-          ※ 백엔드 미연동 — `/api/v1/admin/ops/traces?trace_id=` 도입 후 실 OTel/Jaeger backend
-          연결. 현 mock 은 단일 trace 시나리오 2종 (chat happy → retry 성공, OTA 다운로드 실패).
+          ※ 상단 mock 은 단일 trace 시나리오 2종 (chat happy → retry 성공, OTA 다운로드 실패).
+          하단 sub-section 이 Server `/api/v1/admin/trace/:traceId` (Phase2-A) 실 연동 —
+          event_store + audit_logs + firmware_deployment_failure 결합.
         </p>
+
+        {/* V2.0 #9 — Server `/api/v1/admin/trace/:traceId` (Phase2-A) wiring sub-section */}
+        <div className="mt-5 rounded-2xl border border-white/60 bg-white/30 p-3">
+          <div className="text-sm font-semibold mb-2">Server trace 조회 (실 연동)</div>
+          <form onSubmit={runServerTraceLookup} className="flex gap-2">
+            <input
+              type="text"
+              name="trace_id"
+              value={traceQuery}
+              onChange={(e) => setTraceQuery(e.target.value)}
+              placeholder="trace_id UUID 입력"
+              className="flex-1 rounded-xl border border-white/70 bg-white/60 px-3 py-2 font-mono text-xs outline-none focus:border-accent"
+            />
+            <button
+              type="submit"
+              disabled={tracePending || traceQuery.trim().length === 0}
+              className="rounded-xl bg-accent px-3 py-2 text-xs text-white shadow-card disabled:opacity-60"
+            >
+              {tracePending ? "조회 중..." : "trace 조회"}
+            </button>
+          </form>
+          {serverTraceErr ? (
+            <div className="mt-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+              {serverTraceErr}
+            </div>
+          ) : null}
+          {serverTrace ? (
+            <div className="mt-3">
+              <div className="text-xs mb-2">
+                <span className="font-mono text-slate-700">{serverTrace.trace_id}</span>
+                <span className="chip chip-muted ml-2">{serverTrace.hops.length} hops</span>
+              </div>
+              {serverTrace.hops.length === 0 ? (
+                <div className="text-xs text-muted">hop 이 없습니다.</div>
+              ) : (
+                <ol className="space-y-1">
+                  {serverTrace.hops.map((h, i) => (
+                    <li
+                      key={i}
+                      className="rounded-xl bg-white/65 border border-white/50 px-3 py-2 text-xs"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={
+                            h.hop_kind === "audit"
+                              ? "chip chip-info"
+                              : h.hop_kind === "firmware"
+                                ? "chip chip-warn"
+                                : "chip chip-muted"
+                          }
+                        >
+                          {h.hop_kind}
+                        </span>
+                        <span className="font-mono text-slate-700">{h.source}</span>
+                        <span className="text-muted ml-auto">{h.at}</span>
+                      </div>
+                      <details className="mt-1">
+                        <summary className="cursor-pointer text-[11px] text-accent">payload</summary>
+                        <pre className="mt-1 max-h-40 overflow-auto rounded-lg bg-white/80 p-2 text-[10px]">
+                          {JSON.stringify(h.payload, null, 2)}
+                        </pre>
+                      </details>
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </div>
+          ) : null}
+        </div>
       </PanelCard>
 
       {picked ? <TracePayloadDrawer event={picked} onClose={() => setPicked(null)} /> : null}

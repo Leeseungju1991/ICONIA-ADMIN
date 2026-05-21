@@ -14,6 +14,7 @@ import {
   mfaResetUserAction,
   type UserMutationResult,
 } from "@/lib/actions/userMutations";
+import { finalizePipaDeletionAction } from "@/lib/actions/pipa";
 
 // 강력 액션 2단계 확인 — /dashboard/ops 페이지와 같은 정책 (EXECUTE 정확 입력).
 const TWO_STEP_PHRASE = "EXECUTE";
@@ -334,17 +335,21 @@ function UserDetailDrawer({
       } else if (action === "user.mfa_reset") {
         mutationResult = await mfaResetUserAction({ userId: user.id, reason: trimmed });
       } else {
-        // account_deleted — Server 측 admin endpoint 가 Phase2-A 의 PIPA finalize 로 통합 예정.
-        const auditRes = await recordOperatorAuditAction({
-          action,
-          targetUserId: user.id,
-          reasonText: trimmed,
+        // account_deleted — Phase2-A 의 PIPA finalize endpoint 호출.
+        // 30일 grace 미경과 시 server 가 409 ERR_PIPA_GRACE_PERIOD 반환 — 사용자에게 그대로 전달.
+        const finalize = await finalizePipaDeletionAction({
+          userId: user.id,
+          reason: trimmed,
         });
-        if (auditRes.status === "error") {
-          onToast(`${label} 실패: 감사 로그 기록 단계에서 차단되었습니다. (${auditRes.code ?? "ERR"})`);
+        if (!finalize.ok) {
+          onToast(`${label} 실패 (${finalize.code ?? "ERR"}): ${finalize.message}`);
           return;
         }
-        onToast(`${label} 요청 기록 — PIPA finalize endpoint wiring 대기 중.`);
+        onToast(
+          finalize.data.deleted_at
+            ? `${label} 완료 — ${finalize.data.deleted_at} 에 hard delete 됨.`
+            : `${label} 완료. (Server audit_log 기록됨)`,
+        );
         return;
       }
       if (!mutationResult.ok) {
@@ -434,7 +439,7 @@ function UserDetailDrawer({
             탈퇴 처리
           </button>
         </div>
-        <p className="text-[11px] text-muted mt-3">※ 강제 로그아웃·일시정지·정지 해제·MFA 초기화는 Server mutation 으로 wiring 완료. 탈퇴 처리는 PIPA finalize endpoint 연동 라운드 대기.</p>
+        <p className="text-[11px] text-muted mt-3">※ 모든 액션 Server mutation 으로 wiring 완료. 탈퇴 처리는 PIPA finalize (30일 grace 검증). hash-chain audit_log 자동 기록.</p>
       </div>
     </div>
   );

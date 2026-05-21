@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { PanelCard } from "../_components/PanelCard";
 import { DataTable, type Column } from "../_components/DataTable";
 import { StatCard } from "../_components/StatCard";
@@ -11,6 +11,8 @@ import {
   formatDate,
   type DeviceRow,
 } from "@/lib/mockData";
+import { fetchDeviceOwnershipHistoryAction } from "@/lib/actions/deviceOwnership";
+import type { OwnershipHop } from "@/lib/adminApi";
 
 // 강력 액션 2단계 확인 — /dashboard/ops 와 동일 정책.
 const TWO_STEP_PHRASE = "EXECUTE";
@@ -448,8 +450,92 @@ function DeviceDrawer({
           </button>
           <button className="btn-danger text-sm" type="button" onClick={() => runAction("페어링 해제")}>페어링 해제</button>
         </div>
-        <p className="text-[11px] text-muted mt-3">※ 데모 환경 — 액션은 감사 로그만 기록됩니다.</p>
+
+        <OwnershipTimeline deviceId={device.id} />
+
+        <p className="text-[11px] text-muted mt-3">※ 디바이스 액션은 데모, 소유권 이력은 Server `/api/v1/admin/devices/:id/ownership-history` 실 연동.</p>
       </div>
+    </div>
+  );
+}
+
+// V3.0 #16 — 디바이스 소유권 timeline. Server `/api/v1/admin/devices/:id/ownership-history`
+// 응답을 시간 역순 리스트로 표시 (claim_attempt / paired / revoked / lost).
+function OwnershipTimeline({ deviceId }: { deviceId: string }) {
+  const [history, setHistory] = useState<OwnershipHop[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    fetchDeviceOwnershipHistoryAction({ deviceId })
+      .then((r) => {
+        if (cancelled) return;
+        if (!r.ok) {
+          setError(r.message);
+          setHistory(null);
+        } else {
+          setHistory(r.history);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [deviceId]);
+
+  const kindChip = (k: OwnershipHop["kind"]) =>
+    k === "paired"
+      ? "chip chip-success"
+      : k === "revoked"
+        ? "chip chip-warn"
+        : k === "lost"
+          ? "chip chip-error"
+          : "chip chip-info";
+  const kindLabel: Record<OwnershipHop["kind"], string> = {
+    claim_attempt: "claim 시도",
+    paired: "페어링 완료",
+    revoked: "페어링 해제",
+    lost: "분실/도난",
+  };
+
+  return (
+    <div className="mt-5 rounded-2xl border border-white/60 bg-white/30 p-3">
+      <div className="text-sm font-semibold mb-2">소유권 이력 (Server)</div>
+      {loading ? (
+        <div className="text-xs text-muted">불러오는 중</div>
+      ) : error ? (
+        <div className="text-xs text-amber-700 bg-amber-50/80 border border-amber-200 rounded-xl px-3 py-2">
+          Server 도달 실패: {error}
+        </div>
+      ) : !history || history.length === 0 ? (
+        <div className="text-xs text-muted">이력이 없습니다.</div>
+      ) : (
+        <ol className="space-y-1">
+          {history.map((h, i) => (
+            <li
+              key={`${h.at}-${i}`}
+              className="rounded-xl bg-white/65 border border-white/50 px-3 py-2 text-xs"
+            >
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className={kindChip(h.kind)}>{kindLabel[h.kind]}</span>
+                <span className="text-muted">{h.at}</span>
+                {h.user_id ? (
+                  <span className="font-mono text-[10px] text-slate-700">user {h.user_id}</span>
+                ) : null}
+                {h.operator_id ? (
+                  <span className="font-mono text-[10px] text-amber-700">op {h.operator_id}</span>
+                ) : null}
+              </div>
+              {h.reason ? <div className="mt-1 text-muted">{h.reason}</div> : null}
+            </li>
+          ))}
+        </ol>
+      )}
     </div>
   );
 }
