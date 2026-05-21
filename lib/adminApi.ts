@@ -1278,6 +1278,68 @@ export function getDeviceBootInvariants(args: {
   });
 }
 
+/**
+ * Phase 12 #8 — Fleet 전체 boot_invariant 위반 디바이스 목록.
+ * Server: GET /api/v1/admin/devices/boot-invariant-violations (SECOPS_OR_ABOVE)
+ */
+export type BootInvariantViolation = {
+  device_id: string;
+  fw_version: string | null;
+  mask: number;
+  missing_bits: string[];
+  last_boot_at: string | null;
+};
+
+export function listBootInvariantViolations(args: {
+  jwt: string;
+  cursor?: string | null;
+  limit?: number;
+}): Promise<
+  ServerResult<{
+    items: BootInvariantViolation[];
+    next_cursor: string | null;
+    total: number;
+    required_mask: number;
+  }>
+> {
+  const params = new URLSearchParams();
+  if (args.cursor) params.set("cursor", args.cursor);
+  if (args.limit) params.set("limit", String(args.limit));
+  const qs = params.toString();
+  return authedRequest({
+    jwt: args.jwt,
+    path: `/api/v1/admin/devices/boot-invariant-violations${qs ? `?${qs}` : ""}`,
+    method: "GET",
+  });
+}
+
+/**
+ * Phase 12 #10 — Operator TOTP enroll/verify.
+ * Server: POST /api/v1/operator/totp/{enroll,verify}
+ */
+export function enrollOperatorTotp(args: {
+  jwt: string;
+}): Promise<ServerResult<{ otpauth_uri: string; totp_secret_base32: string }>> {
+  return authedRequest({
+    jwt: args.jwt,
+    path: `/api/v1/operator/totp/enroll`,
+    method: "POST",
+    body: {},
+  });
+}
+
+export function verifyOperatorTotpEnroll(args: {
+  jwt: string;
+  code: string;
+}): Promise<ServerResult<{ ok: true; mfa_required: boolean }>> {
+  return authedRequest({
+    jwt: args.jwt,
+    path: `/api/v1/operator/totp/verify`,
+    method: "POST",
+    body: { code: args.code },
+  });
+}
+
 // ---------------------------------------------------------------------------
 // 양산직전 #15 — Fleet 디바이스 분포 (Phase5-A)
 //   Server: GET /api/v1/admin/devices/distribution?by=version|region|cohort|fw_state

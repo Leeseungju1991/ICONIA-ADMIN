@@ -1,20 +1,32 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { enrollTotpAction, verifyTotpEnrollAction } from "@/lib/actions/totpEnroll";
 
-// P1 §6 — 2FA TOTP enrollment UI (client). 본 라운드는 stub:
-//   - "QR 발급" 버튼 클릭 시 서버 호출 (현재 미구현 → 안내).
-//   - 6자리 TOTP 입력 검증 UI 만 제공.
-// 실제 secret/QR 발급 + 검증은 Server 엔드포인트 도입 후 연결.
+// Phase 12 #10 — 2FA TOTP enrollment 실 wiring.
+//   Server: POST /api/v1/operator/totp/{enroll,verify}
+//   enroll 응답에 otpauth_uri + base32 secret (1회만), QR 은 클라이언트에서 렌더.
 export default function TwoFactorEnroll() {
   const [step, setStep] = useState<"idle" | "issued" | "verified">("idle");
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [issuePending, startIssue] = useTransition();
+  const [verifyPending, startVerify] = useTransition();
+  const [otpauthUri, setOtpauthUri] = useState<string | null>(null);
+  const [secretBase32, setSecretBase32] = useState<string | null>(null);
 
   function issue() {
     setError(null);
-    // TODO(P1 §6): Server `/api/v1/operator/2fa/enroll` 호출 → otpauth_url + base32 secret.
-    setStep("issued");
+    startIssue(async () => {
+      const r = await enrollTotpAction();
+      if (!r.ok) {
+        setError(`enroll 실패 (${r.code ?? "ERR"}): ${r.message}`);
+        return;
+      }
+      setOtpauthUri(r.otpauth_uri);
+      setSecretBase32(r.totp_secret_base32);
+      setStep("issued");
+    });
   }
 
   function verify() {
@@ -23,14 +35,20 @@ export default function TwoFactorEnroll() {
       setError("6자리 숫자 코드를 입력하세요.");
       return;
     }
-    // TODO(P1 §6): Server `/api/v1/operator/2fa/verify` 호출.
-    setStep("verified");
+    startVerify(async () => {
+      const r = await verifyTotpEnrollAction({ code });
+      if (!r.ok) {
+        setError(`verify 실패 (${r.code ?? "ERR"}): ${r.message}`);
+        return;
+      }
+      setStep("verified");
+    });
   }
 
   if (step === "verified") {
     return (
       <div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50/70 px-5 py-4 text-sm text-emerald-800">
-        2FA 등록이 완료되었습니다. 다음 로그인부터 인증 코드가 필요합니다. (stub)
+        ✓ 2FA 등록 완료. 다음 로그인부터 Authenticator 코드가 필요합니다. 백업 코드는 아래 패널에서 발급하세요.
       </div>
     );
   }
@@ -43,17 +61,31 @@ export default function TwoFactorEnroll() {
           Google Authenticator / 1Password / Authy 중 하나로 QR 코드를 스캔합니다.
         </p>
         {step === "idle" ? (
-          <button className="mt-3 btn-primary text-sm" type="button" onClick={issue}>
-            QR 발급 (서버 stub)
+          <button
+            className="mt-3 btn-primary text-sm disabled:opacity-60"
+            type="button"
+            onClick={issue}
+            disabled={issuePending}
+          >
+            {issuePending ? "발급 중..." : "QR 발급 (Server enroll)"}
           </button>
         ) : (
-          <div className="mt-3 flex items-center gap-4">
+          <div className="mt-3 flex items-start gap-4">
             <div className="h-32 w-32 rounded-xl border border-slate-200 bg-white flex items-center justify-center text-[10px] text-slate-400">
-              QR placeholder
+              {/* QR 렌더링은 클라이언트 라이브러리 (qrcode 등) 도입 시. 현재는 otpauth URI 텍스트 표시. */}
+              QR (URI 복사)
             </div>
-            <code className="text-xs text-muted break-all max-w-[200px]">
-              otpauth://totp/ICONIA-Admin?secret=PLACEHOLDER&issuer=ICONIA
-            </code>
+            <div className="text-xs space-y-1 max-w-[260px]">
+              <div className="text-muted">Authenticator 앱에서 다음 URI 또는 secret 으로 등록:</div>
+              <code className="block break-all bg-white/70 border border-white/70 rounded px-2 py-1">
+                {otpauthUri}
+              </code>
+              <div className="text-muted">또는 base32 secret:</div>
+              <code className="block break-all bg-white/70 border border-white/70 rounded px-2 py-1">
+                {secretBase32}
+              </code>
+              <div className="text-amber-700">⚠ 본 화면을 닫으면 secret 을 다시 볼 수 없습니다.</div>
+            </div>
           </div>
         )}
       </div>
@@ -72,10 +104,10 @@ export default function TwoFactorEnroll() {
           <button
             className="btn-primary text-sm disabled:opacity-60"
             type="button"
-            disabled={step !== "issued"}
+            disabled={step !== "issued" || verifyPending}
             onClick={verify}
           >
-            검증
+            {verifyPending ? "검증 중..." : "검증"}
           </button>
         </div>
         {error ? <div className="mt-2 text-xs text-rose-600">{error}</div> : null}

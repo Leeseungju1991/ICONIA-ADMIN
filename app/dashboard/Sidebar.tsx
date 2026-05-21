@@ -35,6 +35,7 @@ const nav: NavItem[] = [
   { to: "/dashboard/ops", label: "운영 안정성", icon: ShieldIcon },
   { to: "/dashboard/factory-test", label: "양산·출고 검수", icon: FactoryIcon },
   { to: "/dashboard/as", label: "AS·교환 관리", icon: WrenchIcon },
+  { to: "/dashboard/boot-invariants", label: "Fleet 출하 잠금", icon: ShieldIcon },
   { to: "/dashboard/reports-archive", label: "운영 리포트", icon: ReportIcon },
   { to: "/dashboard/operators", label: "운영자 관리", icon: KeyIcon },
 ];
@@ -65,6 +66,7 @@ function subtitleFor(to: string): string {
     case "/dashboard/ops": return "observability · tracing · alerting · audit · replay · recovery · kill switch · feature flag.";
     case "/dashboard/factory-test": return "양산 LOT 생성 · 시리얼 일괄 발급 · 출고 검수 결과 입력. 펌웨어 production_test 가 자동 업로드한 결과는 LOT 별 yield 로 집계.";
     case "/dashboard/as": return "AS 접수·교체 기기 등록·회수 기기 잠금·종료. 신규 티켓은 이전 owner 페어링을 자동 force-unpair.";
+    case "/dashboard/boot-invariants": return "Fleet 전체 출하 잠금 invariant 위반 추적 (Secure Boot·Flash Enc·JTAG Disable·OTA Anti-Rollback). 양산 라인 burn 실수 진단.";
     case "/dashboard/reports-archive": return "일간·주간·품질 운영 리포트 보관. 매일 02:00 / 일요일 02:30 KST 자동 생성. 수동 트리거는 최고관리자.";
     case "/dashboard/operators": return "운영 콘솔 접근 권한 — 운영자 초대·역할 부여·비활성화 (최고관리자 전용).";
     default: return "";

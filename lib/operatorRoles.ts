@@ -44,6 +44,8 @@ export const PATH_REQUIRED_ROLES: { prefix: string; roles: OperatorRole[] }[] = 
   { prefix: "/dashboard/personas", roles: SRE_OR_ABOVE },
   // sre/secops/superadmin — 양산 LOT/시리얼/출고 테스트 (#14, #15).
   { prefix: "/dashboard/factory-test", roles: SRE_OR_ABOVE },
+  // secops/sre/superadmin — Fleet 출하 잠금 invariant (V3.0 #27 Phase 12 #8).
+  { prefix: "/dashboard/boot-invariants", roles: SECOPS_OR_ABOVE },
   // CS 이상 — AS 접수/조회 (replace/close 는 server 가 SRE 이상으로 분기).
   { prefix: "/dashboard/as", roles: CS_OR_ABOVE },
   // 모든 운영자 — 운영 리포트 조회 (수동 트리거는 server 가 SUPERADMIN_ONLY).
