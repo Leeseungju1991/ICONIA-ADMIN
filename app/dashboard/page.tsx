@@ -13,45 +13,64 @@ import {
   formatDate,
 } from "@/lib/mockData";
 import { mockHealthProbes, mockDeadLetters } from "@/lib/opsInfraMock";
+import { fetchAdminOverviewAction } from "@/lib/actions/overview";
 
 const accentPalette = ["blue", "pink", "orange", "teal"] as const;
 
-// 대시보드 홈 — 핵심 KPI 를 underlying mock 데이터에서 직접 집계해 한눈에 보여준다.
-// 이전 버전은 고정 mockDashboardMetrics 문자열을 표시했으나, 실제 운영자에게
-// 필요한 것은 디바이스/에러/큐/헬스 의 실시간 파생 지표 — 출시 라운드 (2026-05-20).
-// TODO(server-wire-up): `/api/v1/admin/overview` 단일 KPI 엔드포인트로 교체.
+export const dynamic = "force-dynamic";
 
-export default function DashboardHome() {
+// V2.0 #8 대시보드 홈 — Server `/api/v1/admin/overview` (Phase2-A) 가
+// 도달 가능하면 실 데이터를 사용하고, 그렇지 않으면 mock 파생값으로 graceful fallback.
+// Server 응답: active_devices · dau · errors_24h{server,app,firmware} · fallback_rate ·
+//             queue_depth · server_health · firmware_critical_count · reports_pending.
+
+export default async function DashboardHome() {
+  // Server overview 시도 — 실패 시 mock fallback.
+  const overviewResult = await fetchAdminOverviewAction();
+  const sv = overviewResult.ok ? overviewResult.data : null;
+
   const pendingReports = mockReports.filter((r) => r.status === "pending");
   const criticalFw = mockFirmwareErrors.filter((e) => e.severity === "critical");
   const recentSrv = mockServerErrors.slice(0, 3);
   const recentApp = mockAppErrors.slice(0, 3);
 
-  // ── 핵심 KPI 집계 ────────────────────────────────────────────────
-  const activeDevices = mockDevices.filter((d) => d.online).length;
+  // ── 핵심 KPI 집계 (Server 우선, fallback mock) ────────────────────
+  const activeDevices = sv ? sv.active_devices : mockDevices.filter((d) => d.online).length;
   const totalDevices = mockDevices.length;
 
-  const errors24h =
-    mockServerErrors.reduce((s, e) => s + e.count, 0) +
-    mockAppErrors.reduce((s, e) => s + e.count, 0) +
-    mockFirmwareErrors.reduce((s, e) => s + e.count, 0);
+  const errors24h = sv
+    ? sv.errors_24h.server + sv.errors_24h.app + sv.errors_24h.firmware
+    : mockServerErrors.reduce((s, e) => s + e.count, 0) +
+      mockAppErrors.reduce((s, e) => s + e.count, 0) +
+      mockFirmwareErrors.reduce((s, e) => s + e.count, 0);
 
   // 사용자 인지 에러율 (오늘) — SLO 핵심 지표.
   const slo = mockUserPerceivedErrorRate.at(-1)!;
   const perceivedRate = slo.total_errors > 0 ? slo.user_visible / slo.total_errors : 0;
   const sloMet = perceivedRate <= USER_PERCEIVED_ERROR_SLO_TARGET;
 
-  // 큐 적체 — dead-letter 큐 누적 건수.
-  const queueBacklog = mockDeadLetters.length;
+  // 큐 적체 — Server overview 의 queue_depth 우선, 없으면 mock.
+  const queueBacklog = sv ? sv.queue_depth : mockDeadLetters.length;
 
-  // 서버 헬스 — health probe 상태 집계.
+  // 서버 헬스 — Server overview 정본, 없으면 health probe mock.
   const probesDown = mockHealthProbes.filter((p) => p.status === "down").length;
   const probesDegraded = mockHealthProbes.filter((p) => p.status === "degraded").length;
   const probesOk = mockHealthProbes.filter((p) => p.status === "ok").length;
-  const healthLabel =
-    probesDown > 0 ? "장애" : probesDegraded > 0 ? "주의" : "정상";
+  const healthLabel = sv
+    ? sv.server_health === "down"
+      ? "장애"
+      : sv.server_health === "degraded"
+        ? "주의"
+        : "정상"
+    : probesDown > 0
+      ? "장애"
+      : probesDegraded > 0
+        ? "주의"
+        : "정상";
   const healthTone: "up" | "down" | "flat" =
-    probesDown > 0 ? "down" : probesDegraded > 0 ? "flat" : "up";
+    healthLabel === "장애" ? "down" : healthLabel === "주의" ? "flat" : "up";
+
+  const dauLabel = sv ? sv.dau.toLocaleString() : "12,840";
 
   const kpis = [
     {
@@ -63,10 +82,10 @@ export default function DashboardHome() {
     },
     {
       label: "일일 대화량 (DAU)",
-      value: "12,840",
-      delta: "+4.2%",
+      value: dauLabel,
+      delta: sv ? "실시간" : "+4.2%",
       deltaTone: "up" as const,
-      hint: "전일 대비 (mock)",
+      hint: sv ? "Server 24h refresh token 활성 사용자" : "전일 대비 (mock)",
     },
     {
       label: "사용자 인지 에러율",

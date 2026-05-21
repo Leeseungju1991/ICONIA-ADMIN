@@ -34,6 +34,8 @@ const nav: NavItem[] = [
   { to: "/dashboard/app-errors", label: "앱 에러", icon: PhoneIcon },
   { to: "/dashboard/ops", label: "운영 안정성", icon: ShieldIcon },
   { to: "/dashboard/factory-test", label: "양산·출고 검수", icon: FactoryIcon },
+  { to: "/dashboard/as", label: "AS·교환 관리", icon: WrenchIcon },
+  { to: "/dashboard/reports-archive", label: "운영 리포트", icon: ReportIcon },
   { to: "/dashboard/operators", label: "운영자 관리", icon: KeyIcon },
 ];
 
@@ -62,6 +64,8 @@ function subtitleFor(to: string): string {
     case "/dashboard/app-errors": return "RN Expo 모바일 앱 크래시·런타임 에러.";
     case "/dashboard/ops": return "observability · tracing · alerting · audit · replay · recovery · kill switch · feature flag.";
     case "/dashboard/factory-test": return "양산 LOT 생성 · 시리얼 일괄 발급 · 출고 검수 결과 입력. 펌웨어 production_test 가 자동 업로드한 결과는 LOT 별 yield 로 집계.";
+    case "/dashboard/as": return "AS 접수·교체 기기 등록·회수 기기 잠금·종료. 신규 티켓은 이전 owner 페어링을 자동 force-unpair.";
+    case "/dashboard/reports-archive": return "일간·주간·품질 운영 리포트 보관. 매일 02:00 / 일요일 02:30 KST 자동 생성. 수동 트리거는 최고관리자.";
     case "/dashboard/operators": return "운영 콘솔 접근 권한 — 운영자 초대·역할 부여·비활성화 (최고관리자 전용).";
     default: return "";
   }
@@ -427,6 +431,21 @@ function FactoryIcon({ className }: { className?: string }) {
     <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2">
       <path d="M3 21h18M5 21V9l4 3V9l4 3V9l6 4v8" />
       <path d="M8 17h2M12 17h2M16 17h2" />
+    </svg>
+  );
+}
+function WrenchIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M14.7 6.3a4 4 0 0 0-5.7 5.7L3 18l3 3 6-6a4 4 0 0 0 5.7-5.7l-3 3-2-2 3-3z" />
+    </svg>
+  );
+}
+function ReportIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M7 3h10l3 3v15a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h1z" />
+      <path d="M8 11h8M8 15h5M8 7h6" />
     </svg>
   );
 }

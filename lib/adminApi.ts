@@ -820,6 +820,320 @@ export function batchIssueSerials(args: {
   });
 }
 
+// ---------------------------------------------------------------------------
+// V2.0 #8 — 전체 운영 대시보드 overview
+//   Server: GET /api/v1/admin/overview
+// ---------------------------------------------------------------------------
+
+export type AdminOverview = {
+  active_devices: number;
+  dau: number;
+  errors_24h: { server: number; app: number; firmware: number };
+  fallback_rate: number;
+  queue_depth: number;
+  server_health: "ok" | "degraded" | "down";
+  firmware_critical_count: number;
+  reports_pending: number;
+};
+
+export function fetchAdminOverview(args: {
+  jwt: string;
+}): Promise<ServerResult<AdminOverview>> {
+  return authedRequest<AdminOverview>({
+    jwt: args.jwt,
+    path: `/api/v1/admin/overview`,
+    method: "GET",
+  });
+}
+
+// ---------------------------------------------------------------------------
+// V2.0 #9 — 이벤트 타임라인 trace
+//   Server: GET /api/v1/admin/trace/:traceId
+// ---------------------------------------------------------------------------
+
+export type TraceHop = {
+  at: string;
+  hop_kind: "event" | "audit" | "firmware";
+  source: string;
+  payload: Record<string, unknown>;
+};
+
+export function fetchAdminTrace(args: {
+  jwt: string;
+  traceId: string;
+}): Promise<ServerResult<{ trace_id: string; hops: TraceHop[] }>> {
+  return authedRequest({
+    jwt: args.jwt,
+    path: `/api/v1/admin/trace/${encodeURIComponent(args.traceId)}`,
+    method: "GET",
+  });
+}
+
+// ---------------------------------------------------------------------------
+// V2.0 #12 — IncidentAlert
+//   Server: GET /api/v1/admin/alerts?since=&status=
+//           POST /api/v1/admin/alerts/:id/ack body=note
+// ---------------------------------------------------------------------------
+
+export type IncidentAlertRow = {
+  id: string;
+  kind:
+    | "ai_fallback_threshold"
+    | "firmware_rollback_spike"
+    | "db_unreachable"
+    | "deploy_failed";
+  severity: "info" | "warning" | "critical";
+  message: string;
+  source: string;
+  opened_at: string;
+  closed_at: string | null;
+  acknowledged_by: string | null;
+  payload: Record<string, unknown>;
+};
+
+export function listIncidentAlerts(args: {
+  jwt: string;
+  since?: string;
+  status?: "open" | "closed";
+  limit?: number;
+}): Promise<ServerResult<{ items: IncidentAlertRow[] }>> {
+  const params = new URLSearchParams();
+  if (args.since) params.set("since", args.since);
+  if (args.status) params.set("status", args.status);
+  if (args.limit) params.set("limit", String(args.limit));
+  const qs = params.toString();
+  return authedRequest({
+    jwt: args.jwt,
+    path: `/api/v1/admin/alerts${qs ? `?${qs}` : ""}`,
+    method: "GET",
+  });
+}
+
+export function ackIncidentAlert(args: {
+  jwt: string;
+  id: string;
+  note: string;
+}): Promise<ServerResult<IncidentAlertRow>> {
+  return authedRequest({
+    jwt: args.jwt,
+    path: `/api/v1/admin/alerts/${encodeURIComponent(args.id)}/ack`,
+    method: "POST",
+    body: { note: args.note },
+  });
+}
+
+// ---------------------------------------------------------------------------
+// V3.0 #16 — 기기 소유권 이력
+//   Server: GET /api/v1/admin/devices/:id/ownership-history
+// ---------------------------------------------------------------------------
+
+export type OwnershipHop = {
+  at: string;
+  kind: "claim_attempt" | "paired" | "revoked" | "lost";
+  user_id: string | null;
+  reason: string | null;
+  operator_id: string | null;
+};
+
+export function fetchDeviceOwnershipHistory(args: {
+  jwt: string;
+  deviceId: string;
+}): Promise<
+  ServerResult<{ device_id: string; device_uuid: string | null; history: OwnershipHop[] }>
+> {
+  return authedRequest({
+    jwt: args.jwt,
+    path: `/api/v1/admin/devices/${encodeURIComponent(args.deviceId)}/ownership-history`,
+    method: "GET",
+  });
+}
+
+// ---------------------------------------------------------------------------
+// V3.0 #18 — PIPA admin
+//   Server: GET /api/v1/admin/users/pipa?status=
+//           POST /api/v1/admin/users/:id/pipa/export
+//           POST /api/v1/admin/users/:id/pipa/finalize
+// ---------------------------------------------------------------------------
+
+export type PipaUserRow = {
+  user_id: string;
+  account_status: string;
+  pending_deletion_at: string | null;
+  scheduled_purge_at: string | null;
+  recent_export_at: string | null;
+};
+
+export function listPipaUsers(args: {
+  jwt: string;
+  status: "pending_deletion" | "recent_export";
+}): Promise<ServerResult<{ items: PipaUserRow[] }>> {
+  const params = new URLSearchParams({ status: args.status });
+  return authedRequest({
+    jwt: args.jwt,
+    path: `/api/v1/admin/users/pipa?${params.toString()}`,
+    method: "GET",
+  });
+}
+
+export function triggerPipaExport(args: {
+  jwt: string;
+  userId: string;
+  reason: string;
+}): Promise<ServerResult<{ id: string; status: string }>> {
+  return authedRequest({
+    jwt: args.jwt,
+    path: `/api/v1/admin/users/${encodeURIComponent(args.userId)}/pipa/export`,
+    method: "POST",
+    body: { reason: args.reason },
+  });
+}
+
+export function finalizePipaDeletion(args: {
+  jwt: string;
+  userId: string;
+  reason: string;
+}): Promise<ServerResult<{ ok: boolean; deleted_at?: string }>> {
+  return authedRequest({
+    jwt: args.jwt,
+    path: `/api/v1/admin/users/${encodeURIComponent(args.userId)}/pipa/finalize`,
+    method: "POST",
+    body: { reason: args.reason },
+  });
+}
+
+// ---------------------------------------------------------------------------
+// V3.0 #20 — AS Ticket
+//   Server: POST /api/v1/admin/as/tickets
+//           POST /api/v1/admin/as/tickets/:id/replace
+//           POST /api/v1/admin/as/tickets/:id/close
+//           GET  /api/v1/admin/as/tickets?status=&cursor=&limit=
+// ---------------------------------------------------------------------------
+
+export type AsTicketStatus = "received" | "in_repair" | "replaced" | "closed";
+
+export type AsTicketRow = {
+  id: string;
+  status: AsTicketStatus;
+  reason: string;
+  user_id: string;
+  device_id: string;
+  replacement_device_id: string | null;
+  opened_at: string;
+  closed_at: string | null;
+  operator_id_opened: string | null;
+  operator_id_closed: string | null;
+  notes: string | null;
+};
+
+export function createAsTicket(args: {
+  jwt: string;
+  user_id: string;
+  device_id: string;
+  reason: string;
+}): Promise<ServerResult<{ ticket: AsTicketRow; unpaired: number }>> {
+  return authedRequest({
+    jwt: args.jwt,
+    path: `/api/v1/admin/as/tickets`,
+    method: "POST",
+    body: { user_id: args.user_id, device_id: args.device_id, reason: args.reason },
+  });
+}
+
+export function replaceAsTicket(args: {
+  jwt: string;
+  id: string;
+  replacement_device_id: string;
+}): Promise<ServerResult<AsTicketRow>> {
+  return authedRequest({
+    jwt: args.jwt,
+    path: `/api/v1/admin/as/tickets/${encodeURIComponent(args.id)}/replace`,
+    method: "POST",
+    body: { replacement_device_id: args.replacement_device_id },
+  });
+}
+
+export function closeAsTicket(args: {
+  jwt: string;
+  id: string;
+  note: string;
+}): Promise<ServerResult<AsTicketRow>> {
+  return authedRequest({
+    jwt: args.jwt,
+    path: `/api/v1/admin/as/tickets/${encodeURIComponent(args.id)}/close`,
+    method: "POST",
+    body: { note: args.note },
+  });
+}
+
+export function listAsTickets(args: {
+  jwt: string;
+  status?: AsTicketStatus;
+  cursor?: string | null;
+  limit?: number;
+}): Promise<ServerResult<{ items: AsTicketRow[]; next_cursor: string | null }>> {
+  const params = new URLSearchParams();
+  if (args.status) params.set("status", args.status);
+  if (args.cursor) params.set("cursor", args.cursor);
+  if (args.limit) params.set("limit", String(args.limit));
+  const qs = params.toString();
+  return authedRequest({
+    jwt: args.jwt,
+    path: `/api/v1/admin/as/tickets${qs ? `?${qs}` : ""}`,
+    method: "GET",
+  });
+}
+
+// ---------------------------------------------------------------------------
+// 양산직전 #21 — Ops Report
+//   Server: GET /api/v1/admin/reports?kind=&since=&limit=
+//           POST /api/v1/admin/reports/run body={kind}
+// ---------------------------------------------------------------------------
+
+export type OpsReportKind = "daily" | "weekly" | "quality";
+
+export type OpsReportRow = {
+  id: string;
+  kind: OpsReportKind;
+  period_start: string;
+  period_end: string;
+  payload: Record<string, unknown>;
+  generated_at: string;
+};
+
+export function listOpsReports(args: {
+  jwt: string;
+  kind?: OpsReportKind;
+  since?: string;
+  limit?: number;
+}): Promise<ServerResult<{ items: OpsReportRow[] }>> {
+  const params = new URLSearchParams();
+  if (args.kind) params.set("kind", args.kind);
+  if (args.since) params.set("since", args.since);
+  if (args.limit) params.set("limit", String(args.limit));
+  const qs = params.toString();
+  return authedRequest({
+    jwt: args.jwt,
+    path: `/api/v1/admin/reports${qs ? `?${qs}` : ""}`,
+    method: "GET",
+  });
+}
+
+export function runOpsReport(args: {
+  jwt: string;
+  kind: OpsReportKind;
+}): Promise<ServerResult<{ ok: boolean; id?: string; duplicate?: boolean }>> {
+  return authedRequest({
+    jwt: args.jwt,
+    path: `/api/v1/admin/reports/run`,
+    method: "POST",
+    body: { kind: args.kind },
+  });
+}
+
+// ---------------------------------------------------------------------------
+// 기존 V3.0 #14 production 영역 client (계속)
+// ---------------------------------------------------------------------------
+
 export type FactoryTestSubmission = {
   camera_ok?: boolean;
   mic_ok?: boolean;
