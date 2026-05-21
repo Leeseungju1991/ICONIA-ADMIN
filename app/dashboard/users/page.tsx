@@ -7,6 +7,13 @@ import { StatCard } from "../_components/StatCard";
 import { mockUsers, formatDate, type UserRow } from "@/lib/mockData";
 import { maskEmail, maskUserId, maskName } from "@/lib/maskPii";
 import { recordOperatorAuditAction } from "@/lib/actions/auditLog";
+import {
+  forceLogoutUserAction,
+  pauseUserAction,
+  resumeUserAction,
+  mfaResetUserAction,
+  type UserMutationResult,
+} from "@/lib/actions/userMutations";
 
 // 강력 액션 2단계 확인 — /dashboard/ops 페이지와 같은 정책 (EXECUTE 정확 입력).
 const TWO_STEP_PHRASE = "EXECUTE";
@@ -297,6 +304,7 @@ function UserDetailDrawer({
   function runAction(action:
     | "user.force_logout"
     | "user.account_paused"
+    | "user.account_resumed"
     | "user.mfa_reset"
     | "user.account_deleted",
   label: string) {
@@ -310,16 +318,44 @@ function UserDetailDrawer({
       return;
     }
     startTransition(async () => {
-      const res = await recordOperatorAuditAction({
-        action,
-        targetUserId: user.id,
-        reasonText: reason.trim(),
-      });
-      if (res.status === "error") {
-        onToast(`${label} 실패: 감사 로그 기록 단계에서 차단되었습니다. (${res.code ?? "ERR"})`);
+      const trimmed = reason.trim();
+      // Phase1-A 가 server endpoint 를 추가한 액션은 실 mutation 호출. Server 가
+      // 자체적으로 audit_log 를 hash chain 에 기록하므로 client-side audit 별도 호출은
+      // 생략 (중복 방지). 본 라운드는 force_logout / paused / resumed / mfa_reset 만 wired.
+      // account_deleted 는 PIPA finalize endpoint 가 Phase2-A 에서 superadmin 전용으로
+      // 추가될 예정 — 임시로 audit-only 유지.
+      let mutationResult: UserMutationResult | null = null;
+      if (action === "user.force_logout") {
+        mutationResult = await forceLogoutUserAction({ userId: user.id, reason: trimmed });
+      } else if (action === "user.account_paused") {
+        mutationResult = await pauseUserAction({ userId: user.id, reason: trimmed });
+      } else if (action === "user.account_resumed") {
+        mutationResult = await resumeUserAction({ userId: user.id, reason: trimmed });
+      } else if (action === "user.mfa_reset") {
+        mutationResult = await mfaResetUserAction({ userId: user.id, reason: trimmed });
+      } else {
+        // account_deleted — Server 측 admin endpoint 가 Phase2-A 의 PIPA finalize 로 통합 예정.
+        const auditRes = await recordOperatorAuditAction({
+          action,
+          targetUserId: user.id,
+          reasonText: trimmed,
+        });
+        if (auditRes.status === "error") {
+          onToast(`${label} 실패: 감사 로그 기록 단계에서 차단되었습니다. (${auditRes.code ?? "ERR"})`);
+          return;
+        }
+        onToast(`${label} 요청 기록 — PIPA finalize endpoint wiring 대기 중.`);
         return;
       }
-      onToast(`${label} 요청을 기록했습니다. (실제 처리는 백엔드 연동 후 활성화)`);
+      if (!mutationResult.ok) {
+        onToast(`${label} 실패 (${mutationResult.code ?? "ERR"}): ${mutationResult.message}`);
+        return;
+      }
+      onToast(
+        mutationResult.note
+          ? `${label} 완료 — ${mutationResult.note}`
+          : `${label} 완료. (Server audit_log 기록됨)`,
+      );
     });
   }
 
@@ -377,6 +413,14 @@ function UserDetailDrawer({
             className="btn-outline text-sm disabled:opacity-60"
             type="button"
             disabled={isPending}
+            onClick={() => runAction("user.account_resumed", "정지 해제 (활성화)")}
+          >
+            정지 해제
+          </button>
+          <button
+            className="btn-outline text-sm disabled:opacity-60"
+            type="button"
+            disabled={isPending}
             onClick={() => runAction("user.mfa_reset", "MFA 초기화")}
           >
             MFA 초기화
@@ -390,7 +434,7 @@ function UserDetailDrawer({
             탈퇴 처리
           </button>
         </div>
-        <p className="text-[11px] text-muted mt-3">※ 데모 환경 — 액션은 감사 로그만 기록됩니다. 실제 백엔드 mutation 은 별도 라운드.</p>
+        <p className="text-[11px] text-muted mt-3">※ 강제 로그아웃·일시정지·정지 해제·MFA 초기화는 Server mutation 으로 wiring 완료. 탈퇴 처리는 PIPA finalize endpoint 연동 라운드 대기.</p>
       </div>
     </div>
   );

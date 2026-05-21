@@ -33,6 +33,7 @@ const nav: NavItem[] = [
   { to: "/dashboard/server-errors", label: "서버 에러", icon: ServerIcon },
   { to: "/dashboard/app-errors", label: "앱 에러", icon: PhoneIcon },
   { to: "/dashboard/ops", label: "운영 안정성", icon: ShieldIcon },
+  { to: "/dashboard/factory-test", label: "양산·출고 검수", icon: FactoryIcon },
   { to: "/dashboard/operators", label: "운영자 관리", icon: KeyIcon },
 ];
 
@@ -60,6 +61,7 @@ function subtitleFor(to: string): string {
     case "/dashboard/server-errors": return "AWS API/서비스 5xx·예외·헬스 상태.";
     case "/dashboard/app-errors": return "RN Expo 모바일 앱 크래시·런타임 에러.";
     case "/dashboard/ops": return "observability · tracing · alerting · audit · replay · recovery · kill switch · feature flag.";
+    case "/dashboard/factory-test": return "양산 LOT 생성 · 시리얼 일괄 발급 · 출고 검수 결과 입력. 펌웨어 production_test 가 자동 업로드한 결과는 LOT 별 yield 로 집계.";
     case "/dashboard/operators": return "운영 콘솔 접근 권한 — 운영자 초대·역할 부여·비활성화 (최고관리자 전용).";
     default: return "";
   }
@@ -417,6 +419,14 @@ function BookIcon({ className }: { className?: string }) {
       <path d="M4 4h11a3 3 0 0 1 3 3v13H7a3 3 0 0 1-3-3V4z" />
       <path d="M4 17a3 3 0 0 1 3-3h11" />
       <path d="M8 8h7M8 12h5" />
+    </svg>
+  );
+}
+function FactoryIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M3 21h18M5 21V9l4 3V9l4 3V9l6 4v8" />
+      <path d="M8 17h2M12 17h2M16 17h2" />
     </svg>
   );
 }

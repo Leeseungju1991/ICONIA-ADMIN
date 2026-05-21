@@ -42,6 +42,8 @@ export const PATH_REQUIRED_ROLES: { prefix: string; roles: OperatorRole[] }[] = 
   // sre/secops/superadmin — OTA 배포 / 펌웨어.
   { prefix: "/dashboard/ota", roles: SRE_OR_ABOVE },
   { prefix: "/dashboard/personas", roles: SRE_OR_ABOVE },
+  // sre/secops/superadmin — 양산 LOT/시리얼/출고 테스트 (#14, #15).
+  { prefix: "/dashboard/factory-test", roles: SRE_OR_ABOVE },
   // secops/sre/superadmin — 디바이스 unpair 등 파괴적 액션.
   { prefix: "/dashboard/devices", roles: SECOPS_OR_ABOVE },
   // cs 이상 — 사용자 / 신고 처리.
