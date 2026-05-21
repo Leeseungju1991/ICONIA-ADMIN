@@ -1377,6 +1377,256 @@ export function listAppErrors(args: { jwt: string }): Promise<ServerResult<StubL
 }
 
 // ---------------------------------------------------------------------------
+// Phase 15-A — Persona actions (SUPERADMIN_ONLY).
+// ---------------------------------------------------------------------------
+
+export function stagePersona(args: {
+  jwt: string;
+  soulCatalogId: string;
+  reason: string;
+}): Promise<ServerResult<{ accepted: boolean; upstream?: unknown }>> {
+  return authedRequest({
+    jwt: args.jwt,
+    path: `/api/v1/admin/personas/${encodeURIComponent(args.soulCatalogId)}/stage`,
+    method: "POST",
+    body: { reason: args.reason },
+  });
+}
+
+export function promotePersona(args: {
+  jwt: string;
+  soulCatalogId: string;
+  reason: string;
+}): Promise<ServerResult<{ accepted: boolean; upstream?: unknown }>> {
+  return authedRequest({
+    jwt: args.jwt,
+    path: `/api/v1/admin/personas/${encodeURIComponent(args.soulCatalogId)}/promote`,
+    method: "POST",
+    body: { reason: args.reason },
+  });
+}
+
+export function rollbackPersona(args: {
+  jwt: string;
+  soulCatalogId: string;
+  reason: string;
+  target_version?: string;
+}): Promise<ServerResult<{ accepted: boolean; upstream?: unknown }>> {
+  return authedRequest({
+    jwt: args.jwt,
+    path: `/api/v1/admin/personas/${encodeURIComponent(args.soulCatalogId)}/rollback`,
+    method: "POST",
+    body: {
+      reason: args.reason,
+      ...(args.target_version ? { target_version: args.target_version } : {}),
+    },
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Phase 15-A — Firmware actions (SRE_OR_ABOVE).
+// ---------------------------------------------------------------------------
+
+export function uploadFirmware(args: {
+  jwt: string;
+  version: string;
+  channel: string;
+  sha256: string;
+  size_bytes: number;
+  notes?: string;
+}): Promise<ServerResult<{ upload_url: string; s3_key: string }>> {
+  return authedRequest({
+    jwt: args.jwt,
+    path: `/api/v1/admin/firmware/upload`,
+    method: "POST",
+    body: {
+      version: args.version,
+      channel: args.channel,
+      sha256: args.sha256,
+      size_bytes: args.size_bytes,
+      ...(args.notes ? { notes: args.notes } : {}),
+      presigned_required: true,
+    },
+  });
+}
+
+export function advanceDeployment(args: {
+  jwt: string;
+  deploymentId: string;
+  reason?: string;
+}): Promise<ServerResult<{ ok: true }>> {
+  return authedRequest({
+    jwt: args.jwt,
+    path: `/api/v1/admin/firmware/deployments/${encodeURIComponent(args.deploymentId)}/advance`,
+    method: "POST",
+    body: args.reason ? { reason: args.reason } : {},
+  });
+}
+
+export function abortDeployment(args: {
+  jwt: string;
+  deploymentId: string;
+  reason: string;
+}): Promise<ServerResult<{ ok: true }>> {
+  return authedRequest({
+    jwt: args.jwt,
+    path: `/api/v1/admin/firmware/deployments/${encodeURIComponent(args.deploymentId)}/abort`,
+    method: "POST",
+    body: { reason: args.reason },
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Phase 15-A — Reports review/comment/user 분기 + resolve.
+// ---------------------------------------------------------------------------
+
+export type FeedReportRow = {
+  id: string;
+  target_kind: "post" | "review" | "comment" | "user";
+  target_id: string;
+  reporter_id: string;
+  reason: string;
+  status: string;
+  reported_at: string;
+};
+
+export function listFeedReports(args: {
+  jwt: string;
+  kind: "review" | "comment" | "user";
+  cursor?: string;
+  limit?: number;
+}): Promise<ServerResult<{ items: FeedReportRow[]; next_cursor: string | null }>> {
+  const params = new URLSearchParams({ kind: args.kind, filter: "reported" });
+  if (args.cursor) params.set("cursor", args.cursor);
+  if (args.limit) params.set("limit", String(args.limit));
+  return authedRequest({
+    jwt: args.jwt,
+    path: `/api/v1/admin/reports?${params.toString()}`,
+    method: "GET",
+  });
+}
+
+export function resolveFeedReport(args: {
+  jwt: string;
+  reportId: string;
+  action: "hide" | "reject" | "warn";
+  reason: string;
+}): Promise<ServerResult<{ ok: true }>> {
+  return authedRequest({
+    jwt: args.jwt,
+    path: `/api/v1/admin/reports/${encodeURIComponent(args.reportId)}/resolve`,
+    method: "POST",
+    body: { action: args.action, reason: args.reason },
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Phase 15-A — Notices CRUD (CS_OR_ABOVE).
+// ---------------------------------------------------------------------------
+
+export type NoticeRow = {
+  id: string;
+  title: string;
+  body: string;
+  audience: string;
+  scheduled_at: string | null;
+  expires_at: string | null;
+  created_at: string;
+};
+
+export function createNotice(args: {
+  jwt: string;
+  title: string;
+  body: string;
+  audience?: string;
+  scheduled_at?: string;
+  expires_at?: string;
+}): Promise<ServerResult<NoticeRow>> {
+  return authedRequest({
+    jwt: args.jwt,
+    path: `/api/v1/admin/notices`,
+    method: "POST",
+    body: {
+      title: args.title,
+      body: args.body,
+      ...(args.audience ? { audience: args.audience } : {}),
+      ...(args.scheduled_at ? { scheduled_at: args.scheduled_at } : {}),
+      ...(args.expires_at ? { expires_at: args.expires_at } : {}),
+    },
+  });
+}
+
+export function updateNotice(args: {
+  jwt: string;
+  id: string;
+  patch: Partial<Omit<NoticeRow, "id" | "created_at">>;
+}): Promise<ServerResult<NoticeRow>> {
+  return authedRequest({
+    jwt: args.jwt,
+    path: `/api/v1/admin/notices/${encodeURIComponent(args.id)}`,
+    method: "PATCH",
+    body: args.patch,
+  });
+}
+
+export function deleteNotice(args: {
+  jwt: string;
+  id: string;
+}): Promise<ServerResult<{ ok: true }>> {
+  return authedRequest({
+    jwt: args.jwt,
+    path: `/api/v1/admin/notices/${encodeURIComponent(args.id)}`,
+    method: "DELETE",
+    body: {},
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Phase 15-A — Push campaigns (CS_OR_ABOVE).
+// ---------------------------------------------------------------------------
+
+export type PushCampaignRow = {
+  id: string;
+  title: string;
+  body: string;
+  audience: string;
+  status: string;
+  delivered_count?: number;
+  opened_count?: number;
+  sent_at?: string | null;
+};
+
+export function createPushCampaign(args: {
+  jwt: string;
+  title: string;
+  body: string;
+  audience?: string;
+}): Promise<ServerResult<PushCampaignRow>> {
+  return authedRequest({
+    jwt: args.jwt,
+    path: `/api/v1/admin/push/campaigns`,
+    method: "POST",
+    body: {
+      title: args.title,
+      body: args.body,
+      ...(args.audience ? { audience: args.audience } : {}),
+    },
+  });
+}
+
+export function sendPushCampaign(args: {
+  jwt: string;
+  id: string;
+}): Promise<ServerResult<PushCampaignRow>> {
+  return authedRequest({
+    jwt: args.jwt,
+    path: `/api/v1/admin/push/campaigns/${encodeURIComponent(args.id)}/send`,
+    method: "POST",
+    body: {},
+  });
+}
+
+// ---------------------------------------------------------------------------
 // 양산직전 #15 — Fleet 디바이스 분포 (Phase5-A)
 //   Server: GET /api/v1/admin/devices/distribution?by=version|region|cohort|fw_state
 // ---------------------------------------------------------------------------
