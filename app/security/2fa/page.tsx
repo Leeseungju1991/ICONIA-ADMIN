@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { readSession } from "@/lib/authCookie";
 import { loadIconiaEnv } from "@/lib/env";
 import TwoFactorEnroll from "./TwoFactorEnroll";
+import BackupCodePanel from "./BackupCodePanel";
 
 // P1 §6 (2026-05-19) — 2FA TOTP 도입 scaffold.
 //
@@ -44,9 +45,13 @@ export default function TwoFactorPage() {
 
         <TwoFactorEnroll />
 
+        <div className="mt-8">
+          <BackupCodePanel />
+        </div>
+
         <p className="mt-6 text-[11px] text-muted">
-          ※ 본 라운드는 UI scaffold 입니다. Server <code>/api/v1/operator/2fa/enroll</code>
-          / <code>/api/v1/operator/2fa/verify</code> 엔드포인트 도입 시 연결됩니다.
+          ※ TOTP enrollment UI 는 scaffold 단계 (Server `/api/v1/operator/2fa/*` 대기).
+          백업 코드는 Phase 9 #5 — Server endpoint 실 연동.
         </p>
       </div>
     </div>

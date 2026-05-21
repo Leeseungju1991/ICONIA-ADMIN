@@ -40,6 +40,12 @@ import {
   listIncidentAlertsAction,
   ackIncidentAlertAction,
 } from "@/lib/actions/alerts";
+import {
+  listDlqAction,
+  bulkRetryDlqAction,
+  type DlqListResult,
+} from "@/lib/actions/dlq";
+import type { DeadLetterRow as ServerDeadLetterRow } from "@/lib/adminApi";
 
 // 운영 안정성 9항목 통합 표면 — Round 3 (2026-05-20).
 //
@@ -919,9 +925,11 @@ function ReplayBlock({
       >
         <DataTable columns={columns} rows={rows} empty="dead-letter 큐가 비어 있습니다." />
         <p className="text-[11px] text-muted mt-3">
-          ※ 백엔드 미연동 — `/api/v1/admin/ops/dead-letters` 도입 후 실 SQS DLQ 와 연결. retryable=false
-          인 코드는 강제 재시도 차단.
+          ※ 상단 mock 표 — UI 데모. 하단 sub-section 이 Server `/api/v1/admin/dead-letter` 실 연동
+          (Phase 9 #2: enumerate + payload_summary + bulk-retry).
         </p>
+
+        <LiveDlqSubPanel onToast={onToast} onRefreshAudit={onRefreshAudit} />
       </PanelCard>
 
       {picked ? (
@@ -936,6 +944,147 @@ function ReplayBlock({
         />
       ) : null}
     </>
+  );
+}
+
+// Phase 9 #2 — Server `/api/v1/admin/dead-letter` 실 연동 + bulk-retry.
+function LiveDlqSubPanel({
+  onToast,
+  onRefreshAudit,
+}: {
+  onToast: (msg: string) => void;
+  onRefreshAudit: () => void;
+}) {
+  const [items, setItems] = useState<ServerDeadLetterRow[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkPending, startBulk] = useTransition();
+
+  async function reload() {
+    setLoading(true);
+    setError(null);
+    const r: DlqListResult = await listDlqAction({ status: "pending", limit: 50 });
+    if (!r.ok) {
+      setError(r.message);
+      setItems(null);
+    } else {
+      setItems(r.items);
+    }
+    setLoading(false);
+  }
+
+  useEffect(() => {
+    reload();
+  }, []);
+
+  function toggle(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function selectAll() {
+    if (!items) return;
+    setSelected(new Set(items.slice(0, 50).map((i) => i.id)));
+  }
+  function clearAll() {
+    setSelected(new Set());
+  }
+
+  function runBulk() {
+    if (selected.size === 0) {
+      onToast("재처리할 항목을 선택하세요.");
+      return;
+    }
+    const reason = askReason("DLQ 일괄 재처리");
+    if (!reason) {
+      onToast("사유가 5자 이상 필요합니다.");
+      return;
+    }
+    startBulk(async () => {
+      const r = await bulkRetryDlqAction({ ids: Array.from(selected) });
+      if (!r.ok) {
+        onToast(`bulk-retry 실패 (${r.code ?? "ERR"}): ${r.message}`);
+        return;
+      }
+      onToast(
+        `bulk-retry 완료: 요청 ${r.data.requested} · 성공 ${r.data.succeeded} · 실패 ${r.data.failed}`,
+      );
+      clearAll();
+      reload();
+      onRefreshAudit();
+    });
+  }
+
+  return (
+    <div className="mt-5 rounded-2xl border border-white/60 bg-white/30 p-3">
+      <div className="flex items-center justify-between mb-2">
+        <div className="text-sm font-semibold">Server DLQ (실 연동)</div>
+        <div className="flex items-center gap-2 text-xs">
+          <button
+            type="button"
+            onClick={selectAll}
+            disabled={!items || items.length === 0}
+            className="rounded-lg bg-white/70 border border-white/70 px-2 py-1 disabled:opacity-50"
+          >
+            전체 선택
+          </button>
+          <button
+            type="button"
+            onClick={clearAll}
+            disabled={selected.size === 0}
+            className="rounded-lg bg-white/70 border border-white/70 px-2 py-1 disabled:opacity-50"
+          >
+            선택 해제
+          </button>
+          <button
+            type="button"
+            onClick={runBulk}
+            disabled={selected.size === 0 || bulkPending}
+            className="rounded-lg bg-accent px-3 py-1 text-white disabled:opacity-50"
+          >
+            {bulkPending ? "재처리 중..." : `bulk-retry (${selected.size})`}
+          </button>
+        </div>
+      </div>
+      {loading ? (
+        <div className="text-xs text-muted">불러오는 중</div>
+      ) : error ? (
+        <div className="text-xs text-amber-700 bg-amber-50/80 border border-amber-200 rounded-xl px-3 py-2">
+          Server 도달 실패: {error}
+        </div>
+      ) : !items || items.length === 0 ? (
+        <div className="text-xs text-muted">pending DLQ 가 비어 있습니다.</div>
+      ) : (
+        <ul className="space-y-1">
+          {items.map((d) => (
+            <li
+              key={d.id}
+              className="rounded-xl border border-white/60 bg-white/55 px-3 py-2 text-xs"
+            >
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={selected.has(d.id)}
+                  onChange={() => toggle(d.id)}
+                  className="h-3.5 w-3.5"
+                />
+                <span className="font-mono">{d.event_id}</span>
+                <span className="chip chip-warn">{d.status}</span>
+                <span className="text-muted">attempts {d.attempts}</span>
+                {d.last_error_code ? (
+                  <span className="ml-auto text-amber-700 font-mono">{d.last_error_code}</span>
+                ) : null}
+              </label>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }
 

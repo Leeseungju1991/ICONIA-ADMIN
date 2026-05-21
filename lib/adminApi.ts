@@ -776,6 +776,64 @@ export function retryDeadLetter(args: {
   });
 }
 
+/**
+ * Phase 9 #2 — DLQ bulk-retry (최대 50개).
+ * Server: POST /api/v1/admin/dead-letter/bulk-retry  (SRE/superadmin)
+ */
+export type BulkRetryResult = {
+  requested: number;
+  succeeded: number;
+  failed: number;
+  results: Array<{
+    id: string;
+    ok: boolean;
+    event_id?: string;
+    upload_kind?: string;
+    error_code?: string;
+    error_message?: string;
+  }>;
+};
+
+export function bulkRetryDeadLetter(args: {
+  jwt: string;
+  ids: string[];
+}): Promise<ServerResult<BulkRetryResult>> {
+  return authedRequest({
+    jwt: args.jwt,
+    path: `/api/v1/admin/dead-letter/bulk-retry`,
+    method: "POST",
+    body: { ids: args.ids.slice(0, 50) },
+  });
+}
+
+/**
+ * Phase 9 #5 — Operator TOTP backup codes.
+ * Server: POST /api/v1/operator/totp/backup-codes/generate (10개, 평문은 응답 1회만)
+ *          POST /api/v1/operator/totp/backup-codes/verify (분실 시 1회용 코드)
+ */
+export function generateBackupCodes(args: {
+  jwt: string;
+}): Promise<ServerResult<{ codes: string[]; count: number }>> {
+  return authedRequest({
+    jwt: args.jwt,
+    path: `/api/v1/operator/totp/backup-codes/generate`,
+    method: "POST",
+    body: {},
+  });
+}
+
+export function verifyBackupCode(args: {
+  jwt: string;
+  code: string;
+}): Promise<ServerResult<{ ok: true; code_id: string; remaining: number }>> {
+  return authedRequest({
+    jwt: args.jwt,
+    path: `/api/v1/operator/totp/backup-codes/verify`,
+    method: "POST",
+    body: { code: args.code },
+  });
+}
+
 // ---------------------------------------------------------------------------
 // V3.0 #14 — 제조 LOT / 시리얼 / 출고 테스트
 //   Server: POST /api/v1/admin/lots
