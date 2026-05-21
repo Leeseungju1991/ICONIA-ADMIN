@@ -20,7 +20,8 @@ import {
   triggerPipaExportAction,
   type PipaActionResult,
 } from "@/lib/actions/pipa";
-import type { PipaUserRow } from "@/lib/adminApi";
+import { listUsersAction } from "@/lib/actions/usersList";
+import type { PipaUserRow, UserRow as ServerUserRow } from "@/lib/adminApi";
 
 // 강력 액션 2단계 확인 — /dashboard/ops 페이지와 같은 정책 (EXECUTE 정확 입력).
 const TWO_STEP_PHRASE = "EXECUTE";
@@ -216,6 +217,8 @@ export default function UsersPage() {
           accent="teal"
         />
       </section>
+
+      <LiveUsersPanel />
 
       <LivePipaPanel />
 
@@ -486,6 +489,81 @@ function Row({ k, v }: { k: string; v: React.ReactNode }) {
       <dt className="text-xs text-muted">{k}</dt>
       <dd className="text-sm text-slate-800 font-medium">{v}</dd>
     </div>
+  );
+}
+
+// Phase 10-C — Server `/api/v1/admin/users` 실 사용자 목록 패널.
+// 가짜 구현 카탈로그 #1 (mockUsers import) 의 1차 wiring — 페이지 본문 통계는 mock
+// 유지하되 상단에 Server 실 데이터를 우선 노출. 다음 라운드에 DataTable rows 까지 swap.
+function LiveUsersPanel() {
+  const [items, setItems] = useState<ServerUserRow[] | null>(null);
+  const [total, setTotal] = useState<number>(0);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    listUsersAction({ limit: 20 })
+      .then((r) => {
+        if (cancelled) return;
+        if (!r.ok) {
+          setError(r.message);
+          return;
+        }
+        setItems(r.users);
+        setTotal(r.total);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return (
+    <PanelCard
+      title={loading ? "실시간 사용자 (Server) 로딩 중" : `실시간 사용자 (Server) — 총 ${total.toLocaleString()}명`}
+      description="Server /api/v1/admin/users — adminUserService.searchUsers (active_session_count 집계 포함). PII 마스킹은 Server responseMask 미들웨어가 자동 처리."
+    >
+      {loading ? (
+        <div className="text-sm text-muted">불러오는 중</div>
+      ) : error ? (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          Server 도달 실패: {error}
+        </div>
+      ) : !items || items.length === 0 ? (
+        <div className="text-sm text-muted">등록된 사용자가 없습니다.</div>
+      ) : (
+        <ul className="space-y-1">
+          {items.slice(0, 20).map((u) => (
+            <li
+              key={u.id}
+              className="rounded-xl border border-white/60 bg-white/55 px-3 py-2 text-xs"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-mono">{u.email}</span>
+                <span
+                  className={
+                    u.account_status === "active"
+                      ? "chip chip-success"
+                      : u.account_status === "paused"
+                        ? "chip chip-warn"
+                        : "chip chip-error"
+                  }
+                >
+                  {u.account_status ?? "active"}
+                </span>
+                {u.totp_enabled ? <span className="chip chip-info">2FA</span> : null}
+              </div>
+              <div className="mt-1 text-muted">
+                가입 {u.created_at ?? "—"} · 마지막 로그인 {u.last_login_at ?? "—"}
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </PanelCard>
   );
 }
 
