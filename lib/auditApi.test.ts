@@ -174,8 +174,13 @@ describe("appendAuditLog", () => {
     expect(init.method).toBe("POST");
     expect(init.headers["Authorization"]).toBe("Bearer j");
     expect(init.headers["Content-Type"]).toBe("application/json");
-    // 본문은 snake_case (서버 계약).
-    expect(JSON.parse(init.body)).toEqual({
+    // 본문은 snake_case (서버 계약). request_id 는 client 가 자동 발급 (UUID v4).
+    const sent = JSON.parse(init.body);
+    expect(sent.request_id).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+    );
+    delete sent.request_id;
+    expect(sent).toEqual({
       action: "user.force_logout",
       target_user_id: "u1",
       target_resource_type: "user",
@@ -185,7 +190,23 @@ describe("appendAuditLog", () => {
     });
   });
 
-  it("omits optional fields when not provided", async () => {
+  it("uses explicit requestId when caller provides one (멱등 재시도 케이스)", async () => {
+    const fetchMock = mockFetchOnce({
+      status: 200,
+      body: { ok: true, data: { id: "ent_3" }, error: null },
+    });
+    await appendAuditLog({
+      jwt: "j",
+      input: { action: "user.force_logout", targetUserId: "u1" },
+      requestId: "11111111-1111-4111-8111-111111111111",
+    });
+    const [, init] = fetchMock.mock.calls[0];
+    expect(JSON.parse(init.body).request_id).toBe(
+      "11111111-1111-4111-8111-111111111111",
+    );
+  });
+
+  it("omits optional fields when not provided (request_id 는 자동 발급)", async () => {
     const fetchMock = mockFetchOnce({
       status: 200,
       body: { ok: true, data: { id: "ent_2" }, error: null },
@@ -196,7 +217,8 @@ describe("appendAuditLog", () => {
     });
     const [, init] = fetchMock.mock.calls[0];
     const body = JSON.parse(init.body);
-    expect(body).toEqual({ action: "user.pii_unmasked" });
+    expect(body.action).toBe("user.pii_unmasked");
+    expect(typeof body.request_id).toBe("string");
     expect(body).not.toHaveProperty("target_user_id");
     expect(body).not.toHaveProperty("payload_hash");
   });

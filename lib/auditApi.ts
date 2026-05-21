@@ -50,8 +50,12 @@ export type AuditAppendInput = {
 export function appendAuditLog(args: {
   jwt: string;
   input: AuditAppendInput;
+  requestId?: string;
 }): Promise<ServerResult<{ id: string } | Record<string, unknown>>> {
-  const body: Record<string, unknown> = { action: args.input.action };
+  const body: Record<string, unknown> = {
+    action: args.input.action,
+    request_id: args.requestId ?? crypto.randomUUID(),
+  };
   if (args.input.targetUserId) body.target_user_id = args.input.targetUserId;
   if (args.input.targetResourceType)
     body.target_resource_type = args.input.targetResourceType;
