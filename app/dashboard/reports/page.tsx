@@ -7,8 +7,12 @@ import { StatCard } from "../_components/StatCard";
 import { OpsAuditTrailPanel } from "../_components/OpsAuditTrailPanel";
 import { MockDataBanner } from "../_components/MockDataBanner";
 import { recordOpsAuditWithSilentRetry } from "@/lib/opsAuditTrail";
-import { listPosts, hidePost, unhidePost, type PostRow } from "@/lib/adminApi";
-import { readSession } from "@/lib/authCookie";
+import type { PostRow } from "@/lib/adminApi";
+import {
+  listReportedPostsAction,
+  hidePostAction,
+  unhidePostAction,
+} from "@/lib/actions/posts";
 
 // Phase 14-B — reports 재설계.
 // Server `GET /api/v1/admin/posts?filter=reported` (Phase 1 adminStubRoutes) 단일 source.
@@ -16,6 +20,9 @@ import { readSession } from "@/lib/authCookie";
 //
 // 이전: mockReports 가 review/post/comment/user 4 유형 통합. Server 는 posts 만 매핑.
 // 재설계: posts 신고만 표시 + review/comment/user 는 endpoint 부재 명시 (별도 라운드).
+//
+// 2026-05-22 — client → server-only(next/headers) import 가 빌드를 깨뜨려
+// listReportedPostsAction / hidePostAction / unhidePostAction 의 server action 경로로 일원화.
 
 const statusChip: Record<string, string> = {
   visible: "chip chip-warn",
@@ -28,30 +35,17 @@ const statusLabel: Record<string, string> = {
   taken_down: "영구 차단",
 };
 
-async function fetchReportedPosts(): Promise<
-  { ok: true; items: PostRow[] } | { ok: false; message: string }
-> {
-  const jwt = readSession();
-  if (!jwt) return { ok: false, message: "세션 만료" };
-  const res = await listPosts({ jwt, filter: "reported", limit: 200 });
-  if (!res.ok) return { ok: false, message: res.message };
-  return { ok: true, items: res.data.items };
-}
-
 async function runHide(postId: string, reason: string) {
-  const jwt = readSession();
-  if (!jwt) return { ok: false, message: "세션 만료" };
-  const res = await hidePost({ jwt, postId, reason });
-  if (!res.ok) return { ok: false, message: res.message };
-  return { ok: true as const };
+  const fd = new FormData();
+  fd.append("post_id", postId);
+  fd.append("reason", reason);
+  return hidePostAction(fd);
 }
 
 async function runUnhide(postId: string) {
-  const jwt = readSession();
-  if (!jwt) return { ok: false, message: "세션 만료" };
-  const res = await unhidePost({ jwt, postId });
-  if (!res.ok) return { ok: false, message: res.message };
-  return { ok: true as const };
+  const fd = new FormData();
+  fd.append("post_id", postId);
+  return unhidePostAction(fd);
 }
 
 export default function ReportsPage() {
@@ -65,7 +59,7 @@ export default function ReportsPage() {
 
   function reload() {
     startLoad(async () => {
-      const r = await fetchReportedPosts();
+      const r = await listReportedPostsAction();
       if (!r.ok) {
         setError(r.message);
         setPosts([]);

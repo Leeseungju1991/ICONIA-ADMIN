@@ -14,16 +14,20 @@ html, body {
   margin: 0;
 }
 
+/*
+ * 2026-05-22 — NCP/NAVER Works 스타일 라이트 베이스.
+ * 이전 글래스모피즘 (radial-gradient + bg-white/70 + backdrop-blur-xl) 폐기.
+ * - body: 단색 캔버스 #F5F6F8 (눈 부담 없음, 카드 대비 명확).
+ * - .glass / .glass-panel / .glass-card: 흰 카드 (semantic 클래스명 유지하여
+ *   페이지 25개 173건의 사용처를 0건 수정으로 화이트화 — 의미 재정의 전략).
+ */
+
 body {
-  background: linear-gradient(135deg, #c7d2fe 0%, #e9d5ff 42%, #fbcfe8 100%);
-  background-image:
-    radial-gradient(900px circle at 18% 20%, rgba(96, 165, 250, 0.45), transparent 60%),
-    radial-gradient(900px circle at 82% 12%, rgba(236, 72, 153, 0.35), transparent 60%),
-    radial-gradient(900px circle at 50% 92%, rgba(109, 93, 254, 0.30), transparent 60%),
-    linear-gradient(135deg, #c7d2fe 0%, #e9d5ff 42%, #fbcfe8 100%);
+  background: #F5F6F8;
   min-height: 100dvh;
   overflow-x: hidden;
   font-family: var(--font-noto-sans-kr), var(--font-roboto), system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: #0F172A;
 }
 
 a { color: inherit; text-decoration: none; }
@@ -40,59 +44,69 @@ a { color: inherit; text-decoration: none; }
 }
 
 @layer components {
+  /* 카드 베이스 — 페이지 코드가 .glass / .glass-panel / .glass-card 그대로 사용. */
   .glass {
-    @apply bg-white/70 backdrop-blur-xl border border-white/50;
+    @apply bg-white border border-slate-200;
   }
-
   .glass-card {
+    @apply glass rounded-xl shadow-card;
+  }
+  .glass-panel {
     @apply glass rounded-2xl shadow-card;
   }
 
-  .glass-panel {
-    @apply glass shadow-card;
-  }
-
+  /* primary 버튼 — solid accent (그라데이션 폐기, NCP 평면 버튼 스타일). */
   .btn-primary {
-    @apply rounded-xl px-4 py-2 font-semibold text-white shadow-soft;
-    background-image: linear-gradient(90deg, #6D5DFE 0%, #8B5CF6 52%, #EC4899 100%);
+    @apply rounded-lg px-4 py-2 font-semibold text-white transition;
+    background-color: #6D5DFE;
   }
-
+  .btn-primary:hover { background-color: #5B4BE6; }
   .btn-primary:disabled {
     @apply opacity-50 cursor-not-allowed;
+    background-color: #6D5DFE;
   }
 
   .btn-outline {
-    @apply rounded-xl px-4 py-2 font-semibold bg-white/60 border border-white/60 shadow-card text-slate-700;
+    @apply rounded-lg px-4 py-2 font-semibold bg-white border border-slate-300 text-slate-700 transition;
   }
+  .btn-outline:hover { @apply bg-slate-50; }
 
   .btn-danger {
-    @apply rounded-xl px-4 py-2 font-semibold text-white shadow-soft;
-    background-image: linear-gradient(90deg, #ef4444 0%, #f97316 100%);
+    @apply rounded-lg px-4 py-2 font-semibold text-white transition;
+    background-color: #EF4444;
   }
+  .btn-danger:hover { background-color: #DC2626; }
 
+  /* 입력 컴포넌트 — 라이트 보더 + accent focus ring.
+     custom color + opacity modifier 는 @apply 안에서 파싱 실패 → 직접 box-shadow 로 ring. */
   .input {
-    @apply w-full rounded-xl px-3 py-2 bg-white/85 border border-slate-200/80 outline-none;
-    @apply focus:ring-2 focus:ring-accent/30;
+    @apply w-full rounded-lg px-3 py-2 bg-white border border-slate-300 outline-none transition;
   }
-
+  .input:focus {
+    border-color: #6D5DFE;
+    box-shadow: 0 0 0 3px rgba(109, 93, 254, 0.18);
+  }
   .select {
-    @apply w-full rounded-xl px-3 py-2 bg-white/85 border border-slate-200/80 outline-none;
-    @apply focus:ring-2 focus:ring-accent/30;
+    @apply w-full rounded-lg px-3 py-2 bg-white border border-slate-300 outline-none transition;
+  }
+  .select:focus {
+    border-color: #6D5DFE;
+    box-shadow: 0 0 0 3px rgba(109, 93, 254, 0.18);
   }
 
   .table-head {
-    @apply text-xs text-slate-500 border-b border-white/60;
+    @apply text-xs text-slate-500 border-b border-slate-200 bg-slate-50/60;
   }
 
+  /* chip — flat colored bg (이전 bg-OPACITY 반투명 토큰 폐기). */
   .chip {
     @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium;
   }
-
-  .chip-info { @apply bg-blue-100/80 text-blue-700; }
-  .chip-warn { @apply bg-amber-100/80 text-amber-700; }
-  .chip-error { @apply bg-rose-100/80 text-rose-700; }
-  .chip-success { @apply bg-emerald-100/80 text-emerald-700; }
-  .chip-muted { @apply bg-slate-100/80 text-slate-600; }
+  .chip-info    { @apply bg-blue-50    text-blue-700    border border-blue-100; }
+  .chip-warn    { @apply bg-amber-50   text-amber-700   border border-amber-100; }
+  .chip-error   { @apply bg-rose-50    text-rose-700    border border-rose-100; }
+  .chip-success { @apply bg-emerald-50 text-emerald-700 border border-emerald-100; }
+  .chip-muted   { @apply bg-slate-100  text-slate-600   border border-slate-200; }
 }
 
 .spinner {
@@ -116,10 +130,8 @@ a { color: inherit; text-decoration: none; }
   body { background: #fff !important; }
   .shadow-card, .glass-card, .glass-panel, .btn-outline, .btn-primary { box-shadow: none !important; }
   .glass, .glass-card, .glass-panel, .btn-outline {
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
     background: #fff !important;
-    border: 0 !important;
+    border: 1px solid #E5E7EB !important;
   }
   aside, nav { display: none !important; }
 }

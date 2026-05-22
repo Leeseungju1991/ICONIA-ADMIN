@@ -70,6 +70,14 @@ export type AdminEnv = {
   COOKIE_SECURE: boolean;
   ICONIA_ENV: IconiaEnvName;
   DEPLOY_TARGET: DeployTarget;
+  /**
+   * Dev 한정 X-Admin-Token legacy fallback (2026-05-22).
+   * - DEPLOY_TARGET=local 이고 ICONIA_ADMIN_LEGACY_TOKEN env 가 세팅된 경우만 채워짐.
+   * - aws 토글에서는 무조건 undefined (loadEnv 가 명시적으로 비움) — 운영 사고 방지.
+   * - httpClient 가 이 값이 있으면 X-Admin-Token 헤더로 우회하고 Bearer JWT 는 보내지 않음.
+   * - operator JWT 풀스택(OPERATOR_JWT_PRIVATE/PUBLIC_KEY) 이 dev에 세팅되면 이 변수 제거 가능.
+   */
+  ADMIN_LEGACY_TOKEN?: string;
 };
 
 export function loadEnv(): AdminEnv {
@@ -104,12 +112,19 @@ export function loadEnv(): AdminEnv {
   }
   const normalized = raw.replace(/\/+$/, "");
 
+  // ADMIN_LEGACY_TOKEN — dev 우회 토큰. local 토글 + env 동시 충족 시에만 노출.
+  // 어떤 경우에도 aws 토글에서는 undefined (이중 안전: env 가 세팅돼도 무시).
+  const legacyTokenRaw = process.env.ICONIA_ADMIN_LEGACY_TOKEN?.trim();
+  const adminLegacyToken =
+    target === "local" && legacyTokenRaw ? legacyTokenRaw : undefined;
+
   return {
     ICONIA_SERVER_URL: normalized,
     // COOKIE_SECURE — 토글 프리셋 우선. NODE_ENV=production 이면 강제 true (이중 안전).
     COOKIE_SECURE: preset.cookieSecure || process.env.NODE_ENV === "production",
     ICONIA_ENV: loadIconiaEnv(),
     DEPLOY_TARGET: target,
+    ADMIN_LEGACY_TOKEN: adminLegacyToken,
   };
 }
 

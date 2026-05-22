@@ -95,84 +95,91 @@ export default function Sidebar({
     setNavOpen(false);
   }, [pathname]);
 
+  // 2026-05-22 — NCP/NAVER Works 라이트 사이드바 구조.
+  //   외곽 glass shell + decorative blur 폐기. 풀폭 사이드바(좌) + 흰 톱바 + 캔버스 본문.
   return (
     <div
-      className="min-h-[100dvh] p-3 sm:p-6"
+      className="min-h-[100dvh] flex bg-canvas"
       style={{
-        paddingTop: "calc(env(safe-area-inset-top) + 0.75rem)",
-        paddingRight: "calc(env(safe-area-inset-right) + 0.75rem)",
-        paddingBottom: "calc(env(safe-area-inset-bottom) + 0.75rem)",
-        paddingLeft: "calc(env(safe-area-inset-left) + 0.75rem)",
+        paddingTop: "env(safe-area-inset-top)",
+        paddingRight: "env(safe-area-inset-right)",
+        paddingBottom: "env(safe-area-inset-bottom)",
+        paddingLeft: "env(safe-area-inset-left)",
       }}
     >
-      <div className="mx-auto w-full max-w-[95vw]">
-        <div className="relative overflow-hidden rounded-[36px] glass-panel">
-          <div className="pointer-events-none absolute -top-40 -right-40 h-96 w-96 rounded-full bg-accentBlue/30 blur-3xl" />
-          <div className="pointer-events-none absolute -bottom-44 -left-44 h-[28rem] w-[28rem] rounded-full bg-accentPink/20 blur-3xl" />
-
-          <div className="relative flex min-h-[calc(100dvh-48px)]">
-            <aside className="hidden md:block w-72 shrink-0 p-6 border-r border-white/50">
-              <Brand />
-              <NavMenu pathname={pathname} role={role} />
-              <LogoutButton />
-            </aside>
-
-            {navOpen ? (
-              <div className="fixed inset-0 z-50 md:hidden">
-                <button
-                  className="absolute inset-0 bg-black/30"
-                  aria-label="메뉴 닫기"
-                  onClick={() => setNavOpen(false)}
-                />
-                <aside className="absolute left-0 top-0 h-full w-72 max-w-[82vw] p-6 border-r border-white/50 glass-panel rounded-r-[28px] shadow-card overflow-y-auto">
-                  <div className="flex items-center justify-between mb-6">
-                    <Brand compact />
-                    <button
-                      className="rounded-xl px-3 py-2 bg-white/70 border border-white/70 text-slate-600 text-sm"
-                      onClick={() => setNavOpen(false)}
-                      type="button"
-                    >
-                      닫기
-                    </button>
-                  </div>
-                  <NavMenu pathname={pathname} role={role} />
-                  <LogoutButton />
-                </aside>
-              </div>
-            ) : null}
-
-            <main className="flex-1 min-w-0 p-4 sm:p-6 pb-10 overflow-x-hidden">
-              <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-start gap-3">
-                  <button
-                    className="md:hidden mt-1 rounded-2xl px-3 py-2 glass hover:bg-white/70 border border-white/60 text-slate-700"
-                    type="button"
-                    onClick={() => setNavOpen(true)}
-                    aria-label="메뉴 열기"
-                  >
-                    <span className="inline-flex items-center gap-2">
-                      <span className="text-base">☰</span>
-                      <span className="text-sm font-medium">메뉴</span>
-                    </span>
-                  </button>
-                  <div>
-                    <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
-                      {title}
-                    </h1>
-                    <p className="text-sm text-muted mt-1">{subtitle}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <EnvBadge env={env} />
-                  <RoleBadge role={role} email={operatorEmail} />
-                </div>
-              </header>
-
-              {children}
-            </main>
-          </div>
+      {/* 데스크탑 사이드바 — 흰 배경, 우측 하단 1px 보더, sticky. */}
+      <aside className="hidden md:flex md:flex-col w-60 lg:w-64 shrink-0 bg-surface border-r border-slate-200 sticky top-0 h-[100dvh] overflow-y-auto">
+        <div className="p-5 border-b border-slate-100">
+          <Brand />
         </div>
+        <div className="p-3 flex-1 overflow-y-auto">
+          <NavMenu pathname={pathname} role={role} />
+        </div>
+        <div className="p-3 border-t border-slate-100">
+          <LogoutButton />
+        </div>
+      </aside>
+
+      {/* 모바일 드로어 — 동일 흰 사이드바를 슬라이드 인. */}
+      {navOpen ? (
+        <div className="fixed inset-0 z-50 md:hidden">
+          <button
+            className="absolute inset-0 bg-slate-900/40"
+            aria-label="메뉴 닫기"
+            onClick={() => setNavOpen(false)}
+          />
+          <aside className="absolute left-0 top-0 h-full w-72 max-w-[82vw] bg-surface border-r border-slate-200 shadow-card overflow-y-auto flex flex-col">
+            <div className="p-5 border-b border-slate-100 flex items-center justify-between">
+              <Brand compact />
+              <button
+                className="rounded-lg px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 text-sm transition"
+                onClick={() => setNavOpen(false)}
+                type="button"
+              >
+                닫기
+              </button>
+            </div>
+            <div className="p-3 flex-1 overflow-y-auto">
+              <NavMenu pathname={pathname} role={role} />
+            </div>
+            <div className="p-3 border-t border-slate-100">
+              <LogoutButton />
+            </div>
+          </aside>
+        </div>
+      ) : null}
+
+      {/* 메인 컬럼 — sticky 흰 톱바 + 캔버스 본문. */}
+      <div className="flex-1 min-w-0 flex flex-col">
+        <header className="sticky top-0 z-10 bg-surface border-b border-slate-200 px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <button
+              className="md:hidden rounded-lg px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 transition"
+              type="button"
+              onClick={() => setNavOpen(true)}
+              aria-label="메뉴 열기"
+            >
+              <span className="inline-flex items-center gap-2">
+                <span className="text-base">☰</span>
+              </span>
+            </button>
+            <div className="min-w-0">
+              <h1 className="text-lg sm:text-xl font-semibold tracking-tight text-slate-900 truncate">
+                {title}
+              </h1>
+              <p className="text-xs sm:text-sm text-muted mt-0.5 truncate">{subtitle}</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <EnvBadge env={env} />
+            <RoleBadge role={role} email={operatorEmail} />
+          </div>
+        </header>
+
+        <main className="flex-1 min-w-0 p-4 sm:p-6 pb-10 overflow-x-hidden">
+          {children}
+        </main>
       </div>
     </div>
   );
@@ -233,17 +240,15 @@ function RoleBadge({
   );
 }
 
-function Brand({ compact }: { compact?: boolean }) {
+function Brand({ compact: _compact }: { compact?: boolean }) {
   return (
-    <div className={compact ? "mb-2" : "mb-6"}>
-      <div className="flex items-center gap-2">
-        <div className="h-10 w-10 rounded-2xl bg-white/70 border border-white/70 shadow-sm flex items-center justify-center">
-          <span className="text-accent font-black">I</span>
-        </div>
-        <div>
-          <div className="font-extrabold tracking-tight text-slate-900">ICONIA</div>
-          <div className="text-xs text-muted -mt-0.5">Admin Console</div>
-        </div>
+    <div className="flex items-center gap-2.5">
+      <div className="h-9 w-9 rounded-lg bg-accent text-white shadow-soft flex items-center justify-center">
+        <span className="font-black text-base">I</span>
+      </div>
+      <div>
+        <div className="font-bold tracking-tight text-slate-900 text-[15px]">ICONIA</div>
+        <div className="text-[11px] text-muted -mt-0.5">Admin Console</div>
       </div>
     </div>
   );
@@ -254,7 +259,7 @@ function NavMenu({ pathname, role }: { pathname: string; role: OperatorRole }) {
   // 403 을 받는 대신 링크 자체 제거). 강제 차단은 middleware 가 별도 수행.
   const visibleNav = nav.filter((item) => canAccessPath(role, item.to));
   return (
-    <nav className="space-y-1">
+    <nav className="space-y-0.5">
       {visibleNav.map((item) => {
         const isActive = item.to === "/dashboard"
           ? pathname === "/dashboard"
@@ -264,13 +269,14 @@ function NavMenu({ pathname, role }: { pathname: string; role: OperatorRole }) {
             key={item.to}
             href={item.to}
             className={[
-              "flex items-center gap-3 px-4 py-3 rounded-2xl text-sm transition",
-              "hover:bg-white/60",
-              isActive ? "bg-white/70 text-slate-900 shadow-card" : "text-slate-600",
+              "flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] transition",
+              isActive
+                ? "bg-accent/10 text-accent font-semibold"
+                : "text-slate-600 hover:bg-slate-50 hover:text-slate-900",
             ].join(" ")}
           >
-            <item.icon className="w-5 h-5 text-accent" />
-            <span className="font-medium">{item.label}</span>
+            <item.icon className={["w-[18px] h-[18px]", isActive ? "text-accent" : "text-slate-400"].join(" ")} />
+            <span className="truncate">{item.label}</span>
           </Link>
         );
       })}
@@ -281,21 +287,19 @@ function NavMenu({ pathname, role }: { pathname: string; role: OperatorRole }) {
 function LogoutButton() {
   const [isPending, startTransition] = useTransition();
   return (
-    <div className="mt-6">
-      <button
-        className="w-full rounded-2xl px-4 py-3 text-sm bg-white/50 border border-white/60 hover:bg-white/70 transition text-slate-700 disabled:opacity-60"
-        type="button"
-        disabled={isPending}
-        onClick={() => {
-          startTransition(async () => {
-            // server action: cookie 정리 + Server /api/v1/operator/logout 호출 + redirect.
-            await logoutAction();
-          });
-        }}
-      >
-        {isPending ? "로그아웃 중..." : "로그아웃"}
-      </button>
-    </div>
+    <button
+      className="w-full rounded-lg px-3 py-2.5 text-[13px] bg-white border border-slate-300 hover:bg-slate-50 transition text-slate-700 disabled:opacity-60"
+      type="button"
+      disabled={isPending}
+      onClick={() => {
+        startTransition(async () => {
+          // server action: cookie 정리 + Server /api/v1/operator/logout 호출 + redirect.
+          await logoutAction();
+        });
+      }}
+    >
+      {isPending ? "로그아웃 중..." : "로그아웃"}
+    </button>
   );
 }
 

@@ -16,22 +16,33 @@ const ADMIN_ALLOWED_ORIGINS = (() => {
 // Content Security Policy — admin 전용 (단일 운영자 콘솔, Secure JWT cookie).
 //   default-src 'self'                — 기본 거절
 //   script-src  'self' 'unsafe-inline' — Next.js 14 가 inline script 를 일부 사용 (nonce 도입은 별도 라운드)
+//                 + 'unsafe-eval' (dev 전용) — Next dev 의 eval-source-map devtool 이 eval() 로
+//                   webpack 청크를 실행하기 때문. prod 번들은 eval 없음 → 제거.
 //   style-src   'self' 'unsafe-inline' — inline style attribute 잦은 관용 허용
 //   img-src     'self' data: https:    — WP 상품 이미지 허용 (HTTPS)
 //   connect-src 'self' + Server API host — admin server 호출 (ICONIA_SERVER_URL / ADMIN_API_HOST)
+//                 + ws: localhost (dev 전용) — Next dev HMR WebSocket
 //   font-src    'self' data:
 //   object-src  'none'
 //   frame-ancestors 'none'             — X-Frame-Options DENY 와 중복 (이중 방어)
 //   form-action 'self'                 — server actions 외부 POST 차단
 //   base-uri    'self'                 — base 태그 의존 XSS 경로 제거
-//   upgrade-insecure-requests          — 다운그레이드 차단
+//   upgrade-insecure-requests          — 다운그레이드 차단 (prod 만 — dev http://localhost 강제 차단 방지)
 // HSTS 는 reverse proxy (nginx/cloudfront) 단에서 추가하는 것이 표준이지만, 본 next.config 에서도
 // 기본값을 동봉해 운영자 콘솔 자체가 누락된 경우의 1차 방어를 제공한다 (prod 한정).
+const IS_DEV = process.env.NODE_ENV !== "production";
 const ADMIN_API_HOST = (process.env.ADMIN_API_HOST || process.env.ICONIA_SERVER_URL || "").trim();
-const CONNECT_SRC = ["'self'", ADMIN_API_HOST].filter(Boolean).join(" ");
+const CONNECT_SRC = [
+  "'self'",
+  ADMIN_API_HOST,
+  ...(IS_DEV ? ["ws://localhost:3000", "ws://127.0.0.1:3000"] : []),
+]
+  .filter(Boolean)
+  .join(" ");
+const SCRIPT_SRC = ["'self'", "'unsafe-inline'", ...(IS_DEV ? ["'unsafe-eval'"] : [])].join(" ");
 const CSP_DIRECTIVES = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline'",
+  `script-src ${SCRIPT_SRC}`,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: https:",
   `connect-src ${CONNECT_SRC}`,
@@ -40,7 +51,7 @@ const CSP_DIRECTIVES = [
   "frame-ancestors 'none'",
   "form-action 'self'",
   "base-uri 'self'",
-  "upgrade-insecure-requests",
+  ...(IS_DEV ? [] : ["upgrade-insecure-requests"]),
 ].join("; ");
 
 const nextConfig = {

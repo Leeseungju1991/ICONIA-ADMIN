@@ -3,19 +3,39 @@
 import { z } from "zod";
 import { redirect } from "next/navigation";
 
-import { operatorLoginStep1 } from "../serverApi";
 import { writeSession } from "../authCookie";
 import type { FormState } from "../types";
 
-// P0 보안 정상화 (2026-05-19):
-//   - 이전 라운드의 `soom/soom` local bypass + alg:none JWT 발급 dead code 완전 제거.
-//   - 본 server action 은 오직 Server 측 `/api/v1/operator/login` 만 호출한다.
-//   - 자격증명 검증/JWT 발급/세션 만료 — 전 권한은 Server 가 보유.
+// Dev/demo 전용 로컬 자격증명 (2026-05-22):
+//   - 본 server action 은 서버 호출 없이 soom/soom 자격증명만 통과시킨다.
+//   - 2026-05-19 P0 보안 라운드(로컬 우회 제거)를 의도적으로 되돌리는 dev/demo 정책.
+//   - 운영 배포 금지 — middleware/RequireAuth 는 JWT exp+role 클레임만 보므로
+//     서명 없는 (alg:none) JWT 페이로드를 발급해 통과시킨다.
 
 const schema = z.object({
   username: z.string().min(1).max(254),
   password: z.string().min(1).max(256),
 });
+
+const DEMO_USERNAME = "soom";
+const DEMO_PASSWORD = "soom";
+const DEMO_SESSION_TTL_SEC = 60 * 60; // 1h
+
+function base64UrlEncode(input: string): string {
+  const b64 =
+    typeof btoa === "function"
+      ? btoa(input)
+      : Buffer.from(input, "utf8").toString("base64");
+  return b64.replace(/=+$/, "").replace(/\+/g, "-").replace(/\//g, "_");
+}
+
+function mintDemoJwt(expSec: number): string {
+  const header = base64UrlEncode(JSON.stringify({ alg: "none", typ: "JWT" }));
+  const payload = base64UrlEncode(
+    JSON.stringify({ role: "superadmin", sub: DEMO_USERNAME, exp: expSec }),
+  );
+  return `${header}.${payload}.`;
+}
 
 export async function loginAction(
   _prev: FormState | undefined,
@@ -29,25 +49,18 @@ export async function loginAction(
     return { status: "error", code: "ERR_VALIDATION_LOCAL" };
   }
 
-  const result = await operatorLoginStep1({
-    email: parsed.data.username,
-    password: parsed.data.password,
-  });
-
-  if (result.ok) {
-    if ("mfa_required" in result.data && result.data.mfa_required) {
-      const token = encodeURIComponent(result.data.mfa_session_token);
-      redirect(`/login/mfa?token=${token}`);
-    }
-    if ("jwt" in result.data) {
-      writeSession({
-        jwt: result.data.jwt,
-        expiresAt: result.data.expires_at,
-      });
-      redirect("/dashboard");
-    }
-    return { status: "error", code: "ERR_INVALID_RESPONSE" };
+  if (
+    parsed.data.username !== DEMO_USERNAME ||
+    parsed.data.password !== DEMO_PASSWORD
+  ) {
+    return { status: "error", code: "ERR_OPERATOR_INVALID_CREDENTIALS" };
   }
 
-  return { status: "error", code: result.code, message: result.message };
+  const nowSec = Math.floor(Date.now() / 1000);
+  const expSec = nowSec + DEMO_SESSION_TTL_SEC;
+  writeSession({
+    jwt: mintDemoJwt(expSec),
+    expiresAt: new Date(expSec * 1000).toISOString(),
+  });
+  redirect("/dashboard");
 }

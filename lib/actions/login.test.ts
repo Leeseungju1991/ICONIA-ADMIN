@@ -40,7 +40,7 @@ function fd(input: Record<string, string>): FormData {
   return f;
 }
 
-describe("loginAction", () => {
+describe("loginAction (dev/demo soom/soom only)", () => {
   it("returns ERR_VALIDATION_LOCAL when username missing", async () => {
     const result = await loginAction(undefined, fd({ password: "p" }));
     expect(result.status).toBe("error");
@@ -52,77 +52,66 @@ describe("loginAction", () => {
     const result = await loginAction(undefined, fd({ username: "operator" }));
     expect(result.status).toBe("error");
     expect(result.code).toBe("ERR_VALIDATION_LOCAL");
+    expect(mockedStep1).not.toHaveBeenCalled();
   });
 
-  it("does NOT short-circuit soom/soom — calls server like any other credential pair (P0 보안 정상화)", async () => {
-    mockedStep1.mockResolvedValue({
-      ok: false,
-      code: "ERR_OPERATOR_INVALID_CREDENTIALS",
-      message: "bad",
-      status: 401,
-    });
-    const result = await loginAction(
-      undefined,
-      fd({ username: "soom", password: "soom" }),
-    );
-    expect(result.status).toBe("error");
-    expect(result.code).toBe("ERR_OPERATOR_INVALID_CREDENTIALS");
-    expect(cookieStore.set).not.toHaveBeenCalled();
-    expect(mockedStep1).toHaveBeenCalledTimes(1);
-  });
-
-  it("redirects to /login/mfa with token on mfa_required", async () => {
-    mockedStep1.mockResolvedValue({
-      ok: true,
-      data: { mfa_session_token: "tok-abc", mfa_required: true },
-    });
+  it("writes session cookie + redirects /dashboard on soom/soom", async () => {
     const url = await expectRedirect(() =>
-      loginAction(undefined, fd({ username: "a@b.com", password: "p" })),
-    );
-    expect(url).toBe("/login/mfa?token=tok-abc");
-    expect(cookieStore.set).not.toHaveBeenCalled();
-  });
-
-  it("writes session cookie + redirects /dashboard when JWT issued directly", async () => {
-    mockedStep1.mockResolvedValue({
-      ok: true,
-      data: {
-        jwt: "jwt-xyz",
-        expires_at: "2026-05-08T10:30:00.000Z",
-        operator: { id: "o1", email: "a@b.com" },
-      },
-    });
-    const url = await expectRedirect(() =>
-      loginAction(undefined, fd({ username: "a@b.com", password: "p" })),
+      loginAction(undefined, fd({ username: "soom", password: "soom" })),
     );
     expect(url).toBe("/dashboard");
     expect(cookieStore.set).toHaveBeenCalledTimes(1);
-    expect(cookieStore.set.mock.calls[0][0].value).toBe("jwt-xyz");
+    const cookieArg = cookieStore.set.mock.calls[0][0];
+    expect(cookieArg.name).toBe("iconia_admin_session");
+    expect(cookieArg.httpOnly).toBe(true);
+    // alg:none JWT — header.payload. (signature 비어있음)
+    expect(typeof cookieArg.value).toBe("string");
+    const parts = (cookieArg.value as string).split(".");
+    expect(parts).toHaveLength(3);
+    const payload = JSON.parse(
+      Buffer.from(
+        parts[1].replace(/-/g, "+").replace(/_/g, "/") +
+          "===".slice((parts[1].length + 3) % 4),
+        "base64",
+      ).toString("utf8"),
+    );
+    expect(payload.role).toBe("superadmin");
+    expect(payload.sub).toBe("soom");
+    expect(typeof payload.exp).toBe("number");
+    expect(payload.exp).toBeGreaterThan(Math.floor(Date.now() / 1000));
+    expect(mockedStep1).not.toHaveBeenCalled();
   });
 
-  it("returns ERR_OPERATOR_INVALID_CREDENTIALS error when server says so", async () => {
-    mockedStep1.mockResolvedValue({
-      ok: false,
-      code: "ERR_OPERATOR_INVALID_CREDENTIALS",
-      message: "bad",
-      status: 401,
-    });
-    const result = await loginAction(undefined, fd({ username: "a@b.com", password: "p" }));
+  it("rejects any non-soom username with ERR_OPERATOR_INVALID_CREDENTIALS", async () => {
+    const result = await loginAction(
+      undefined,
+      fd({ username: "admin", password: "soom" }),
+    );
     expect(result.status).toBe("error");
     expect(result.code).toBe("ERR_OPERATOR_INVALID_CREDENTIALS");
     expect(cookieStore.set).not.toHaveBeenCalled();
+    expect(mockedStep1).not.toHaveBeenCalled();
   });
 
-  it("propagates redirect on ERR_OPERATOR_SUSPENDED as form error (no redirect)", async () => {
-    mockedStep1.mockResolvedValue({
-      ok: false,
-      code: "ERR_OPERATOR_SUSPENDED",
-      message: "x",
-      status: 403,
-    });
-    const result = await loginAction(undefined, fd({ username: "a@b.com", password: "p" }));
+  it("rejects any non-soom password with ERR_OPERATOR_INVALID_CREDENTIALS", async () => {
+    const result = await loginAction(
+      undefined,
+      fd({ username: "soom", password: "wrong" }),
+    );
     expect(result.status).toBe("error");
-    expect(result.code).toBe("ERR_OPERATOR_SUSPENDED");
+    expect(result.code).toBe("ERR_OPERATOR_INVALID_CREDENTIALS");
+    expect(cookieStore.set).not.toHaveBeenCalled();
+    expect(mockedStep1).not.toHaveBeenCalled();
+  });
+
+  it("never calls the server API — dev/demo is purely local", async () => {
+    await loginAction(undefined, fd({ username: "a@b.com", password: "x" }));
+    await loginAction(undefined, fd({ username: "soom", password: "soom" })).catch(
+      () => {
+        /* redirect throws — expected */
+      },
+    );
+    expect(mockedStep1).not.toHaveBeenCalled();
   });
 });
 
