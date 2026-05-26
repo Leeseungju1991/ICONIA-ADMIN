@@ -43,7 +43,46 @@ function redirectTo(req: NextRequest, pathname: string, search: string) {
   return NextResponse.redirect(url);
 }
 
-export function middleware(req: NextRequest) {
+// Silent refresh — JWT exp 가 5분 이내면 Server `/api/v1/operator/refresh` 호출
+// 시도. 성공 시 새 토큰을 cookie 로 갱신하고 요청을 통과. 실패는 swallow —
+// 다음 요청에서 만료 분기로 정상 차단.
+//
+// Server endpoint 가 미구현이거나 실패해도 운영자 무인지 (graceful no-op).
+const SILENT_REFRESH_THRESHOLD_SEC = 5 * 60;
+
+async function attemptSilentRefresh(
+  req: NextRequest,
+  jwt: string,
+): Promise<{ token: string; maxAgeSec: number } | null> {
+  const serverUrl = process.env.ICONIA_SERVER_URL;
+  if (!serverUrl) return null;
+  try {
+    const r = await fetch(`${serverUrl}/api/v1/operator/refresh`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        Authorization: `Bearer ${jwt}`,
+      },
+      // Edge runtime — cache no-store + AbortController for short timeout.
+      cache: "no-store",
+      signal: AbortSignal.timeout(2000),
+    });
+    if (!r.ok) return null;
+    const body = (await r.json()) as {
+      ok?: boolean;
+      data?: { token?: string; expires_in_sec?: number };
+    };
+    if (!body?.ok || !body.data?.token) return null;
+    return {
+      token: body.data.token,
+      maxAgeSec: body.data.expires_in_sec ?? 3600,
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function middleware(req: NextRequest) {
   const jwt = req.cookies.get(AUTH_COOKIE_NAME)?.value;
   if (!jwt) {
     return redirectTo(req, "/login", "?reason=missing");
@@ -51,26 +90,48 @@ export function middleware(req: NextRequest) {
 
   const claims = decodeJwtClaims(jwt);
   const exp = typeof claims?.exp === "number" ? claims.exp : null;
+  const nowSec = Math.floor(Date.now() / 1000);
+  let effectiveJwt = jwt;
+  let refreshResponse: NextResponse | null = null;
+
   if (exp !== null) {
-    const nowSec = Math.floor(Date.now() / 1000);
     if (exp <= nowSec) {
       const res = redirectTo(req, "/login", "?reason=expired");
       // 만료된 cookie 제거 (서버 응답으로 cleared) — 다음 요청에서 missing 분기.
       res.cookies.delete(AUTH_COOKIE_NAME);
       return res;
     }
+    // Silent refresh 시도 — 만료 5분 이내일 때만, 본 요청은 그대로 통과.
+    if (exp - nowSec <= SILENT_REFRESH_THRESHOLD_SEC) {
+      const refreshed = await attemptSilentRefresh(req, jwt);
+      if (refreshed) {
+        effectiveJwt = refreshed.token;
+        refreshResponse = NextResponse.next();
+        refreshResponse.cookies.set({
+          name: AUTH_COOKIE_NAME,
+          value: refreshed.token,
+          httpOnly: true,
+          sameSite: "strict",
+          secure: process.env.COOKIE_SECURE !== "false",
+          path: "/",
+          maxAge: refreshed.maxAgeSec,
+        });
+      }
+    }
   }
 
   // RBAC — 경로별 필요 역할 검사. role 클레임이 없으면 보수적으로 viewer 취급.
+  // refresh 된 새 토큰의 role 클레임을 우선 사용.
+  const effectiveClaims = effectiveJwt === jwt ? claims : decodeJwtClaims(effectiveJwt);
   const required = findRequiredRoles(req.nextUrl.pathname);
   if (required) {
-    const role = typeof claims?.role === "string" ? claims.role : "viewer";
+    const role = typeof effectiveClaims?.role === "string" ? effectiveClaims.role : "viewer";
     if (!roleAllowed(role, required)) {
       return redirectTo(req, "/dashboard", "?reason=forbidden");
     }
   }
 
-  return NextResponse.next();
+  return refreshResponse ?? NextResponse.next();
 }
 
 export const config = {

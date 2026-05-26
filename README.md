@@ -1,203 +1,173 @@
-# ICONIA-ADMIN
+# ICONIA ADMIN (운영자 콘솔)
 
-ICONIA 운영자 콘솔. ICONIA-Server 의 `/api/v1/operator/*` · `/api/v1/admin/*`
-라우트를 사람이 쓰기 좋은 화면으로 노출하는 Next.js 14 (App Router) 웹 앱.
+ICONIA 운영자 콘솔 — Next.js 14 (App Router) · React 18 · Tailwind 3.
 
-- 스택: Next.js 14 · React 18 · Tailwind 3 · Zod · Vitest
-- 패키지명: `iconia-admin-web`
-
-> **★ localhost ↔ AWS 전환은 `.env` 의 `DEPLOY_TARGET` 한 줄만 바꾸면 됩니다.**
-> `DEPLOY_TARGET=local` → 로컬, `DEPLOY_TARGET=aws` → AWS 운영. 자세한 내용은 §3 참조.
+> **★ localhost ↔ AWS 전환은 `.env` 의 `DEPLOY_TARGET` 한 줄.**
+> `DEPLOY_TARGET=local` → 로컬, `DEPLOY_TARGET=aws` → 운영.
 
 ---
 
-## 1. 설계 구조도
+## 1. 구조도
 
 ```
-┌──────────────────────────────── ICONIA-ADMIN (Next.js 14) ────────────────────────────────┐
-│                                                                                            │
-│  /login ──MFA──▶ JWT 발급 (httpOnly · SameSite=Strict 쿠키)                                 │
-│      │                                                                                     │
-│      ▼                                                                                     │
-│  middleware.ts (Edge)  ──쿠키 부재/만료──▶ /login                                            │
-│      │  └─ RBAC: JWT role 클레임으로 경로별 1차 차단                                          │
-│      ▼                                                                                     │
-│  ┌─────────────────────────────── /dashboard ────────────────────────────────────┐         │
-│  │  Sidebar (역할별 메뉴 필터)              헤더: [환경 배지] [역할 배지]            │         │
-│  │                                                                                │         │
-│  │  ┌── 홈 ───────────┐  ┌── 회원/디바이스 ──┐  ┌── 콘텐츠 운영 ──────┐            │         │
-│  │  │ 핵심 KPI 8종     │  │ users   회원관리   │  │ reports  신고관리   │            │         │
-│  │  │ 신고/FW/에러 요약│  │ devices 디바이스   │  │ notices  공지/배너  │            │         │
-│  │  └─────────────────┘  │ ota     OTA 배포   │  │ push     푸시발송   │            │         │
-│  │                       │ personas AI페르소나│  └─────────────────────┘            │         │
-│  │  ┌── 에러/관측 ─────┐  └────────────────────┘  ┌── 통계/권한 ───────┐            │         │
-│  │  │ firmware-errors  │  ┌── 운영 안정성 ─────┐  │ stats   통계·SLO    │            │         │
-│  │  │ server-errors    │  │ ops: observability │  │ operators 운영자관리│            │         │
-│  │  │ app-errors       │  │ tracing · alerting │  └─────────────────────┘            │         │
-│  │  └──────────────────┘  │ replay · recovery  │                                    │         │
-│  │                        │ kill switch · flag │   공통 표: DataTable               │         │
-│  │                        └────────────────────┘   (대량 데이터 페이지네이션 내장)   │         │
-│  └────────────────────────────────────────────────────────────────────────────────┘         │
-│      │                                                                                     │
-│      │  Server Action / RSC (브라우저는 Server 를 직접 호출하지 않음)                         │
-│      ▼                                                                                     │
-│  lib/env.ts ── DEPLOY_TARGET 토글 ──▶ lib/httpClient.ts (Bearer JWT · timeout · 재시도)      │
-└──────────────────────────────────────────┬─────────────────────────────────────────────────┘
-                                           │  HTTPS
-                                           ▼
-                        ┌──────────────────────────────────────┐
-                        │  ICONIA-Server (Express)              │
-                        │  local: localhost:8080                │
-                        │  aws  : https://api.iconia.example... │
-                        │  ─ JWT 서명검증 (정본 권한 결정)        │
-                        │  ─ canonical audit log (hash chain)   │
-                        └──────────────────────────────────────┘
+운영자 브라우저
+    │  (HTTPS, httpOnly 쿠키)
+    ▼
+┌─────────────── ICONIA-ADMIN (Next.js 14) ───────────────┐
+│  /login → MFA(TOTP) → JWT 발급                          │
+│                                                          │
+│  middleware.ts (Edge)                                    │
+│     │ JWT 없음 → /login                                  │
+│     │ role 기반 경로 차단                                 │
+│     ▼                                                    │
+│  /dashboard                                              │
+│   ├─ 홈 (KPI 8종 + 5개 서비스 상태)                       │
+│   ├─ CS 통합 조회·회원·디바이스·OTA·페르소나              │
+│   ├─ 리뷰·신고·공지·푸시·통계                            │
+│   ├─ 펌웨어/서버/앱 에러                                  │
+│   ├─ 운영 안정성 9항목 + AI 호출 모니터링                 │
+│   ├─ 양산·AS·운영 리포트 아카이브                         │
+│   └─ 운영자 관리 (최고관리자)                             │
+│                                                          │
+│  Server Action / RSC (브라우저는 Server 직접 호출 안 함)  │
+└──────────────────────┬───────────────────────────────────┘
+                       │  Bearer JWT (서버사이드만)
+                       ▼
+                 ICONIA-SERVER
+                  /api/v1/admin/*
+                  /api/v1/operator/*
 ```
 
 ---
 
-## 2. 동작 설명
+## 2. 동작 설명 (5줄)
 
-관리자가 한 화면에서 ICONIA 서비스를 운영합니다. 사용자와 인형(디바이스)을 검색해
-상태를 확인하고 강제 로그아웃·계정 정지 같은 조치를 내리며, AI 페르소나·펌웨어를
-배포하고, 신고·공지·푸시를 처리합니다. 서버·앱·펌웨어 에러와 시스템 건강 상태를
-실시간으로 지켜보다가 문제가 생기면 즉시 복구 액션을 실행합니다. 모든 강력한 조치는
-사유 입력과 2단계 확인을 거쳐 감사 로그에 남습니다.
+1. 관리자가 ID/비밀번호와 2단계 인증(TOTP)으로 로그인합니다.
+2. 한 화면에서 사용자·디바이스·AI 페르소나·펌웨어 배포·신고·공지·푸시를 관리합니다.
+3. 시스템 건강 상태(서버·AI·DB·앱·관리자 콘솔)와 에러 발생을 실시간으로 지켜봅니다.
+4. 문제가 생기면 즉시 복구 액션(강제 로그아웃·OTA 롤백·기능 차단)을 실행합니다.
+5. 모든 강력한 조치는 사유 입력과 2단계 확인을 거쳐 감사 로그에 영구 기록됩니다.
 
 ---
 
 ## 3. 기능
 
-### 환경 전환 — localhost ↔ AWS 단일 토글
+### 3.1 환경 전환
+- **단일 토글** — `.env` 의 `DEPLOY_TARGET=local|aws` 한 줄로 로컬/운영 자동 전환
+- `aws` 토글 시 평문 http URL 차단, HTTPS 강제
 
-- `.env` 의 **`DEPLOY_TARGET` 한 줄**로 전체 환경 전환:
-  - `DEPLOY_TARGET=local` → Server `localhost:8080` · 쿠키 비-Secure · DEV 배지
-  - `DEPLOY_TARGET=aws` → 실 Server URL · 쿠키 Secure · PROD 배지 · HSTS
-- `ICONIA_SERVER_URL` / `ICONIA_ENV` / `COOKIE_SECURE` 를 따로 만질 필요 없음 —
-  `lib/env.ts` 가 토글 하나로 전부를 일관되게 결정.
-- `aws` 토글은 안전장치 내장: Server URL 미설정이거나 평문 `http` 면 부팅 시 차단.
+### 3.2 로그인 / 권한
+- ID + 비밀번호 + TOTP 2단계 인증
+- 5단계 운영자 역할 (최고관리자 · SRE · 보안운영 · 고객지원 · 읽기전용)
+- 역할별 메뉴 자동 필터링 (접근 불가 메뉴는 숨김)
+- 30분 비활동 시 자동 로그아웃
+- **운영자 IP 허용목록** — 운영자 IP 화이트리스트 관리 화면
 
-### 운영 화면
+### 3.3 대시보드 홈
+- 8개 핵심 지표 카드 (활성 디바이스 · 일일 대화량 · 에러율 · 큐 적체 등)
+- **5개 서비스 상태** — 백엔드(서버·AI·DB)와 클라이언트(관리자·앱)를 구간 분리해 표시
+- 처리 대기 신고·앱 에러·서버 에러 미리보기 3건씩
 
-- **대시보드 홈** — 활성 디바이스·DAU·사용자 인지 에러율·큐 적체·24h 에러·서버 헬스·
-  신고 대기·펌웨어 크리티컬 8종 KPI + 신고/에러 요약 패널.
-- **회원 관리** — 검색·필터·상세 드로어. 강제 로그아웃·계정 정지·MFA 초기화·탈퇴 처리.
-  PII 기본 마스킹, 해제는 감사 로그 기록. PIPA 권리 추적 패널.
-- **디바이스 모니터링** — last seen·배터리 분포·Wi-Fi·BLE 페어링 안정성·FW 에러.
-- **OTA 관리** — 펌웨어 채널 배포·일시중지·중단·롤백.
-- **AI 페르소나** — SOUL 파일 검수·라이브 전환·롤백.
-- **리뷰·신고 / 공지·배너 / 푸시** — 검토·처리, 등록·편집, 캠페인 발송.
-- **통계** — DAU·가입·매출 추세 + 사용자 인지 에러율 SLO 카드.
-- **에러 로그** — 펌웨어·서버·앱 에러 검색·필터·CSV/JSON 내보내기·상세 드로어.
-- **운영 안정성** — observability·tracing·alerting·audit·replay·recovery·
-  kill switch·feature flag 9항목 통합 + AI 호출 모니터링(실 연동).
-- **운영자 관리** — 운영자 초대·역할·비활성화 (최고관리자 전용).
+### 3.4 회원 관리
+- 이메일·이름·UUID 통합 검색
+- 강제 로그아웃 · 계정 일시정지 · MFA 초기화 · 탈퇴 처리
+- 개인정보(이메일·이름·전화) 기본 마스킹, 해제 시 감사 로그 자동 기록
+- PIPA(개인정보보호법) 사용자 권리 추적 (열람·정정·삭제·이관)
 
-### 양산화 / 안정성
+### 3.5 디바이스 모니터링
+- 인형(ESP32) 마지막 연결 시각·배터리·펌웨어 버전·온라인 여부
+- 펌웨어 에러 발생 디바이스 추적
+- 디바이스 소유권 이력 (페어링/해제/분실 신고)
+- **Fleet 출하 잠금** — Secure Boot·Flash Encryption·JTAG 비활성 등 보안 invariant 위반 디바이스 감지
 
-- **대량 데이터** — 공통 `DataTable` 이 클라이언트 페이지네이션 내장. 수만 행이
-  들어와도 한 화면 DOM 노드를 페이지 크기로 상한선 고정 → 렌더 비용 일정.
-- **API 안정성** — 모든 Server 호출은 `lib/httpClient.ts` 단일 경유. Bearer JWT ·
-  envelope unwrap · 10초 timeout(AbortController) · 5xx/네트워크/비-JSON 을
-  코드로 graceful 매핑하여 절대 throw 하지 않음.
-- **로딩/에러/빈 상태** — 모든 표·패널에 빈 상태 메시지, Server 도달 불가 시
-  mock degrade(예: AI 호출 패널) 또는 명시적 에러 안내.
-- **운영자 액션 재시도** — transient 실패는 `runWithSilentRetry`(3회 backoff),
-  최종 실패만 toast.
+### 3.6 OTA(펌웨어) 배포
+- 펌웨어 채널 관리 (stable/beta/dev)
+- 단계적 배포 · 일시정지 · 중단 · 롤백
+- 배포 실패 디바이스 코드별 분포
 
-### 보안
+### 3.7 AI 페르소나
+- SOUL 파일 24종 검수
+- 스테이징 → 라이브 전환 → 롤백 (최고관리자 전용)
+- 페르소나별 응답 품질 · 폴백 비율 · 평균 지연 추적
 
-- **인증** — `/login` + MFA(TOTP), JWT httpOnly + `SameSite=Strict` 쿠키.
-- **RBAC** — `middleware.ts` 가 JWT `role` 로 경로별 1차 차단, Sidebar 가 역할별
-  메뉴 필터링. 정본 권한 결정은 항상 Server.
-- **감사 로그** — `user.*` 액션은 Server canonical hash chain, 그 외는 세션 trail.
-  강력 액션은 사유 5자 + `EXECUTE` 2단계 확인.
-- **PII 마스킹** — 회원 이메일·이름·ID 기본 마스킹, 해제 시 감사 로그.
-- **보안 헤더** — CSP·HSTS(운영)·X-Frame-Options·COOP/CORP (`next.config.mjs`).
-- idle 자동 로그아웃 (기본 30분, `ADMIN_IDLE_TIMEOUT_MINUTES`).
+### 3.8 콘텐츠 운영
+- **리뷰·신고 관리** — 게시물 신고 검토, 숨김·복구 처리 (감사 로그 자동)
+- **공지·배너 관리** — 앱/웹 공지사항 등록·수정·노출 일정
+- **푸시 알림** — 전체/세그먼트 캠페인 발송 · 도달율 추적
+- **운영 리포트 아카이브** — 매일 02:00 / 일요일 02:30 KST 자동 생성 리포트 조회 (수동 트리거는 최고관리자만)
 
-### 환경 변수
+### 3.9 에러 로그
+- 펌웨어/서버/앱 에러 통합 조회
+- 코드별 분포 · 영향 사용자 수 · CSV/JSON 내보내기
+
+### 3.10 운영 안정성 (9항목 통합)
+- 관측 · 추적 · 알람 · 감사 · 재처리 · 복구 액션 · 강제 재시도 · 기능 차단 스위치 · 기능 플래그
+- **AI 호출 모니터링** — Gemini 키 풀 상태, 컨텍스트 압축 발동률, Provider 분포 (실시간)
+
+### 3.11 양산 / 출고
+- 양산 LOT 생성 · 시리얼 일괄 발급
+- 공장 출고 검수 결과 조회
+- AS(After-Sales) 교환 티켓 처리
+
+### 3.12 통계
+- DAU · 가입 · 매출 추세
+- 사용자 인지 에러율 SLO 카드
+
+### 3.13 운영자 관리 (최고관리자 전용)
+- **운영자 초대** — 이메일 초대 + 역할 부여 + 초기 비밀번호 발급
+- 운영자 비활성화 · 역할 변경
+- 본인 계정 비활성화 차단 (self-disable 가드)
+- TOTP 백업 코드 10개 발급 (CSV 다운로드)
+
+### 3.14 양산화 / 안정성
+- **대량 데이터** — 공통 DataTable 의 클라이언트 페이지네이션 + **서버 측 커서 페이지네이션** 옵션
+- **API 안정성** — 모든 Server 호출 단일 경유, 10초 timeout, 5xx/네트워크 graceful 매핑 (절대 throw 안 함)
+- **실시간 스트림** — 일부 모니터링 패널은 SSE(Server-Sent Events) 로 실시간 갱신
+- **재시도** — transient 실패는 silent retry 3회 (사용자에겐 최종 실패만 노출)
+- **2인 승인(2-eye)** — 중요 mutation 액션에 2명 운영자 승인 요구 헬퍼
+
+### 3.15 보안
+- httpOnly · SameSite=Strict 쿠키
+- CSP · HSTS(운영) · X-Frame-Options · COOP/CORP 보안 헤더
+- **Refresh token silent rotation** — 만료 5분 전 자동 갱신, 운영자 무인지
+- 강력 액션 사유 5자 + EXECUTE 2단계 확인
+- 모든 액션 감사 로그 (Server canonical hash chain + 세션 trail)
+
+### 3.16 국제화
+- 한국어 / 영어 메시지 분리 (`i18n/ko.json`, `i18n/en.json`)
+- 운영자 환경설정에서 언어 토글
+
+### 3.17 디자인 시스템
+- Tailwind 3 + 일관된 디자인 토큰 (색상·간격·타이포)
+- 공통 컴포넌트 (PanelCard · StatCard · DataTable · 모달)
+
+---
+
+## 4. 추가 개발 항목
+
+### ⚠️ 부분 가능 (이유)
+
+- **mock → real swap 일부 화면** — Server endpoint 부재 항목은 client 함수 시그니처와 빈/에러 분기까지만 준비됨. Server `/api/v1/admin/ops/probes·alerts·traces·dead-letters·kill-switches·feature-flags·error-slo·expo-receipts·battery-distribution·users/signups·pipa/*·devices/pairings` 도입 후 swap 완료 가능. *(Server 라우트 작업이 선행되어야 함)*
+- **MAU 카드 · SKU 분포 등 통계 확장** — Server 가 데이터를 노출하면 가능. 현재는 통계 표면 골격만 존재. *(Server 통계 endpoint 추가 필요)*
+- **Sentry · OpenTelemetry 통합** — SDK 통합 코드는 준비 가능하나 실 trace/crash-free session 값은 외부 계정(Sentry)이 있어야 검증. *(외부 계정·비용)*
+
+### ❌ 당장 불가능 (이유)
+
+- **실 운영자 트래픽 부하 테스트** — 실 사용자 운영자 다수가 동시에 콘솔을 쓰는 시나리오의 실측 부하는 베타 운영 단계 진입 후 가능. *(실 운영 환경 필요)*
+
+---
+
+## 5. 환경 변수
 
 | 변수 | 필수 | 용도 |
 |---|---|---|
-| `DEPLOY_TARGET` | △ | **`local` / `aws` 단일 토글.** 미설정 시 `local` |
+| `DEPLOY_TARGET` | △ | **`local`/`aws` 단일 토글**. 미설정 시 `local` |
 | `ICONIA_SERVER_URL` | △ | Server URL. `aws` 토글에서만 필수 (https) |
-| `ICONIA_ENV` | ✗ | 환경 배지 override. 미설정 시 토글로 추론 |
-| `ADMIN_IDLE_TIMEOUT_MINUTES` | ✗ | idle 로그아웃 임계 (5~480, 기본 30) |
-| `ADMIN_ALLOWED_ORIGIN` | ✗ | Server Action 허용 origin (운영) |
+| `ICONIA_ENV` | ✗ | 환경 배지 override |
+| `ADMIN_IDLE_TIMEOUT_MINUTES` | ✗ | 비활동 자동 로그아웃 (기본 30분) |
+| `ADMIN_ALLOWED_ORIGIN` | ✗ | Server Action 허용 origin |
+| `ADMIN_DEFAULT_LOCALE` | ✗ | 기본 언어 (`ko`/`en`, 기본 `ko`) |
 
 ---
 
-## 4. 추가 고려 개발항목
-
-상용 운영 전 남은 과제.
-
-### 백엔드 endpoint 연동 (mock → real swap)
-
-- 일부 화면은 아직 `mockData.ts` / `opsInfraMock.ts` 기반. Server 라우트가
-  존재하는 항목(`/operator/me`, `/admin/ai-health`, `/admin/audit-log`,
-  `/operator/admin/operators*`, `/admin/users*` 등)은 실 연동 완료.
-- 미존재 라우트는 Server 도입 후 swap 대상: `ops/probes` · `ops/alerts` ·
-  `ops/traces` · `dead-letters` · `kill-switches` · `feature-flags` ·
-  `error-slo` · `expo-receipts` · `battery-distribution` · `users/signups` ·
-  `pipa/*` · `devices/pairings`.
-- 세션 audit trail(sessionStorage) → Server `appendAuditLog` 연결. Server
-  `ALLOWED_ACTIONS` enum 에 `ops.*`/`recovery.*`/`kill_switch.*`/`feature_flag.*` 등록 필요.
-
-### 대량 데이터 서버 사이드 전환
-
-- 현재 페이지네이션·검색·필터는 클라이언트 측. 실사용 데이터가 수십만 건을
-  넘어가면 Server 측 커서 페이지네이션 + 인덱스 검색 endpoint 로 전환 필요.
-- 모니터링 패널은 폴링형 — Server SSE/WebSocket stream 도입 시 실시간성 강화.
-
-### 보안 / 운영 강화
-
-- Refresh token rotation 의 Admin 측 silent refresh 흐름.
-- 운영자 IP allowlist 화면 (Server 라우트 도입 후).
-- 중요 mutation 2-eye(2인 승인) 워크플로.
-- 2FA TOTP 정식화 (현재 `/security/2fa` scaffold).
-- 운영자 초대 — Server 초대 라우트 도입 후 audit-only → 실 mutation 전환.
-
-### 관측성 / 테스트
-
-- Sentry / OpenTelemetry 도입 — crash-free session % · trace hop 실값화.
-- Playwright E2E — 실 Server fixture 또는 docker compose 기반.
-- 시각 회귀 테스트 baseline.
-
-### UI / UX
-
-- i18n — 현재 한국어 하드코딩, ko/en 분리.
-- 디자인 시스템 정식화 (shadcn 등).
-- MAU 카드 · SKU 분포 등 통계 확장.
-
-### 비범위 (의도적으로 Admin 에서 처리하지 않음)
-
-- 사용자(end-user) UI — App 도메인.
-- KB 인덱싱 파이프라인 — AI 도메인.
-- 운영자 권한 결정 — 항상 Server JWT 검증이 정본.
-
----
-
-## 5. 최근 라운드 (Phase 5~11) 누적 변경
-
-Server 측 신규 33개 endpoint 와 1:1 정합하는 운영자 화면 라운드. 신규 페이지 9개 + Live*Panel 12개 +
-PII 마스킹 해제 3중 가드 + TOTP 백업 코드 흐름. 기존 화면·라우팅은 그대로 두고 추가.
-
-### 5.1 신규 페이지 9개
-- `/dashboard/cs` — CS lookup (전화/이메일 정규화)
-- `/dashboard/knowledge` — RAG KB 검수
-- `/dashboard/factory-test` — 양산 라인 self-test 결과 조회
-- `/dashboard/as` — AS 교환 티켓
-- `/dashboard/reports-archive` — 월간/분기 OpsReport 아카이브
-- 신규 client 함수 **33개** (Server 측 신규 admin endpoint 와 1:1 매핑)
-
-### 5.2 Live*Panel 12개
-`LiveUsersPanel` · `LivePipaPanel` · `LiveDevicesPanel` · `FleetDistributionPanel` ·
-`OwnershipTimeline` · `BootInvariantsPanel` · `LivePersonaStatus` · `LiveFirmwareFailures` ·
-`LiveDeploymentsPanel` · `DeploymentLedgerPanel` · `LiveDlqSubPanel` · `CostDashboardPanel`
-
-### 5.3 운영 안정성 / 보안
-- `MockDataBanner` — Server 미구현 페이지(notices / push / server-errors / app-errors)에서
-  **데모 데이터임을 명시**. 운영자가 mock 을 실데이터로 오인하지 않도록 시각 가드.
-- **PII 마스킹 해제 3중 가드** — 경고 모달 → 사유 prompt(5자 이상) → audit 기록 (Server `?unmask=true` 와 정합).
-- `BackupCodePanel` — TOTP 10개 백업 코드 발급 + CSV 다운로드 + 단일 사용 표시.
+*문서 마지막 갱신: 2026-05-26 (Phase 16-A — 양식 정렬 + 가능 12건 진행 라운드)*

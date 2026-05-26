@@ -37,6 +37,7 @@ const nav: NavItem[] = [
   { to: "/dashboard/boot-invariants", label: "Fleet 출하 잠금", icon: ShieldIcon },
   { to: "/dashboard/reports-archive", label: "운영 리포트 아카이브", icon: ReportIcon },
   { to: "/dashboard/operators", label: "운영자 관리", icon: KeyIcon },
+  { to: "/dashboard/ip-allowlist", label: "IP 허용목록", icon: ShieldIcon },
 ];
 
 function pageTitle(pathname: string): { title: string; subtitle: string } {

@@ -1,0 +1,60 @@
+// ICONIA-Admin 한국어 메시지 카탈로그.
+// 정본 — 키는 dot-notation (예: "common.save"). 누락 시 fallback 영어 사용.
+
+export const messagesKo = {
+  common: {
+    save: "저장",
+    cancel: "취소",
+    delete: "삭제",
+    close: "닫기",
+    confirm: "확인",
+    loading: "불러오는 중",
+    error: "오류",
+    retry: "다시 시도",
+    search: "검색",
+    refresh: "새로고침",
+    yes: "예",
+    no: "아니오",
+    required_reason: "사유를 5자 이상 입력하세요",
+    server_unreachable: "Server 미가동",
+    forbidden: "접근 권한이 없습니다",
+  },
+  auth: {
+    sign_in: "로그인",
+    sign_out: "로그아웃",
+    password: "비밀번호",
+    totp: "2단계 인증 코드",
+    refresh_failed: "세션 갱신 실패 — 다시 로그인하세요",
+  },
+  nav: {
+    dashboard: "대시보드",
+    cs: "CS 통합 조회",
+    users: "회원 관리",
+    devices: "디바이스 모니터링",
+    ota: "OTA 관리",
+    personas: "AI 페르소나",
+    knowledge: "RAG·대화 품질",
+    reports: "리뷰·신고 관리",
+    notices: "공지/배너 관리",
+    push: "푸시 알림 관리",
+    stats: "통계 관리",
+    firmware_errors: "펌웨어 에러",
+    server_errors: "서버 에러",
+    app_errors: "앱 에러",
+    ops: "운영 안정성",
+    factory_test: "양산·출고 검수",
+    as: "AS·교환 관리",
+    boot_invariants: "Fleet 출하 잠금",
+    reports_archive: "운영 리포트 아카이브",
+    operators: "운영자 관리",
+  },
+  two_eye: {
+    title: "2인 승인 필요",
+    description: "이 작업은 다른 운영자 1명의 승인이 필요합니다.",
+    request: "승인 요청 발송",
+    pending: "승인 대기 중",
+    approved: "승인 완료",
+  },
+} as const;
+
+export type MessageKey = keyof typeof messagesKo;

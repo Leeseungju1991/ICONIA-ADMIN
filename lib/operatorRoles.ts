@@ -35,8 +35,9 @@ export const ROLE_LABEL: Record<OperatorRole, string> = {
  * 더 구체적인 prefix 가 먼저 와야 한다 (findRequiredRoles 는 첫 매칭 사용).
  */
 export const PATH_REQUIRED_ROLES: { prefix: string; roles: OperatorRole[] }[] = [
-  // superadmin 전용 — 운영자 관리.
+  // superadmin 전용 — 운영자 관리 + IP 허용목록.
   { prefix: "/dashboard/operators", roles: SUPERADMIN_ONLY },
+  { prefix: "/dashboard/ip-allowlist", roles: SUPERADMIN_ONLY },
   // sre/secops/superadmin — 운영 안정성 콘솔 (kill switch / recovery / replay).
   { prefix: "/dashboard/ops", roles: SRE_OR_ABOVE },
   // sre/secops/superadmin — OTA 배포 / 펌웨어.
