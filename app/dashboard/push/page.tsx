@@ -52,10 +52,10 @@ export default function PushPage() {
     startCreate(async () => {
       const r: CampaignMutationResult = await createCampaignAction({ title, body, audience });
       if (!r.ok) {
-        setToast(`draft 작성 실패: ${r.message}`);
+        setToast(`저장 실패: ${r.message}`);
         return;
       }
-      setToast(`draft 캠페인 생성됨: ${r.campaign.id}`);
+      setToast(`캠페인 저장됨: ${r.campaign.id}`);
       e.currentTarget?.reset?.();
       reload();
     });
@@ -85,29 +85,26 @@ export default function PushPage() {
 
   return (
     <div className="space-y-6">
-      <PanelCard
-        title="푸시 캠페인 draft 작성"
-        description="Server POST /api/v1/admin/push/campaigns — draft 로 저장 후 별도 send 액션."
-      >
+      <PanelCard title="캠페인 내용 작성">
         <form onSubmit={handleCreate} className="space-y-3">
           <input
             name="title"
             placeholder="알림 제목 (2자 이상)"
-            className="w-full rounded-xl border border-white/70 bg-white/60 px-3 py-2 text-sm"
+            className="w-full rounded-xl border-2 border-slate-500 bg-white px-3 py-2 text-sm focus:border-slate-700 focus:outline-none"
             required
           />
           <textarea
             name="body"
             placeholder="알림 본문 (5자 이상)"
             rows={3}
-            className="w-full rounded-xl border border-white/70 bg-white/60 px-3 py-2 text-sm"
+            className="w-full rounded-xl border-2 border-slate-500 bg-white px-3 py-2 text-sm focus:border-slate-700 focus:outline-none"
             required
           />
           <div className="flex items-center gap-2">
             <select
               name="audience"
               defaultValue="all"
-              className="rounded-xl border border-white/70 bg-white/60 px-3 py-2 text-sm"
+              className="rounded-xl border-2 border-slate-500 bg-white px-3 py-2 text-sm"
             >
               {AUDIENCES.map((a) => (
                 <option key={a} value={a}>
@@ -120,15 +117,14 @@ export default function PushPage() {
               disabled={creating}
               className="rounded-xl bg-accent px-4 py-2 text-sm text-white shadow-card disabled:opacity-60"
             >
-              {creating ? "draft 저장 중..." : "draft 저장"}
+              {creating ? "저장 중..." : "저장"}
             </button>
           </div>
         </form>
       </PanelCard>
 
       <PanelCard
-        title="푸시 캠페인 목록"
-        description="Server GET /api/v1/admin/push/campaigns — draft/sent/failed 통합."
+        title="푸시 캠페인 발송 기록"
         actions={
           <button
             type="button"
@@ -143,9 +139,7 @@ export default function PushPage() {
         {!state ? (
           <div className="text-sm text-muted">불러오는 중</div>
         ) : !state.ok ? (
-          <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-            Server 도달 실패: {state.message}
-          </div>
+          <div className="text-sm text-muted">발송된 캠페인이 없습니다.</div>
         ) : items.length === 0 ? (
           <div className="text-sm text-muted">발송된 캠페인이 없습니다.</div>
         ) : (

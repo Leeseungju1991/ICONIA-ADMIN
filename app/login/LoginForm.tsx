@@ -14,8 +14,6 @@ export default function LoginForm() {
   const [state, setState] = useState<FormState | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  const isDev = process.env.NODE_ENV !== "production";
-
   function submit() {
     setState(null);
     const fd = new FormData();
@@ -87,12 +85,6 @@ export default function LoginForm() {
       >
         {isPending ? "로그인 중..." : "Sign in"}
       </button>
-
-      {isDev ? (
-        <div className="text-xs text-slate-400 text-center">
-          dev 환경 — 서버에 등록된 운영자 계정으로 로그인하세요.
-        </div>
-      ) : null}
     </div>
   );
 }

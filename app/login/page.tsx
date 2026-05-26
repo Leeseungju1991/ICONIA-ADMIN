@@ -26,10 +26,9 @@ export default function LoginPage({
       <div className="w-full max-w-xl rounded-[32px] glass-panel px-10 py-12">
         <div className="text-center">
           <div className="text-3xl sm:text-4xl font-semibold tracking-tight text-slate-700">
-            <span className="block">ICONIA</span>
-            <span className="block">Admin Console</span>
+            <span className="block">ICONIA Project</span>
+            <span className="block">Admin Page</span>
           </div>
-          <div className="text-sm text-slate-400 mt-2">관리자 로그인 페이지</div>
         </div>
 
         {banner ? (

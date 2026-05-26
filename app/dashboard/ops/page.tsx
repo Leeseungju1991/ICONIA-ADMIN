@@ -331,6 +331,121 @@ function AiTimeoutBlock() {
           accent="pink"
         />
       </div>
+      {/* Phase 16 — context_compressed + key pool + provider distribution (Server 신규 필드). */}
+      {live && snapshot ? (
+        <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {(() => {
+            const cc = snapshot.context_compressed_count_5m ?? 0;
+            const total = snapshot.window_total || 0;
+            const ratio = total > 0 ? (cc / total) * 100 : 0;
+            const high = ratio > 5;
+            return (
+              <div
+                className={[
+                  "rounded-2xl border px-4 py-3",
+                  high ? "border-amber-200 bg-amber-50/80" : "border-white/60 bg-white/55",
+                ].join(" ")}
+              >
+                <div className="text-xs text-muted">컨텍스트 압축 발동 (5m)</div>
+                <div className="mt-1 flex items-baseline gap-2">
+                  <span className="text-xl font-bold text-slate-800">{cc.toLocaleString()}건</span>
+                  <span className={["text-xs", high ? "text-amber-700" : "text-muted"].join(" ")}>
+                    {ratio.toFixed(1)}% / 호출 {total.toLocaleString()}
+                  </span>
+                </div>
+                <div className="text-[11px] text-muted mt-1">
+                  Gemini ERR_CONTEXT_TOO_LONG 압축 재시도. 5% 초과 시 SOUL 캐시 압축 정책 점검.
+                </div>
+              </div>
+            );
+          })()}
+
+          {(() => {
+            const kp = snapshot.key_pool;
+            if (!kp) {
+              return (
+                <div className="rounded-2xl border border-white/60 bg-white/55 px-4 py-3">
+                  <div className="text-xs text-muted">Gemini 키 풀</div>
+                  <div className="mt-1 text-sm text-slate-700">단일 키 모드</div>
+                  <div className="text-[11px] text-muted mt-1">
+                    GEMINI_API_KEYS 다중 키 미설정. 폭주 시 fallback 카피로만 보호.
+                  </div>
+                </div>
+              );
+            }
+            const allActive = kp.cooling_down === 0 && kp.disabled === 0;
+            return (
+              <div
+                className={[
+                  "rounded-2xl border px-4 py-3",
+                  allActive
+                    ? "border-emerald-200 bg-emerald-50/60"
+                    : kp.active === 0
+                      ? "border-rose-200 bg-rose-50/80"
+                      : "border-amber-200 bg-amber-50/60",
+                ].join(" ")}
+              >
+                <div className="text-xs text-muted">Gemini 키 풀</div>
+                <div className="mt-1 flex items-baseline gap-2 flex-wrap">
+                  <span className="text-xl font-bold text-slate-800">
+                    {kp.active}/{kp.total}
+                  </span>
+                  <span className="text-xs text-emerald-700">활성</span>
+                  {kp.cooling_down > 0 ? (
+                    <span className="text-xs text-amber-700">cooldown {kp.cooling_down}</span>
+                  ) : null}
+                  {kp.disabled > 0 ? (
+                    <span className="text-xs text-rose-700">disabled {kp.disabled}</span>
+                  ) : null}
+                </div>
+                <div className="text-[11px] text-muted mt-1">
+                  429/auth 실패 시 자동 cooldown · 회복 시 자동 복귀. 키 평문은 노출되지 않음.
+                </div>
+              </div>
+            );
+          })()}
+
+          {(() => {
+            const pd = snapshot.provider_distribution_5m;
+            if (!pd || Object.keys(pd).length === 0) {
+              return (
+                <div className="rounded-2xl border border-white/60 bg-white/55 px-4 py-3">
+                  <div className="text-xs text-muted">Provider 분포 (5m)</div>
+                  <div className="mt-1 text-sm text-slate-700">집계 없음</div>
+                  <div className="text-[11px] text-muted mt-1">
+                    region 라우팅 활성 시 gemini / deepseek / vertex 호출 비율 표시.
+                  </div>
+                </div>
+              );
+            }
+            const total = Object.values(pd).reduce((s, n) => s + n, 0);
+            return (
+              <div className="rounded-2xl border border-white/60 bg-white/55 px-4 py-3">
+                <div className="text-xs text-muted">Provider 분포 (5m)</div>
+                <div className="mt-1.5 space-y-1">
+                  {Object.entries(pd)
+                    .sort((a, b) => b[1] - a[1])
+                    .map(([provider, n]) => {
+                      const pct = total > 0 ? (n / total) * 100 : 0;
+                      return (
+                        <div key={provider} className="flex items-center gap-2 text-xs">
+                          <span className="font-mono text-slate-700 w-16 truncate">{provider}</span>
+                          <div className="flex-1 h-1.5 rounded-full bg-white/60 overflow-hidden">
+                            <div className="h-full bg-accent" style={{ width: `${pct}%` }} />
+                          </div>
+                          <span className="text-muted w-20 text-right">
+                            {n.toLocaleString()} · {pct.toFixed(0)}%
+                          </span>
+                        </div>
+                      );
+                    })}
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+      ) : null}
+
       {live && snapshot && snapshot.by_model.length > 0 ? (
         <div className="mt-3 flex flex-wrap gap-2">
           {snapshot.by_model.map((m) => (

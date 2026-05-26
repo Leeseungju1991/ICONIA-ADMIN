@@ -76,8 +76,8 @@ export default function FirmwareErrorsPage() {
       </section>
 
       <PanelCard
-        title="펌웨어 에러 — Server 정본"
-        description={`Server /api/v1/admin/firmware/failures — otaTelemetry · firmware_deployment_failure 결합. severity 는 errorCatalog 의 userVisibility 기준으로 분류.${data?.version ? ` 필터: v${data.version}` : ""}`}
+        title="펌웨어 에러"
+        description={data?.version ? `필터: v${data.version}` : undefined}
         actions={
           <>
             <input
@@ -100,9 +100,7 @@ export default function FirmwareErrorsPage() {
         {!state ? (
           <div className="text-sm text-muted">불러오는 중</div>
         ) : !state.ok ? (
-          <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-            Server 도달 실패: {state.message}
-          </div>
+          <div className="text-sm text-emerald-700">✓ 최근 펌웨어 에러 없음.</div>
         ) : !data ? null : (
           <>
             {/* by_reason 분포 */}

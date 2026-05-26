@@ -54,14 +54,19 @@ export default function ReportsPage() {
   const [toast, setToast] = useState<string | null>(null);
   const [auditTick, setAuditTick] = useState(0);
   const [posts, setPosts] = useState<PostRow[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ message: string; unreachable: boolean } | null>(null);
   const [loading, startLoad] = useTransition();
 
   function reload() {
     startLoad(async () => {
       const r = await listReportedPostsAction();
       if (!r.ok) {
-        setError(r.message);
+        // r.message 는 `${code}: ${message}` 포맷. ERR_NETWORK / ERR_SERVER_UNAVAILABLE
+        // 일 때는 Server 미가동으로 graceful 안내, 그 외는 그대로 표시.
+        const unreachable =
+          r.message.startsWith("ERR_NETWORK") ||
+          r.message.startsWith("ERR_SERVER_UNAVAILABLE");
+        setError({ message: r.message, unreachable });
         setPosts([]);
       } else {
         setError(null);
@@ -217,9 +222,18 @@ export default function ReportsPage() {
         }
       >
         {error ? (
-          <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 mb-3">
-            Server 도달 실패: {error}
-          </div>
+          error.unreachable ? (
+            <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-700 mb-3">
+              <div className="font-medium">Server 미가동</div>
+              <div className="mt-1 text-xs text-muted">
+                ICONIA-SERVER 가 응답하지 않습니다. 로컬에서는 <code>3. SERVER</code> 가 떠 있는지 확인하세요.
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 mb-3">
+              조회 실패: {error.message}
+            </div>
+          )
         ) : null}
         <div className="flex flex-wrap gap-2 mb-4">
           {tabs.map((t) => (

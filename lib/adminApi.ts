@@ -121,6 +121,24 @@ export type AiHealthSnapshot = {
     by_kind?: Record<string, { usd: number; krw: number }>;
     by_model?: Record<string, { usd: number; krw: number; calls: number }>;
   };
+  /**
+   * Phase 16 — Server `/api/v1/admin/ai-health` 확장 필드.
+   * AI service 가 `context_compressed: true` 응답을 낼 때마다 +1 (5분 윈도우).
+   * Server `aiHealthTracker.snapshot()` 가 누적, opt-in. legacy 응답엔 undefined.
+   */
+  context_compressed_count_5m?: number;
+  /** provider(gemini/deepseek/vertex) 별 호출 분포 (5분 윈도우). */
+  provider_distribution_5m?: Record<string, number>;
+  /**
+   * AI service `/v1/health/full.gemini_key_pool` 의 forward.
+   * keys: 활성/cooldown 상태별 카운트. 키 평문은 절대 노출되지 않음.
+   */
+  key_pool?: {
+    total: number;
+    active: number;
+    cooling_down: number;
+    disabled: number;
+  } | null;
 };
 
 export type PostRow = {

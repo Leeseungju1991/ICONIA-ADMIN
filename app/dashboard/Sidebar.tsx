@@ -6,7 +6,6 @@ import { useEffect, useState, useTransition, type ReactNode } from "react";
 import { logoutAction } from "@/lib/actions/logout";
 import type { IconiaEnvName } from "@/lib/env";
 import {
-  ROLE_LABEL,
   canAccessPath,
   type OperatorRole,
 } from "@/lib/operatorRoles";
@@ -36,7 +35,7 @@ const nav: NavItem[] = [
   { to: "/dashboard/factory-test", label: "양산·출고 검수", icon: FactoryIcon },
   { to: "/dashboard/as", label: "AS·교환 관리", icon: WrenchIcon },
   { to: "/dashboard/boot-invariants", label: "Fleet 출하 잠금", icon: ShieldIcon },
-  { to: "/dashboard/reports-archive", label: "운영 리포트", icon: ReportIcon },
+  { to: "/dashboard/reports-archive", label: "운영 리포트 아카이브", icon: ReportIcon },
   { to: "/dashboard/operators", label: "운영자 관리", icon: KeyIcon },
 ];
 
@@ -67,7 +66,7 @@ function subtitleFor(to: string): string {
     case "/dashboard/factory-test": return "양산 LOT 생성 · 시리얼 일괄 발급 · 출고 검수 결과 입력. 펌웨어 production_test 가 자동 업로드한 결과는 LOT 별 yield 로 집계.";
     case "/dashboard/as": return "AS 접수·교체 기기 등록·회수 기기 잠금·종료. 신규 티켓은 이전 owner 페어링을 자동 force-unpair.";
     case "/dashboard/boot-invariants": return "Fleet 전체 출하 잠금 invariant 위반 추적 (Secure Boot·Flash Enc·JTAG Disable·OTA Anti-Rollback). 양산 라인 burn 실수 진단.";
-    case "/dashboard/reports-archive": return "일간·주간·품질 운영 리포트 보관. 매일 02:00 / 일요일 02:30 KST 자동 생성. 수동 트리거는 최고관리자.";
+    case "/dashboard/reports-archive": return "리뷰·신고 처리 결과 보관. 매일 02:00 / 일요일 02:30 KST 자동 생성. 수동 트리거는 최고관리자.";
     case "/dashboard/operators": return "운영 콘솔 접근 권한 — 운영자 초대·역할 부여·비활성화 (최고관리자 전용).";
     default: return "";
   }
@@ -75,16 +74,16 @@ function subtitleFor(to: string): string {
 
 export default function Sidebar({
   children,
-  env = "development",
+  env: _env = "development",
   role = "viewer",
-  operatorEmail = null,
+  operatorEmail: _operatorEmail = null,
 }: {
   children: ReactNode;
-  /** ICONIA_ENV — 헤더 env 배지 표시용. server-side `loadIconiaEnv()` 가 layout 에서 주입. */
+  /** ICONIA_ENV — layout 에서 주입 (현재 미사용, 향후 환경 분기용). */
   env?: IconiaEnvName;
-  /** 운영자 역할 — RBAC 네비게이션 게이팅 + 헤더 배지. */
+  /** 운영자 역할 — RBAC 네비게이션 게이팅. */
   role?: OperatorRole;
-  /** 운영자 이메일 — 헤더 표시용 (마스킹 없이 본인 식별). */
+  /** 운영자 이메일 — layout 에서 주입 (현재 미사용). */
   operatorEmail?: string | null;
 }) {
   const pathname = usePathname() ?? "/dashboard";
@@ -170,11 +169,6 @@ export default function Sidebar({
               <p className="text-xs sm:text-sm text-muted mt-0.5 truncate">{subtitle}</p>
             </div>
           </div>
-
-          <div className="flex items-center gap-2 shrink-0">
-            <EnvBadge env={env} />
-            <RoleBadge role={role} email={operatorEmail} />
-          </div>
         </header>
 
         <main className="flex-1 min-w-0 p-4 sm:p-6 pb-10 overflow-x-hidden">
@@ -182,61 +176,6 @@ export default function Sidebar({
         </main>
       </div>
     </div>
-  );
-}
-
-// EnvBadge — 운영자가 현재 콘솔의 환경 (prod/staging/dev) 을 한 눈에 구분.
-// prod 는 강조(빨강), staging 은 주황, dev 는 회색. 잘못된 환경에서의 운영자 실수 차단.
-function EnvBadge({ env }: { env: IconiaEnvName }) {
-  const map: Record<IconiaEnvName, { label: string; chip: string; title: string }> = {
-    production: {
-      label: "PROD",
-      chip: "chip chip-error",
-      title: "운영 환경 (production) — 실 사용자 데이터입니다. 모든 액션은 즉시 영향.",
-    },
-    staging: {
-      label: "STAGING",
-      chip: "chip chip-warn",
-      title: "스테이징 환경 — QA / 회귀 테스트 전용. 실 사용자 데이터 아님.",
-    },
-    development: {
-      label: "DEV",
-      chip: "chip chip-muted",
-      title: "개발 환경 — 로컬/테스트. mock 데이터.",
-    },
-  };
-  const meta = map[env];
-  return (
-    <span className={meta.chip} title={meta.title} aria-label={`현재 환경: ${meta.label}`}>
-      {meta.label}
-    </span>
-  );
-}
-
-// RoleBadge — 현재 운영자의 RBAC 역할을 헤더에 표시. 권한 색상 구분으로
-// 운영자가 자신의 접근 범위를 즉시 인지 (superadmin 빨강·sre/secops 파랑·cs 청록·viewer 회색).
-function RoleBadge({
-  role,
-  email,
-}: {
-  role: OperatorRole;
-  email: string | null;
-}) {
-  const chip: Record<OperatorRole, string> = {
-    superadmin: "chip chip-error",
-    sre: "chip chip-info",
-    secops: "chip chip-info",
-    cs: "chip chip-success",
-    viewer: "chip chip-muted",
-  };
-  return (
-    <span
-      className={chip[role]}
-      title={email ? `운영자: ${email} · 역할: ${ROLE_LABEL[role]}` : `역할: ${ROLE_LABEL[role]}`}
-      aria-label={`운영자 역할: ${ROLE_LABEL[role]}`}
-    >
-      {ROLE_LABEL[role]}
-    </span>
   );
 }
 

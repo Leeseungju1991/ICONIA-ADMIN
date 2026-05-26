@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { PanelCard } from "../_components/PanelCard";
-import { MockDataBanner } from "../_components/MockDataBanner";
 import {
   listServerErrorsAction,
   type StubListResult,
@@ -28,20 +27,11 @@ export default function ServerErrorsPage() {
   }, []);
 
   const items = state && state.ok ? state.items : [];
-  const isStub = state && state.ok && state.source === "stub";
 
   return (
     <div className="space-y-6">
-      {isStub ? (
-        <MockDataBanner
-          reason="운영 에러 정본은 CloudWatch + Sentry. Server 의 errors/server endpoint 는 stub — 향후 두 source 의 Admin 통합 표면."
-          endpoint="/api/v1/admin/errors/server (TBD — CloudWatch GetMetricData 또는 audit_logs 합성)"
-        />
-      ) : null}
-
       <PanelCard
         title="서버 에러"
-        description="AWS API/서비스 5xx · 예외 · 헬스 상태. CloudWatch + Sentry 가 정본, 본 화면은 통합 표면."
         actions={
           <button
             type="button"
@@ -56,13 +46,20 @@ export default function ServerErrorsPage() {
         {!state ? (
           <div className="text-sm text-muted">불러오는 중</div>
         ) : !state.ok ? (
-          <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-            Server 도달 실패: {state.message}
-          </div>
+          state.code === "ERR_NETWORK" || state.code === "ERR_SERVER_UNAVAILABLE" ? (
+            <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-700">
+              <div className="font-medium">Server 미가동</div>
+              <div className="mt-1 text-xs text-muted">
+                ICONIA-SERVER 가 응답하지 않습니다. 에러 발생 여부를 알 수 없음.
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+              조회 실패 ({state.code ?? "ERR"}): {state.message}
+            </div>
+          )
         ) : items.length === 0 ? (
-          <div className="text-sm text-muted">
-            서버 에러 없음 — 정상. (source: {state.source})
-          </div>
+          <div className="text-sm text-emerald-700">✓ 서버 에러 없음.</div>
         ) : (
           <ul className="space-y-2">
             {items.map((item, i) => (

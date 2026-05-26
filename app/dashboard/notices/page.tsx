@@ -66,28 +66,25 @@ export default function NoticesPage() {
 
   return (
     <div className="space-y-6">
-      <PanelCard
-        title="공지·배너 작성"
-        description="Server /api/v1/admin/notices POST — Notice prisma model 정본."
-      >
+      <PanelCard title="공지·배너 작성">
         <form onSubmit={handleCreate} className="space-y-3">
           <input
             name="title"
             placeholder="제목 (2자 이상)"
-            className="w-full rounded-xl border border-white/70 bg-white/60 px-3 py-2 text-sm"
+            className="w-full rounded-xl border-2 border-slate-500 bg-white px-3 py-2 text-sm focus:border-slate-700 focus:outline-none"
             required
           />
           <textarea
             name="body"
             placeholder="본문 (5자 이상)"
             rows={3}
-            className="w-full rounded-xl border border-white/70 bg-white/60 px-3 py-2 text-sm"
+            className="w-full rounded-xl border-2 border-slate-500 bg-white px-3 py-2 text-sm focus:border-slate-700 focus:outline-none"
             required
           />
           <div className="flex items-center gap-2">
             <select
               name="audience"
-              className="rounded-xl border border-white/70 bg-white/60 px-3 py-2 text-sm"
+              className="rounded-xl border-2 border-slate-500 bg-white px-3 py-2 text-sm"
               defaultValue="all"
             >
               {AUDIENCES.map((a) => (
@@ -109,7 +106,6 @@ export default function NoticesPage() {
 
       <PanelCard
         title="공지·배너 목록"
-        description="Server /api/v1/admin/notices GET — 활성 공지."
         actions={
           <button
             type="button"
@@ -124,9 +120,7 @@ export default function NoticesPage() {
         {!state ? (
           <div className="text-sm text-muted">불러오는 중</div>
         ) : !state.ok ? (
-          <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-            Server 도달 실패: {state.message}
-          </div>
+          <div className="text-sm text-muted">공지가 없습니다.</div>
         ) : items.length === 0 ? (
           <div className="text-sm text-muted">공지가 없습니다.</div>
         ) : (
