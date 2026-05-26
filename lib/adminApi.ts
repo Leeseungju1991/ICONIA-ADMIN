@@ -1735,3 +1735,236 @@ export function submitFactoryTest(args: {
     },
   });
 }
+
+// ---------------------------------------------------------------------------
+// Legal — 약관/공지/사용자 권리 관리 표면 ((주)숨코리아 출시).
+//
+// Server 정본 endpoint (도입 예정):
+//   GET  /api/v1/legal/business-info                       — 사업자 정보 공개 표시
+//   GET  /api/v1/users/consent/active                      — 활성 약관 버전 (사용자도 호출)
+//   GET  /api/v1/admin/legal/terms                          — 약관 4종 버전 목록 (모든 버전)
+//   POST /api/v1/admin/legal/terms                          — 신버전 발행 (superadmin)
+//   GET  /api/v1/admin/legal/consent-stats?days=30          — 약관 버전별 동의율 시계열
+//   GET  /api/v1/admin/users/rights?kind=&status=&limit=    — 사용자 권리 요청 큐 (PIPA 확장)
+//   POST /api/v1/admin/users/rights/:id/transition          — 권리 요청 상태 전이
+//
+// 현재 Server 상태:
+//   - /api/v1/users/consent/active : 구현됨 (consentService.publicActiveVersionsView)
+//   - 그 외 admin/legal/* : 미구현. authedRequest 가 ERR_NETWORK/INVALID_RESPONSE 또는
+//     ERR_NOT_FOUND 로 graceful 매핑하므로, 호출자는 fallback path 로 mock 데이터를
+//     렌더한다. Server 라우트 추가 즉시 swap 완료.
+// ---------------------------------------------------------------------------
+
+/** 약관 종류 4종 — terms(서비스) / privacy(개인정보) / marketing(마케팅) / third_party(제3자 제공). */
+export type TermsKind = "terms" | "privacy" | "marketing" | "third_party";
+
+export type TermsVersionRow = {
+  kind: TermsKind;
+  version: string;
+  /** 본문 (markdown 또는 plain text). 다국어 분리는 후속. */
+  body_ko: string;
+  body_en: string | null;
+  /** 본문 hash (sha256 hex). 사용자 동의 시 무결성 확인용. */
+  body_hash: string | null;
+  /** 활성 버전이면 true. 신규 가입자가 동의해야 하는 버전. */
+  is_active: boolean;
+  /** ISO timestamp. */
+  effective_from: string;
+  effective_to: string | null;
+  /** 발행 운영자. */
+  published_by: string | null;
+  /** 운영자가 입력한 변경 사유. */
+  change_note: string | null;
+};
+
+export type ActiveTermsVersions = {
+  terms_version: string;
+  privacy_version: string;
+  /** Server 가 추가하면 표시. 미제공이면 null. */
+  marketing_version?: string | null;
+  third_party_version?: string | null;
+};
+
+/**
+ * 활성 약관 버전 조회 — Server `/api/v1/users/consent/active` (인증 불요) 호출.
+ * 운영자 콘솔도 운영 정본을 그대로 사용 (사용자가 보는 것과 동일).
+ */
+export function getActiveTermsVersions(args: {
+  jwt: string;
+}): Promise<ServerResult<ActiveTermsVersions>> {
+  // /users/consent/active 는 publicActiveVersionsView — 인증 헤더가 있어도 통과.
+  return authedRequest<ActiveTermsVersions>({
+    jwt: args.jwt,
+    path: `/api/v1/users/consent/active`,
+    method: "GET",
+  });
+}
+
+/**
+ * 약관 버전 목록 조회 — kind 별 모든 버전 (활성 + 이전 버전).
+ * Server `/api/v1/admin/legal/terms?kind=` 도입 예정.
+ */
+export function listTermsVersions(args: {
+  jwt: string;
+  kind?: TermsKind;
+}): Promise<ServerResult<{ items: TermsVersionRow[] }>> {
+  const params = new URLSearchParams();
+  if (args.kind) params.set("kind", args.kind);
+  const qs = params.toString();
+  return authedRequest<{ items: TermsVersionRow[] }>({
+    jwt: args.jwt,
+    path: `/api/v1/admin/legal/terms${qs ? "?" + qs : ""}`,
+    method: "GET",
+  });
+}
+
+/**
+ * 신규 약관 버전 발행 — superadmin 전용 (server 측에서도 가드).
+ */
+export function publishTermsVersion(args: {
+  jwt: string;
+  kind: TermsKind;
+  version: string;
+  body_ko: string;
+  body_en?: string;
+  change_note: string;
+  /** 발행 즉시 active 로 전환할지. false 면 staging 상태로 저장. */
+  activate: boolean;
+}): Promise<ServerResult<TermsVersionRow>> {
+  return authedRequest<TermsVersionRow>({
+    jwt: args.jwt,
+    path: `/api/v1/admin/legal/terms`,
+    method: "POST",
+    body: {
+      kind: args.kind,
+      version: args.version,
+      body_ko: args.body_ko,
+      body_en: args.body_en ?? null,
+      change_note: args.change_note,
+      activate: args.activate,
+    },
+  });
+}
+
+/** 약관 동의 통계 — 버전별 동의 / 거부 / 마케팅 별도. */
+export type ConsentStats = {
+  /** 집계 시작·종료 (ISO). */
+  range_start: string;
+  range_end: string;
+  /** kind 별 버전별 카운트. */
+  by_kind: Partial<
+    Record<
+      TermsKind,
+      Array<{
+        version: string;
+        granted: number;
+        revoked: number;
+        /** 활성 버전이면 true. */
+        is_active: boolean;
+      }>
+    >
+  >;
+  /** 마케팅 동의율 (granted / total). */
+  marketing_opt_in_rate: number;
+  /** 총 동의 이벤트 수. */
+  total_consent_events: number;
+};
+
+export function getConsentStats(args: {
+  jwt: string;
+  days?: number;
+}): Promise<ServerResult<ConsentStats>> {
+  const params = new URLSearchParams();
+  if (args.days) params.set("days", String(args.days));
+  const qs = params.toString();
+  return authedRequest<ConsentStats>({
+    jwt: args.jwt,
+    path: `/api/v1/admin/legal/consent-stats${qs ? "?" + qs : ""}`,
+    method: "GET",
+  });
+}
+
+/** 사용자 권리 요청 종류 — PIPA 제35조(열람) / 제36조(정정·삭제) / 제37조(이관). */
+export type RightsRequestKind = "access" | "rectify" | "delete" | "portability";
+export type RightsRequestStatus =
+  | "received"
+  | "in_review"
+  | "completed"
+  | "rejected";
+
+export type RightsRequestRow = {
+  id: string;
+  user_id: string;
+  kind: RightsRequestKind;
+  status: RightsRequestStatus;
+  /** 사용자가 제출한 사유. */
+  user_reason: string | null;
+  /** 운영자가 추가한 메모. */
+  operator_note: string | null;
+  received_at: string;
+  /** completed/rejected 일 때만. */
+  closed_at: string | null;
+  operator_id_closed: string | null;
+};
+
+/**
+ * 사용자 권리 요청 큐 조회.
+ * Server `/api/v1/admin/users/rights` 미구현 시 PIPA pending_deletion 을 augment 해 표시.
+ */
+export function listRightsRequests(args: {
+  jwt: string;
+  kind?: RightsRequestKind;
+  status?: RightsRequestStatus;
+  limit?: number;
+}): Promise<ServerResult<{ items: RightsRequestRow[] }>> {
+  const params = new URLSearchParams();
+  if (args.kind) params.set("kind", args.kind);
+  if (args.status) params.set("status", args.status);
+  if (args.limit) params.set("limit", String(args.limit));
+  const qs = params.toString();
+  return authedRequest<{ items: RightsRequestRow[] }>({
+    jwt: args.jwt,
+    path: `/api/v1/admin/users/rights${qs ? "?" + qs : ""}`,
+    method: "GET",
+  });
+}
+
+/** 권리 요청 상태 전이. reason 5자 이상 강제 (server 도 검증). */
+export function transitionRightsRequest(args: {
+  jwt: string;
+  id: string;
+  next_status: RightsRequestStatus;
+  reason: string;
+}): Promise<ServerResult<RightsRequestRow>> {
+  return authedRequest<RightsRequestRow>({
+    jwt: args.jwt,
+    path: `/api/v1/admin/users/rights/${encodeURIComponent(args.id)}/transition`,
+    method: "POST",
+    body: { next_status: args.next_status, reason: args.reason },
+  });
+}
+
+/** 사업자 정보 — Server `/api/v1/legal/business-info` 도입 예정. */
+export type BusinessInfoDto = {
+  company_name_ko: string;
+  company_name_en: string;
+  ceo: string;
+  business_registration_no: string;
+  ecommerce_registration_no: string;
+  address_ko: string;
+  address_en: string;
+  phone: string;
+  support_email: string;
+  privacy_officer: string;
+  privacy_officer_email: string;
+};
+
+export function getBusinessInfo(args: {
+  jwt: string;
+}): Promise<ServerResult<BusinessInfoDto>> {
+  return authedRequest<BusinessInfoDto>({
+    jwt: args.jwt,
+    path: `/api/v1/legal/business-info`,
+    method: "GET",
+  });
+}

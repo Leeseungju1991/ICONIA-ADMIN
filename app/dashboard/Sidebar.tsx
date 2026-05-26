@@ -9,6 +9,7 @@ import {
   canAccessPath,
   type OperatorRole,
 } from "@/lib/operatorRoles";
+import { COMPANY_INFO_PLACEHOLDER } from "@/lib/companyInfo";
 
 type NavItem = {
   to: string;
@@ -26,6 +27,8 @@ const nav: NavItem[] = [
   { to: "/dashboard/knowledge", label: "RAG·대화 품질", icon: BookIcon },
   { to: "/dashboard/reports", label: "리뷰·신고 관리", icon: FlagIcon },
   { to: "/dashboard/notices", label: "공지/배너 관리", icon: MegaphoneIcon },
+  { to: "/dashboard/legal", label: "약관·법률 관리", icon: BookIcon },
+  { to: "/dashboard/users/rights", label: "사용자 권리 큐", icon: ShieldIcon },
   { to: "/dashboard/push", label: "푸시 알림 관리", icon: BellIcon },
   { to: "/dashboard/stats", label: "통계 관리", icon: BarChartIcon },
   { to: "/dashboard/firmware-errors", label: "펌웨어 에러", icon: ChipIcon },
@@ -58,6 +61,8 @@ function subtitleFor(to: string): string {
     case "/dashboard/personas": return "SOUL 파일 업로드·검수·라이브 전환·롤백.";
     case "/dashboard/reports": return "이용자 리뷰와 신고된 게시물을 검토·처리합니다.";
     case "/dashboard/notices": return "앱·웹 공지사항과 메인 배너를 등록·관리합니다.";
+    case "/dashboard/legal": return "약관 4종 활성 버전·본문 미리보기·신버전 발행. (주)숨코리아 사업자 정보.";
+    case "/dashboard/users/rights": return "PIPA 제35/36/37조 사용자 권리 요청 (열람·정정·삭제·이관) 큐.";
     case "/dashboard/push": return "전체/세그먼트 푸시 캠페인을 발송하고 결과를 확인합니다.";
     case "/dashboard/stats": return "사용자·디바이스·매출 지표를 시각화합니다.";
     case "/dashboard/firmware-errors": return "ESP32 OTA 실패·런타임 크래시 로그.";
@@ -115,6 +120,7 @@ export default function Sidebar({
         <div className="p-3 flex-1 overflow-y-auto">
           <NavMenu pathname={pathname} role={role} />
         </div>
+        <CompanyFooter />
         <div className="p-3 border-t border-slate-100">
           <LogoutButton />
         </div>
@@ -142,6 +148,7 @@ export default function Sidebar({
             <div className="p-3 flex-1 overflow-y-auto">
               <NavMenu pathname={pathname} role={role} />
             </div>
+            <CompanyFooter />
             <div className="p-3 border-t border-slate-100">
               <LogoutButton />
             </div>
@@ -221,6 +228,26 @@ function NavMenu({ pathname, role }: { pathname: string; role: OperatorRole }) {
         );
       })}
     </nav>
+  );
+}
+
+// (주)숨코리아 사업자 정보 footer — 모든 운영자가 콘솔 좌측 하단에서 회사 정체성을
+// 즉시 확인. Server `/api/v1/legal/business-info` 도입 전까지는 placeholder.
+// 상세 표기는 /dashboard/legal 페이지가 한다 (여기는 1줄 요약 + 링크).
+function CompanyFooter() {
+  return (
+    <div className="px-3 py-2 border-t border-slate-100 text-[10px] text-slate-500 leading-tight">
+      <div className="font-semibold text-slate-700">
+        {COMPANY_INFO_PLACEHOLDER.company_name_ko}
+      </div>
+      <div>{COMPANY_INFO_PLACEHOLDER.company_name_en}</div>
+      <Link
+        href="/dashboard/legal"
+        className="mt-1 inline-block text-accent hover:underline"
+      >
+        사업자 정보 보기 →
+      </Link>
+    </div>
   );
 }
 

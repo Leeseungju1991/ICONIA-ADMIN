@@ -49,6 +49,11 @@ export const PATH_REQUIRED_ROLES: { prefix: string; roles: OperatorRole[] }[] = 
   { prefix: "/dashboard/boot-invariants", roles: SECOPS_OR_ABOVE },
   // CS 이상 — AS 접수/조회 (replace/close 는 server 가 SRE 이상으로 분기).
   { prefix: "/dashboard/as", roles: CS_OR_ABOVE },
+  // 사용자 권리 큐 — CS 가 일선 처리. superadmin 이 최종 승인. 더 구체적 prefix 이므로
+  // /dashboard/users 매트릭스보다 먼저 와야 한다.
+  { prefix: "/dashboard/users/rights", roles: CS_OR_ABOVE },
+  // 약관·법률 관리 — 모든 운영자가 활성 버전 조회. 신버전 발행은 server 가 superadmin 가드.
+  { prefix: "/dashboard/legal", roles: ALL_ROLES },
   // 모든 운영자 — 운영 리포트 조회 (수동 트리거는 server 가 SUPERADMIN_ONLY).
   { prefix: "/dashboard/reports-archive", roles: ALL_ROLES },
   // secops/sre/superadmin — 디바이스 unpair 등 파괴적 액션.

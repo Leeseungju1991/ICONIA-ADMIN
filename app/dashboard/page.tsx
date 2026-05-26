@@ -18,6 +18,7 @@ import {
   fetchLocalServicesHealthAction,
   type ServicePing,
 } from "@/lib/actions/localServicesHealth";
+import { getConsentStatsAction, getActiveTermsAction } from "@/lib/actions/legal";
 
 type ServicePingName = ServicePing["name"];
 
@@ -126,6 +127,13 @@ export default async function DashboardHome() {
 
   // V1.0 #1 — DEPLOY_TARGET=local 일 때 5개 로컬 서비스 health 한 화면 표시.
   const localHealth = await fetchLocalServicesHealthAction();
+
+  // (주)숨코리아 출시 — 약관 동의 KPI. Server endpoint 미구현 시 placeholder.
+  const consentStatsResult = await getConsentStatsAction({ days: 30 });
+  const consentStats = consentStatsResult.ok ? consentStatsResult.data.stats : null;
+  const consentPlaceholder = consentStatsResult.ok ? consentStatsResult.data.placeholder : true;
+  const activeTermsResult = await getActiveTermsAction();
+  const activeTerms = activeTermsResult.ok ? activeTermsResult.data : null;
 
   const pendingReports = mockReports.filter((r) => r.status === "pending");
   const criticalFw = mockFirmwareErrors.filter((e) => e.severity === "critical");
@@ -305,6 +313,47 @@ export default async function DashboardHome() {
           deltaTone={fwCriticalCount > 0 ? "down" : "up"}
           hint={sv ? "Server overview 정본" : "critical 펌웨어 에러 (mock)"}
           accent="blue"
+        />
+      </section>
+
+      {/* (주)숨코리아 출시 정비 — 약관 동의 KPI. 약관 활성 버전 + 마케팅 동의율 + 사용자 권리 큐. */}
+      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard
+          label="활성 약관 버전"
+          value={activeTerms?.terms_version ?? "—"}
+          delta={`개인정보 ${activeTerms?.privacy_version ?? "—"}`}
+          deltaTone="flat"
+          hint={activeTerms ? "Server consent 정본" : "Server 미가동"}
+          accent="blue"
+        />
+        <StatCard
+          label="마케팅 동의율"
+          value={consentStats ? `${(consentStats.marketing_opt_in_rate * 100).toFixed(1)}%` : "—"}
+          delta={consentPlaceholder ? "placeholder" : "30일 평균"}
+          deltaTone={consentStats && consentStats.marketing_opt_in_rate > 0.5 ? "up" : "flat"}
+          hint="약관·법률 관리 → 통계"
+          accent="pink"
+        />
+        <StatCard
+          label="제3자 제공 (Gemini)"
+          value={(() => {
+            const rows = consentStats?.by_kind?.third_party ?? [];
+            const g = rows.reduce((s, r) => s + r.granted, 0);
+            const t = g + rows.reduce((s, r) => s + r.revoked, 0);
+            return t > 0 ? `${((g / t) * 100).toFixed(1)}%` : "—";
+          })()}
+          delta={consentPlaceholder ? "placeholder" : "필수 동의"}
+          deltaTone="flat"
+          hint="register 차단 게이트"
+          accent="teal"
+        />
+        <StatCard
+          label="동의 이벤트 (30d)"
+          value={consentStats ? consentStats.total_consent_events.toLocaleString() : "—"}
+          delta={consentPlaceholder ? "placeholder" : "register + reconsent"}
+          deltaTone="flat"
+          hint="약관·법률 관리 페이지"
+          accent="orange"
         />
       </section>
 
