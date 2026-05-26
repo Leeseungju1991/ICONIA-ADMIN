@@ -154,20 +154,3 @@ ICONIA 운영자 콘솔 — Next.js 14 (App Router) · React 18 · Tailwind 3.
 ### ❌ 당장 불가능 (이유)
 
 - **실 운영자 트래픽 부하 테스트** — 실 사용자 운영자 다수가 동시에 콘솔을 쓰는 시나리오의 실측 부하는 베타 운영 단계 진입 후 가능. *(실 운영 환경 필요)*
-
----
-
-## 5. 환경 변수
-
-| 변수 | 필수 | 용도 |
-|---|---|---|
-| `DEPLOY_TARGET` | △ | **`local`/`aws` 단일 토글**. 미설정 시 `local` |
-| `ICONIA_SERVER_URL` | △ | Server URL. `aws` 토글에서만 필수 (https) |
-| `ICONIA_ENV` | ✗ | 환경 배지 override |
-| `ADMIN_IDLE_TIMEOUT_MINUTES` | ✗ | 비활동 자동 로그아웃 (기본 30분) |
-| `ADMIN_ALLOWED_ORIGIN` | ✗ | Server Action 허용 origin |
-| `ADMIN_DEFAULT_LOCALE` | ✗ | 기본 언어 (`ko`/`en`, 기본 `ko`) |
-
----
-
-*문서 마지막 갱신: 2026-05-26 (Phase 16-A — 양식 정렬 + 가능 12건 진행 라운드)*
