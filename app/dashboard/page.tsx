@@ -19,6 +19,8 @@ import {
   type ServicePing,
 } from "@/lib/actions/localServicesHealth";
 import { getConsentStatsAction, getActiveTermsAction } from "@/lib/actions/legal";
+import { listFeedPostsAction } from "@/lib/actions/feed";
+import { listAdminOrdersAction } from "@/lib/actions/commerceAdmin";
 
 type ServicePingName = ServicePing["name"];
 
@@ -134,6 +136,15 @@ export default async function DashboardHome() {
   const consentPlaceholder = consentStatsResult.ok ? consentStatsResult.data.placeholder : true;
   const activeTermsResult = await getActiveTermsAction();
   const activeTerms = activeTermsResult.ok ? activeTermsResult.data : null;
+
+  // (주)숨코리아 출시 정비 — 피드/주문 24h 카운트. Server admin endpoint 미가동 시 "—" graceful.
+  const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const [feedRecent, ordersRecent] = await Promise.all([
+    listFeedPostsAction({ from: since24h, page: 1, page_size: 1 }),
+    listAdminOrdersAction({ page: 1, page_size: 1 }),
+  ]);
+  const feed24hTotal = feedRecent.ok ? feedRecent.data.total : null;
+  const orders24hTotal = ordersRecent.ok ? ordersRecent.data.total : null;
 
   const pendingReports = mockReports.filter((r) => r.status === "pending");
   const criticalFw = mockFirmwareErrors.filter((e) => e.severity === "critical");
@@ -353,6 +364,26 @@ export default async function DashboardHome() {
           delta={consentPlaceholder ? "placeholder" : "register + reconsent"}
           deltaTone="flat"
           hint="약관·법률 관리 페이지"
+          accent="orange"
+        />
+      </section>
+
+      {/* (주)숨코리아 출시 정비 — 피드/커머스 24h KPI. Server endpoint 미배포 시 "—" graceful. */}
+      <section className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <StatCard
+          label="피드 게시물 (24h)"
+          value={feed24hTotal != null ? feed24hTotal.toLocaleString() : "—"}
+          delta={feed24hTotal != null ? "Server 정본" : "Server 미가동"}
+          deltaTone={feed24hTotal != null ? "up" : "flat"}
+          hint="Server /api/v1/admin/feed/posts?from=24h"
+          accent="teal"
+        />
+        <StatCard
+          label="신규 주문 (24h)"
+          value={orders24hTotal != null ? orders24hTotal.toLocaleString() : "—"}
+          delta={orders24hTotal != null ? "Server 정본" : "Server 미가동"}
+          deltaTone={orders24hTotal != null ? "up" : "flat"}
+          hint="Server /api/v1/admin/commerce/orders"
           accent="orange"
         />
       </section>

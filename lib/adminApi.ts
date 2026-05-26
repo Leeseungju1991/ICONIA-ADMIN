@@ -1968,3 +1968,313 @@ export function getBusinessInfo(args: {
     method: "GET",
   });
 }
+
+// ---------------------------------------------------------------------------
+// (주)숨코리아 출시 정비 — Feed / Commerce / Seed admin endpoints.
+//   SERVER 에이전트가 동시 작업으로 다음 endpoint 를 추가 중. requireAdmin 가드 적용.
+//   본 wrapper 는 SERVER 가 아직 미배포일 때도 graceful 동작 (실패 시 ERR_NETWORK).
+// ---------------------------------------------------------------------------
+
+/** 피드 관리 — `GET /api/v1/admin/feed/posts` 응답 행 (paginated). */
+export type AdminFeedPostRow = {
+  id: string;
+  author_id: string;
+  author_handle: string | null;
+  body: string;
+  body_excerpt: string;
+  comments_count: number;
+  is_hidden: boolean;
+  created_at: string;
+};
+
+export type AdminFeedPostsList = {
+  items: AdminFeedPostRow[];
+  total: number;
+  page: number;
+  page_size: number;
+};
+
+export type AdminFeedComment = {
+  id: string;
+  author_id: string;
+  author_handle: string | null;
+  body: string;
+  created_at: string;
+};
+
+export type AdminFeedPostDetail = {
+  post: AdminFeedPostRow;
+  comments: AdminFeedComment[];
+};
+
+export function listAdminFeedPosts(args: {
+  jwt: string;
+  q?: string;
+  hidden?: "all" | "true" | "false";
+  from?: string;
+  to?: string;
+  page?: number;
+  page_size?: number;
+}): Promise<ServerResult<AdminFeedPostsList>> {
+  const params = new URLSearchParams();
+  if (args.q) params.set("q", args.q);
+  if (args.hidden && args.hidden !== "all") params.set("hidden", args.hidden);
+  if (args.from) params.set("from", args.from);
+  if (args.to) params.set("to", args.to);
+  if (typeof args.page === "number") params.set("page", String(args.page));
+  if (typeof args.page_size === "number") params.set("page_size", String(args.page_size));
+  const qs = params.toString();
+  return authedRequest<AdminFeedPostsList>({
+    jwt: args.jwt,
+    path: `/api/v1/admin/feed/posts${qs ? "?" + qs : ""}`,
+    method: "GET",
+  });
+}
+
+export function getAdminFeedPost(args: {
+  jwt: string;
+  id: string;
+}): Promise<ServerResult<AdminFeedPostDetail>> {
+  return authedRequest<AdminFeedPostDetail>({
+    jwt: args.jwt,
+    path: `/api/v1/admin/feed/posts/${encodeURIComponent(args.id)}`,
+    method: "GET",
+  });
+}
+
+export function patchAdminFeedPost(args: {
+  jwt: string;
+  id: string;
+  body?: string;
+  is_hidden?: boolean;
+}): Promise<ServerResult<AdminFeedPostRow>> {
+  const payload: Record<string, unknown> = {};
+  if (typeof args.body === "string") payload.body = args.body;
+  if (typeof args.is_hidden === "boolean") payload.is_hidden = args.is_hidden;
+  return authedRequest<AdminFeedPostRow>({
+    jwt: args.jwt,
+    path: `/api/v1/admin/feed/posts/${encodeURIComponent(args.id)}`,
+    method: "PATCH",
+    body: payload,
+  });
+}
+
+export function deleteAdminFeedPost(args: {
+  jwt: string;
+  id: string;
+}): Promise<ServerResult<{ ok: true }>> {
+  return authedRequest({
+    jwt: args.jwt,
+    path: `/api/v1/admin/feed/posts/${encodeURIComponent(args.id)}`,
+    method: "DELETE",
+  });
+}
+
+/** 커머스 — 상품 관리. SERVER 추가 endpoint. */
+export type AdminCommerceProductRow = {
+  id: string;
+  name: string;
+  description?: string | null;
+  price: number;
+  currency?: string;
+  category: string | null;
+  image_url: string | null;
+  stock: number;
+  is_deleted: boolean;
+  created_at: string;
+  updated_at?: string;
+};
+
+export type AdminCommerceProductsList = {
+  items: AdminCommerceProductRow[];
+  total: number;
+  page: number;
+  page_size: number;
+};
+
+export function listAdminCommerceProducts(args: {
+  jwt: string;
+  q?: string;
+  category?: string;
+  only_zero_stock?: boolean;
+  page?: number;
+  page_size?: number;
+}): Promise<ServerResult<AdminCommerceProductsList>> {
+  const params = new URLSearchParams();
+  if (args.q) params.set("q", args.q);
+  if (args.category) params.set("category", args.category);
+  if (args.only_zero_stock) params.set("only_zero_stock", "1");
+  if (typeof args.page === "number") params.set("page", String(args.page));
+  if (typeof args.page_size === "number") params.set("page_size", String(args.page_size));
+  const qs = params.toString();
+  return authedRequest<AdminCommerceProductsList>({
+    jwt: args.jwt,
+    path: `/api/v1/admin/commerce/products${qs ? "?" + qs : ""}`,
+    method: "GET",
+  });
+}
+
+export type CreateProductInput = {
+  name: string;
+  description?: string;
+  price: number;
+  category?: string;
+  image_url?: string;
+  stock: number;
+};
+
+export function createAdminCommerceProduct(args: {
+  jwt: string;
+  input: CreateProductInput;
+}): Promise<ServerResult<AdminCommerceProductRow>> {
+  return authedRequest<AdminCommerceProductRow>({
+    jwt: args.jwt,
+    path: `/api/v1/admin/commerce/products`,
+    method: "POST",
+    body: args.input as unknown as Record<string, unknown>,
+  });
+}
+
+export function updateAdminCommerceProduct(args: {
+  jwt: string;
+  id: string;
+  patch: Partial<CreateProductInput>;
+}): Promise<ServerResult<AdminCommerceProductRow>> {
+  return authedRequest<AdminCommerceProductRow>({
+    jwt: args.jwt,
+    path: `/api/v1/admin/commerce/products/${encodeURIComponent(args.id)}`,
+    method: "PATCH",
+    body: args.patch as unknown as Record<string, unknown>,
+  });
+}
+
+export function deleteAdminCommerceProduct(args: {
+  jwt: string;
+  id: string;
+}): Promise<ServerResult<{ ok: true }>> {
+  return authedRequest({
+    jwt: args.jwt,
+    path: `/api/v1/admin/commerce/products/${encodeURIComponent(args.id)}`,
+    method: "DELETE",
+  });
+}
+
+/** 커머스 — 주문 (신규 admin endpoint, EXCLUDES 결제수단/카드 details). */
+export type AdminCommerceOrderItem = {
+  product_id: string;
+  product_name: string;
+  quantity: number;
+  unit_price: number;
+  line_total: number;
+};
+
+export type AdminCommerceOrderStatus =
+  | "pending"
+  | "paid"
+  | "shipping"
+  | "done"
+  | "cancelled";
+
+export type AdminCommerceOrderRow = {
+  id: string;
+  user_id: string;
+  user_email: string | null;
+  total: number;
+  currency?: string;
+  status: AdminCommerceOrderStatus;
+  item_count: number;
+  created_at: string;
+};
+
+export type AdminCommerceOrdersList = {
+  items: AdminCommerceOrderRow[];
+  total: number;
+  page: number;
+  page_size: number;
+};
+
+export type AdminCommerceOrderDetail = {
+  order: AdminCommerceOrderRow;
+  items: AdminCommerceOrderItem[];
+};
+
+export function listAdminCommerceOrders(args: {
+  jwt: string;
+  status?: AdminCommerceOrderStatus | "all";
+  page?: number;
+  page_size?: number;
+}): Promise<ServerResult<AdminCommerceOrdersList>> {
+  const params = new URLSearchParams();
+  if (args.status && args.status !== "all") params.set("status", args.status);
+  if (typeof args.page === "number") params.set("page", String(args.page));
+  if (typeof args.page_size === "number") params.set("page_size", String(args.page_size));
+  const qs = params.toString();
+  return authedRequest<AdminCommerceOrdersList>({
+    jwt: args.jwt,
+    path: `/api/v1/admin/commerce/orders${qs ? "?" + qs : ""}`,
+    method: "GET",
+  });
+}
+
+export function getAdminCommerceOrder(args: {
+  jwt: string;
+  id: string;
+}): Promise<ServerResult<AdminCommerceOrderDetail>> {
+  return authedRequest<AdminCommerceOrderDetail>({
+    jwt: args.jwt,
+    path: `/api/v1/admin/commerce/orders/${encodeURIComponent(args.id)}`,
+    method: "GET",
+  });
+}
+
+export function updateAdminCommerceOrderStatus(args: {
+  jwt: string;
+  id: string;
+  status: AdminCommerceOrderStatus;
+  reason?: string;
+}): Promise<ServerResult<AdminCommerceOrderRow>> {
+  return authedRequest<AdminCommerceOrderRow>({
+    jwt: args.jwt,
+    path: `/api/v1/admin/commerce/orders/${encodeURIComponent(args.id)}/status`,
+    method: "PATCH",
+    body: { status: args.status, ...(args.reason ? { reason: args.reason } : {}) },
+  });
+}
+
+/** 운영 — 시드 상태. SERVER 가 마지막 실행 시각 + 카테고리별 카운트 반환. */
+export type AdminSeedStatus = {
+  last_run_at: string | null;
+  last_run_by: string | null;
+  duration_ms?: number | null;
+  counts: Record<string, number>;
+  in_progress?: boolean;
+};
+
+export type AdminSeedRunResult = {
+  started_at: string;
+  finished_at: string;
+  duration_ms: number;
+  counts: Record<string, number>;
+};
+
+export function getAdminSeedStatus(args: {
+  jwt: string;
+}): Promise<ServerResult<AdminSeedStatus>> {
+  return authedRequest<AdminSeedStatus>({
+    jwt: args.jwt,
+    path: `/api/v1/admin/seed/status`,
+    method: "GET",
+  });
+}
+
+export function runAdminSeed(args: {
+  jwt: string;
+  reason?: string;
+}): Promise<ServerResult<AdminSeedRunResult>> {
+  return authedRequest<AdminSeedRunResult>({
+    jwt: args.jwt,
+    path: `/api/v1/admin/seed/run`,
+    method: "POST",
+    body: args.reason ? { reason: args.reason } : {},
+  });
+}

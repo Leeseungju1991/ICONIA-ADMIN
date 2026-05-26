@@ -92,9 +92,25 @@ ICONIA 운영자 콘솔 — Next.js 14 (App Router) · React 18 · Tailwind 3.
 
 ### 3.8 콘텐츠 운영
 - **리뷰·신고 관리** — 게시물 신고 검토, 숨김·복구 처리 (감사 로그 자동)
+- **피드 관리** — 사용자 피드 게시물 검색·숨김·복구·삭제 + 댓글 미리보기 (`/dashboard/feed`).
+  Server `/api/v1/admin/feed/posts*` 정본. 삭제는 soft delete + DELETE 확인 문구.
 - **공지·배너 관리** — 앱/웹 공지사항 등록·수정·노출 일정
 - **푸시 알림** — 전체/세그먼트 캠페인 발송 · 도달율 추적
 - **운영 리포트 아카이브** — 매일 02:00 / 일요일 02:30 KST 자동 생성 리포트 조회 (수동 트리거는 최고관리자만)
+
+### 3.8b 커머스 운영 (출시 정비 — (주)숨코리아)
+- **상품 관리** (`/dashboard/commerce/products`) — 상품 등록·수정·삭제·재고 관리.
+  검색(상품명) / 카테고리 / 품절 필터. 모든 변경은 Server audit_log + soft delete.
+  Server `/api/v1/admin/commerce/products*` 정본.
+- **주문 관리** (`/dashboard/commerce/orders`) — 주문 상태 흐름 (결제대기 → 결제완료 →
+  배송중 → 완료/취소) 관리. 결제수단·카드 정보는 admin 응답에서 의도적으로 제외
+  (PIPA 최소수집). 상태 변경은 사유 5자 이상 + Server audit_log.
+  Server `/api/v1/admin/commerce/orders*` 정본.
+
+### 3.8c 운영 도구 — Seed
+- **Seed 상태 / 수동 실행** (`/dashboard/ops/seed`) — 출시 직전 데모 데이터 충전.
+  Server `/api/v1/admin/seed/{status,run}` 정본. 매 실행은 SEED 확인 문구 +
+  사유 5자 이상 + audit_log 영구 기록. 카테고리별 카운트 + 마지막 실행 시각·실행자·소요시간 표시.
 
 ### 3.8a 법률/약관 관리 (출시 정비 — (주)숨코리아)
 - **활성 약관 버전 조회** — terms / privacy / marketing / third_party 4종의 운영 정본
@@ -175,6 +191,12 @@ ICONIA 운영자 콘솔 — Next.js 14 (App Router) · React 18 · Tailwind 3.
   Server `/api/v1/admin/legal/terms (GET/POST)`, `/api/v1/admin/legal/consent-stats`,
   `/api/v1/admin/users/rights (GET)`, `/api/v1/admin/users/rights/:id/transition (POST)`
   도입 즉시 swap. 활성 약관 버전 조회는 이미 Server 정본 (`/api/v1/users/consent/active`).
+- **피드 / 커머스 / Seed 관리 페이지 실 연동** — `/dashboard/feed`,
+  `/dashboard/commerce/products`, `/dashboard/commerce/orders`,
+  `/dashboard/ops/seed` 4개 페이지가 client 시그니처와 graceful "준비 중" 안내까지 완비.
+  Server `/api/v1/admin/feed/posts*`, `/api/v1/admin/commerce/{products,orders}*`,
+  `/api/v1/admin/seed/{status,run}` 신규 endpoint (SERVER 동시 작업)가 배포되면 자동 표시.
+  대시보드 홈의 "피드 게시물 (24h)" / "신규 주문 (24h)" KPI 카드도 같은 endpoint 의존.
 - **회사 정보 (사업자등록) 실 값 표시** — `/api/v1/legal/business-info` 라우트 부재.
   현재 `lib/companyInfo.ts` placeholder ((주)숨코리아 / Soom Korea Inc.) 가 정본.
   *(사업자등록·통신판매업 신고 완료 후 실 값으로 교체)*

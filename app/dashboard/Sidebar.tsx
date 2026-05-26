@@ -26,6 +26,9 @@ const nav: NavItem[] = [
   { to: "/dashboard/personas", label: "AI 페르소나", icon: SparkleIcon },
   { to: "/dashboard/knowledge", label: "RAG·대화 품질", icon: BookIcon },
   { to: "/dashboard/reports", label: "리뷰·신고 관리", icon: FlagIcon },
+  { to: "/dashboard/feed", label: "피드 관리", icon: FeedIcon },
+  { to: "/dashboard/commerce/products", label: "커머스 — 상품", icon: BoxIcon },
+  { to: "/dashboard/commerce/orders", label: "커머스 — 주문", icon: ReceiptIcon },
   { to: "/dashboard/notices", label: "공지/배너 관리", icon: MegaphoneIcon },
   { to: "/dashboard/legal", label: "약관·법률 관리", icon: BookIcon },
   { to: "/dashboard/users/rights", label: "사용자 권리 큐", icon: ShieldIcon },
@@ -34,6 +37,8 @@ const nav: NavItem[] = [
   { to: "/dashboard/firmware-errors", label: "펌웨어 에러", icon: ChipIcon },
   { to: "/dashboard/server-errors", label: "서버 에러", icon: ServerIcon },
   { to: "/dashboard/app-errors", label: "앱 에러", icon: PhoneIcon },
+  // 더 구체적인 prefix 가 먼저 와야 pageTitle / startsWith 매칭이 정확하다.
+  { to: "/dashboard/ops/seed", label: "운영 — Seed 상태", icon: SeedIcon },
   { to: "/dashboard/ops", label: "운영 안정성", icon: ShieldIcon },
   { to: "/dashboard/factory-test", label: "양산·출고 검수", icon: FactoryIcon },
   { to: "/dashboard/as", label: "AS·교환 관리", icon: WrenchIcon },
@@ -60,6 +65,9 @@ function subtitleFor(to: string): string {
     case "/dashboard/ota": return "펌웨어 업로드·채널 배포·롤백 관리 (ESP32 OTA).";
     case "/dashboard/personas": return "SOUL 파일 업로드·검수·라이브 전환·롤백.";
     case "/dashboard/reports": return "이용자 리뷰와 신고된 게시물을 검토·처리합니다.";
+    case "/dashboard/feed": return "피드 게시물 검색·숨김·복구·삭제 + 댓글 미리보기. Server /api/v1/admin/feed/posts 정본.";
+    case "/dashboard/commerce/products": return "상품 등록·수정·삭제·재고 관리. Server /api/v1/admin/commerce/products 정본.";
+    case "/dashboard/commerce/orders": return "주문 상태 흐름 (결제대기 → 결제완료 → 배송중 → 완료/취소) 관리. 결제수단 카드 정보는 비표시.";
     case "/dashboard/notices": return "앱·웹 공지사항과 메인 배너를 등록·관리합니다.";
     case "/dashboard/legal": return "약관 4종 활성 버전·본문 미리보기·신버전 발행. (주)숨코리아 사업자 정보.";
     case "/dashboard/users/rights": return "PIPA 제35/36/37조 사용자 권리 요청 (열람·정정·삭제·이관) 큐.";
@@ -69,6 +77,7 @@ function subtitleFor(to: string): string {
     case "/dashboard/server-errors": return "AWS API/서비스 5xx·예외·헬스 상태.";
     case "/dashboard/app-errors": return "RN Expo 모바일 앱 크래시·런타임 에러.";
     case "/dashboard/ops": return "observability · tracing · alerting · audit · replay · recovery · kill switch · feature flag.";
+    case "/dashboard/ops/seed": return "Seed 상태 + 수동 트리거. 출시 직전 데모 데이터 충전 — SEED 확인 문구 + 사유 5자 이상 + audit_log 영구 기록.";
     case "/dashboard/factory-test": return "양산 LOT 생성 · 시리얼 일괄 발급 · 출고 검수 결과 입력. 펌웨어 production_test 가 자동 업로드한 결과는 LOT 별 yield 로 집계.";
     case "/dashboard/as": return "AS 접수·교체 기기 등록·회수 기기 잠금·종료. 신규 티켓은 이전 owner 페어링을 자동 force-unpair.";
     case "/dashboard/boot-invariants": return "Fleet 전체 출하 잠금 invariant 위반 추적 (Secure Boot·Flash Enc·JTAG Disable·OTA Anti-Rollback). 양산 라인 burn 실수 진단.";
@@ -419,6 +428,39 @@ function ReportIcon({ className }: { className?: string }) {
     <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2">
       <path d="M7 3h10l3 3v15a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h1z" />
       <path d="M8 11h8M8 15h5M8 7h6" />
+    </svg>
+  );
+}
+function FeedIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M4 6h16M4 12h16M4 18h10" />
+    </svg>
+  );
+}
+function BoxIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M3 7l9-4 9 4-9 4-9-4z" />
+      <path d="M3 7v10l9 4 9-4V7" />
+      <path d="M12 11v10" />
+    </svg>
+  );
+}
+function ReceiptIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M6 2h12v20l-3-2-3 2-3-2-3 2V2z" />
+      <path d="M9 7h6M9 11h6M9 15h4" />
+    </svg>
+  );
+}
+function SeedIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M12 22v-7" />
+      <path d="M12 15c-4 0-6-3-6-7 4 0 6 3 6 7z" />
+      <path d="M12 15c4 0 6-3 6-7-4 0-6 3-6 7z" />
     </svg>
   );
 }
