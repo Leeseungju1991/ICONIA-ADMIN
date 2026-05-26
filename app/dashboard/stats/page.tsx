@@ -211,16 +211,24 @@ function UserPerceivedErrorSloCard() {
       </div>
 
       <div className="rounded-2xl bg-white/55 border border-white/60 p-4">
-        <div className="flex items-end gap-3 h-40">
-          {series.map((p) => {
-            const max = Math.max(...series.map((q) => q.total_errors));
-            const visiblePct = (p.user_visible / max) * 100;
-            const inCharPct = (p.in_character / max) * 100;
-            const silentPct = (p.silent / max) * 100;
-            const dayRate = p.total_errors > 0 ? p.user_visible / p.total_errors : 0;
-            return (
-              <div key={p.day} className="flex-1 flex flex-col items-center gap-2">
-                <div className="w-full flex-1 flex flex-col-reverse rounded-t-lg overflow-hidden border border-white/60">
+        {/* 차트 영역 — 옅은 가로 grid line 5선(0/25/50/75/100%) 위에 막대 렌더. */}
+        <div className="relative h-40">
+          <ChartGridLines />
+          <div className="relative flex items-end gap-3 h-full">
+            {series.map((p) => {
+              const max = Math.max(...series.map((q) => q.total_errors));
+              const totalPct = (p.total_errors / max) * 100;
+              const dayRate = p.total_errors > 0 ? p.user_visible / p.total_errors : 0;
+              // 막대 안에서 visible/in-char/silent 의 상대 비율 (합 = 100%).
+              const visiblePct = p.total_errors > 0 ? (p.user_visible / p.total_errors) * 100 : 0;
+              const inCharPct = p.total_errors > 0 ? (p.in_character / p.total_errors) * 100 : 0;
+              const silentPct = p.total_errors > 0 ? (p.silent / p.total_errors) * 100 : 0;
+              return (
+                <div
+                  key={p.day}
+                  className="flex-1 flex flex-col-reverse rounded-t-lg overflow-hidden border border-white/60"
+                  style={{ height: `${totalPct}%` }}
+                >
                   <div
                     className="w-full bg-emerald-400/85"
                     style={{ height: `${silentPct}%` }}
@@ -237,6 +245,16 @@ function UserPerceivedErrorSloCard() {
                     title={`visible: ${p.user_visible.toLocaleString()} (${(dayRate * 100).toFixed(2)}%)`}
                   />
                 </div>
+              );
+            })}
+          </div>
+        </div>
+        {/* 라벨 영역 — day + 일별 인지율 */}
+        <div className="mt-2 flex gap-3">
+          {series.map((p) => {
+            const dayRate = p.total_errors > 0 ? p.user_visible / p.total_errors : 0;
+            return (
+              <div key={p.day} className="flex-1 flex flex-col items-center gap-1">
                 <div className="text-[10px] text-muted">{p.day}</div>
                 <div
                   className={
@@ -273,30 +291,55 @@ function UserPerceivedErrorSloCard() {
   );
 }
 
+// 옅은 가로 grid line — 차트 영역에 0/25/50/75/100% 5선 절대 배치.
+// 시각적 reference 만 제공하고 막대 hit-test 는 방해하지 않는다.
+function ChartGridLines() {
+  return (
+    <div
+      className="absolute inset-0 pointer-events-none flex flex-col justify-between"
+      aria-hidden="true"
+    >
+      <div className="border-t border-slate-200/80" />
+      <div className="border-t border-slate-200/50" />
+      <div className="border-t border-slate-200/50" />
+      <div className="border-t border-slate-200/50" />
+      <div className="border-t border-slate-200/80" />
+    </div>
+  );
+}
+
 function BarChart({ metric }: { metric: Metric }) {
   const series = mockStatsTimeseries;
   const max = Math.max(...series.map((d) => d[metric]));
   return (
     <div className="rounded-2xl bg-white/55 border border-white/60 p-4">
-      <div className="flex items-end gap-3 h-48">
-        {series.map((d) => {
-          const h = (d[metric] / max) * 100;
-          return (
-            <div key={d.day} className="flex-1 flex flex-col items-center gap-2">
-              <div className="w-full flex-1 flex items-end">
-                <div
-                  className="w-full rounded-t-lg"
-                  style={{
-                    height: `${h}%`,
-                    background: `linear-gradient(180deg, ${metricInfo[metric].color}E6 0%, ${metricInfo[metric].color}66 100%)`,
-                  }}
-                  title={metricInfo[metric].format(d[metric])}
-                />
-              </div>
-              <div className="text-[10px] text-muted">{d.day}</div>
-            </div>
-          );
-        })}
+      {/* 차트 영역 — 옅은 가로선 위에 막대 */}
+      <div className="relative h-48">
+        <ChartGridLines />
+        <div className="relative flex items-end gap-3 h-full">
+          {series.map((d) => {
+            const h = (d[metric] / max) * 100;
+            return (
+              <div
+                key={d.day}
+                className="flex-1 rounded-t-lg"
+                style={{
+                  height: `${h}%`,
+                  background: `linear-gradient(180deg, ${metricInfo[metric].color}E6 0%, ${metricInfo[metric].color}66 100%)`,
+                }}
+                title={metricInfo[metric].format(d[metric])}
+              />
+            );
+          })}
+        </div>
+      </div>
+      {/* 라벨 영역 — day */}
+      <div className="mt-2 flex gap-3">
+        {series.map((d) => (
+          <div key={d.day} className="flex-1 text-center text-[10px] text-muted">
+            {d.day}
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -330,34 +373,29 @@ function CostDashboardPanel() {
 
   if (loading) {
     return (
-      <PanelCard title="AI 비용 (Server)" description="Server /api/v1/admin/ai-health 의 cost 차원 (Phase 8 #17)">
+      <PanelCard title="AI 비용">
         <div className="text-sm text-muted">불러오는 중</div>
       </PanelCard>
     );
   }
   if (error || !snap) {
     return (
-      <PanelCard title="AI 비용 (Server)" description="Server /api/v1/admin/ai-health 의 cost 차원 (Phase 8 #17)">
-        <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-          Server 도달 실패: {error ?? "snapshot 없음"}
-        </div>
+      <PanelCard title="AI 비용">
+        <div className="text-sm text-muted">집계된 비용이 없습니다.</div>
       </PanelCard>
     );
   }
   const cost = snap.cost;
   if (!cost) {
     return (
-      <PanelCard title="AI 비용 (Server)" description="Server /api/v1/admin/ai-health 의 cost 차원 (Phase 8 #17)">
-        <div className="text-sm text-muted">
-          Server snapshot 에 cost 차원이 없습니다. (AI service 재시작 직후 또는 운영 환경 변수 미설정)
-        </div>
+      <PanelCard title="AI 비용">
+        <div className="text-sm text-muted">집계된 비용이 없습니다.</div>
       </PanelCard>
     );
   }
   return (
     <PanelCard
-      title={`AI 비용 (Server) — $${cost.total_usd.toFixed(4)} / ₩${Math.round(cost.total_krw).toLocaleString()}`}
-      description="aiHealthTracker.snapshot().cost — pricing.json + AI_COST_USD_TO_KRW (기본 1380) 환산."
+      title={`AI 비용 — $${cost.total_usd.toFixed(4)} / ₩${Math.round(cost.total_krw).toLocaleString()}`}
     >
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <div>
