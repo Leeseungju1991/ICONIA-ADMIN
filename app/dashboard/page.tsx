@@ -43,9 +43,10 @@ const SERVICE_GROUP: Record<ServicePingName, "backend" | "client"> = {
 
 // 좌측 띠 색 — 그룹 즉시 식별. before pseudo-element 로 카드 안에 띠를 그려
 // 5개가 일렬로 등간격 정렬되면서도 백엔드/클라이언트가 구분되도록 한다.
+// slate-300 / indigo-300 — 띠가 화면을 압도하지 않는 옅은 톤으로 정합.
 const GROUP_ACCENT: Record<"backend" | "client", string> = {
-  backend: "before:bg-slate-500",
-  client: "before:bg-indigo-500",
+  backend: "before:bg-slate-300",
+  client: "before:bg-indigo-300",
 };
 
 function ServiceRow({ services }: { services: ServicePing[] }) {
@@ -61,12 +62,12 @@ function ServiceRow({ services }: { services: ServicePing[] }) {
       {/* 그룹 라벨 헤더 — 5칸 grid 에 백엔드 3 + 클라이언트 2 로 정확히 정렬. */}
       <div className="grid grid-cols-1 sm:grid-cols-5 gap-3 text-xs">
         <div className="sm:col-span-3 flex items-center gap-2">
-          <span className="inline-block w-2 h-2 rounded-full bg-slate-500" aria-hidden />
+          <span className="inline-block w-2 h-2 rounded-full bg-slate-300" aria-hidden />
           <span className="font-semibold text-slate-700">백엔드 인프라</span>
           <span className="text-[10px] text-muted">3종</span>
         </div>
         <div className="sm:col-span-2 flex items-center gap-2">
-          <span className="inline-block w-2 h-2 rounded-full bg-indigo-500" aria-hidden />
+          <span className="inline-block w-2 h-2 rounded-full bg-indigo-300" aria-hidden />
           <span className="font-semibold text-indigo-700">클라이언트 표면</span>
           <span className="text-[10px] text-muted">2종</span>
         </div>
