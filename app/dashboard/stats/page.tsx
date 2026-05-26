@@ -13,10 +13,11 @@ import type { AiHealthSnapshot } from "@/lib/adminApi";
 
 type Metric = "dau" | "signups" | "revenue";
 
+// 한 단계 옅은 톤(*-400 계열)으로 정합 — 진한 *-500 hex 가 막대를 투박하게 보이게 함.
 const metricInfo: Record<Metric, { label: string; format: (n: number) => string; color: string }> = {
-  dau: { label: "DAU", format: (n) => n.toLocaleString(), color: "#6D5DFE" },
-  signups: { label: "신규 가입", format: (n) => n.toLocaleString(), color: "#EC4899" },
-  revenue: { label: "매출", format: (n) => "₩" + (n / 1000).toFixed(0) + "k", color: "#F97316" },
+  dau: { label: "DAU", format: (n) => n.toLocaleString(), color: "#818CF8" }, // indigo-400
+  signups: { label: "신규 가입", format: (n) => n.toLocaleString(), color: "#F472B6" }, // pink-400
+  revenue: { label: "매출", format: (n) => "₩" + (n / 1000).toFixed(0) + "k", color: "#FB923C" }, // orange-400
 };
 
 export default function StatsPage() {
@@ -157,19 +158,19 @@ function UserPerceivedErrorSloCard() {
     {
       label: "사용자 인지 (visible)",
       value: today.user_visible,
-      color: "bg-rose-500",
+      color: "bg-rose-400",
       meta: "명확한 에러 UI 노출",
     },
     {
       label: "캐릭터 라인 완충 (in-character)",
       value: today.in_character,
-      color: "bg-sky-400",
+      color: "bg-sky-300",
       meta: "AI 가 자연어로 우회 표현",
     },
     {
       label: "사용자 인지 없음 (silent)",
       value: today.silent,
-      color: "bg-emerald-400",
+      color: "bg-emerald-300",
       meta: "백그라운드 처리 / 자동 재시도",
     },
   ];
@@ -230,17 +231,17 @@ function UserPerceivedErrorSloCard() {
                   style={{ height: `${totalPct}%` }}
                 >
                   <div
-                    className="w-full bg-emerald-400/85"
+                    className="w-full bg-emerald-300/75"
                     style={{ height: `${silentPct}%` }}
                     title={`silent: ${p.silent.toLocaleString()}`}
                   />
                   <div
-                    className="w-full bg-sky-400/85"
+                    className="w-full bg-sky-300/75"
                     style={{ height: `${inCharPct}%` }}
                     title={`in-character: ${p.in_character.toLocaleString()}`}
                   />
                   <div
-                    className="w-full bg-rose-500/85"
+                    className="w-full bg-rose-400/75"
                     style={{ height: `${visiblePct}%` }}
                     title={`visible: ${p.user_visible.toLocaleString()} (${(dayRate * 100).toFixed(2)}%)`}
                   />
@@ -325,7 +326,8 @@ function BarChart({ metric }: { metric: Metric }) {
                 className="flex-1 rounded-t-lg"
                 style={{
                   height: `${h}%`,
-                  background: `linear-gradient(180deg, ${metricInfo[metric].color}E6 0%, ${metricInfo[metric].color}66 100%)`,
+                  // 상단 ~75%(BF) → 하단 ~20%(33) — 위에서 아래로 더 부드럽게 페이드.
+                  background: `linear-gradient(180deg, ${metricInfo[metric].color}BF 0%, ${metricInfo[metric].color}33 100%)`,
                 }}
                 title={metricInfo[metric].format(d[metric])}
               />
