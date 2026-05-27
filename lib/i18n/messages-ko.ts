@@ -47,6 +47,23 @@ export const messagesKo = {
     boot_invariants: "Fleet 출하 잠금",
     reports_archive: "운영 리포트 아카이브",
     operators: "운영자 관리",
+    legal: "약관·법률 관리",
+    rights: "사용자 권리 큐",
+  },
+  legal: {
+    active_versions: "활성 약관 버전",
+    preview: "약관 본문 미리보기",
+    publish: "신규 버전 발행",
+    consent_stats: "동의 통계",
+    business_info: "회사 정보 (사업자)",
+    placeholder_warning: "출시 전 placeholder — 법무 검토 후 교체 예정",
+  },
+  rights: {
+    queue: "권리 요청 큐",
+    received: "접수",
+    in_review: "검토 중",
+    completed: "처리 완료",
+    rejected: "거부",
   },
   two_eye: {
     title: "2인 승인 필요",

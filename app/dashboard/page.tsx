@@ -31,6 +31,9 @@ import { resolveHeroMode } from "@/lib/heroPriority";
 import { fetchOperatorActivityAction } from "@/lib/actions/operatorActivity";
 import { readSession } from "@/lib/authCookie";
 import { resolveIdentity } from "@/lib/identity";
+import { getConsentStatsAction, getActiveTermsAction } from "@/lib/actions/legal";
+import { listFeedPostsAction } from "@/lib/actions/feed";
+import { listAdminOrdersAction } from "@/lib/actions/commerceAdmin";
 
 type ServicePingName = ServicePing["name"];
 
@@ -139,6 +142,22 @@ export default async function DashboardHome() {
 
   // V1.0 #1 — DEPLOY_TARGET=local 일 때 5개 로컬 서비스 health 한 화면 표시.
   const localHealth = await fetchLocalServicesHealthAction();
+
+  // (주)숨코리아 출시 — 약관 동의 KPI. Server endpoint 미구현 시 placeholder.
+  const consentStatsResult = await getConsentStatsAction({ days: 30 });
+  const consentStats = consentStatsResult.ok ? consentStatsResult.data.stats : null;
+  const consentPlaceholder = consentStatsResult.ok ? consentStatsResult.data.placeholder : true;
+  const activeTermsResult = await getActiveTermsAction();
+  const activeTerms = activeTermsResult.ok ? activeTermsResult.data : null;
+
+  // (주)숨코리아 출시 정비 — 피드/주문 24h 카운트. Server admin endpoint 미가동 시 "—" graceful.
+  const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const [feedRecent, ordersRecent] = await Promise.all([
+    listFeedPostsAction({ from: since24h, page: 1, page_size: 1 }),
+    listAdminOrdersAction({ page: 1, page_size: 1 }),
+  ]);
+  const feed24hTotal = feedRecent.ok ? feedRecent.data.total : null;
+  const orders24hTotal = ordersRecent.ok ? ordersRecent.data.total : null;
 
   const pendingReports = mockReports.filter((r) => r.status === "pending");
   const criticalFw = mockFirmwareErrors.filter((e) => e.severity === "critical");
@@ -389,6 +408,67 @@ export default async function DashboardHome() {
           operatorEmail={operatorEmail}
           weekly={activity.ok ? activity.weekly : []}
           collaborators={activity.ok ? activity.collaborators : []}
+        />
+      </section>
+
+      {/* (주)숨코리아 출시 정비 — 약관 동의 KPI. 약관 활성 버전 + 마케팅 동의율 + 사용자 권리 큐. */}
+      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard
+          label="활성 약관 버전"
+          value={activeTerms?.terms_version ?? "—"}
+          delta={`개인정보 ${activeTerms?.privacy_version ?? "—"}`}
+          deltaTone="flat"
+          hint={activeTerms ? "Server consent 정본" : "Server 미가동"}
+          accent="blue"
+        />
+        <StatCard
+          label="마케팅 동의율"
+          value={consentStats ? `${(consentStats.marketing_opt_in_rate * 100).toFixed(1)}%` : "—"}
+          delta={consentPlaceholder ? "placeholder" : "30일 평균"}
+          deltaTone={consentStats && consentStats.marketing_opt_in_rate > 0.5 ? "up" : "flat"}
+          hint="약관·법률 관리 → 통계"
+          accent="pink"
+        />
+        <StatCard
+          label="제3자 제공 (Gemini)"
+          value={(() => {
+            const rows = consentStats?.by_kind?.third_party ?? [];
+            const g = rows.reduce((s, r) => s + r.granted, 0);
+            const t = g + rows.reduce((s, r) => s + r.revoked, 0);
+            return t > 0 ? `${((g / t) * 100).toFixed(1)}%` : "—";
+          })()}
+          delta={consentPlaceholder ? "placeholder" : "필수 동의"}
+          deltaTone="flat"
+          hint="register 차단 게이트"
+          accent="teal"
+        />
+        <StatCard
+          label="동의 이벤트 (30d)"
+          value={consentStats ? consentStats.total_consent_events.toLocaleString() : "—"}
+          delta={consentPlaceholder ? "placeholder" : "register + reconsent"}
+          deltaTone="flat"
+          hint="약관·법률 관리 페이지"
+          accent="orange"
+        />
+      </section>
+
+      {/* (주)숨코리아 출시 정비 — 피드/커머스 24h KPI. Server endpoint 미배포 시 "—" graceful. */}
+      <section className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <StatCard
+          label="피드 게시물 (24h)"
+          value={feed24hTotal != null ? feed24hTotal.toLocaleString() : "—"}
+          delta={feed24hTotal != null ? "Server 정본" : "Server 미가동"}
+          deltaTone={feed24hTotal != null ? "up" : "flat"}
+          hint="Server /api/v1/admin/feed/posts?from=24h"
+          accent="teal"
+        />
+        <StatCard
+          label="신규 주문 (24h)"
+          value={orders24hTotal != null ? orders24hTotal.toLocaleString() : "—"}
+          delta={orders24hTotal != null ? "Server 정본" : "Server 미가동"}
+          deltaTone={orders24hTotal != null ? "up" : "flat"}
+          hint="Server /api/v1/admin/commerce/orders"
+          accent="orange"
         />
       </section>
 

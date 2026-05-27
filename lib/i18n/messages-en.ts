@@ -47,6 +47,23 @@ export const messagesEn = {
     boot_invariants: "Fleet boot invariants",
     reports_archive: "Ops report archive",
     operators: "Operators",
+    legal: "Terms & Legal",
+    rights: "User rights queue",
+  },
+  legal: {
+    active_versions: "Active terms versions",
+    preview: "Terms body preview",
+    publish: "Publish new version",
+    consent_stats: "Consent statistics",
+    business_info: "Company info (business)",
+    placeholder_warning: "Pre-launch placeholder — to be replaced after legal review",
+  },
+  rights: {
+    queue: "Rights request queue",
+    received: "Received",
+    in_review: "In review",
+    completed: "Completed",
+    rejected: "Rejected",
   },
   two_eye: {
     title: "Two-eye approval required",
