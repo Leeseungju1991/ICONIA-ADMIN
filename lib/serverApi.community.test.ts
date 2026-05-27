@@ -9,6 +9,9 @@ import {
   hidePostsByAuthor,
 } from "./serverApi.community";
 
+type FetchFn = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
+const mockFetch = (impl: FetchFn) => vi.fn<FetchFn>(impl);
+
 const ORIG_FETCH = globalThis.fetch;
 const ORIG_ENV = process.env.ICONIA_SERVER_URL;
 
@@ -162,7 +165,7 @@ describe("serverApi.community — fetchCommunityHealth", () => {
 
 describe("serverApi.community — hideCommunityPost", () => {
   it("ok envelope returns data and sends POST body", async () => {
-    const fetchMock = vi.fn(
+    const fetchMock = mockFetch(
       async () =>
         new Response(
           JSON.stringify({ ok: true, data: { status: "hidden" } }),
@@ -212,7 +215,7 @@ describe("serverApi.community — hideCommunityPost", () => {
 
 describe("serverApi.community — unhideCommunityPost", () => {
   it("ok envelope returns data and POST with no body", async () => {
-    const fetchMock = vi.fn(
+    const fetchMock = mockFetch(
       async () =>
         new Response(
           JSON.stringify({ ok: true, data: { status: "visible" } }),
@@ -260,7 +263,7 @@ describe("serverApi.community — unhideCommunityPost", () => {
 
 describe("serverApi.community — takedownCommunityPost", () => {
   it("ok envelope returns data and sends POST body", async () => {
-    const fetchMock = vi.fn(
+    const fetchMock = mockFetch(
       async () =>
         new Response(
           JSON.stringify({ ok: true, data: { status: "taken_down" } }),
@@ -308,7 +311,7 @@ describe("serverApi.community — takedownCommunityPost", () => {
 
 describe("serverApi.community — hidePostsByAuthor", () => {
   it("ok envelope returns affected count", async () => {
-    const fetchMock = vi.fn(
+    const fetchMock = mockFetch(
       async () =>
         new Response(
           JSON.stringify({ ok: true, data: { affected: 7 } }),
