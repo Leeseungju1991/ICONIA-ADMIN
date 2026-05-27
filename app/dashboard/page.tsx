@@ -7,21 +7,11 @@ import { KpiChip } from "./_components/KpiChip";
 import { SummaryCardCarousel } from "./_components/SummaryCardCarousel";
 import { ProfileRail } from "./_components/ProfileRail";
 import { ProgressBar } from "./_components/SimpleChart";
-import { FixtureBadge } from "./_components/CardStates";
+import { FixtureBadge, ServerDownBadge } from "./_components/CardStates";
 import { fetchGeminiKeysAction } from "@/lib/actions/gemini";
 import { listReportsAction } from "@/lib/actions/reportsAdmin";
 import { geminiRatioTone, summarizeKeys } from "@/fixtures/gemini";
-import {
-  mockReports,
-  mockFirmwareErrors,
-  mockServerErrors,
-  mockAppErrors,
-  mockDevices,
-  mockUserPerceivedErrorRate,
-  USER_PERCEIVED_ERROR_SLO_TARGET,
-  formatDate,
-} from "@/lib/mockData";
-import { mockHealthProbes, mockDeadLetters } from "@/lib/opsInfraMock";
+import { USER_PERCEIVED_ERROR_SLO_TARGET } from "@/lib/mockData";
 import { fetchAdminOverviewAction } from "@/lib/actions/overview";
 import {
   fetchLocalServicesHealthAction,
@@ -159,58 +149,52 @@ export default async function DashboardHome() {
   const feed24hTotal = feedRecent.ok ? feedRecent.data.total : null;
   const orders24hTotal = ordersRecent.ok ? ordersRecent.data.total : null;
 
-  const pendingReports = mockReports.filter((r) => r.status === "pending");
-  const criticalFw = mockFirmwareErrors.filter((e) => e.severity === "critical");
-  // 대시보드 미리보기는 최대 3건만, 나머지는 상세 페이지에서 — UX 통일.
-  const PREVIEW_LIMIT = 3;
-  const previewSrv = mockServerErrors.slice(0, PREVIEW_LIMIT);
-  const previewApp = mockAppErrors.slice(0, PREVIEW_LIMIT);
-  const previewReports = pendingReports.slice(0, PREVIEW_LIMIT);
+  // ── 핵심 KPI 집계 (Server 정본 only — mock fallback 폐기) ────────────
+  // 2026-05-27 — Server `/api/v1/admin/overview` 가 도달 불가하면 모든 수치를
+  // null 로 두고 UI 에서 "—" + ServerDownBadge 로 표시한다. 이전엔 mock 으로
+  // fallback 해 "활성 디바이스 N대 / DAU 12,840 / 펌웨어 critical 2건" 같은
+  // 가짜 숫자가 운영자에게 노출되어 의사결정 오해를 일으켰음.
+  //
+  // 상세 페이지(reports / app-errors / server-errors / firmware-errors / devices)
+  // 는 각각 Server 정본을 직접 조회하므로 본 대시보드와 같은 source 로 정합.
+  const dash = sv
+    ? {
+        activeDevices: sv.active_devices,
+        // totalDevices 는 overview 에 없으므로 null. 카드 hint 만 표시.
+        totalDevices: null as number | null,
+        dauLabel: sv.dau.toLocaleString(),
+        reportsPendingCount: sv.reports_pending,
+        fwCriticalCount: sv.firmware_critical_count,
+        errors24h:
+          sv.errors_24h.server + sv.errors_24h.app + sv.errors_24h.firmware,
+        errors24hByDomain: sv.errors_24h,
+        queueBacklog: sv.queue_depth,
+        healthLabel:
+          sv.server_health === "down"
+            ? "장애"
+            : sv.server_health === "degraded"
+              ? "주의"
+              : "정상",
+      }
+    : null;
 
-  // ── 핵심 KPI 집계 (Server 우선, fallback mock) ────────────────────
-  // Server overview 가 도달하면 그 수치가 정본. mock 은 Server 미가동 fallback.
-  // 상세 페이지 (reports / app-errors / server-errors / firmware-errors) 가
-  // Server 정본을 그대로 조회하므로 dashboard 도 같은 source 를 우선해야 숫자가 일치한다.
-  const activeDevices = sv ? sv.active_devices : mockDevices.filter((d) => d.online).length;
-  const totalDevices = mockDevices.length;
-  // Server overview 응답의 reports_pending / errors_24h.{server,app,firmware} 가 있다면
-  // 그 값이 표시 정본. 패널 리스트는 별도 endpoint 가 필요하므로 mock 미리보기 + "전체보기" 링크로 위임.
-  const reportsPendingCount = sv ? sv.reports_pending : pendingReports.length;
-  const fwCriticalCount = sv ? sv.firmware_critical_count : criticalFw.length;
+  const healthTone: "up" | "down" | "flat" = dash
+    ? dash.healthLabel === "장애"
+      ? "down"
+      : dash.healthLabel === "주의"
+        ? "flat"
+        : "up"
+    : "flat";
 
-  const errors24h = sv
-    ? sv.errors_24h.server + sv.errors_24h.app + sv.errors_24h.firmware
-    : mockServerErrors.reduce((s, e) => s + e.count, 0) +
-      mockAppErrors.reduce((s, e) => s + e.count, 0) +
-      mockFirmwareErrors.reduce((s, e) => s + e.count, 0);
+  // 사용자 인지 에러율 — 현재 server overview 에 미포함. server 가 노출하기 전까진
+  // 표시값을 null 로 두고 "—" 표시. mockUserPerceivedErrorRate 의존 제거.
+  // TS 가 null literal 로 narrow 하지 않도록 명시적 nullable number.
+  const perceivedRatePct: number | null = null as number | null;
+  const sloMet: boolean | null = null as boolean | null;
 
-  // 사용자 인지 에러율 (오늘) — SLO 핵심 지표.
-  const slo = mockUserPerceivedErrorRate.at(-1)!;
-  const perceivedRate = slo.total_errors > 0 ? slo.user_visible / slo.total_errors : 0;
-  const sloMet = perceivedRate <= USER_PERCEIVED_ERROR_SLO_TARGET;
-
-  // 큐 적체 — Server overview 의 queue_depth 우선, 없으면 mock.
-  const queueBacklog = sv ? sv.queue_depth : mockDeadLetters.length;
-
-  // 서버 헬스 — Server overview 정본, 없으면 health probe mock.
-  const probesDown = mockHealthProbes.filter((p) => p.status === "down").length;
-  const probesDegraded = mockHealthProbes.filter((p) => p.status === "degraded").length;
-  const probesOk = mockHealthProbes.filter((p) => p.status === "ok").length;
-  const healthLabel = sv
-    ? sv.server_health === "down"
-      ? "장애"
-      : sv.server_health === "degraded"
-        ? "주의"
-        : "정상"
-    : probesDown > 0
-      ? "장애"
-      : probesDegraded > 0
-        ? "주의"
-        : "정상";
-  const healthTone: "up" | "down" | "flat" =
-    healthLabel === "장애" ? "down" : healthLabel === "주의" ? "flat" : "up";
-
-  const dauLabel = sv ? sv.dau.toLocaleString() : "12,840";
+  // 카드 hint 보조 표시기.
+  const DASH = (n: number | null | undefined, fmt: (v: number) => string = (v) => v.toLocaleString()): string =>
+    n == null ? "—" : fmt(n);
 
   // ── 신규 (2026-05-27) ─────────────────────────────────────────────
   // ◈1번 Gemini API Key 상태 + 모더레이션 미해결 신고 카운트.
@@ -230,43 +214,70 @@ export default async function DashboardHome() {
   const identity = jwt ? await resolveIdentity(jwt) : null;
   const operatorEmail = identity?.email ?? "operator@iconia.example";
 
-  const hero = resolveHeroMode({
-    firmware_critical_count: sv?.firmware_critical_count ?? criticalFw.length,
-    reports_pending: sv?.reports_pending ?? pendingReports.length,
-    server_health:
-      (sv?.server_health as "ok" | "degraded" | "down" | undefined) ??
-      (probesDown > 0 ? "down" : probesDegraded > 0 ? "degraded" : "ok"),
-    dead_letter_count: sv?.queue_depth ?? mockDeadLetters.length,
-    errors_24h: errors24h,
-  });
+  // Hero — Server 정본이 없으면 중립("ok") 톤으로 표시 + 본문에서 미가동 안내.
+  // 가짜 fallback 으로 critical 톤 UI 띄우지 않음.
+  const hero: {
+    mode: "critical" | "warn" | "ok";
+    title: string;
+    subtitle: string;
+    cta?: { label: string; href: string };
+  } = dash
+    ? resolveHeroMode({
+        firmware_critical_count: dash.fwCriticalCount,
+        reports_pending: dash.reportsPendingCount,
+        server_health: (sv?.server_health as "ok" | "degraded" | "down") ?? "ok",
+        dead_letter_count: dash.queueBacklog,
+        errors_24h: dash.errors24h,
+      })
+    : {
+        mode: "ok",
+        title: "Server 미가동 — 대시보드 KPI 표시 불가",
+        subtitle:
+          "ICONIA-SERVER /api/v1/admin/overview 가 응답하지 않습니다. 모든 핵심 수치를 '—' 로 표시합니다.",
+      };
 
   const kpis = [
     {
       label: "활성 디바이스",
-      value: activeDevices.toLocaleString(),
-      delta: `${totalDevices ? Math.round((activeDevices / totalDevices) * 100) : 0}% 온라인`,
-      deltaTone: "up" as const,
-      hint: `전체 ${totalDevices.toLocaleString()}대`,
+      value: DASH(dash?.activeDevices),
+      delta: dash ? "Server 정본" : "Server 미가동",
+      deltaTone: dash ? ("up" as const) : ("flat" as const),
+      hint:
+        dash?.totalDevices != null
+          ? `전체 ${dash.totalDevices.toLocaleString()}대`
+          : "전체 — (server 필요)",
     },
     {
       label: "일일 대화량 (DAU)",
-      value: dauLabel,
-      delta: sv ? "실시간" : "+4.2%",
-      deltaTone: "up" as const,
-      hint: sv ? "Server 24h refresh token 활성 사용자" : "전일 대비 (mock)",
+      value: dash?.dauLabel ?? "—",
+      delta: dash ? "실시간" : "Server 미가동",
+      deltaTone: dash ? ("up" as const) : ("flat" as const),
+      hint: dash ? "Server 24h refresh token 활성 사용자" : "Server overview 미응답",
     },
     {
       label: "사용자 인지 에러율",
-      value: `${(perceivedRate * 100).toFixed(2)}%`,
-      delta: sloMet ? "SLO 충족" : "SLO 위반",
-      deltaTone: sloMet ? ("up" as const) : ("down" as const),
-      hint: `목표 ≤ ${(USER_PERCEIVED_ERROR_SLO_TARGET * 100).toFixed(1)}%`,
+      value: perceivedRatePct == null ? "—" : `${perceivedRatePct.toFixed(2)}%`,
+      delta:
+        sloMet == null ? "Server 미연동" : sloMet ? "SLO 충족" : "SLO 위반",
+      deltaTone:
+        sloMet == null ? ("flat" as const) : sloMet ? ("up" as const) : ("down" as const),
+      hint: `목표 ≤ ${(USER_PERCEIVED_ERROR_SLO_TARGET * 100).toFixed(1)}% (server endpoint 도입 후 표시)`,
     },
     {
       label: "큐 적체 (dead-letter)",
-      value: queueBacklog.toLocaleString(),
-      delta: queueBacklog > 0 ? "재투입 필요" : "정상",
-      deltaTone: queueBacklog > 0 ? ("down" as const) : ("up" as const),
+      value: DASH(dash?.queueBacklog),
+      delta:
+        dash == null
+          ? "Server 미가동"
+          : dash.queueBacklog > 0
+            ? "재투입 필요"
+            : "정상",
+      deltaTone:
+        dash == null
+          ? ("flat" as const)
+          : dash.queueBacklog > 0
+            ? ("down" as const)
+            : ("up" as const),
       hint: "운영 안정성 → replay 참조",
     },
   ];
@@ -279,43 +290,65 @@ export default async function DashboardHome() {
         <div className="space-y-5">
           <HeroBanner mode={hero.mode} title={hero.title} subtitle={hero.subtitle} cta={hero.cta} />
 
+          {/* Server 정본 미응답 시 KPI 상단에 명시적 경고. */}
+          {dash == null ? (
+            <div className="flex items-center gap-2">
+              <ServerDownBadge />
+              <span className="text-xs text-rose-700">
+                Server `/api/v1/admin/overview` 미응답 — 아래 핵심 KPI 는 모두 &quot;—&quot; 로 표시됩니다.
+              </span>
+            </div>
+          ) : null}
+
           <section className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             <KpiChip
               tone="indigo"
               icon="device"
               label="활성 디바이스"
-              value={activeDevices.toLocaleString()}
-              sub={`전체 ${totalDevices.toLocaleString()}대`}
+              value={DASH(dash?.activeDevices)}
+              sub={
+                dash?.totalDevices != null
+                  ? `전체 ${dash.totalDevices.toLocaleString()}대`
+                  : dash
+                    ? "전체 — (server 필드 없음)"
+                    : "Server 미가동"
+              }
             />
             <KpiChip
               tone="teal"
               icon="chat"
               label="DAU"
-              value={dauLabel}
-              sub={sv ? "실시간" : "mock"}
+              value={dash?.dauLabel ?? "—"}
+              sub={dash ? "실시간" : "Server 미가동"}
             />
             <KpiChip
               tone="orange"
               icon="alert"
               label="인지 에러율"
-              value={`${(perceivedRate * 100).toFixed(2)}%`}
-              sub={sloMet ? "SLO 충족" : "SLO 위반"}
+              value={perceivedRatePct == null ? "—" : `${perceivedRatePct.toFixed(2)}%`}
+              sub={sloMet == null ? "Server 미연동" : sloMet ? "SLO 충족" : "SLO 위반"}
             />
             <KpiChip
               tone="pink"
               icon="queue"
               label="큐 적체"
-              value={queueBacklog.toLocaleString()}
-              sub={queueBacklog > 0 ? "재투입 필요" : "정상"}
+              value={DASH(dash?.queueBacklog)}
+              sub={
+                dash == null
+                  ? "Server 미가동"
+                  : dash.queueBacklog > 0
+                    ? "재투입 필요"
+                    : "정상"
+              }
             />
           </section>
 
           <SummaryCardCarousel
             cards={[
-              { id: "reports", title: "신고 대기", count: reportsPendingCount, hint: "검토 필요", href: "/dashboard/reports" },
-              { id: "app", title: "앱 에러", count: mockAppErrors.length, hint: "유형 수 (24h)", href: "/dashboard/app-errors" },
-              { id: "fw", title: "펌웨어 critical", count: fwCriticalCount, hint: "긴급", href: "/dashboard/firmware-errors" },
-              { id: "srv", title: "서버 에러", count: mockServerErrors.length, hint: "최근", href: "/dashboard/server-errors" },
+              { id: "reports", title: "신고 대기", count: dash?.reportsPendingCount ?? null, hint: dash ? "검토 필요" : "Server 미가동", href: "/dashboard/reports" },
+              { id: "app", title: "앱 에러 (24h)", count: dash?.errors24hByDomain.app ?? null, hint: dash ? "Server 정본" : "Server 미가동", href: "/dashboard/app-errors" },
+              { id: "fw", title: "펌웨어 critical", count: dash?.fwCriticalCount ?? null, hint: dash ? "긴급" : "Server 미가동", href: "/dashboard/firmware-errors" },
+              { id: "srv", title: "서버 에러 (24h)", count: dash?.errors24hByDomain.server ?? null, hint: dash ? "Server 정본" : "Server 미가동", href: "/dashboard/server-errors" },
             ]}
           />
 
@@ -532,111 +565,116 @@ export default async function DashboardHome() {
             ))}
           </section>
 
-          {/* 2차 KPI — 에러/헬스/신고 운영 지표. */}
+          {/* 2차 KPI — 에러/헬스/신고 운영 지표 (Server 정본 only). */}
           <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <StatCard
               label="에러 발생 (24h)"
-              value={errors24h.toLocaleString()}
-              delta={`서버 ${mockServerErrors.length} · 앱 ${mockAppErrors.length} · FW ${mockFirmwareErrors.length} 유형`}
+              value={DASH(dash?.errors24h)}
+              delta={
+                dash
+                  ? `서버 ${dash.errors24hByDomain.server.toLocaleString()} · 앱 ${dash.errors24hByDomain.app.toLocaleString()} · FW ${dash.errors24hByDomain.firmware.toLocaleString()}`
+                  : "Server 미가동"
+              }
               deltaTone="flat"
-              hint="전 카테고리 누적"
+              hint="Server /api/v1/admin/overview.errors_24h 정본"
               accent="orange"
             />
             <StatCard
               label="서버 헬스"
-              value={healthLabel}
-              delta={`OK ${probesOk} · 주의 ${probesDegraded} · 장애 ${probesDown}`}
+              value={dash?.healthLabel ?? "—"}
+              delta={dash ? "Server overview 정본" : "Server 미가동"}
               deltaTone={healthTone}
-              hint="health probe 집계"
-              accent={probesDown > 0 ? "pink" : probesDegraded > 0 ? "orange" : "teal"}
+              hint="Server /api/v1/admin/overview.server_health"
+              accent={
+                dash?.healthLabel === "장애"
+                  ? "pink"
+                  : dash?.healthLabel === "주의"
+                    ? "orange"
+                    : "teal"
+              }
             />
             <StatCard
               label="신고 처리 대기"
-              value={String(reportsPendingCount)}
-              delta={reportsPendingCount > 0 ? "검토 필요" : "없음"}
-              deltaTone={reportsPendingCount > 0 ? "down" : "up"}
-              hint={sv ? "Server overview 정본" : "pending 신고 (mock)"}
+              value={DASH(dash?.reportsPendingCount)}
+              delta={
+                dash == null
+                  ? "Server 미가동"
+                  : dash.reportsPendingCount > 0
+                    ? "검토 필요"
+                    : "없음"
+              }
+              deltaTone={
+                dash == null
+                  ? "flat"
+                  : dash.reportsPendingCount > 0
+                    ? "down"
+                    : "up"
+              }
+              hint="Server overview 정본"
               accent="pink"
             />
             <StatCard
               label="펌웨어 크리티컬"
-              value={String(fwCriticalCount)}
-              delta={fwCriticalCount > 0 ? "긴급" : "없음"}
-              deltaTone={fwCriticalCount > 0 ? "down" : "up"}
-              hint={sv ? "Server overview 정본" : "critical 펌웨어 에러 (mock)"}
+              value={DASH(dash?.fwCriticalCount)}
+              delta={
+                dash == null
+                  ? "Server 미가동"
+                  : dash.fwCriticalCount > 0
+                    ? "긴급"
+                    : "없음"
+              }
+              deltaTone={
+                dash == null ? "flat" : dash.fwCriticalCount > 0 ? "down" : "up"
+              }
+              hint="Server overview 정본"
               accent="blue"
             />
           </section>
 
+          {/* 미리보기 패널 — Server 정본 endpoint 도입 전까지 빈 상태로만 표시.
+             과거: mockReports / mockAppErrors / mockServerErrors 로 fake 미리보기.
+             현재: "Server 미가동" + 상세 페이지 링크. 상세 페이지에서 실 데이터 조회. */}
           <section className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <PanelCard
               title="처리 대기 신고"
-              description={`${reportsPendingCount}건의 신고가 검토를 기다립니다. 미리보기 ${PREVIEW_LIMIT}건.`}
+              description="요약 미리보기 — 실시간 상세는 전체 보기에서 조회."
               actions={<Link href="/dashboard/reports" className="btn-outline text-xs">전체 보기 →</Link>}
             >
-              {previewReports.length === 0 ? (
-                <div className="py-8 text-center text-xs text-muted">대기 중인 신고가 없습니다.</div>
-              ) : (
-                <ul className="space-y-3">
-                  {previewReports.map((r) => (
-                    <li key={r.id} className="rounded-2xl bg-white/55 border border-white/60 p-3">
-                      <div className="flex items-center justify-between">
-                        <span className="chip chip-warn">{r.type}</span>
-                        <span className="text-[11px] text-muted">{formatDate(r.created_at)}</span>
-                      </div>
-                      <p className="mt-2 text-sm text-slate-700 line-clamp-2">{r.excerpt}</p>
-                      <p className="mt-1 text-[11px] text-muted">사유: {r.reason} · 신고 {r.reported_count}회</p>
-                    </li>
-                  ))}
-                </ul>
-              )}
+              <div className="py-8 text-center text-xs text-muted">
+                {dash
+                  ? dash.reportsPendingCount > 0
+                    ? `${dash.reportsPendingCount.toLocaleString()}건 대기 — 전체 보기에서 상세 확인.`
+                    : "대기 중인 신고가 없습니다."
+                  : "Server 미가동 — 데이터 없음."}
+              </div>
             </PanelCard>
 
             <PanelCard
-              title="앱 에러 최신"
-              description={`최근 ${PREVIEW_LIMIT}건 미리보기.`}
+              title="앱 에러 (24h)"
+              description="요약 미리보기 — 실시간 상세는 전체 보기에서 조회."
               actions={<Link href="/dashboard/app-errors" className="btn-outline text-xs">전체 보기 →</Link>}
             >
-              {previewApp.length === 0 ? (
-                <div className="py-8 text-center text-xs text-muted">최근 앱 에러 없음.</div>
-              ) : (
-                <ul className="space-y-3">
-                  {previewApp.map((e) => (
-                    <li key={e.id} className="rounded-2xl bg-white/55 border border-white/60 p-3">
-                      <div className="flex items-center justify-between">
-                        <span className="chip chip-info">{e.platform}</span>
-                        <span className="text-[11px] text-muted">v{e.app_version}</span>
-                      </div>
-                      <p className="mt-2 text-sm font-medium text-slate-800">{e.error_type}</p>
-                      <p className="text-[11px] text-muted line-clamp-2">{e.message}</p>
-                      <p className="text-[11px] text-muted mt-1">{e.affected_users}명 영향 · {e.count}회</p>
-                    </li>
-                  ))}
-                </ul>
-              )}
+              <div className="py-8 text-center text-xs text-muted">
+                {dash
+                  ? dash.errors24hByDomain.app > 0
+                    ? `${dash.errors24hByDomain.app.toLocaleString()}건 누적 (24h).`
+                    : "24h 앱 에러 없음."
+                  : "Server 미가동 — 데이터 없음."}
+              </div>
             </PanelCard>
 
             <PanelCard
               title="서버 에러 (24h)"
-              description={`최근 ${PREVIEW_LIMIT}건 미리보기.`}
+              description="요약 미리보기 — 실시간 상세는 전체 보기에서 조회."
               actions={<Link href="/dashboard/server-errors" className="btn-outline text-xs">전체 보기 →</Link>}
             >
-              {previewSrv.length === 0 ? (
-                <div className="py-8 text-center text-xs text-muted">최근 서버 에러 없음.</div>
-              ) : (
-                <ul className="space-y-3">
-                  {previewSrv.map((e) => (
-                    <li key={e.id} className="rounded-2xl bg-white/55 border border-white/60 p-3">
-                      <div className="flex items-center justify-between">
-                        <span className={`chip ${e.status_code >= 500 ? "chip-error" : "chip-warn"}`}>{e.status_code}</span>
-                        <span className="text-[11px] text-muted">{e.count}건</span>
-                      </div>
-                      <p className="mt-2 text-sm font-medium text-slate-800">{e.service}</p>
-                      <p className="text-[11px] text-muted truncate">{e.path}</p>
-                    </li>
-                  ))}
-                </ul>
-              )}
+              <div className="py-8 text-center text-xs text-muted">
+                {dash
+                  ? dash.errors24hByDomain.server > 0
+                    ? `${dash.errors24hByDomain.server.toLocaleString()}건 누적 (24h).`
+                    : "24h 서버 에러 없음."
+                  : "Server 미가동 — 데이터 없음."}
+              </div>
             </PanelCard>
           </section>
         </div>

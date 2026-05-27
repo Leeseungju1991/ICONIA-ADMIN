@@ -85,3 +85,22 @@ export function FixtureBadge() {
     </span>
   );
 }
+
+// Server overview / 상세 endpoint 가 도달 불가일 때 카드 옆에 붙는 빨강 배지.
+// 사용처: 활성 디바이스 / DAU / 신고 대기 / 펌웨어 critical / 큐 적체 등
+// "원래는 server 정본이어야 하는데 미도달인 상태" 라는 신호.
+export function ServerDownBadge({
+  label = "Server 미가동",
+}: {
+  label?: string;
+}) {
+  return (
+    <span
+      className="inline-flex items-center gap-1 rounded-full bg-rose-50 border border-rose-200 px-2 py-0.5 text-[10px] font-medium text-rose-700"
+      title="Server /api/v1/admin/overview 가 응답하지 않습니다. 표시값이 아닌 '—' 로 표기됩니다."
+    >
+      <span className="w-1.5 h-1.5 rounded-full bg-rose-500" aria-hidden />
+      {label}
+    </span>
+  );
+}

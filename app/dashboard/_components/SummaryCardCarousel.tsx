@@ -5,7 +5,8 @@ import { useRef } from "react";
 export type SummaryCard = {
   id: string;
   title: string;
-  count: number;
+  /** null/undefined 면 "—" 표시 (Server 미가동 등 데이터 부재). */
+  count: number | null | undefined;
   hint: string;
   href: string;
 };
@@ -28,7 +29,7 @@ export function SummaryCardCarousel({ cards, heading = "처리 큐" }: { cards: 
         {cards.map((c) => (
           <Link key={c.id} href={c.href} className="snap-start min-w-[260px] max-w-[280px] rounded-2xl bg-white border border-slate-200 p-4 hover:shadow-md transition">
             <div className="text-[11px] uppercase tracking-wider text-indigo-600 font-semibold">{c.hint}</div>
-            <div className="mt-2 text-2xl font-bold text-slate-900">{c.count.toLocaleString()}</div>
+            <div className="mt-2 text-2xl font-bold text-slate-900">{c.count == null ? "—" : c.count.toLocaleString()}</div>
             <div className="mt-1 text-sm font-medium text-slate-700">{c.title}</div>
           </Link>
         ))}
