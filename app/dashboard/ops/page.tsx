@@ -675,7 +675,11 @@ function AlertingBlock({
                             : "chip chip-info"
                       }
                     >
-                      {a.severity}
+                      {a.severity === "critical"
+                        ? "긴급"
+                        : a.severity === "warning"
+                          ? "경고"
+                          : "정보"}
                     </span>
                     <span className="chip chip-muted">{a.kind}</span>
                     <span className="text-muted">{a.source}</span>

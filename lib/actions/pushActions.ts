@@ -1,6 +1,7 @@
 "use server";
 
 // Phase 15-A — Push campaigns server actions (CS_OR_ABOVE).
+// 2026-05-28 — "저장=즉시 발송" 정책. createAndSendCampaignAction 단일 진입점.
 
 import { readSession } from "@/lib/authCookie";
 import {
@@ -40,11 +41,15 @@ export async function createCampaignAction(args: {
   if (!args.body || args.body.trim().length < 5) {
     return { ok: false, message: "본문은 5자 이상." };
   }
+  // 서버 audience enum = ["all","staff","beta"]. 안전한 default = "all".
+  const audience = args.audience && ["all", "staff", "beta"].includes(args.audience)
+    ? args.audience
+    : "all";
   const res = await createPushCampaign({
     jwt,
     title: args.title.trim(),
     body: args.body.trim(),
-    audience: args.audience,
+    audience,
   });
   if (!res.ok) return { ok: false, message: res.message, code: res.code };
   return { ok: true, campaign: res.data };
@@ -59,4 +64,18 @@ export async function sendCampaignAction(args: {
   const res = await sendPushCampaign({ jwt, id: args.id });
   if (!res.ok) return { ok: false, message: res.message, code: res.code };
   return { ok: true, campaign: res.data };
+}
+
+// 신규: 저장→즉시 발송 단일 액션. 운영자가 "저장" 한 번으로 발송 완료.
+//   1) createPushCampaign → draft
+//   2) 즉시 sendPushCampaign(id) → expoPushService 가 전체 push token 으로 fan-out.
+// create 단계에서 실패하면 send 는 시도하지 않는다.
+export async function createAndSendCampaignAction(args: {
+  title: string;
+  body: string;
+}): Promise<CampaignMutationResult> {
+  const created = await createCampaignAction({ ...args, audience: "all" });
+  if (!created.ok) return created;
+  const sent = await sendCampaignAction({ id: created.campaign.id });
+  return sent;
 }

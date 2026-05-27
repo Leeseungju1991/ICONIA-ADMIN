@@ -1,33 +1,25 @@
 "use client";
 
-// 약관 / 법률 관리 — (주)숨코리아 출시 정비.
+// 약관 / 법률 관리.
 //
 // 표면 구성:
 //   1) 활성 버전 카드 (terms/privacy/marketing/third_party)
 //   2) 약관 본문 미리보기 (다국어 — ko 본문 + en placeholder)
-//   3) 신규 버전 발행 폼 (superadmin 만 활성)
-//   4) 동의 통계 KPI (약관 버전별, 마케팅 동의율)
-//   5) 사업자 정보 (footer 표시 중복 — About 영역)
-//
-// Server endpoint 우선 호출 후 미응답 시 빈 상태.
+//   3) 이전 버전 / 모든 발행 이력
+//   4) 신규 버전 발행 폼 (superadmin 만 활성)
 
 import { useEffect, useState, useTransition } from "react";
 import { PanelCard } from "../_components/PanelCard";
-import { StatCard } from "../_components/StatCard";
 import {
   getActiveTermsAction,
   listTermsAction,
   publishTermsAction,
-  getConsentStatsAction,
-  getBusinessInfoAction,
 } from "@/lib/actions/legal";
 import type {
   ActiveTermsVersions,
-  ConsentStats,
   TermsKind,
   TermsVersionRow,
 } from "@/lib/adminApi";
-import type { BusinessInfo } from "@/lib/companyInfo";
 
 const KIND_LABEL: Record<TermsKind, string> = {
   terms: "서비스 이용약관",
@@ -41,10 +33,6 @@ const KIND_ORDER: TermsKind[] = ["terms", "privacy", "marketing", "third_party"]
 export default function LegalPage() {
   const [active, setActive] = useState<ActiveTermsVersions | null>(null);
   const [termsRows, setTermsRows] = useState<TermsVersionRow[]>([]);
-  const [termsPlaceholder, setTermsPlaceholder] = useState<boolean>(false);
-  const [stats, setStats] = useState<ConsentStats | null>(null);
-  const [statsPlaceholder, setStatsPlaceholder] = useState<boolean>(false);
-  const [biz, setBiz] = useState<BusinessInfo | null>(null);
   const [previewKind, setPreviewKind] = useState<TermsKind>("terms");
   const [previewLocale, setPreviewLocale] = useState<"ko" | "en">("ko");
   const [loading, startLoad] = useTransition();
@@ -52,22 +40,14 @@ export default function LegalPage() {
 
   function reload() {
     startLoad(async () => {
-      const [a, t, s, b] = await Promise.all([
+      const [a, t] = await Promise.all([
         getActiveTermsAction(),
         listTermsAction(),
-        getConsentStatsAction({ days: 30 }),
-        getBusinessInfoAction(),
       ]);
       if (a.ok) setActive(a.data);
       if (t.ok) {
         setTermsRows(t.data.items);
-        setTermsPlaceholder(t.data.placeholder);
       }
-      if (s.ok) {
-        setStats(s.data.stats);
-        setStatsPlaceholder(s.data.placeholder);
-      }
-      if (b.ok) setBiz(b.data);
     });
   }
 
@@ -184,7 +164,6 @@ export default function LegalPage() {
 
       <PanelCard
         title="이전 버전 / 모든 발행 이력"
-        description="활성·이전·staging 모든 버전. 운영자가 회귀 비교용으로 조회."
       >
         {termsRows.length === 0 ? (
           <div className="text-sm text-muted">기록이 없습니다.</div>
@@ -214,57 +193,6 @@ export default function LegalPage() {
 
       <NewVersionPanel onPublished={(msg) => { setToast(msg); reload(); }} />
 
-      <PanelCard
-        title="동의 통계 (최근 30일)"
-        description="약관 버전별 동의/거부 카운트 + 마케팅 동의율."
-      >
-        {stats ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            <StatCard
-              label="총 동의 이벤트"
-              value={stats.total_consent_events.toLocaleString()}
-              delta="30일 누적"
-              deltaTone="flat"
-              hint="register + reconsent"
-              accent="blue"
-            />
-            <StatCard
-              label="마케팅 동의율"
-              value={`${(stats.marketing_opt_in_rate * 100).toFixed(1)}%`}
-              delta={stats.marketing_opt_in_rate > 0.5 ? "양호" : "낮음"}
-              deltaTone={stats.marketing_opt_in_rate > 0.5 ? "up" : "down"}
-              hint="opt-in / total"
-              accent="pink"
-            />
-            <StatCard
-              label="제3자 제공 동의"
-              value={`${getKindGrantedRate(stats, "third_party")}%`}
-              delta="Gemini 이전 동의"
-              deltaTone="flat"
-              hint="필수 — register 차단"
-              accent="orange"
-            />
-            <StatCard
-              label="약관/개인정보 동의율"
-              value={`${getKindGrantedRate(stats, "terms")}%`}
-              delta="terms+privacy"
-              deltaTone="up"
-              hint="모든 가입자 100% 도달이 정상"
-              accent="teal"
-            />
-          </div>
-        ) : (
-          <div className="text-sm text-muted">불러오는 중</div>
-        )}
-      </PanelCard>
-
-      <PanelCard
-        title="회사 정보 (사업자)"
-        description="운영자가 보는 (주)숨코리아 사업자 표시. 사용자 App About 화면도 동일 값."
-      >
-        {biz ? <BusinessInfoBlock info={biz} /> : <div className="text-sm text-muted">불러오는 중</div>}
-      </PanelCard>
-
       {toast ? (
         <div className="fixed bottom-6 right-6 z-50 rounded-2xl bg-slate-900/85 text-white text-sm px-4 py-3 shadow-card">
           {toast}
@@ -279,15 +207,6 @@ export default function LegalPage() {
       ) : null}
     </div>
   );
-}
-
-function getKindGrantedRate(stats: ConsentStats, kind: TermsKind): string {
-  const rows = stats.by_kind[kind] ?? [];
-  const granted = rows.reduce((s, r) => s + r.granted, 0);
-  const revoked = rows.reduce((s, r) => s + r.revoked, 0);
-  const total = granted + revoked;
-  if (total === 0) return "—";
-  return ((granted / total) * 100).toFixed(1);
 }
 
 function NewVersionPanel({ onPublished }: { onPublished: (msg: string) => void }) {
@@ -397,35 +316,3 @@ function NewVersionPanel({ onPublished }: { onPublished: (msg: string) => void }
   );
 }
 
-function BusinessInfoBlock({ info }: { info: BusinessInfo }) {
-  const rows: Array<[string, string]> = [
-    ["상호 (KO)", info.company_name_ko],
-    ["상호 (EN)", info.company_name_en],
-    ["대표자", info.ceo],
-    ["사업자등록번호", info.business_registration_no],
-    ["통신판매업 신고", info.ecommerce_registration_no],
-    ["본사 주소 (KO)", info.address_ko],
-    ["본사 주소 (EN)", info.address_en],
-    ["대표 전화", info.phone],
-    ["고객지원 이메일", info.support_email],
-    ["개인정보보호책임자", info.privacy_officer],
-    ["개인정보보호 이메일", info.privacy_officer_email],
-  ];
-  return (
-    <div className="space-y-2">
-      {info.placeholder ? (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-          ⚠ placeholder — Server `/api/v1/legal/business-info` 미구현. 사업자등록 완료 후 실 값으로 교체.
-        </div>
-      ) : null}
-      <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 text-xs">
-        {rows.map(([k, v]) => (
-          <div key={k} className="flex justify-between gap-3 border-b border-slate-100 pb-1">
-            <dt className="text-muted">{k}</dt>
-            <dd className="text-slate-800 text-right">{v}</dd>
-          </div>
-        ))}
-      </dl>
-    </div>
-  );
-}

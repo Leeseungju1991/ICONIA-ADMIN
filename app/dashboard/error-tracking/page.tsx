@@ -1,7 +1,6 @@
 "use client";
 
-// 2026-05-27 — 오류 추적 (FW / Server / AI / APP) 통합 (◈6번).
-// GET /api/admin/errors?domain=…&since=ISO
+// 2026-05-27 — 오류 추적 (기능별).
 
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { PanelCard } from "../_components/PanelCard";
@@ -11,7 +10,7 @@ import { listErrorsAction } from "@/lib/actions/errorsTracking";
 import type { ErrorDomain, ErrorRow } from "@/types/admin-api";
 
 const DOMAIN_LABEL: Record<ErrorDomain, string> = {
-  firmware: "펌웨어 (FW)",
+  firmware: "펌웨어",
   server: "서버",
   ai: "AI",
   app: "앱",
@@ -29,6 +28,13 @@ const SEVERITY_CHIP: Record<ErrorRow["severity"], string> = {
   high: "chip chip-error",
   medium: "chip chip-warn",
   low: "chip chip-muted",
+};
+
+const SEVERITY_LABEL: Record<ErrorRow["severity"], string> = {
+  critical: "긴급",
+  high: "높음",
+  medium: "보통",
+  low: "낮음",
 };
 
 export default function ErrorTrackingPage() {
@@ -83,24 +89,24 @@ export default function ErrorTrackingPage() {
           accent="orange"
         />
         <StatCard
-          label="critical"
+          label="긴급"
           value={String(stats.critical)}
-          delta={stats.critical > 0 ? "긴급" : "없음"}
+          delta={stats.critical > 0 ? "즉시 대응" : "없음"}
           deltaTone={stats.critical > 0 ? "down" : "up"}
-          hint="severity=critical"
+          hint="긴급 수준의 오류"
           accent="pink"
         />
         <StatCard
-          label="high"
+          label="높음"
           value={String(stats.high)}
-          hint="severity=high"
+          hint="높음 수준의 오류"
           accent="blue"
         />
       </section>
 
       <PanelCard
-        title="오류 추적 — 도메인별"
-        description="GET /api/admin/errors?domain=…&since=24h"
+        title="오류 추적 — 기능별"
+        description="기능을 선택하여 최근 24시간 동안 발생한 오류를 확인합니다."
         actions={
           <div className="flex items-center gap-2">
             {source === "fixture" ? <FixtureBadge /> : null}
@@ -152,7 +158,7 @@ export default function ErrorTrackingPage() {
                 <div className="flex items-center justify-between gap-2 flex-wrap">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className={SEVERITY_CHIP[e.severity]}>{e.severity}</span>
+                      <span className={SEVERITY_CHIP[e.severity]}>{SEVERITY_LABEL[e.severity]}</span>
                       <span className="font-mono text-[11px] text-slate-500">
                         {e.fingerprint}
                       </span>

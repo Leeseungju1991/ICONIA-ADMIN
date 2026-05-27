@@ -4,18 +4,15 @@ import { useEffect, useState, useTransition } from "react";
 import { PanelCard } from "../_components/PanelCard";
 import {
   listCampaignsAction,
-  createCampaignAction,
-  sendCampaignAction,
+  createAndSendCampaignAction,
   type CampaignsListResult,
-  type CampaignMutationResult,
 } from "@/lib/actions/pushActions";
 import type { PushCampaignRow } from "@/lib/adminApi";
 
-// Phase 15 — push campaigns CRUD wiring.
-// Server `/admin/push/campaigns` (PushCampaign prisma model + migration 20260521100000).
-// 발송은 expoPushService 호출.
+// 2026-05-28 — "저장 = 즉시 전체 발송". audience 선택 제거.
 
-const AUDIENCES = ["all", "owner", "operator", "beta"] as const;
+const statusLabel = (s: string) =>
+  s === "sent" ? "발송 완료" : s === "failed" ? "발송 실패" : s === "draft" ? "대기" : s;
 const statusChip = (s: string) =>
   s === "sent"
     ? "chip chip-success"
@@ -28,7 +25,6 @@ const statusChip = (s: string) =>
 export default function PushPage() {
   const [state, setState] = useState<CampaignsListResult | null>(null);
   const [loading, startLoad] = useTransition();
-  const [creating, startCreate] = useTransition();
   const [sending, startSend] = useTransition();
   const [toast, setToast] = useState<string | null>(null);
 
@@ -43,40 +39,32 @@ export default function PushPage() {
     reload();
   }, []);
 
-  function handleCreate(e: React.FormEvent<HTMLFormElement>) {
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const fd = new FormData(e.currentTarget);
+    const form = e.currentTarget;
+    const fd = new FormData(form);
     const title = String(fd.get("title") || "").trim();
     const body = String(fd.get("body") || "").trim();
-    const audience = String(fd.get("audience") || "all");
-    startCreate(async () => {
-      const r: CampaignMutationResult = await createCampaignAction({ title, body, audience });
-      if (!r.ok) {
-        setToast(`저장 실패: ${r.message}`);
-        return;
-      }
-      setToast(`캠페인 저장됨: ${r.campaign.id}`);
-      e.currentTarget?.reset?.();
-      reload();
-    });
-  }
-
-  function handleSend(id: string, title: string) {
     if (
-      typeof window === "undefined" ||
+      typeof window !== "undefined" &&
       !window.confirm(
-        `푸시 캠페인 발송\n\n"${title}"\n\n⚠ 실제 사용자에게 발송됩니다. 대상 audience 확인했습니까?`,
+        `푸시 알림 전송\n\n"${title}"\n\n전체 설치 사용자에게 즉시 발송됩니다. 계속하시겠습니까?`,
       )
     ) {
       return;
     }
     startSend(async () => {
-      const r = await sendCampaignAction({ id });
+      const r = await createAndSendCampaignAction({ title, body });
       if (!r.ok) {
         setToast(`발송 실패: ${r.message}`);
         return;
       }
-      setToast(`발송됨: ${r.campaign.id} (status=${r.campaign.status})`);
+      setToast(
+        r.campaign.status === "sent"
+          ? `전체 발송 완료 (도달 ${r.campaign.delivered_count ?? 0}건)`
+          : `발송 처리됨: ${statusLabel(r.campaign.status)}`,
+      );
+      form.reset();
       reload();
     });
   }
@@ -85,46 +73,35 @@ export default function PushPage() {
 
   return (
     <div className="space-y-6">
-      <PanelCard title="캠페인 내용 작성">
-        <form onSubmit={handleCreate} className="space-y-3">
+      <PanelCard title="푸시 알림 작성 (저장 = 즉시 전체 발송)">
+        <form onSubmit={handleSubmit} className="space-y-3">
           <input
             name="title"
             placeholder="알림 제목 (2자 이상)"
-            className="w-full rounded-xl border-2 border-slate-500 bg-white px-3 py-2 text-sm focus:border-slate-700 focus:outline-none"
+            className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
             required
           />
           <textarea
             name="body"
             placeholder="알림 본문 (5자 이상)"
             rows={3}
-            className="w-full rounded-xl border-2 border-slate-500 bg-white px-3 py-2 text-sm focus:border-slate-700 focus:outline-none"
+            className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
             required
           />
-          <div className="flex items-center gap-2">
-            <select
-              name="audience"
-              defaultValue="all"
-              className="rounded-xl border-2 border-slate-500 bg-white px-3 py-2 text-sm"
-            >
-              {AUDIENCES.map((a) => (
-                <option key={a} value={a}>
-                  {a}
-                </option>
-              ))}
-            </select>
+          <div className="flex items-center justify-end">
             <button
               type="submit"
-              disabled={creating}
+              disabled={sending}
               className="rounded-xl bg-accent px-4 py-2 text-sm text-white shadow-card disabled:opacity-60"
             >
-              {creating ? "저장 중..." : "저장"}
+              {sending ? "발송 중..." : "저장 (즉시 발송)"}
             </button>
           </div>
         </form>
       </PanelCard>
 
       <PanelCard
-        title="푸시 캠페인 발송 기록"
+        title="푸시 발송 기록"
         actions={
           <button
             type="button"
@@ -139,38 +116,25 @@ export default function PushPage() {
         {!state ? (
           <div className="text-sm text-muted">불러오는 중</div>
         ) : !state.ok ? (
-          <div className="text-sm text-muted">발송된 캠페인이 없습니다.</div>
+          <div className="text-sm text-muted">발송된 알림이 없습니다.</div>
         ) : items.length === 0 ? (
-          <div className="text-sm text-muted">발송된 캠페인이 없습니다.</div>
+          <div className="text-sm text-muted">발송된 알림이 없습니다.</div>
         ) : (
           <ul className="space-y-2 text-sm">
             {items.map((c) => (
               <li
                 key={c.id}
-                className="rounded-xl border border-white/60 bg-white/55 px-3 py-2 flex items-start justify-between gap-3"
+                className="rounded-xl border border-white/60 bg-white/55 px-3 py-2"
               >
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-medium text-slate-800">{c.title}</span>
-                    <span className={statusChip(c.status)}>{c.status}</span>
-                    <span className="chip chip-muted">{c.audience}</span>
-                  </div>
-                  <div className="text-xs text-muted line-clamp-2 mt-1">{c.body}</div>
-                  {c.status === "sent" ? (
-                    <div className="mt-1 text-[11px] text-muted">
-                      도달 {c.delivered_count ?? 0} · 오픈 {c.opened_count ?? 0} · {c.sent_at ?? ""}
-                    </div>
-                  ) : null}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-medium text-slate-800">{c.title}</span>
+                  <span className={statusChip(c.status)}>{statusLabel(c.status)}</span>
                 </div>
-                {c.status === "draft" ? (
-                  <button
-                    type="button"
-                    disabled={sending}
-                    onClick={() => handleSend(c.id, c.title)}
-                    className="rounded-lg bg-accent px-3 py-1.5 text-xs text-white disabled:opacity-60 shrink-0"
-                  >
-                    {sending ? "발송 중..." : "발송"}
-                  </button>
+                <div className="text-xs text-muted line-clamp-2 mt-1">{c.body}</div>
+                {c.status === "sent" ? (
+                  <div className="mt-1 text-[11px] text-muted">
+                    도달 {c.delivered_count ?? 0}건 · {c.sent_at ?? ""}
+                  </div>
                 ) : null}
               </li>
             ))}

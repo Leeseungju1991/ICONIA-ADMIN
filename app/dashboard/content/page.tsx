@@ -1,9 +1,6 @@
 "use client";
 
-// 2026-05-27 — 콘텐츠 CRUD 허브 (◈6번).
-// /dashboard/content — 피드(community) / 커머스(commerce) / 정보(info) 세 표면의
-// 진입점. 각 표면은 별도 페이지가 있거나 곧 추가될 예정이므로 여기서는 카드 진입
-// + 카운트 표시만 담당. 서버: /api/admin/feed · /api/admin/commerce · /api/admin/info.
+// 콘텐츠 허브 — 피드 / 커머스 / 도감 세 표면의 진입점.
 
 import Link from "next/link";
 import { useEffect, useState, useTransition } from "react";
@@ -49,26 +46,23 @@ export default function ContentHubPage() {
         <StatCard
           label="피드 게시물"
           value={counts.feed?.toLocaleString() ?? "—"}
-          hint="GET /api/admin/feed"
           accent="blue"
         />
         <StatCard
           label="커머스 상품"
           value={counts.commerce?.toLocaleString() ?? "—"}
-          hint="GET /api/admin/commerce"
           accent="teal"
         />
         <StatCard
-          label="정보 (info)"
+          label="도감 항목"
           value={counts.info?.toLocaleString() ?? "—"}
-          hint="GET /api/admin/info"
           accent="orange"
         />
       </section>
 
       <PanelCard
-        title="콘텐츠 CRUD 진입"
-        description="각 표면별 상세 페이지로 이동. 카운트는 server endpoint 정본."
+        title="콘텐츠 진입"
+        description="각 표면별 상세 페이지로 이동합니다."
         actions={
           <div className="flex items-center gap-2">
             {counts.source === "fixture" ? <FixtureBadge /> : null}
@@ -88,23 +82,22 @@ export default function ContentHubPage() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <ContentTile
-              title="피드 (Community)"
-              hint="게시물·댓글 타임라인, 모더레이션."
+              title="피드"
+              hint="피드 게시물 검색·숨김·복구·삭제."
               count={counts.feed}
-              href="/dashboard/community"
+              href="/dashboard/feed"
             />
             <ContentTile
               title="커머스"
-              hint="상품·주문·웹훅 동기화."
+              hint="커머스 상품 가격 정보 — 추가·제거."
               count={counts.commerce}
-              href="/dashboard/commerce"
-              disabled
+              href="/dashboard/content/commerce"
             />
             <ContentTile
-              title="정보 (Info)"
-              hint="공지·FAQ·도움말 게시판."
+              title="도감"
+              hint="인형 도감 항목 추가·제거."
               count={counts.info}
-              href="/dashboard/notices"
+              href="/dashboard/content/catalog"
             />
           </div>
         )}

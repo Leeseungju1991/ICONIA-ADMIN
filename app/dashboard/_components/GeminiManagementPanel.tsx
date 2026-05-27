@@ -31,8 +31,6 @@ export function GeminiManagementPanel(props: SummaryProps) {
         <DecisionTable />
         <AddKeyProcedure />
         <EmergencyResponse />
-        <SecurityPrinciples />
-        <DocLinks />
       </div>
     </PanelCard>
   );
@@ -296,63 +294,6 @@ function EmergencyResponse() {
         </div>
       </div>
     </Collapsible>
-  );
-}
-
-// ── 7. 키 보안 원칙 ──────────────────────────────────────────────────
-function SecurityPrinciples() {
-  const rules: Array<[string, string]> = [
-    [".env 파일은 절대 Git 에 commit 금지", ".gitignore 등재 확인. .env.example 만 공유."],
-    ["키 값은 평문으로 채팅/이메일/문서 공유 금지", "본 콘솔도 prefix/suffix 만 마스킹 표기."],
-    ["프로덕션 키와 dev 키 반드시 분리", "프로덕션 키 누출 시 폭발 반경 최소화."],
-    ["키 발급 시 가급적 프로젝트 분리", "동일 프로젝트 내 키는 quota 공유."],
-    ["키 회전 90일 주기 권장", "누출 시 노출 기간 최소화."],
-    ["운영 키는 AWS Secrets Manager 등에 보관", ".env 평문은 dev 한정."],
-  ];
-  return (
-    <Collapsible title="7. 키 보안 원칙 (반드시 지킬 것) (펼치기)">
-      <ul className="space-y-1.5 text-xs">
-        {rules.map(([rule, reason]) => (
-          <li key={rule} className="flex gap-2">
-            <span className="text-emerald-600">✓</span>
-            <div>
-              <span className="font-semibold text-slate-800">{rule}</span>
-              <span className="text-muted"> — {reason}</span>
-            </div>
-          </li>
-        ))}
-      </ul>
-    </Collapsible>
-  );
-}
-
-// ── 8. 문서 링크 ────────────────────────────────────────────────────
-function DocLinks() {
-  return (
-    <Section title="8. 정본 문서">
-      <ul className="text-xs space-y-1">
-        <li>
-          <span className="font-mono text-slate-500">docs/Gemini-API-Key-운영가이드.md</span>{" "}
-          <span className="text-muted">— Markdown 원본</span>
-        </li>
-        <li>
-          <span className="font-mono text-slate-500">docs/Gemini-API-Key-운영가이드.pdf</span>{" "}
-          <span className="text-muted">— 인쇄용 PDF (md2pdf 동기)</span>
-        </li>
-        <li>
-          <span className="font-mono text-slate-500">3. AI/.env</span>{" "}
-          <span className="text-muted">— <code>GEMINI_API_KEY</code> / <code>GEMINI_API_KEYS</code> 위치</span>
-        </li>
-        <li>
-          <span className="font-mono text-slate-500">3. AI/src/geminiKeyPool.js</span>{" "}
-          <span className="text-muted">— 풀 정책 (round-robin + cooldown)</span>
-        </li>
-        <li>
-          <span className="font-mono text-slate-500">2. SERVER/src/services/geminiKeyUsageService.js</span>{" "}
-          <span className="text-muted">— 사용량/quota/알람 ledger</span>
-        </li>
-      </ul>
-    </Section>
   );
 }
 

@@ -12,11 +12,8 @@ import {
   deleteFeedPostAction,
 } from "@/lib/actions/feed";
 
-// (주)숨코리아 출시 정비 — 피드 관리 (Feed).
-//
-// Server `/api/v1/admin/feed/posts*` (requireAdmin) — SERVER 동시 작업으로 추가.
-// SERVER 미배포 단계에서도 페이지 자체는 정상 렌더 — error.unreachable 분기로
-// "준비 중" 안내 + 빈 테이블. 사용자는 다른 메뉴로 이동 가능해야 함.
+// 피드 관리 (Feed).
+// 게시물 검색 / 숨김·복구 / 삭제 (soft) / 상세 + 댓글 미리보기.
 
 const PAGE_SIZE = 25;
 
@@ -120,7 +117,12 @@ export default function FeedPage() {
     {
       key: "author",
       header: "작성자",
-      render: (r) => <span className="font-mono text-xs">{r.author_handle ?? r.author_id}</span>,
+      render: (r) => (
+        <span className="text-xs">
+          <span className="text-slate-800">{r.author_handle ?? "이름 없음"}</span>
+          <span className="ml-1.5 font-mono text-[10px] text-slate-400">{r.author_id}</span>
+        </span>
+      ),
     },
     {
       key: "body",
@@ -171,15 +173,14 @@ export default function FeedPage() {
   return (
     <div className="space-y-6">
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="현재 페이지 노출" value={String(summary.visible)} hint="is_hidden=false" accent="teal" />
-        <StatCard label="현재 페이지 숨김" value={String(summary.hidden)} hint="is_hidden=true" accent="pink" />
-        <StatCard label="현재 페이지 댓글 합" value={String(summary.comments)} hint="comments_count 합산" accent="blue" />
-        <StatCard label="전체 게시물 (서버)" value={String(total)} hint="Server total" accent="orange" />
+        <StatCard label="현재 페이지 노출" value={String(summary.visible)} accent="teal" />
+        <StatCard label="현재 페이지 숨김" value={String(summary.hidden)} accent="pink" />
+        <StatCard label="현재 페이지 댓글 합" value={String(summary.comments)} accent="blue" />
+        <StatCard label="전체 게시물" value={String(total)} accent="orange" />
       </section>
 
       <PanelCard
-        title="피드 게시물 (Server 정본)"
-        description="Server /api/v1/admin/feed/posts — paginated. 숨김 토글·삭제는 Server mutation."
+        title="피드 게시물"
         actions={
           <button
             type="button"
@@ -374,7 +375,8 @@ function FeedDetailDrawer({
           </div>
           <div className="grid grid-cols-2 gap-2 text-xs">
             <Field label="작성자">
-              <span className="font-mono">{post.author_handle ?? post.author_id}</span>
+              <span>{post.author_handle ?? "이름 없음"}</span>
+              <span className="ml-1.5 font-mono text-[10px] text-slate-400">{post.author_id}</span>
             </Field>
             <Field label="작성일">{post.created_at}</Field>
             <Field label="댓글">{detail?.comments.length ?? post.comments_count}</Field>
@@ -437,9 +439,6 @@ function FeedDetailDrawer({
             </>
           )}
         </div>
-        <p className="text-[11px] text-muted mt-3">
-          ※ 삭제는 soft delete. DELETE 확인 문구 필수. Server audit_log 자동 기록.
-        </p>
       </div>
     </div>
   );
