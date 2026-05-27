@@ -2,6 +2,10 @@ import Link from "next/link";
 import { StatCard } from "./_components/StatCard";
 import { PanelCard } from "./_components/PanelCard";
 import { ForbiddenNotice } from "./_components/ForbiddenNotice";
+import { HeroBanner } from "./_components/HeroBanner";
+import { KpiChip } from "./_components/KpiChip";
+import { SummaryCardCarousel } from "./_components/SummaryCardCarousel";
+import { ProfileRail } from "./_components/ProfileRail";
 import {
   mockReports,
   mockFirmwareErrors,
@@ -18,6 +22,10 @@ import {
   fetchLocalServicesHealthAction,
   type ServicePing,
 } from "@/lib/actions/localServicesHealth";
+import { resolveHeroMode } from "@/lib/heroPriority";
+import { fetchOperatorActivityAction } from "@/lib/actions/operatorActivity";
+import { readSession } from "@/lib/authCookie";
+import { resolveIdentity } from "@/lib/identity";
 
 type ServicePingName = ServicePing["name"];
 
@@ -180,6 +188,22 @@ export default async function DashboardHome() {
 
   const dauLabel = sv ? sv.dau.toLocaleString() : "12,840";
 
+  // Stitch-tone hero + operator rail inputs.
+  const activity = await fetchOperatorActivityAction();
+  const jwt = readSession();
+  const identity = jwt ? await resolveIdentity(jwt) : null;
+  const operatorEmail = identity?.email ?? "operator@iconia.example";
+
+  const hero = resolveHeroMode({
+    firmware_critical_count: sv?.firmware_critical_count ?? criticalFw.length,
+    reports_pending: sv?.reports_pending ?? pendingReports.length,
+    server_health:
+      (sv?.server_health as "ok" | "degraded" | "down" | undefined) ??
+      (probesDown > 0 ? "down" : probesDegraded > 0 ? "degraded" : "ok"),
+    dead_letter_count: sv?.queue_depth ?? mockDeadLetters.length,
+    errors_24h: errors24h,
+  });
+
   const kpis = [
     {
       label: "활성 디바이스",
@@ -215,170 +239,227 @@ export default async function DashboardHome() {
     <div className="space-y-6">
       <ForbiddenNotice />
 
-      {localHealth.deploy_target === "local" ? (
-        <PanelCard
-          title="5개 서비스 상태"
-          description="백엔드(인프라) 3종과 클라이언트(표면) 2종이 켜져 있는지 한 화면에서 확인합니다."
-        >
-          <ServiceRow services={localHealth.services} />
-        </PanelCard>
-      ) : null}
+      <section className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-5">
+        <div className="space-y-5">
+          <HeroBanner mode={hero.mode} title={hero.title} subtitle={hero.subtitle} cta={hero.cta} />
 
-      {sv?.domains ? (
-        <PanelCard
-          title="시스템 6도메인 health (Server overview)"
-          description="HW · Server · AI · App · Admin · AWS — Server /api/v1/admin/overview.domains 정본."
-        >
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-            {(["hw", "server", "ai", "app", "admin", "aws"] as const).map((k) => {
-              const d = sv.domains![k];
-              const chip =
-                d.status === "ok"
-                  ? "chip chip-success"
-                  : d.status === "down"
-                    ? "chip chip-error"
-                    : d.status === "degraded"
-                      ? "chip chip-warn"
-                      : "chip chip-muted";
-              return (
-                <div
-                  key={k}
-                  className="rounded-2xl border border-white/60 bg-white/55 px-3 py-2"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-semibold uppercase">{k}</span>
-                    <span className={chip}>{d.status}</span>
-                  </div>
-                  <div className="mt-1 text-[11px] text-muted line-clamp-2">{d.detail}</div>
-                  <div className="mt-1 text-[10px] text-muted">{d.observed_at}</div>
-                </div>
-              );
-            })}
-          </div>
-        </PanelCard>
-      ) : null}
+          <section className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <KpiChip
+              tone="indigo"
+              icon="device"
+              label="활성 디바이스"
+              value={activeDevices.toLocaleString()}
+              sub={`전체 ${totalDevices.toLocaleString()}대`}
+            />
+            <KpiChip
+              tone="teal"
+              icon="chat"
+              label="DAU"
+              value={dauLabel}
+              sub={sv ? "실시간" : "mock"}
+            />
+            <KpiChip
+              tone="orange"
+              icon="alert"
+              label="인지 에러율"
+              value={`${(perceivedRate * 100).toFixed(2)}%`}
+              sub={sloMet ? "SLO 충족" : "SLO 위반"}
+            />
+            <KpiChip
+              tone="pink"
+              icon="queue"
+              label="큐 적체"
+              value={queueBacklog.toLocaleString()}
+              sub={queueBacklog > 0 ? "재투입 필요" : "정상"}
+            />
+          </section>
 
-      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {kpis.map((m, i) => (
-          <StatCard
-            key={m.label}
-            label={m.label}
-            value={m.value}
-            delta={m.delta}
-            deltaTone={m.deltaTone}
-            hint={m.hint}
-            accent={accentPalette[i % accentPalette.length]}
+          <SummaryCardCarousel
+            cards={[
+              { id: "reports", title: "신고 대기", count: reportsPendingCount, hint: "검토 필요", href: "/dashboard/reports" },
+              { id: "app", title: "앱 에러", count: mockAppErrors.length, hint: "유형 수 (24h)", href: "/dashboard/app-errors" },
+              { id: "fw", title: "펌웨어 critical", count: fwCriticalCount, hint: "긴급", href: "/dashboard/firmware-errors" },
+              { id: "srv", title: "서버 에러", count: mockServerErrors.length, hint: "최근", href: "/dashboard/server-errors" },
+            ]}
           />
-        ))}
-      </section>
+        </div>
 
-      {/* 2차 KPI — 에러/헬스/신고 운영 지표. */}
-      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          label="에러 발생 (24h)"
-          value={errors24h.toLocaleString()}
-          delta={`서버 ${mockServerErrors.length} · 앱 ${mockAppErrors.length} · FW ${mockFirmwareErrors.length} 유형`}
-          deltaTone="flat"
-          hint="전 카테고리 누적"
-          accent="orange"
-        />
-        <StatCard
-          label="서버 헬스"
-          value={healthLabel}
-          delta={`OK ${probesOk} · 주의 ${probesDegraded} · 장애 ${probesDown}`}
-          deltaTone={healthTone}
-          hint="health probe 집계"
-          accent={probesDown > 0 ? "pink" : probesDegraded > 0 ? "orange" : "teal"}
-        />
-        <StatCard
-          label="신고 처리 대기"
-          value={String(reportsPendingCount)}
-          delta={reportsPendingCount > 0 ? "검토 필요" : "없음"}
-          deltaTone={reportsPendingCount > 0 ? "down" : "up"}
-          hint={sv ? "Server overview 정본" : "pending 신고 (mock)"}
-          accent="pink"
-        />
-        <StatCard
-          label="펌웨어 크리티컬"
-          value={String(fwCriticalCount)}
-          delta={fwCriticalCount > 0 ? "긴급" : "없음"}
-          deltaTone={fwCriticalCount > 0 ? "down" : "up"}
-          hint={sv ? "Server overview 정본" : "critical 펌웨어 에러 (mock)"}
-          accent="blue"
+        <ProfileRail
+          operatorEmail={operatorEmail}
+          weekly={activity.ok ? activity.weekly : []}
+          collaborators={activity.ok ? activity.collaborators : []}
         />
       </section>
 
-      <section className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <PanelCard
-          title="처리 대기 신고"
-          description={`${reportsPendingCount}건의 신고가 검토를 기다립니다. 미리보기 ${PREVIEW_LIMIT}건.`}
-          actions={<Link href="/dashboard/reports" className="btn-outline text-xs">전체 보기 →</Link>}
-        >
-          {previewReports.length === 0 ? (
-            <div className="py-8 text-center text-xs text-muted">대기 중인 신고가 없습니다.</div>
-          ) : (
-            <ul className="space-y-3">
-              {previewReports.map((r) => (
-                <li key={r.id} className="rounded-2xl bg-white/55 border border-white/60 p-3">
-                  <div className="flex items-center justify-between">
-                    <span className="chip chip-warn">{r.type}</span>
-                    <span className="text-[11px] text-muted">{formatDate(r.created_at)}</span>
-                  </div>
-                  <p className="mt-2 text-sm text-slate-700 line-clamp-2">{r.excerpt}</p>
-                  <p className="mt-1 text-[11px] text-muted">사유: {r.reason} · 신고 {r.reported_count}회</p>
-                </li>
-              ))}
-            </ul>
-          )}
-        </PanelCard>
+      <details className="bg-white border border-slate-200 rounded-2xl">
+        <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-slate-700">시스템 헬스 상세 (펼치기)</summary>
+        <div className="p-4 space-y-6">
+          {localHealth.deploy_target === "local" ? (
+            <PanelCard
+              title="5개 서비스 상태"
+              description="백엔드(인프라) 3종과 클라이언트(표면) 2종이 켜져 있는지 한 화면에서 확인합니다."
+            >
+              <ServiceRow services={localHealth.services} />
+            </PanelCard>
+          ) : null}
 
-        <PanelCard
-          title="앱 에러 최신"
-          description={`최근 ${PREVIEW_LIMIT}건 미리보기.`}
-          actions={<Link href="/dashboard/app-errors" className="btn-outline text-xs">전체 보기 →</Link>}
-        >
-          {previewApp.length === 0 ? (
-            <div className="py-8 text-center text-xs text-muted">최근 앱 에러 없음.</div>
-          ) : (
-            <ul className="space-y-3">
-              {previewApp.map((e) => (
-                <li key={e.id} className="rounded-2xl bg-white/55 border border-white/60 p-3">
-                  <div className="flex items-center justify-between">
-                    <span className="chip chip-info">{e.platform}</span>
-                    <span className="text-[11px] text-muted">v{e.app_version}</span>
-                  </div>
-                  <p className="mt-2 text-sm font-medium text-slate-800">{e.error_type}</p>
-                  <p className="text-[11px] text-muted line-clamp-2">{e.message}</p>
-                  <p className="text-[11px] text-muted mt-1">{e.affected_users}명 영향 · {e.count}회</p>
-                </li>
-              ))}
-            </ul>
-          )}
-        </PanelCard>
+          {sv?.domains ? (
+            <PanelCard
+              title="시스템 6도메인 health (Server overview)"
+              description="HW · Server · AI · App · Admin · AWS — Server /api/v1/admin/overview.domains 정본."
+            >
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                {(["hw", "server", "ai", "app", "admin", "aws"] as const).map((k) => {
+                  const d = sv.domains![k];
+                  const chip =
+                    d.status === "ok"
+                      ? "chip chip-success"
+                      : d.status === "down"
+                        ? "chip chip-error"
+                        : d.status === "degraded"
+                          ? "chip chip-warn"
+                          : "chip chip-muted";
+                  return (
+                    <div
+                      key={k}
+                      className="rounded-2xl border border-white/60 bg-white/55 px-3 py-2"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-semibold uppercase">{k}</span>
+                        <span className={chip}>{d.status}</span>
+                      </div>
+                      <div className="mt-1 text-[11px] text-muted line-clamp-2">{d.detail}</div>
+                      <div className="mt-1 text-[10px] text-muted">{d.observed_at}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </PanelCard>
+          ) : null}
 
-        <PanelCard
-          title="서버 에러 (24h)"
-          description={`최근 ${PREVIEW_LIMIT}건 미리보기.`}
-          actions={<Link href="/dashboard/server-errors" className="btn-outline text-xs">전체 보기 →</Link>}
-        >
-          {previewSrv.length === 0 ? (
-            <div className="py-8 text-center text-xs text-muted">최근 서버 에러 없음.</div>
-          ) : (
-            <ul className="space-y-3">
-              {previewSrv.map((e) => (
-                <li key={e.id} className="rounded-2xl bg-white/55 border border-white/60 p-3">
-                  <div className="flex items-center justify-between">
-                    <span className={`chip ${e.status_code >= 500 ? "chip-error" : "chip-warn"}`}>{e.status_code}</span>
-                    <span className="text-[11px] text-muted">{e.count}건</span>
-                  </div>
-                  <p className="mt-2 text-sm font-medium text-slate-800">{e.service}</p>
-                  <p className="text-[11px] text-muted truncate">{e.path}</p>
-                </li>
-              ))}
-            </ul>
-          )}
-        </PanelCard>
-      </section>
+          <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {kpis.map((m, i) => (
+              <StatCard
+                key={m.label}
+                label={m.label}
+                value={m.value}
+                delta={m.delta}
+                deltaTone={m.deltaTone}
+                hint={m.hint}
+                accent={accentPalette[i % accentPalette.length]}
+              />
+            ))}
+          </section>
+
+          {/* 2차 KPI — 에러/헬스/신고 운영 지표. */}
+          <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <StatCard
+              label="에러 발생 (24h)"
+              value={errors24h.toLocaleString()}
+              delta={`서버 ${mockServerErrors.length} · 앱 ${mockAppErrors.length} · FW ${mockFirmwareErrors.length} 유형`}
+              deltaTone="flat"
+              hint="전 카테고리 누적"
+              accent="orange"
+            />
+            <StatCard
+              label="서버 헬스"
+              value={healthLabel}
+              delta={`OK ${probesOk} · 주의 ${probesDegraded} · 장애 ${probesDown}`}
+              deltaTone={healthTone}
+              hint="health probe 집계"
+              accent={probesDown > 0 ? "pink" : probesDegraded > 0 ? "orange" : "teal"}
+            />
+            <StatCard
+              label="신고 처리 대기"
+              value={String(reportsPendingCount)}
+              delta={reportsPendingCount > 0 ? "검토 필요" : "없음"}
+              deltaTone={reportsPendingCount > 0 ? "down" : "up"}
+              hint={sv ? "Server overview 정본" : "pending 신고 (mock)"}
+              accent="pink"
+            />
+            <StatCard
+              label="펌웨어 크리티컬"
+              value={String(fwCriticalCount)}
+              delta={fwCriticalCount > 0 ? "긴급" : "없음"}
+              deltaTone={fwCriticalCount > 0 ? "down" : "up"}
+              hint={sv ? "Server overview 정본" : "critical 펌웨어 에러 (mock)"}
+              accent="blue"
+            />
+          </section>
+
+          <section className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <PanelCard
+              title="처리 대기 신고"
+              description={`${reportsPendingCount}건의 신고가 검토를 기다립니다. 미리보기 ${PREVIEW_LIMIT}건.`}
+              actions={<Link href="/dashboard/reports" className="btn-outline text-xs">전체 보기 →</Link>}
+            >
+              {previewReports.length === 0 ? (
+                <div className="py-8 text-center text-xs text-muted">대기 중인 신고가 없습니다.</div>
+              ) : (
+                <ul className="space-y-3">
+                  {previewReports.map((r) => (
+                    <li key={r.id} className="rounded-2xl bg-white/55 border border-white/60 p-3">
+                      <div className="flex items-center justify-between">
+                        <span className="chip chip-warn">{r.type}</span>
+                        <span className="text-[11px] text-muted">{formatDate(r.created_at)}</span>
+                      </div>
+                      <p className="mt-2 text-sm text-slate-700 line-clamp-2">{r.excerpt}</p>
+                      <p className="mt-1 text-[11px] text-muted">사유: {r.reason} · 신고 {r.reported_count}회</p>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </PanelCard>
+
+            <PanelCard
+              title="앱 에러 최신"
+              description={`최근 ${PREVIEW_LIMIT}건 미리보기.`}
+              actions={<Link href="/dashboard/app-errors" className="btn-outline text-xs">전체 보기 →</Link>}
+            >
+              {previewApp.length === 0 ? (
+                <div className="py-8 text-center text-xs text-muted">최근 앱 에러 없음.</div>
+              ) : (
+                <ul className="space-y-3">
+                  {previewApp.map((e) => (
+                    <li key={e.id} className="rounded-2xl bg-white/55 border border-white/60 p-3">
+                      <div className="flex items-center justify-between">
+                        <span className="chip chip-info">{e.platform}</span>
+                        <span className="text-[11px] text-muted">v{e.app_version}</span>
+                      </div>
+                      <p className="mt-2 text-sm font-medium text-slate-800">{e.error_type}</p>
+                      <p className="text-[11px] text-muted line-clamp-2">{e.message}</p>
+                      <p className="text-[11px] text-muted mt-1">{e.affected_users}명 영향 · {e.count}회</p>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </PanelCard>
+
+            <PanelCard
+              title="서버 에러 (24h)"
+              description={`최근 ${PREVIEW_LIMIT}건 미리보기.`}
+              actions={<Link href="/dashboard/server-errors" className="btn-outline text-xs">전체 보기 →</Link>}
+            >
+              {previewSrv.length === 0 ? (
+                <div className="py-8 text-center text-xs text-muted">최근 서버 에러 없음.</div>
+              ) : (
+                <ul className="space-y-3">
+                  {previewSrv.map((e) => (
+                    <li key={e.id} className="rounded-2xl bg-white/55 border border-white/60 p-3">
+                      <div className="flex items-center justify-between">
+                        <span className={`chip ${e.status_code >= 500 ? "chip-error" : "chip-warn"}`}>{e.status_code}</span>
+                        <span className="text-[11px] text-muted">{e.count}건</span>
+                      </div>
+                      <p className="mt-2 text-sm font-medium text-slate-800">{e.service}</p>
+                      <p className="text-[11px] text-muted truncate">{e.path}</p>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </PanelCard>
+          </section>
+        </div>
+      </details>
     </div>
   );
 }
