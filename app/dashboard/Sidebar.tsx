@@ -9,6 +9,7 @@ import {
   canAccessPath,
   type OperatorRole,
 } from "@/lib/operatorRoles";
+import { TopbarRich } from "./_components/TopbarRich";
 
 type NavItem = {
   to: string;
@@ -20,11 +21,13 @@ const nav: NavItem[] = [
   { to: "/dashboard", label: "대시보드", icon: DashboardIcon },
   { to: "/dashboard/cs", label: "CS 통합 조회", icon: LifebuoyIcon },
   { to: "/dashboard/users", label: "회원 관리", icon: UsersIcon },
+  { to: "/dashboard/user-360", label: "사용자 360", icon: UsersIcon },
   { to: "/dashboard/devices", label: "디바이스 모니터링", icon: DeviceIcon },
   { to: "/dashboard/ota", label: "OTA 관리", icon: UploadIcon },
   { to: "/dashboard/personas", label: "AI 페르소나", icon: SparkleIcon },
   { to: "/dashboard/knowledge", label: "RAG·대화 품질", icon: BookIcon },
   { to: "/dashboard/reports", label: "리뷰·신고 관리", icon: FlagIcon },
+  { to: "/dashboard/community", label: "커뮤니티", icon: MegaphoneIcon },
   { to: "/dashboard/notices", label: "공지/배너 관리", icon: MegaphoneIcon },
   { to: "/dashboard/push", label: "푸시 알림 관리", icon: BellIcon },
   { to: "/dashboard/stats", label: "통계 관리", icon: BarChartIcon },
@@ -53,10 +56,12 @@ function subtitleFor(to: string): string {
     case "/dashboard/cs": return "고객센터 1차 응대 — 이메일/시리얼/사용자ID 한 줄 검색으로 사용자·기기·최근 오류·조치 패널을 한 화면에 표시.";
     case "/dashboard/knowledge": return "RAG 질의 테스트·출처 조회·사용자 피드백 — AI 답변이 근거 있게 생성됐는지 점검합니다.";
     case "/dashboard/users": return "회원 정보 조회·계정 상태·강제 로그아웃 등 정보 관리.";
+    case "/dashboard/user-360": return "한 사용자의 HW · Server · AI · APP 상태와 액션을 한 화면에서 처리.";
     case "/dashboard/devices": return "ESP32 인형의 last seen·배터리·펌웨어 버전·연결 상태 모니터링.";
     case "/dashboard/ota": return "펌웨어 업로드·채널 배포·롤백 관리 (ESP32 OTA).";
     case "/dashboard/personas": return "SOUL 파일 업로드·검수·라이브 전환·롤백.";
     case "/dashboard/reports": return "이용자 리뷰와 신고된 게시물을 검토·처리합니다.";
+    case "/dashboard/community": return "피드 타임라인을 직접 브라우즈하고 게시물·댓글을 모더레이션합니다.";
     case "/dashboard/notices": return "앱·웹 공지사항과 메인 배너를 등록·관리합니다.";
     case "/dashboard/push": return "전체/세그먼트 푸시 캠페인을 발송하고 결과를 확인합니다.";
     case "/dashboard/stats": return "사용자·디바이스·매출 지표를 시각화합니다.";
@@ -77,14 +82,14 @@ export default function Sidebar({
   children,
   env: _env = "development",
   role = "viewer",
-  operatorEmail: _operatorEmail = null,
+  operatorEmail = null,
 }: {
   children: ReactNode;
   /** ICONIA_ENV — layout 에서 주입 (현재 미사용, 향후 환경 분기용). */
   env?: IconiaEnvName;
   /** 운영자 역할 — RBAC 네비게이션 게이팅. */
   role?: OperatorRole;
-  /** 운영자 이메일 — layout 에서 주입 (현재 미사용). */
+  /** 운영자 이메일 — layout 에서 주입. TopbarRich 우측 프로필 칩에 표시. */
   operatorEmail?: string | null;
 }) {
   const pathname = usePathname() ?? "/dashboard";
@@ -151,26 +156,7 @@ export default function Sidebar({
 
       {/* 메인 컬럼 — sticky 흰 톱바 + 캔버스 본문. */}
       <div className="flex-1 min-w-0 flex flex-col">
-        <header className="sticky top-0 z-10 bg-surface border-b border-slate-200 px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
-            <button
-              className="md:hidden rounded-lg px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 transition"
-              type="button"
-              onClick={() => setNavOpen(true)}
-              aria-label="메뉴 열기"
-            >
-              <span className="inline-flex items-center gap-2">
-                <span className="text-base">☰</span>
-              </span>
-            </button>
-            <div className="min-w-0">
-              <h1 className="text-lg sm:text-xl font-semibold tracking-tight text-slate-900 truncate">
-                {title}
-              </h1>
-              <p className="text-xs sm:text-sm text-muted mt-0.5 truncate">{subtitle}</p>
-            </div>
-          </div>
-        </header>
+        <TopbarRich title={title} subtitle={subtitle} operatorEmail={operatorEmail ?? null} onOpenMenu={() => setNavOpen(true)} />
 
         <main className="flex-1 min-w-0 p-4 sm:p-6 pb-10 overflow-x-hidden">
           {children}
