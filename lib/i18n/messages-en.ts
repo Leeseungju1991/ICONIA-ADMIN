@@ -55,4 +55,30 @@ export const messagesEn = {
     pending: "Approval pending",
     approved: "Approved",
   },
+  user360: {
+    title: "User 360",
+    search: {
+      placeholder: "Email / IC-serial / UUID",
+    },
+    quadrant: {
+      hw: "HW",
+      server: "Server",
+      ai: "AI",
+      app: "APP",
+    },
+  },
+  community: {
+    title: "Community",
+    tabs: {
+      latest: "Latest",
+      popular: "Popular",
+      reported: "Reported",
+    },
+  },
+  moderation: {
+    confirm: {
+      reason: "Reason (5+ chars)",
+      execute: "Type EXECUTE",
+    },
+  },
 } as const;

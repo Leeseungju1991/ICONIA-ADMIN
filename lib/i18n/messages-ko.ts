@@ -55,6 +55,32 @@ export const messagesKo = {
     pending: "승인 대기 중",
     approved: "승인 완료",
   },
+  user360: {
+    title: "사용자 360",
+    search: {
+      placeholder: "이메일 / IC-시리얼 / UUID",
+    },
+    quadrant: {
+      hw: "HW",
+      server: "Server",
+      ai: "AI",
+      app: "APP",
+    },
+  },
+  community: {
+    title: "커뮤니티",
+    tabs: {
+      latest: "최신",
+      popular: "인기",
+      reported: "신고됨",
+    },
+  },
+  moderation: {
+    confirm: {
+      reason: "사유 (5자 이상)",
+      execute: "EXECUTE 입력",
+    },
+  },
 } as const;
 
 export type MessageKey = keyof typeof messagesKo;
