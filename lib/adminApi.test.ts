@@ -11,6 +11,13 @@ import {
   listPosts,
   getOperatorMe,
   getAiHealth,
+  getSloSnapshot,
+  getAlertConfig,
+  updateAlertRule,
+  searchLogs,
+  closeCircuitBreaker,
+  invalidateCache,
+  setMaintenanceMode,
 } from "./adminApi";
 
 const BASE = "https://api.example.com";
@@ -386,5 +393,201 @@ describe("getAiHealth", () => {
     const r = await getAiHealth({ jwt: "j" });
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.code).toBe("ERR_SERVER_UNAVAILABLE");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// V1.0 — 관측성 / SLO / 알람 / 로그 / 운영 제어 endpoints.
+// ---------------------------------------------------------------------------
+
+describe("getSloSnapshot", () => {
+  it("calls GET /api/v1/admin/metrics/slo", async () => {
+    const fetchMock = mockFetchOnce({
+      status: 200,
+      body: {
+        ok: true,
+        data: {
+          window_ms: 300_000,
+          observed_at: "2026-05-27T00:00:00Z",
+          overall: {
+            calls: 100,
+            p50: 12,
+            p95: 80,
+            p99: 200,
+            error_rate: 0,
+            client_error_rate: 0,
+          },
+          by_route: [],
+          ai: {
+            fallback_rate: 0,
+            error_rate: 0,
+            p95_latency_ms: 0,
+            calls_last_minute: 0,
+          },
+          dependencies: [],
+        },
+        error: null,
+      },
+    });
+    const r = await getSloSnapshot({ jwt: "j" });
+    expect(r.ok).toBe(true);
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe(`${BASE}/api/v1/admin/metrics/slo`);
+    expect(init.method).toBe("GET");
+    expect(init.headers.Authorization).toBe("Bearer j");
+  });
+
+  it("maps ERR_NETWORK so unreachable Server gracefully degrades", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockRejectedValue(new Error("ECONNREFUSED")),
+    );
+    const r = await getSloSnapshot({ jwt: "j" });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.code).toBe("ERR_NETWORK");
+  });
+});
+
+describe("getAlertConfig / updateAlertRule", () => {
+  it("GET /api/v1/admin/alerts/config", async () => {
+    const fetchMock = mockFetchOnce({
+      status: 200,
+      body: { ok: true, data: { rules: [], channels: [] }, error: null },
+    });
+    const r = await getAlertConfig({ jwt: "j" });
+    expect(r.ok).toBe(true);
+    expect(fetchMock.mock.calls[0][0]).toBe(
+      `${BASE}/api/v1/admin/alerts/config`,
+    );
+  });
+
+  it("PATCH /api/v1/admin/alerts/config/:key with body", async () => {
+    const fetchMock = mockFetchOnce({
+      status: 200,
+      body: {
+        ok: true,
+        data: {
+          key: "api.p95.global",
+          label: "API p95",
+          unit: "ms",
+          threshold: 250,
+          enabled: true,
+          channels: ["slack"],
+          note: null,
+          updated_at: "2026-05-27T00:00:00Z",
+        },
+        error: null,
+      },
+    });
+    const r = await updateAlertRule({
+      jwt: "j",
+      key: "api.p95.global",
+      patch: { threshold: 250, enabled: true, channels: ["slack"] },
+      reason: "p95 완화",
+    });
+    expect(r.ok).toBe(true);
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe(`${BASE}/api/v1/admin/alerts/config/api.p95.global`);
+    expect(init.method).toBe("PATCH");
+    const body = JSON.parse(init.body as string);
+    expect(body.threshold).toBe(250);
+    expect(body.enabled).toBe(true);
+    expect(body.channels).toEqual(["slack"]);
+    expect(body.reason).toBe("p95 완화");
+  });
+});
+
+describe("searchLogs", () => {
+  it("GET /api/v1/admin/logs/search with query params", async () => {
+    const fetchMock = mockFetchOnce({
+      status: 200,
+      body: {
+        ok: true,
+        data: { items: [], next_cursor: null, approx_total: 0 },
+        error: null,
+      },
+    });
+    await searchLogs({
+      jwt: "j",
+      level: "error",
+      route: "/api/v1/admin",
+      status: "5xx",
+      q: "timeout",
+      limit: 50,
+    });
+    const [url] = fetchMock.mock.calls[0];
+    const u = new URL(url as string);
+    expect(u.pathname).toBe("/api/v1/admin/logs/search");
+    expect(u.searchParams.get("level")).toBe("error");
+    expect(u.searchParams.get("route")).toBe("/api/v1/admin");
+    expect(u.searchParams.get("status")).toBe("5xx");
+    expect(u.searchParams.get("q")).toBe("timeout");
+    expect(u.searchParams.get("limit")).toBe("50");
+  });
+});
+
+describe("ops controls", () => {
+  it("closeCircuitBreaker POSTs to /circuit/:name/close", async () => {
+    const fetchMock = mockFetchOnce({
+      status: 200,
+      body: {
+        ok: true,
+        data: { ok: true, name: "ai_service", state: "closed" },
+        error: null,
+      },
+    });
+    await closeCircuitBreaker({
+      jwt: "j",
+      name: "ai_service",
+      reason: "AI 회복 후 강제 close",
+    });
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe(`${BASE}/api/v1/admin/ops/circuit/ai_service/close`);
+    expect(init.method).toBe("POST");
+    const body = JSON.parse(init.body as string);
+    expect(body.reason).toBe("AI 회복 후 강제 close");
+  });
+
+  it("invalidateCache POSTs to /cache/invalidate with selector", async () => {
+    const fetchMock = mockFetchOnce({
+      status: 200,
+      body: {
+        ok: true,
+        data: { ok: true, selector: "all", cleared: 1 },
+        error: null,
+      },
+    });
+    await invalidateCache({
+      jwt: "j",
+      selector: "all",
+      reason: "stale 키 일소",
+    });
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe(`${BASE}/api/v1/admin/ops/cache/invalidate`);
+    expect(init.method).toBe("POST");
+    const body = JSON.parse(init.body as string);
+    expect(body.selector).toBe("all");
+  });
+
+  it("setMaintenanceMode POSTs to /ops/maintenance with enabled+until", async () => {
+    const fetchMock = mockFetchOnce({
+      status: 200,
+      body: {
+        ok: true,
+        data: { enabled: true, until: "2026-05-27T03:00:00Z" },
+        error: null,
+      },
+    });
+    await setMaintenanceMode({
+      jwt: "j",
+      enabled: true,
+      until: "2026-05-27T03:00:00Z",
+      reason: "DB 마이그레이션 10분",
+    });
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe(`${BASE}/api/v1/admin/ops/maintenance`);
+    const body = JSON.parse(init.body as string);
+    expect(body.enabled).toBe(true);
+    expect(body.until).toBe("2026-05-27T03:00:00Z");
   });
 });

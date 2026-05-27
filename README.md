@@ -26,6 +26,7 @@ ICONIA 운영자 콘솔 — Next.js 14 (App Router) · React 18 · Tailwind 3.
 │   ├─ 리뷰·신고·공지·푸시·통계                            │
 │   ├─ 펌웨어/서버/앱 에러                                  │
 │   ├─ 운영 안정성 9항목 + AI 호출 모니터링                 │
+│   ├─ 운영 — SLO·알람·로그·감사·runbook (V1.0)             │
 │   ├─ 양산·AS·운영 리포트 아카이브                         │
 │   └─ 운영자 관리 (최고관리자)                             │
 │                                                          │
@@ -150,6 +151,27 @@ ICONIA 운영자 콘솔 — Next.js 14 (App Router) · React 18 · Tailwind 3.
 - 관측 · 추적 · 알람 · 감사 · 재처리 · 복구 액션 · 강제 재시도 · 기능 차단 스위치 · 기능 플래그
 - **AI 호출 모니터링** — Gemini 키 풀 상태, 컨텍스트 압축 발동률, Provider 분포 (실시간)
 
+### 3.10a V1.0 관측성 / SLO / 알람 / 로그 (출시 정비)
+- **SLO 대시보드** (`/dashboard/ops/slo`) — 전체 API 와 라우트별 p50/p95/p99 ·
+  5xx/4xx 비율 · AI fallback · DB / 외부 의존성 상태. 5분 sliding window.
+  Server `/api/v1/admin/metrics/slo` 정본 — 미배포 시 graceful "—" / "준비 중".
+- **알람 설정** (`/dashboard/ops/alerts`) — SLO 위반 임계치 · 활성화 토글 · 채널
+  (이메일/슬랙/webhook) 다중 선택. 변경은 사유 5자 + Server audit_log.
+  Server `/api/v1/admin/alerts/config` (GET) + `/:key` (PATCH) 정본.
+- **로그 검색** (`/dashboard/ops/logs`) — request-id / user-id / endpoint / status /
+  level / 시간 범위 / 자유텍스트. PII 는 server 가 마스킹. 우측 드로어에 raw payload.
+  Server `/api/v1/admin/logs/search` 정본.
+- **감사 로그 뷰어** (`/dashboard/ops/audit`) — action / 운영자 / 대상 type / 시간
+  필터. hash chain (`prev_hash` / `current_hash`) 노출. CSV export 1버튼.
+  Server `/api/v1/admin/audit-log` 정본 (secops/sre/superadmin).
+- **장애 대응 runbook** (`/dashboard/ops/runbook`) — 알람 종류별 (#anchor deep link)
+  증상 / 대응 절차 / 관련 페이지 점프. + **수동 운영 작업** 인터페이스 —
+  circuit breaker 강제 close · 캐시 invalidate · 메인터넌스 모드 토글 (사유 5자 +
+  EXECUTE 2단계 확인). Server 미배포 시 graceful "준비 중".
+- **Error Boundary** — `app/error.tsx` 가 페이지 단위 렌더 실패를 잡고,
+  `app/global-error.tsx` 가 layout 자체 실패를 잡는다. 둘 다 빈 화면 대신
+  사용자 메시지 + 다시 시도 / 대시보드 / runbook 점프 버튼을 표시.
+
 ### 3.11 양산 / 출고
 - 양산 LOT 생성 · 시리얼 일괄 발급
 - 공장 출고 검수 결과 조회
@@ -207,6 +229,12 @@ ICONIA 운영자 콘솔 — Next.js 14 (App Router) · React 18 · Tailwind 3.
   Server `/api/v1/admin/feed/posts*`, `/api/v1/admin/commerce/{products,orders}*`,
   `/api/v1/admin/seed/{status,run}` 신규 endpoint (SERVER 동시 작업)가 배포되면 자동 표시.
   대시보드 홈의 "피드 게시물 (24h)" / "신규 주문 (24h)" KPI 카드도 같은 endpoint 의존.
+- **V1.0 관측성 / SLO / 알람 / 로그 / 운영 제어 실 연동** — `/dashboard/ops/{slo,
+  alerts,logs,audit,runbook}` 5개 페이지가 client 시그니처와 graceful "준비 중"
+  안내까지 완비. Server `/api/v1/admin/metrics/slo`, `/api/v1/admin/alerts/config*`,
+  `/api/v1/admin/logs/search`, `/api/v1/admin/ops/{circuit/:name/close,cache/invalidate,
+  maintenance}` 신규 endpoint 배포 즉시 swap. `/dashboard/ops/audit` 와 알람 ack 는
+  이미 Server 정본 endpoint 가 있어 실 데이터 동작.
 - **회사 정보 (사업자등록) 실 값 표시** — `/api/v1/legal/business-info` 라우트 부재.
   현재 `lib/companyInfo.ts` placeholder ((주)숨코리아 / Soom Korea Inc.) 가 정본.
   *(사업자등록·통신판매업 신고 완료 후 실 값으로 교체)*

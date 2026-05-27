@@ -37,7 +37,7 @@ export type CursorPagination = {
   loading?: boolean;
 };
 
-export function DataTable<T extends { id?: string }>({
+export function DataTable<T extends object>({
   columns,
   rows,
   empty = "데이터가 없습니다.",
@@ -99,7 +99,11 @@ export function DataTable<T extends { id?: string }>({
           <tbody>
             {visibleRows.map((row, idx) => (
               <tr
-                key={rowKey ? rowKey(row, idx) : row.id ?? String(idx)}
+                key={
+                  rowKey
+                    ? rowKey(row, idx)
+                    : (row as { id?: string }).id ?? String(idx)
+                }
                 className="border-b border-white/40 last:border-0 hover:bg-white/40 transition"
               >
                 {columns.map((c) => (

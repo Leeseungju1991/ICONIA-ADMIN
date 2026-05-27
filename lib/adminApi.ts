@@ -2315,3 +2315,281 @@ export function runAdminSeed(args: {
     body: args.reason ? { reason: args.reason } : {},
   });
 }
+
+// ---------------------------------------------------------------------------
+// V1.0 — 관측성 / SLO / 알람 / 로그 검색 / 운영 제어 (출시 정비, (주)숨코리아).
+//
+// SERVER 정본 endpoint (도입 또는 도입 예정):
+//   GET  /api/v1/admin/metrics/slo                    — API p50/p95/p99, error rate,
+//                                                       AI fallback, DB latency, deps
+//   GET  /api/v1/admin/logs/search?...                — 시간/레벨/엔드포인트/uid 필터
+//   GET  /api/v1/admin/alerts/config                  — 알람 임계치 + 채널 목록
+//   PATCH /api/v1/admin/alerts/config/:key            — 임계치 / 활성화 토글
+//   POST /api/v1/admin/ops/circuit/:name/close        — circuit breaker 강제 close
+//   POST /api/v1/admin/ops/cache/invalidate           — 캐시 무효화 (selector)
+//   POST /api/v1/admin/ops/maintenance                — 메인터넌스 모드 토글
+//
+// SERVER 미배포 endpoint 라도 page 는 graceful "—" / "준비 중" 으로 처리.
+// authedRequest 가 ERR_NETWORK / ERR_NOT_FOUND 를 throw 하지 않고 표시한다.
+// ---------------------------------------------------------------------------
+
+/**
+ * SLO 대시보드 — 서비스별 지표 종합. API p50/p95/p99 (ms), error rate (0~1),
+ * AI fallback rate (0~1), DB 응답시간 (ms), 외부 의존성 상태.
+ *
+ * Server `aiHealthTracker.snapshot()` 의 단순 latency 와 달리 본 endpoint 는
+ * Server 전체 라우터 layer 의 sliding window p50/p95/p99 통계. 5분 윈도우.
+ */
+export type SloEndpointRow = {
+  /** Express 라우트 패턴 (e.g. "/api/v1/users/:id/profile"). */
+  route: string;
+  /** HTTP method. */
+  method: string;
+  /** 호출 횟수 (윈도우 내). */
+  calls: number;
+  /** ms. */
+  p50: number;
+  p95: number;
+  p99: number;
+  /** 5xx 비율 (0~1). */
+  error_rate: number;
+  /** 4xx 비율 (0~1). 인증/검증 오류 추세. */
+  client_error_rate: number;
+};
+
+export type SloDependencyRow = {
+  /** "db_primary" | "db_replica" | "redis" | "ai_service" | "wp_woo" | ... */
+  name: string;
+  /** "ok" | "degraded" | "down" | "not_applicable". */
+  status: "ok" | "degraded" | "down" | "not_applicable";
+  /** ms (마지막 probe 응답). */
+  latency_ms: number | null;
+  /** 마지막 probe 시각. */
+  observed_at: string;
+  /** 사람이 읽는 한 줄 설명. */
+  detail: string;
+};
+
+export type SloSnapshot = {
+  window_ms: number;
+  observed_at: string;
+  /** 전체 API 종합. */
+  overall: {
+    calls: number;
+    p50: number;
+    p95: number;
+    p99: number;
+    error_rate: number;
+    client_error_rate: number;
+  };
+  /** 라우트별 TOP N (호출량 기준). */
+  by_route: SloEndpointRow[];
+  /** AI 호출 종합 (5분). aiHealthTracker.snapshot() 의 요약 forward. */
+  ai: {
+    fallback_rate: number;
+    error_rate: number;
+    p95_latency_ms: number;
+    calls_last_minute: number;
+  };
+  /** DB / Redis / 외부 의존성 상태. */
+  dependencies: SloDependencyRow[];
+};
+
+export function getSloSnapshot(args: {
+  jwt: string;
+}): Promise<ServerResult<SloSnapshot>> {
+  return authedRequest<SloSnapshot>({
+    jwt: args.jwt,
+    path: `/api/v1/admin/metrics/slo`,
+    method: "GET",
+  });
+}
+
+/**
+ * 알람 임계치 설정 — SLO 위반 시 자동 알람 트리거. 채널은 email/slack 다중 선택.
+ * Server 미구현 endpoint 도 graceful — UI 가 기본 임계치 placeholder 표시.
+ */
+export type AlertChannelKind = "email" | "slack" | "webhook";
+
+export type AlertRuleRow = {
+  /** 안정적 key — "api.p95.global", "ai.fallback_rate", "db.unreachable" 등. */
+  key: string;
+  /** 사람이 읽는 라벨. */
+  label: string;
+  /** 임계치 단위 — "ms" | "rate" | "count" | "bool". */
+  unit: "ms" | "rate" | "count" | "bool";
+  /** 현재 임계치 — 값이 이를 넘으면 알람. unit=bool 이면 0|1. */
+  threshold: number;
+  /** 비활성화면 false. */
+  enabled: boolean;
+  /** 알림 채널 리스트. */
+  channels: AlertChannelKind[];
+  /** 운영자가 입력한 설명 (선택). */
+  note: string | null;
+  /** 마지막 수정 시각. */
+  updated_at: string;
+};
+
+export type AlertConfig = {
+  rules: AlertRuleRow[];
+  /** 활성 채널 메타. email 주소 / slack webhook 등. */
+  channels: Array<{
+    kind: AlertChannelKind;
+    target: string;
+    /** masked = "ops-***@soomkorea.com" / "hooks.slack.com/***". */
+    target_masked: string;
+    enabled: boolean;
+  }>;
+};
+
+export function getAlertConfig(args: {
+  jwt: string;
+}): Promise<ServerResult<AlertConfig>> {
+  return authedRequest<AlertConfig>({
+    jwt: args.jwt,
+    path: `/api/v1/admin/alerts/config`,
+    method: "GET",
+  });
+}
+
+export function updateAlertRule(args: {
+  jwt: string;
+  key: string;
+  patch: {
+    threshold?: number;
+    enabled?: boolean;
+    channels?: AlertChannelKind[];
+    note?: string | null;
+  };
+  reason: string;
+}): Promise<ServerResult<AlertRuleRow>> {
+  return authedRequest<AlertRuleRow>({
+    jwt: args.jwt,
+    path: `/api/v1/admin/alerts/config/${encodeURIComponent(args.key)}`,
+    method: "PATCH",
+    body: { ...args.patch, reason: args.reason },
+  });
+}
+
+/**
+ * 로그 검색 — Server canonical log store (NDJSON / structured) 를 운영자가
+ * 시간/레벨/엔드포인트/uid 로 검색. PII (이메일/이름/전화) 는 server 가 마스킹.
+ *
+ * Server `/api/v1/admin/logs/search`. 미배포 시 graceful "준비 중".
+ */
+export type LogLevel = "debug" | "info" | "warn" | "error" | "fatal";
+
+export type LogEntryRow = {
+  at: string;
+  level: LogLevel;
+  /** 라우트 패턴. */
+  route: string | null;
+  method: string | null;
+  status: number | null;
+  /** request-id (uuid). */
+  request_id: string | null;
+  /** user-id (uuid). */
+  user_id: string | null;
+  /** operator-id (uuid). */
+  operator_id: string | null;
+  /** msg + extra (마스킹 후). */
+  message: string;
+  /** error_code (있으면). */
+  error_code: string | null;
+  /** 추가 컨텍스트 (마스킹 후). */
+  extra: Record<string, unknown> | null;
+};
+
+export type LogSearchResult = {
+  items: LogEntryRow[];
+  next_cursor: string | null;
+  /** 윈도우 내 추정 매칭 수 (counter — 정확 count 아님). */
+  approx_total: number;
+};
+
+export function searchLogs(args: {
+  jwt: string;
+  /** ISO. 미지정 시 "현재로부터 1시간 전". */
+  from?: string;
+  to?: string;
+  level?: LogLevel;
+  /** route prefix 부분 매칭. */
+  route?: string;
+  request_id?: string;
+  user_id?: string;
+  /** http status — "200" | "5xx" | "4xx" 등. */
+  status?: string;
+  /** 자유 검색 (메시지 본문). server 가 substring match. */
+  q?: string;
+  cursor?: string | null;
+  limit?: number;
+}): Promise<ServerResult<LogSearchResult>> {
+  const params = new URLSearchParams();
+  if (args.from) params.set("from", args.from);
+  if (args.to) params.set("to", args.to);
+  if (args.level) params.set("level", args.level);
+  if (args.route) params.set("route", args.route);
+  if (args.request_id) params.set("request_id", args.request_id);
+  if (args.user_id) params.set("user_id", args.user_id);
+  if (args.status) params.set("status", args.status);
+  if (args.q) params.set("q", args.q);
+  if (args.cursor) params.set("cursor", args.cursor);
+  if (args.limit) params.set("limit", String(args.limit));
+  const qs = params.toString();
+  return authedRequest<LogSearchResult>({
+    jwt: args.jwt,
+    path: `/api/v1/admin/logs/search${qs ? "?" + qs : ""}`,
+    method: "GET",
+  });
+}
+
+/**
+ * 수동 운영 — circuit breaker 강제 close, 캐시 무효화, 메인터넌스 모드 토글.
+ *
+ * Server endpoint 미배포 시 graceful — UI 가 버튼 비활성 + 토스트 "준비 중".
+ */
+export function closeCircuitBreaker(args: {
+  jwt: string;
+  name: string;
+  reason: string;
+}): Promise<ServerResult<{ ok: true; name: string; state: string }>> {
+  return authedRequest({
+    jwt: args.jwt,
+    path: `/api/v1/admin/ops/circuit/${encodeURIComponent(args.name)}/close`,
+    method: "POST",
+    body: { reason: args.reason },
+  });
+}
+
+export function invalidateCache(args: {
+  jwt: string;
+  /** "all" | "personas" | "commerce_products" | "terms_active" 등. */
+  selector: string;
+  reason: string;
+}): Promise<ServerResult<{ ok: true; selector: string; cleared: number }>> {
+  return authedRequest({
+    jwt: args.jwt,
+    path: `/api/v1/admin/ops/cache/invalidate`,
+    method: "POST",
+    body: { selector: args.selector, reason: args.reason },
+  });
+}
+
+export function setMaintenanceMode(args: {
+  jwt: string;
+  enabled: boolean;
+  reason: string;
+  /** 옵션: 종료 예정 시각 (ISO). */
+  until?: string;
+}): Promise<ServerResult<{ enabled: boolean; until: string | null }>> {
+  return authedRequest({
+    jwt: args.jwt,
+    path: `/api/v1/admin/ops/maintenance`,
+    method: "POST",
+    body: {
+      enabled: args.enabled,
+      reason: args.reason,
+      ...(args.until ? { until: args.until } : {}),
+    },
+  });
+}

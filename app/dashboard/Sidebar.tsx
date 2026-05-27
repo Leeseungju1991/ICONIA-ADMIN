@@ -75,7 +75,12 @@ const nav: NavItem[] = [
 
   // 운영.
   // 더 구체적인 prefix 가 먼저 와야 pageTitle / startsWith 매칭이 정확하다.
-  { to: "/dashboard/ops/seed", label: "운영 — Seed 상태", icon: SeedIcon, groupLabel: "운영" },
+  { to: "/dashboard/ops/slo", label: "운영 — SLO 대시보드", icon: BarChartIcon, groupLabel: "운영" },
+  { to: "/dashboard/ops/alerts", label: "운영 — 알람 설정", icon: BellIcon },
+  { to: "/dashboard/ops/logs", label: "운영 — 로그 검색", icon: ServerIcon },
+  { to: "/dashboard/ops/audit", label: "운영 — 감사 로그", icon: KeyIcon },
+  { to: "/dashboard/ops/runbook", label: "운영 — 장애 runbook", icon: BookIcon },
+  { to: "/dashboard/ops/seed", label: "운영 — Seed 상태", icon: SeedIcon },
   { to: "/dashboard/ops", label: "운영 안정성", icon: ShieldIcon },
   { to: "/dashboard/operators", label: "운영자 관리", icon: KeyIcon },
   { to: "/dashboard/ip-allowlist", label: "IP 허용목록", icon: ShieldIcon },
@@ -115,6 +120,11 @@ function subtitleFor(to: string): string {
     case "/dashboard/server-errors": return "AWS API/서비스 5xx·예외·헬스 상태.";
     case "/dashboard/app-errors": return "RN Expo 모바일 앱 크래시·런타임 에러.";
     case "/dashboard/ops": return "observability · tracing · alerting · audit · replay · recovery · kill switch · feature flag.";
+    case "/dashboard/ops/slo": return "API p50/p95/p99 · error rate · AI fallback · DB · 외부 의존성 — 5분 sliding window.";
+    case "/dashboard/ops/alerts": return "SLO 위반 알람 임계치 · 활성화 · 채널 (이메일/슬랙). 변경은 사유 5자 + audit_log.";
+    case "/dashboard/ops/logs": return "운영 로그 검색 — request-id / user-id / endpoint / status / level / 시간 범위. PII 는 마스킹.";
+    case "/dashboard/ops/audit": return "감사 로그 뷰어 — 운영자 변경 작업 hash chain. CSV export 지원.";
+    case "/dashboard/ops/runbook": return "장애 대응 절차 모음 + 수동 운영 작업 (circuit close · cache invalidate · 메인터넌스 모드).";
     case "/dashboard/ops/seed": return "Seed 상태 + 수동 트리거 — SEED 확인 문구 + 사유 5자 이상 + audit_log 영구 기록.";
     case "/dashboard/factory-test": return "양산 LOT 생성 · 시리얼 일괄 발급 · 출고 검수 결과 입력. 펌웨어 production_test 가 자동 업로드한 결과는 LOT 별 yield 로 집계.";
     case "/dashboard/as": return "AS 접수·교체 기기 등록·회수 기기 잠금·종료. 신규 티켓은 이전 owner 페어링을 자동 force-unpair.";
