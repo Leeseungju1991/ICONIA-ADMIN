@@ -1,7 +1,6 @@
-export function ProfileRail({ operatorEmail, weekly, collaborators }: {
+export function ProfileRail({ operatorEmail, weekly }: {
   operatorEmail: string;
   weekly: Array<{ date: string; count: number }>;
-  collaborators: Array<{ email: string; actions: number }>;
 }) {
   const max = Math.max(1, ...weekly.map((w) => w.count));
   const initial = operatorEmail.slice(0, 1).toUpperCase();
@@ -32,20 +31,6 @@ export function ProfileRail({ operatorEmail, weekly, collaborators }: {
           ))}
         </div>
       </div>
-      <section>
-        <h4 className="text-sm font-semibold text-slate-700 mb-2">최근 협업 운영자</h4>
-        <ul className="space-y-2">
-          {collaborators.map((c) => (
-            <li key={c.email} className="flex items-center gap-2.5">
-              <div className="h-8 w-8 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-xs font-semibold">{c.email.slice(0,1).toUpperCase()}</div>
-              <div className="flex-1 min-w-0">
-                <div className="text-xs font-medium text-slate-800 truncate">{c.email}</div>
-                <div className="text-[10px] text-muted">{c.actions}건 작업</div>
-              </div>
-            </li>
-          ))}
-        </ul>
-      </section>
     </aside>
   );
 }

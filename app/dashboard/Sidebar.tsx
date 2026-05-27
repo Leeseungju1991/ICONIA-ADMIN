@@ -48,8 +48,6 @@ const nav: NavItem[] = [
   { to: "/dashboard/knowledge", label: "RAG·대화 품질", icon: BookIcon },
   { to: "/dashboard/content", label: "콘텐츠 (피드/커머스/정보)", icon: BookIcon },
   { to: "/dashboard/feed", label: "피드 관리", icon: FeedIcon },
-  { to: "/dashboard/commerce/products", label: "커머스 — 상품", icon: BoxIcon },
-  { to: "/dashboard/commerce/orders", label: "커머스 — 주문", icon: ReceiptIcon },
   { to: "/dashboard/community", label: "커뮤니티", icon: MegaphoneIcon },
 
   // 모더레이션·신고.
@@ -75,12 +73,10 @@ const nav: NavItem[] = [
   { to: "/dashboard/server-errors", label: "서버 에러", icon: ServerIcon },
   { to: "/dashboard/app-errors", label: "앱 에러", icon: PhoneIcon },
 
-  // 통계·운영.
-  { to: "/dashboard/stats", label: "통계 관리", icon: BarChartIcon, groupLabel: "운영" },
+  // 운영.
   // 더 구체적인 prefix 가 먼저 와야 pageTitle / startsWith 매칭이 정확하다.
-  { to: "/dashboard/ops/seed", label: "운영 — Seed 상태", icon: SeedIcon },
+  { to: "/dashboard/ops/seed", label: "운영 — Seed 상태", icon: SeedIcon, groupLabel: "운영" },
   { to: "/dashboard/ops", label: "운영 안정성", icon: ShieldIcon },
-  { to: "/dashboard/reports-archive", label: "운영 리포트 아카이브", icon: ReportIcon },
   { to: "/dashboard/operators", label: "운영자 관리", icon: KeyIcon },
   { to: "/dashboard/ip-allowlist", label: "IP 허용목록", icon: ShieldIcon },
 ];
@@ -111,22 +107,18 @@ function subtitleFor(to: string): string {
     case "/dashboard/reports": return "이용자 리뷰와 신고된 게시물을 검토·처리합니다.";
     case "/dashboard/community": return "피드 타임라인을 직접 브라우즈하고 게시물·댓글을 모더레이션합니다.";
     case "/dashboard/feed": return "피드 게시물 검색·숨김·복구·삭제 + 댓글 미리보기. Server /api/v1/admin/feed/posts 정본.";
-    case "/dashboard/commerce/products": return "상품 등록·수정·삭제·재고 관리. Server /api/v1/admin/commerce/products 정본.";
-    case "/dashboard/commerce/orders": return "주문 상태 흐름 (결제대기 → 결제완료 → 배송중 → 완료/취소) 관리. 결제수단 카드 정보는 비표시.";
     case "/dashboard/notices": return "앱·웹 공지사항과 메인 배너를 등록·관리합니다.";
     case "/dashboard/legal": return "약관 4종 활성 버전·본문 미리보기·신버전 발행. (주)숨코리아 사업자 정보.";
     case "/dashboard/users/rights": return "PIPA 제35/36/37조 사용자 권리 요청 (열람·정정·삭제·이관) 큐.";
     case "/dashboard/push": return "전체/세그먼트 푸시 캠페인을 발송하고 결과를 확인합니다.";
-    case "/dashboard/stats": return "사용자·디바이스·매출 지표를 시각화합니다.";
     case "/dashboard/firmware-errors": return "ESP32 OTA 실패·런타임 크래시 로그.";
     case "/dashboard/server-errors": return "AWS API/서비스 5xx·예외·헬스 상태.";
     case "/dashboard/app-errors": return "RN Expo 모바일 앱 크래시·런타임 에러.";
     case "/dashboard/ops": return "observability · tracing · alerting · audit · replay · recovery · kill switch · feature flag.";
-    case "/dashboard/ops/seed": return "Seed 상태 + 수동 트리거. 출시 직전 데모 데이터 충전 — SEED 확인 문구 + 사유 5자 이상 + audit_log 영구 기록.";
+    case "/dashboard/ops/seed": return "Seed 상태 + 수동 트리거 — SEED 확인 문구 + 사유 5자 이상 + audit_log 영구 기록.";
     case "/dashboard/factory-test": return "양산 LOT 생성 · 시리얼 일괄 발급 · 출고 검수 결과 입력. 펌웨어 production_test 가 자동 업로드한 결과는 LOT 별 yield 로 집계.";
     case "/dashboard/as": return "AS 접수·교체 기기 등록·회수 기기 잠금·종료. 신규 티켓은 이전 owner 페어링을 자동 force-unpair.";
     case "/dashboard/boot-invariants": return "Fleet 전체 출하 잠금 invariant 위반 추적 (Secure Boot·Flash Enc·JTAG Disable·OTA Anti-Rollback). 양산 라인 burn 실수 진단.";
-    case "/dashboard/reports-archive": return "리뷰·신고 처리 결과 보관. 매일 02:00 / 일요일 02:30 KST 자동 생성. 수동 트리거는 최고관리자.";
     case "/dashboard/operators": return "운영 콘솔 접근 권한 — 운영자 초대·역할 부여·비활성화 (최고관리자 전용).";
     default: return "";
   }

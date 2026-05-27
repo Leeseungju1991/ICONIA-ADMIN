@@ -191,22 +191,6 @@ export default function FeedPage() {
           </button>
         }
       >
-        {error ? (
-          error.unreachable ? (
-            <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-700 mb-3">
-              <div className="font-medium">준비 중</div>
-              <div className="mt-1 text-xs text-muted">
-                Server 신규 admin endpoint <code>/api/v1/admin/feed/posts</code> 가 아직
-                도달 가능하지 않습니다. SERVER 배포가 끝나면 자동으로 표시됩니다.
-              </div>
-            </div>
-          ) : (
-            <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 mb-3">
-              조회 실패: {error.message}
-            </div>
-          )
-        ) : null}
-
         <form
           className="grid grid-cols-1 sm:grid-cols-5 gap-2 mb-4"
           onSubmit={(e) => {

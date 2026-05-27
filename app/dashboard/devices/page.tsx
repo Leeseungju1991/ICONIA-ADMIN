@@ -36,7 +36,6 @@ function twoStepConfirm(label: string): boolean {
 const PAIRING_WINDOW_HOURS = 48;
 
 // 디바이스 모니터링 — ESP32 인형 last seen / 배터리 / 펌웨어 / 연결 상태.
-// 데모 mock 데이터. 백엔드 연동 시 lib/adminApi.ts 로 교체.
 
 function lastSeenLabel(iso: string, online: boolean): string {
   if (online) return "온라인";
@@ -503,7 +502,7 @@ function DeviceDrawer({
         <OwnershipTimeline deviceId={device.id} />
         <BootInvariantsPanel deviceId={device.id} />
 
-        <p className="text-[11px] text-muted mt-3">※ 디바이스 액션은 데모, 소유권 이력은 Server `/api/v1/admin/devices/:id/ownership-history` 실 연동.</p>
+        <p className="text-[11px] text-muted mt-3">※ 소유권 이력 Server `/api/v1/admin/devices/:id/ownership-history` 정본 연동.</p>
       </div>
     </div>
   );

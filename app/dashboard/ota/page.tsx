@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { PanelCard } from "../_components/PanelCard";
 import { StatCard } from "../_components/StatCard";
-import { MockDataBanner } from "../_components/MockDataBanner";
 import {
   listFirmwareCatalogAction,
   type ListFirmwareResult,
@@ -214,10 +213,6 @@ export default function OtaPage() {
         </PanelCard>
       ) : null}
 
-      <MockDataBanner
-        reason="펌웨어 업로드 / 채널 전환 / 강제 rollback 액션 UI 는 별도 라운드. 본 페이지는 조회 + 진행률 시각화만."
-        endpoint="POST /api/v1/admin/firmware/upload + /deployments/:id/{advance,abort,rollback} (Server 측 이미 구현, UI wiring TBD)"
-      />
     </div>
   );
 }

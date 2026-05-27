@@ -696,8 +696,7 @@ function AlertingBlock({
         )}
       </div>
       <p className="text-[11px] text-muted mt-3">
-        ※ 상단 mock 카드는 in-app banner 데모. 하단 IncidentAlert sub-section 이 Server 실 연동
-        (`/api/v1/admin/alerts`) — aiHealthTracker fallback threshold 알람 자동 insert.
+        ※ 하단 IncidentAlert sub-section 이 Server `/api/v1/admin/alerts` 정본 — aiHealthTracker fallback threshold 알람 자동 insert.
       </p>
     </PanelCard>
   );
@@ -1040,8 +1039,7 @@ function ReplayBlock({
       >
         <DataTable columns={columns} rows={rows} empty="dead-letter 큐가 비어 있습니다." />
         <p className="text-[11px] text-muted mt-3">
-          ※ 상단 mock 표 — UI 데모. 하단 sub-section 이 Server `/api/v1/admin/dead-letter` 실 연동
-          (Phase 9 #2: enumerate + payload_summary + bulk-retry).
+          ※ 하단 sub-section 이 Server `/api/v1/admin/dead-letter` 정본 (enumerate + payload_summary + bulk-retry).
         </p>
 
         <LiveDlqSubPanel onToast={onToast} onRefreshAudit={onRefreshAudit} />

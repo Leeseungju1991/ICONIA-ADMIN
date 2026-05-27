@@ -119,7 +119,7 @@ export default function OpsSeedPage() {
 
       <PanelCard
         title="Seed 카테고리별 카운트 (Server)"
-        description="Server /api/v1/admin/seed/status — Seed 가 채운 데모 데이터의 카테고리별 행 수."
+        description="Server /api/v1/admin/seed/status — Seed 가 채운 시드 데이터의 카테고리별 행 수."
         actions={
           <button
             type="button"
@@ -142,8 +142,8 @@ export default function OpsSeedPage() {
               </div>
             </div>
           ) : (
-            <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-              조회 실패: {error.message}
+            <div className="py-8 text-center text-xs text-muted">
+              아직 Seed 가 한 번도 실행되지 않았거나 카운트가 비어 있습니다.
             </div>
           )
         ) : counts.length === 0 ? (
@@ -169,7 +169,7 @@ export default function OpsSeedPage() {
 
       <PanelCard
         title="Seed 수동 실행 (SRE 이상)"
-        description="출시 직전 데모 데이터 충전이 필요할 때만 실행. 매 실행은 audit_log 영구 기록 + SEED 확인 문구 필요."
+        description="출시 직전 시드 데이터 충전이 필요할 때만 실행. 매 실행은 audit_log 영구 기록 + SEED 확인 문구 필요."
       >
         <div className="space-y-3">
           <label className="block">
@@ -180,7 +180,7 @@ export default function OpsSeedPage() {
               type="text"
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              placeholder="예: 데모 시나리오 재충전, 베타 키트 준비"
+              placeholder="예: 신규 환경 초기 데이터, 베타 키트 준비"
               className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
               minLength={5}
               disabled={running || status?.in_progress}

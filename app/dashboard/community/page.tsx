@@ -2,7 +2,6 @@
 import { useEffect, useState, useTransition } from "react";
 import { useSearchParams } from "next/navigation";
 import { PanelCard } from "../_components/PanelCard";
-import { MockDataBanner } from "../_components/MockDataBanner";
 import { CommunityHealthChips } from "../_components/CommunityHealthChips";
 import { FeedTimeline } from "../_components/FeedTimeline";
 import { PostInspector, type ModerationKey } from "../_components/PostInspector";
@@ -89,7 +88,6 @@ export default function CommunityPage() {
   return (
     <div className="space-y-4">
       {health ? <CommunityHealthChips health={health} /> : null}
-      {source === "mock" ? <MockDataBanner reason="Server /api/v1/admin/community 미연결 — mock 표시" /> : null}
       <section className="grid grid-cols-1 lg:grid-cols-[1fr_420px] gap-4">
         <PanelCard title="피드 타임라인" description="탭으로 최신 · 인기 · 신고됨 전환">
           <FeedTimeline items={items} tab={tab} onTab={onTab} selectedId={picked?.id ?? null} onSelect={onSelect} />

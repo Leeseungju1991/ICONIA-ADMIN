@@ -84,7 +84,7 @@ export default function OtaDeployPage() {
     });
     if (!pres.ok) {
       setStage("idle");
-      setStageDetail(`presign 실패: ${pres.message}${pres.unreachable ? " (Server 미가동)" : ""}`);
+      setStageDetail(`presign 실패: ${pres.message}`);
       return;
     }
     setFirmwareId(pres.data.firmware_id);

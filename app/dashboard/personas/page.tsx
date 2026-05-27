@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { PanelCard } from "../_components/PanelCard";
 import { StatCard } from "../_components/StatCard";
-import { MockDataBanner } from "../_components/MockDataBanner";
 import {
   listPersonasAction,
   type ListPersonasResult,
@@ -174,10 +173,6 @@ export default function PersonasPage() {
         </PanelCard>
       ) : null}
 
-      <MockDataBanner
-        reason="SOUL 파일 업로드·라이브 전환·롤백 액션은 별도 라운드. 본 페이지는 카탈로그 조회 + 운영 메트릭만."
-        endpoint="/api/v1/admin/personas/{:id}/{stage,promote,rollback} (TBD)"
-      />
     </div>
   );
 }

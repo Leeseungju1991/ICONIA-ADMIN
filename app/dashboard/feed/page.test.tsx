@@ -45,15 +45,16 @@ describe("FeedPage — render states", () => {
     });
   });
 
-  it("renders generic error banner on non-network error", async () => {
+  it("renders silently (no error text) on non-network error", async () => {
     mList.mockResolvedValue({
       ok: false,
       message: "boom",
       code: "ERR_UNKNOWN",
     });
     render(<FeedPage />);
+    // 2026-05-27 — 사용자 요구: 에러 텍스트 노출 금지. silent.
     await waitFor(() => {
-      expect(screen.getByText(/조회 실패: boom/)).toBeInTheDocument();
+      expect(screen.queryByText(/조회 실패/)).toBeNull();
     });
   });
 

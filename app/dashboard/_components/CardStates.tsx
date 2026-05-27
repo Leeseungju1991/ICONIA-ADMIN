@@ -30,44 +30,27 @@ export function EmptyState({
   );
 }
 
+// 2026-05-27 — 사용자 요구: 조회 실패 / Server 미가동 텍스트 모두 노출 금지.
+// 어떤 에러가 와도 silent empty state 로 통일.
 export function ErrorState({
-  message,
-  unreachable,
+  message: _message,
+  unreachable: _unreachable,
   onRetry,
 }: {
-  message: string;
+  message?: string;
   unreachable?: boolean;
   onRetry?: () => void;
 }) {
-  if (unreachable) {
-    return (
-      <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-700">
-        <div className="font-medium">Server 미가동</div>
-        <div className="mt-1 text-xs text-slate-500">
-          ICONIA-SERVER 가 응답하지 않습니다. 라우트가 아직 배포되지 않았을 수 있습니다.
-        </div>
-        {onRetry ? (
-          <button
-            className="mt-2 rounded-lg bg-white border border-slate-300 px-3 py-1 text-xs hover:bg-slate-50"
-            type="button"
-            onClick={onRetry}
-          >
-            다시 시도
-          </button>
-        ) : null}
-      </div>
-    );
-  }
   return (
-    <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
-      조회 실패: {message}
+    <div className="rounded-xl border border-slate-200 bg-white px-3 py-8 text-center text-slate-500">
+      <div className="text-sm font-medium text-slate-700">데이터 없음</div>
       {onRetry ? (
         <button
-          className="ml-2 underline text-xs"
+          className="mt-2 rounded-lg bg-white border border-slate-300 px-3 py-1 text-xs hover:bg-slate-50"
           type="button"
           onClick={onRetry}
         >
-          다시 시도
+          다시 불러오기
         </button>
       ) : null}
     </div>

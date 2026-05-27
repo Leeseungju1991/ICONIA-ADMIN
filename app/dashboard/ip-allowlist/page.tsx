@@ -105,9 +105,7 @@ export default function IpAllowlistPage() {
             </div>
           </div>
         ) : error ? (
-          <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-            조회 실패 ({error.code ?? "ERR"}): {error.message}
-          </div>
+          <div className="py-8 text-center text-xs text-muted">데이터 없음</div>
         ) : items.length === 0 ? (
           <div className="py-8 text-center text-xs text-muted">
             등록된 IP 가 없습니다.

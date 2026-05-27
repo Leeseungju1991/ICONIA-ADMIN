@@ -1,15 +1,10 @@
 "use client";
 
 // 사용자 권리 처리 큐 — PIPA 제35조(열람) / 제36조(정정·삭제) / 제37조(이관).
-//
-// Server `/api/v1/admin/users/rights` 가 미구현일 때:
-//   - PIPA pending_deletion (실 endpoint) 을 'delete' 요청으로 augment
-//   - 'access' / 'rectify' placeholder 행 2건 추가
-//   - DEMO 배너로 운영자에게 명시.
+// Server `/api/v1/admin/users/rights` 정본 only. 미응답 시 빈 큐 표시.
 
 import { useEffect, useState, useTransition } from "react";
 import { PanelCard } from "../../_components/PanelCard";
-import { MockDataBanner } from "../../_components/MockDataBanner";
 import {
   listRightsRequestsAction,
   transitionRightsAction,
@@ -110,13 +105,6 @@ export default function RightsQueuePage() {
 
   return (
     <div className="space-y-6">
-      {placeholder ? (
-        <MockDataBanner
-          reason={`사용자 권리 큐 endpoint 미구현 — ${pipaAugmented ? "PIPA pending_deletion 실 데이터 + " : ""}placeholder 행으로 표시 중. 전이 액션은 실 항목만 동작.`}
-          endpoint="/api/v1/admin/users/rights"
-        />
-      ) : null}
-
       <PanelCard
         title="권리 요청 큐 — 상태별 카운트"
         description="PIPA 제35/36/37조에 따른 사용자 권리 요청 (열람·정정·삭제·이관)."
@@ -174,9 +162,7 @@ export default function RightsQueuePage() {
         }
       >
         {loadError ? (
-          <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-            조회 실패: {loadError}
-          </div>
+          <div className="py-8 text-center text-xs text-muted">데이터 없음</div>
         ) : items.length === 0 ? (
           <div className="text-sm text-muted">
             {loading ? "불러오는 중" : "요청이 없습니다."}
@@ -194,9 +180,7 @@ export default function RightsQueuePage() {
                     <span className={STATUS_CHIP[r.status]}>
                       {STATUS_LABEL[r.status]}
                     </span>
-                    {r.id.startsWith("demo-") ? (
-                      <span className="chip chip-warn">DEMO</span>
-                    ) : r.id.startsWith("pipa-") ? (
+                    {r.id.startsWith("pipa-") ? (
                       <span className="chip chip-info">PIPA</span>
                     ) : null}
                   </div>

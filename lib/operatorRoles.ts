@@ -63,8 +63,6 @@ export const PATH_REQUIRED_ROLES: { prefix: string; roles: OperatorRole[] }[] = 
   { prefix: "/dashboard/users/rights", roles: CS_OR_ABOVE },
   // 약관·법률 관리 — 모든 운영자가 활성 버전 조회. 신버전 발행은 server 가 superadmin 가드.
   { prefix: "/dashboard/legal", roles: ALL_ROLES },
-  // 모든 운영자 — 운영 리포트 조회 (수동 트리거는 server 가 SUPERADMIN_ONLY).
-  { prefix: "/dashboard/reports-archive", roles: ALL_ROLES },
   // secops/sre/superadmin — 디바이스 unpair 등 파괴적 액션.
   { prefix: "/dashboard/devices", roles: SECOPS_OR_ABOVE },
   // cs 이상 — 사용자 / 신고 처리.

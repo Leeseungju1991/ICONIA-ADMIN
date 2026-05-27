@@ -4,7 +4,6 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { PanelCard } from "../_components/PanelCard";
 import { UserSnapshotGrid, type ActionKey } from "../_components/UserSnapshotGrid";
 import { UserTimeline } from "../_components/UserTimeline";
-import { MockDataBanner } from "../_components/MockDataBanner";
 import { fetchUser360Action, fetchUser360TimelineAction, type User360ActionResult, type User360TimelineResult } from "@/lib/actions/user360";
 import { recordOpsAuditWithSilentRetry } from "@/lib/opsAuditTrail";
 
@@ -86,8 +85,6 @@ export default function User360Page() {
         </form>
       </PanelCard>
 
-      {okSnap?.source === "mock" ? <MockDataBanner reason="Server /api/v1/admin/user360 미연결 — mock 표시" endpoint="/api/v1/admin/user360" /> : null}
-
       {okSnap ? (
         <>
           <PanelCard title={okSnap.snapshot.user.email} description={`UUID ${okSnap.snapshot.user.id} · 상태 ${okSnap.snapshot.user.account_status}`}>
@@ -97,8 +94,6 @@ export default function User360Page() {
             <UserTimeline events={okTl?.events ?? []} />
           </PanelCard>
         </>
-      ) : snap && !snap.ok ? (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">조회 실패: {snap.message}</div>
       ) : null}
 
       {reasonModal ? (

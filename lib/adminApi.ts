@@ -149,7 +149,7 @@ export type PostRow = {
   reaction_count: number;
   comment_count: number;
   reported_count: number;
-  status: string; // 'visible' | 'hidden' | 'taken_down'
+  status: string; // server: 'published' | 'hidden' | 'removed'
   created_at: string;
 };
 export type PostsList = { items: PostRow[]; next_cursor: string | null };
@@ -1985,6 +1985,12 @@ export type AdminFeedPostRow = {
   comments_count: number;
   is_hidden: boolean;
   created_at: string;
+  /** Phase B 신규 — Server 가 운영자 패널에 노출하는 정형 상태. */
+  status?: "published" | "hidden" | "removed";
+  /** Phase B 신규 — 가시성 범위. */
+  visibility?: "public" | "followers" | "private";
+  /** Phase B 신규 — 운영자 메모 (audit_log 별도). */
+  moderation_note?: string | null;
 };
 
 export type AdminFeedPostsList = {
@@ -1992,6 +1998,8 @@ export type AdminFeedPostsList = {
   total: number;
   page: number;
   page_size: number;
+  /** Phase B 신규 — cursor 페이지네이션 응답. page-based 와 병존. */
+  next_cursor?: string | null;
 };
 
 export type AdminFeedComment = {
@@ -2015,6 +2023,11 @@ export function listAdminFeedPosts(args: {
   to?: string;
   page?: number;
   page_size?: number;
+  /** Phase B 신규 — `published|hidden|removed` 필터. */
+  status?: "published" | "hidden" | "removed";
+  /** Phase B 신규 — cursor 페이지네이션. page 와 동시 사용 금지. */
+  cursor?: string;
+  limit?: number;
 }): Promise<ServerResult<AdminFeedPostsList>> {
   const params = new URLSearchParams();
   if (args.q) params.set("q", args.q);
@@ -2023,6 +2036,9 @@ export function listAdminFeedPosts(args: {
   if (args.to) params.set("to", args.to);
   if (typeof args.page === "number") params.set("page", String(args.page));
   if (typeof args.page_size === "number") params.set("page_size", String(args.page_size));
+  if (args.status) params.set("status", args.status);
+  if (args.cursor) params.set("cursor", args.cursor);
+  if (typeof args.limit === "number") params.set("limit", String(args.limit));
   const qs = params.toString();
   return authedRequest<AdminFeedPostsList>({
     jwt: args.jwt,
@@ -2047,10 +2063,20 @@ export function patchAdminFeedPost(args: {
   id: string;
   body?: string;
   is_hidden?: boolean;
+  /** Phase B 신규 — 정형 상태 토큰. Server enum: published|hidden|removed. */
+  status?: "published" | "hidden" | "removed";
+  /** Phase B 신규 — 가시성 범위. */
+  visibility?: "public" | "followers" | "private";
+  /** Phase B 신규 — 운영자 메모 (audit_log). */
+  moderation_note?: string;
 }): Promise<ServerResult<AdminFeedPostRow>> {
   const payload: Record<string, unknown> = {};
   if (typeof args.body === "string") payload.body = args.body;
   if (typeof args.is_hidden === "boolean") payload.is_hidden = args.is_hidden;
+  if (args.status) payload.status = args.status;
+  if (args.visibility) payload.visibility = args.visibility;
+  if (typeof args.moderation_note === "string")
+    payload.moderation_note = args.moderation_note;
   return authedRequest<AdminFeedPostRow>({
     jwt: args.jwt,
     path: `/api/v1/admin/feed/posts/${encodeURIComponent(args.id)}`,
@@ -2083,6 +2109,8 @@ export type AdminCommerceProductRow = {
   is_deleted: boolean;
   created_at: string;
   updated_at?: string;
+  /** Phase B 신규 — Woo 호환 재고 상태 토큰. */
+  stock_status?: "instock" | "outofstock" | "onbackorder";
 };
 
 export type AdminCommerceProductsList = {
@@ -2090,6 +2118,8 @@ export type AdminCommerceProductsList = {
   total: number;
   page: number;
   page_size: number;
+  /** Phase B 신규 — cursor 페이지네이션 응답. */
+  next_cursor?: string | null;
 };
 
 export function listAdminCommerceProducts(args: {
@@ -2099,6 +2129,9 @@ export function listAdminCommerceProducts(args: {
   only_zero_stock?: boolean;
   page?: number;
   page_size?: number;
+  /** Phase B 신규 — cursor 페이지네이션. */
+  cursor?: string;
+  limit?: number;
 }): Promise<ServerResult<AdminCommerceProductsList>> {
   const params = new URLSearchParams();
   if (args.q) params.set("q", args.q);
@@ -2106,6 +2139,8 @@ export function listAdminCommerceProducts(args: {
   if (args.only_zero_stock) params.set("only_zero_stock", "1");
   if (typeof args.page === "number") params.set("page", String(args.page));
   if (typeof args.page_size === "number") params.set("page_size", String(args.page_size));
+  if (args.cursor) params.set("cursor", args.cursor);
+  if (typeof args.limit === "number") params.set("limit", String(args.limit));
   const qs = params.toString();
   return authedRequest<AdminCommerceProductsList>({
     jwt: args.jwt,
@@ -2121,6 +2156,8 @@ export type CreateProductInput = {
   category?: string;
   image_url?: string;
   stock: number;
+  /** Phase B 신규 — Woo 호환 재고 상태 토큰. 미지정 시 server 가 stock 으로 추정. */
+  stock_status?: "instock" | "outofstock" | "onbackorder";
 };
 
 export function createAdminCommerceProduct(args: {

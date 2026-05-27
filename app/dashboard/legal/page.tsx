@@ -9,12 +9,11 @@
 //   4) 동의 통계 KPI (약관 버전별, 마케팅 동의율)
 //   5) 사업자 정보 (footer 표시 중복 — About 영역)
 //
-// Server endpoint 우선 호출 후 미구현 시 placeholder + DEMO 배너.
+// Server endpoint 우선 호출 후 미응답 시 빈 상태.
 
 import { useEffect, useState, useTransition } from "react";
 import { PanelCard } from "../_components/PanelCard";
 import { StatCard } from "../_components/StatCard";
-import { MockDataBanner } from "../_components/MockDataBanner";
 import {
   getActiveTermsAction,
   listTermsAction,
@@ -84,13 +83,6 @@ export default function LegalPage() {
 
   return (
     <div className="space-y-6">
-      {(termsPlaceholder || statsPlaceholder) && (
-        <MockDataBanner
-          reason={`약관/동의 통계 endpoint 미구현 — placeholder 본문/수치로 표시 중. ${termsPlaceholder ? "약관" : ""}${termsPlaceholder && statsPlaceholder ? " · " : ""}${statsPlaceholder ? "동의 통계" : ""}`}
-          endpoint="/api/v1/admin/legal/terms · /api/v1/admin/legal/consent-stats"
-        />
-      )}
-
       <PanelCard
         title="활성 약관 버전"
         description="신규 가입자가 동의해야 하는 운영 정본 버전. 사용자도 동일 값을 본다."

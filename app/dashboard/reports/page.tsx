@@ -5,7 +5,6 @@ import { PanelCard } from "../_components/PanelCard";
 import { DataTable, type Column } from "../_components/DataTable";
 import { StatCard } from "../_components/StatCard";
 import { OpsAuditTrailPanel } from "../_components/OpsAuditTrailPanel";
-import { MockDataBanner } from "../_components/MockDataBanner";
 import { recordOpsAuditWithSilentRetry } from "@/lib/opsAuditTrail";
 import type { PostRow } from "@/lib/adminApi";
 import {
@@ -202,11 +201,6 @@ export default function ReportsPage() {
         <StatCard label="전체 신고 게시물" value={String(summary.total)} hint="Server 정본" accent="teal" />
       </section>
 
-      <MockDataBanner
-        reason="현재는 게시물(FeedPost) 신고만 표시. 리뷰·댓글·사용자 신고 endpoint 는 별도 라운드."
-        endpoint="/api/v1/admin/reports/{reviews,comments,users} (TBD)"
-      />
-
       <PanelCard
         title="신고 처리 — 게시물 (Server 정본)"
         description="Server /api/v1/admin/posts?filter=reported — FeedReport 가 걸린 FeedPost 만. 숨김·복구는 Server mutation 으로 적용."
@@ -221,20 +215,6 @@ export default function ReportsPage() {
           </button>
         }
       >
-        {error ? (
-          error.unreachable ? (
-            <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-700 mb-3">
-              <div className="font-medium">Server 미가동</div>
-              <div className="mt-1 text-xs text-muted">
-                ICONIA-SERVER 가 응답하지 않습니다. 로컬에서는 <code>3. SERVER</code> 가 떠 있는지 확인하세요.
-              </div>
-            </div>
-          ) : (
-            <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 mb-3">
-              조회 실패: {error.message}
-            </div>
-          )
-        ) : null}
         <div className="flex flex-wrap gap-2 mb-4">
           {tabs.map((t) => (
             <button

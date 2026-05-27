@@ -56,10 +56,36 @@ export async function patchFeedPostAction(input: {
   id: string;
   body?: string;
   is_hidden?: boolean;
+  // Server `2. SERVER/src/routes/adminFeedCommerceRoutes.js:48` 정합 — published/hidden/removed.
+  status?: "published" | "hidden" | "removed";
+  visibility?: "public" | "followers" | "private";
+  moderation_note?: string;
 }): Promise<FeedMutationResult> {
   const jwt = readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
-  const res = await patchAdminFeedPost({ jwt, id: input.id, body: input.body, is_hidden: input.is_hidden });
+  // Phase B 정합 — zod 로 server action 입력 검증. 클라이언트 검증과 동일 schema.
+  const { patchFeedPostSchema, firstZodError } = await import(
+    "@/lib/schemas/adminForms"
+  );
+  const parsed = patchFeedPostSchema.safeParse({
+    body: input.body,
+    is_hidden: input.is_hidden,
+    status: input.status,
+    visibility: input.visibility,
+    moderation_note: input.moderation_note,
+  });
+  if (!parsed.success) {
+    return { ok: false, message: firstZodError(parsed.error), code: "ERR_VALIDATION" };
+  }
+  const res = await patchAdminFeedPost({
+    jwt,
+    id: input.id,
+    body: input.body,
+    is_hidden: input.is_hidden,
+    status: input.status,
+    visibility: input.visibility,
+    moderation_note: input.moderation_note,
+  });
   if (!res.ok) return { ok: false, message: res.message, code: res.code };
   revalidatePath("/dashboard/feed");
   return { ok: true, post: res.data };
