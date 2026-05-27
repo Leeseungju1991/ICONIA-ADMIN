@@ -40,9 +40,18 @@ export const PATH_REQUIRED_ROLES: { prefix: string; roles: OperatorRole[] }[] = 
   { prefix: "/dashboard/ip-allowlist", roles: SUPERADMIN_ONLY },
   // sre/secops/superadmin — 운영 안정성 콘솔 (kill switch / recovery / replay).
   { prefix: "/dashboard/ops", roles: SRE_OR_ABOVE },
-  // sre/secops/superadmin — OTA 배포 / 펌웨어.
+  // sre/secops/superadmin — OTA 업로드·배포 워크플로 (2026-05-27 신규).
+  //   `ota-deploy` prefix 가 `ota` 보다 길어 더 구체적이므로 먼저 와야 한다.
+  { prefix: "/dashboard/ota-deploy", roles: SRE_OR_ABOVE },
+  // sre/secops/superadmin — OTA 배포 / 펌웨어 (기존 카탈로그/진행률 뷰).
   { prefix: "/dashboard/ota", roles: SRE_OR_ABOVE },
   { prefix: "/dashboard/personas", roles: SRE_OR_ABOVE },
+  // 2026-05-27 신규 — AI 사용량 / 모더레이션 / 오류추적 / 공지작성 / 콘텐츠 hub.
+  { prefix: "/dashboard/ai-usage", roles: ALL_ROLES },
+  { prefix: "/dashboard/moderation", roles: CS_OR_ABOVE },
+  { prefix: "/dashboard/error-tracking", roles: ALL_ROLES },
+  { prefix: "/dashboard/notifications", roles: CS_OR_ABOVE },
+  { prefix: "/dashboard/content", roles: ALL_ROLES },
   // sre/secops/superadmin — 양산 LOT/시리얼/출고 테스트 (#14, #15).
   { prefix: "/dashboard/factory-test", roles: SRE_OR_ABOVE },
   // secops/sre/superadmin — Fleet 출하 잠금 invariant (V3.0 #27 Phase 12 #8).

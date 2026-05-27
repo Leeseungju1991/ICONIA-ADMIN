@@ -15,29 +15,63 @@ type NavItem = {
   to: string;
   label: string;
   icon: (p: { className?: string }) => JSX.Element;
+  /** moderation 등 미해결 카운트를 표시할지. badge 값은 prop 으로 별도 주입. */
+  badge?: "moderation";
+  /** 시각적 강조 (모더레이션 — 자극적이지 않게 빨강 dot 만). */
+  highlightWhenBadge?: boolean;
+  /** Section divider 시각화 — 카테고리 그룹 헤더로 사용. */
+  groupLabel?: string;
 };
 
+// 2026-05-27 — Stitch 톤 그룹 구조. 카테고리별 묶음 + 신규 항목 통합.
 const nav: NavItem[] = [
-  { to: "/dashboard", label: "대시보드", icon: DashboardIcon },
-  { to: "/dashboard/cs", label: "CS 통합 조회", icon: LifebuoyIcon },
+  { to: "/dashboard", label: "대시보드", icon: DashboardIcon, groupLabel: "홈" },
+
+  // 사용자·고객.
+  { to: "/dashboard/cs", label: "CS 통합 조회", icon: LifebuoyIcon, groupLabel: "사용자" },
   { to: "/dashboard/users", label: "회원 관리", icon: UsersIcon },
   { to: "/dashboard/user-360", label: "사용자 360", icon: UsersIcon },
-  { to: "/dashboard/devices", label: "디바이스 모니터링", icon: DeviceIcon },
-  { to: "/dashboard/ota", label: "OTA 관리", icon: UploadIcon },
-  { to: "/dashboard/personas", label: "AI 페르소나", icon: SparkleIcon },
-  { to: "/dashboard/knowledge", label: "RAG·대화 품질", icon: BookIcon },
-  { to: "/dashboard/reports", label: "리뷰·신고 관리", icon: FlagIcon },
-  { to: "/dashboard/community", label: "커뮤니티", icon: MegaphoneIcon },
-  { to: "/dashboard/notices", label: "공지/배너 관리", icon: MegaphoneIcon },
-  { to: "/dashboard/push", label: "푸시 알림 관리", icon: BellIcon },
-  { to: "/dashboard/stats", label: "통계 관리", icon: BarChartIcon },
-  { to: "/dashboard/firmware-errors", label: "펌웨어 에러", icon: ChipIcon },
-  { to: "/dashboard/server-errors", label: "서버 에러", icon: ServerIcon },
-  { to: "/dashboard/app-errors", label: "앱 에러", icon: PhoneIcon },
-  { to: "/dashboard/ops", label: "운영 안정성", icon: ShieldIcon },
+
+  // 디바이스·OTA.
+  { to: "/dashboard/devices", label: "디바이스 모니터링", icon: DeviceIcon, groupLabel: "디바이스" },
+  { to: "/dashboard/ota", label: "OTA 모니터링", icon: ChipIcon },
+  { to: "/dashboard/ota-deploy", label: "OTA 업로드·배포", icon: UploadIcon },
   { to: "/dashboard/factory-test", label: "양산·출고 검수", icon: FactoryIcon },
   { to: "/dashboard/as", label: "AS·교환 관리", icon: WrenchIcon },
   { to: "/dashboard/boot-invariants", label: "Fleet 출하 잠금", icon: ShieldIcon },
+
+  // AI · 콘텐츠.
+  { to: "/dashboard/ai-usage", label: "AI 사용량 (Gemini)", icon: SparkleIcon, groupLabel: "AI · 콘텐츠" },
+  { to: "/dashboard/personas", label: "AI 페르소나", icon: SparkleIcon },
+  { to: "/dashboard/knowledge", label: "RAG·대화 품질", icon: BookIcon },
+  { to: "/dashboard/content", label: "콘텐츠 (피드/커머스/정보)", icon: BookIcon },
+  { to: "/dashboard/community", label: "커뮤니티", icon: MegaphoneIcon },
+
+  // 모더레이션·신고.
+  {
+    to: "/dashboard/moderation",
+    label: "모더레이션 (신고)",
+    icon: FlagIcon,
+    badge: "moderation",
+    highlightWhenBadge: true,
+    groupLabel: "모더레이션",
+  },
+  { to: "/dashboard/reports", label: "리뷰·신고 관리", icon: FlagIcon },
+
+  // 공지·알람.
+  { to: "/dashboard/notifications", label: "공지/알람 작성", icon: BellIcon, groupLabel: "공지·알람" },
+  { to: "/dashboard/notices", label: "공지/배너 관리", icon: MegaphoneIcon },
+  { to: "/dashboard/push", label: "푸시 알림 관리", icon: BellIcon },
+
+  // 오류추적.
+  { to: "/dashboard/error-tracking", label: "오류 추적 (통합)", icon: ServerIcon, groupLabel: "오류추적" },
+  { to: "/dashboard/firmware-errors", label: "펌웨어 에러", icon: ChipIcon },
+  { to: "/dashboard/server-errors", label: "서버 에러", icon: ServerIcon },
+  { to: "/dashboard/app-errors", label: "앱 에러", icon: PhoneIcon },
+
+  // 통계·운영.
+  { to: "/dashboard/stats", label: "통계 관리", icon: BarChartIcon, groupLabel: "운영" },
+  { to: "/dashboard/ops", label: "운영 안정성", icon: ShieldIcon },
   { to: "/dashboard/reports-archive", label: "운영 리포트 아카이브", icon: ReportIcon },
   { to: "/dashboard/operators", label: "운영자 관리", icon: KeyIcon },
   { to: "/dashboard/ip-allowlist", label: "IP 허용목록", icon: ShieldIcon },
@@ -53,6 +87,12 @@ function pageTitle(pathname: string): { title: string; subtitle: string } {
 
 function subtitleFor(to: string): string {
   switch (to) {
+    case "/dashboard/ai-usage": return "Gemini API Key 사용량 — 키별 일일 한도 대비 %, 모델별 분포, 24h/7d/30d 시계열.";
+    case "/dashboard/moderation": return "미해결 신고 통합 — 욕설/혐오/스팸 게시물·댓글·사용자·리뷰를 한 화면에서 처리.";
+    case "/dashboard/error-tracking": return "FW · Server · AI · APP 4 도메인 24h 에러 — 스택, 빈도, 영향 사용자 수.";
+    case "/dashboard/ota-deploy": return "펌웨어 업로드 (S3 presigned PUT) + 디바이스 그룹 선택 + canary % 배포.";
+    case "/dashboard/notifications": return "전체 / 사용자군 / 디바이스군 대상 앱푸시 + 인앱 배너 작성 발송.";
+    case "/dashboard/content": return "피드 · 커머스 · 정보 — 세 콘텐츠 표면 진입과 카운트.";
     case "/dashboard/cs": return "고객센터 1차 응대 — 이메일/시리얼/사용자ID 한 줄 검색으로 사용자·기기·최근 오류·조치 패널을 한 화면에 표시.";
     case "/dashboard/knowledge": return "RAG 질의 테스트·출처 조회·사용자 피드백 — AI 답변이 근거 있게 생성됐는지 점검합니다.";
     case "/dashboard/users": return "회원 정보 조회·계정 상태·강제 로그아웃 등 정보 관리.";
@@ -83,6 +123,7 @@ export default function Sidebar({
   env: _env = "development",
   role = "viewer",
   operatorEmail = null,
+  moderationOpenCount = 0,
 }: {
   children: ReactNode;
   /** ICONIA_ENV — layout 에서 주입 (현재 미사용, 향후 환경 분기용). */
@@ -91,6 +132,8 @@ export default function Sidebar({
   role?: OperatorRole;
   /** 운영자 이메일 — layout 에서 주입. TopbarRich 우측 프로필 칩에 표시. */
   operatorEmail?: string | null;
+  /** 모더레이션 미해결 신고 수 — 사이드바 배지 + 대시보드 강조용. */
+  moderationOpenCount?: number;
 }) {
   const pathname = usePathname() ?? "/dashboard";
   const [navOpen, setNavOpen] = useState(false);
@@ -118,7 +161,7 @@ export default function Sidebar({
           <Brand />
         </div>
         <div className="p-3 flex-1 overflow-y-auto">
-          <NavMenu pathname={pathname} role={role} />
+          <NavMenu pathname={pathname} role={role} moderationOpenCount={moderationOpenCount} />
         </div>
         <div className="p-3 border-t border-slate-100">
           <LogoutButton />
@@ -145,7 +188,7 @@ export default function Sidebar({
               </button>
             </div>
             <div className="p-3 flex-1 overflow-y-auto">
-              <NavMenu pathname={pathname} role={role} />
+              <NavMenu pathname={pathname} role={role} moderationOpenCount={moderationOpenCount} />
             </div>
             <div className="p-3 border-t border-slate-100">
               <LogoutButton />
@@ -180,7 +223,15 @@ function Brand({ compact: _compact }: { compact?: boolean }) {
   );
 }
 
-function NavMenu({ pathname, role }: { pathname: string; role: OperatorRole }) {
+function NavMenu({
+  pathname,
+  role,
+  moderationOpenCount,
+}: {
+  pathname: string;
+  role: OperatorRole;
+  moderationOpenCount: number;
+}) {
   // RBAC — 현재 역할이 접근 불가한 메뉴는 애초 숨김 (viewer 가 비활성 버튼을 누르고
   // 403 을 받는 대신 링크 자체 제거). 강제 차단은 middleware 가 별도 수행.
   const visibleNav = nav.filter((item) => canAccessPath(role, item.to));
@@ -190,20 +241,47 @@ function NavMenu({ pathname, role }: { pathname: string; role: OperatorRole }) {
         const isActive = item.to === "/dashboard"
           ? pathname === "/dashboard"
           : pathname.startsWith(item.to);
+        const badgeCount = item.badge === "moderation" ? moderationOpenCount : 0;
+        const showHighlight = item.highlightWhenBadge && badgeCount > 0;
         return (
-          <Link
-            key={item.to}
-            href={item.to}
-            className={[
-              "flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] transition",
-              isActive
-                ? "bg-accent/10 text-accent font-semibold"
-                : "text-slate-600 hover:bg-slate-50 hover:text-slate-900",
-            ].join(" ")}
-          >
-            <item.icon className={["w-[18px] h-[18px]", isActive ? "text-accent" : "text-slate-400"].join(" ")} />
-            <span className="truncate">{item.label}</span>
-          </Link>
+          <div key={item.to}>
+            {item.groupLabel ? (
+              <div className="px-3 pt-3 pb-1 text-[10px] uppercase tracking-wider text-slate-400 font-semibold">
+                {item.groupLabel}
+              </div>
+            ) : null}
+            <Link
+              href={item.to}
+              className={[
+                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] transition",
+                isActive
+                  ? "bg-accent/10 text-accent font-semibold"
+                  : showHighlight
+                    ? "text-rose-700 hover:bg-rose-50"
+                    : "text-slate-600 hover:bg-slate-50 hover:text-slate-900",
+              ].join(" ")}
+            >
+              <item.icon
+                className={[
+                  "w-[18px] h-[18px]",
+                  isActive
+                    ? "text-accent"
+                    : showHighlight
+                      ? "text-rose-500"
+                      : "text-slate-400",
+                ].join(" ")}
+              />
+              <span className="truncate flex-1">{item.label}</span>
+              {badgeCount > 0 ? (
+                <span
+                  className="inline-flex items-center justify-center min-w-[20px] h-5 rounded-full bg-rose-500 text-white text-[10px] font-bold px-1.5"
+                  aria-label={`미해결 ${badgeCount}건`}
+                >
+                  {badgeCount > 99 ? "99+" : badgeCount}
+                </span>
+              ) : null}
+            </Link>
+          </div>
         );
       })}
     </nav>

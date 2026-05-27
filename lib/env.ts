@@ -121,7 +121,10 @@ export function loadEnv(): AdminEnv {
   return {
     ICONIA_SERVER_URL: normalized,
     // COOKIE_SECURE — 토글 프리셋 우선. NODE_ENV=production 이면 강제 true (이중 안전).
-    COOKIE_SECURE: preset.cookieSecure || process.env.NODE_ENV === "production",
+    // COOKIE_SECURE_OVERRIDE=false 로 PoC HTTP 환경 (도메인+HTTPS 미보유) 회피 가능.
+    COOKIE_SECURE: process.env.COOKIE_SECURE_OVERRIDE === "false"
+      ? false
+      : (preset.cookieSecure || process.env.NODE_ENV === "production"),
     ICONIA_ENV: loadIconiaEnv(),
     DEPLOY_TARGET: target,
     ADMIN_LEGACY_TOKEN: adminLegacyToken,

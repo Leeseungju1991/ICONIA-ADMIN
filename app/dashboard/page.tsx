@@ -6,6 +6,11 @@ import { HeroBanner } from "./_components/HeroBanner";
 import { KpiChip } from "./_components/KpiChip";
 import { SummaryCardCarousel } from "./_components/SummaryCardCarousel";
 import { ProfileRail } from "./_components/ProfileRail";
+import { ProgressBar } from "./_components/SimpleChart";
+import { FixtureBadge } from "./_components/CardStates";
+import { fetchGeminiKeysAction } from "@/lib/actions/gemini";
+import { listReportsAction } from "@/lib/actions/reportsAdmin";
+import { geminiRatioTone, summarizeKeys } from "@/fixtures/gemini";
 import {
   mockReports,
   mockFirmwareErrors,
@@ -188,6 +193,18 @@ export default async function DashboardHome() {
 
   const dauLabel = sv ? sv.dau.toLocaleString() : "12,840";
 
+  // ── 신규 (2026-05-27) ─────────────────────────────────────────────
+  // ◈1번 Gemini API Key 상태 + 모더레이션 미해결 신고 카운트.
+  // 두 호출 모두 graceful — Server 라우트 미가동 시 빈 데이터로 처리.
+  const [geminiRes, modRes] = await Promise.all([
+    fetchGeminiKeysAction(),
+    listReportsAction({ status: "open" }),
+  ]);
+  const geminiKeys = geminiRes.ok ? geminiRes.data.items : [];
+  const geminiSummary = summarizeKeys(geminiKeys);
+  const geminiSource = geminiRes.ok ? geminiRes.source : null;
+  const moderationOpenCount = modRes.ok ? modRes.data.total_open : 0;
+
   // Stitch-tone hero + operator rail inputs.
   const activity = await fetchOperatorActivityAction();
   const jwt = readSession();
@@ -282,6 +299,90 @@ export default async function DashboardHome() {
               { id: "srv", title: "서버 에러", count: mockServerErrors.length, hint: "최근", href: "/dashboard/server-errors" },
             ]}
           />
+
+          {/* ◈1번 — Gemini API Key 사용량 카드. 상단 노출. */}
+          <PanelCard
+            title="Gemini API 사용량"
+            description="키별 일일 한도 대비 사용량. 80% 도달 시 주의, 95%+ 빨강 강조 + 구매 권장."
+            actions={
+              <div className="flex items-center gap-2">
+                {geminiSource === "fixture" ? <FixtureBadge /> : null}
+                <Link href="/dashboard/ai-usage" className="btn-outline text-xs">
+                  자세히 →
+                </Link>
+              </div>
+            }
+          >
+            {geminiKeys.length === 0 ? (
+              <div className="text-sm text-slate-500">등록된 Gemini 키가 없습니다.</div>
+            ) : (
+              <>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
+                  <MiniMetric label="등록 키" value={String(geminiSummary.total)} tone="muted" />
+                  <MiniMetric label="활성" value={String(geminiSummary.active)} tone="ok" />
+                  <MiniMetric label="80%+" value={String(geminiSummary.warn)} tone={geminiSummary.warn > 0 ? "warn" : "muted"} />
+                  <MiniMetric label="95%+" value={String(geminiSummary.critical)} tone={geminiSummary.critical > 0 ? "critical" : "muted"} />
+                </div>
+                <ul className="grid grid-cols-1 lg:grid-cols-2 gap-2">
+                  {geminiKeys.slice(0, 4).map((k) => {
+                    const tone = geminiRatioTone(k.usage_ratio_24h);
+                    return (
+                      <li
+                        key={k.id}
+                        className={[
+                          "rounded-xl border px-3 py-2",
+                          tone === "critical"
+                            ? "border-rose-300 bg-rose-50/50"
+                            : tone === "warn"
+                              ? "border-amber-300 bg-amber-50/50"
+                              : "border-slate-200 bg-white",
+                        ].join(" ")}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="text-sm font-semibold text-slate-900 truncate">{k.label}</span>
+                            <span className="font-mono text-[10px] text-slate-500">…{k.last4}</span>
+                            {tone === "critical" ? <span className="chip chip-error">구매 권장</span> : null}
+                          </div>
+                          <span className="text-xs font-mono text-slate-700">
+                            {Math.round(k.usage_ratio_24h * 100)}%
+                          </span>
+                        </div>
+                        <div className="mt-1.5">
+                          <ProgressBar ratio={k.usage_ratio_24h} tone={tone} />
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </>
+            )}
+          </PanelCard>
+
+          {/* ◈6번 — 모더레이션 미해결 신고 강조 카드. */}
+          {moderationOpenCount > 0 ? (
+            <PanelCard
+              title="모더레이션 — 미해결 신고"
+              description="신고가 쌓이고 있습니다. 즉시 처리하세요."
+              actions={
+                <Link href="/dashboard/moderation" className="btn-outline text-xs">
+                  처리하러 가기 →
+                </Link>
+              }
+            >
+              <div className="flex items-center gap-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3">
+                <span className="text-3xl font-bold text-rose-700 tabular-nums">
+                  {moderationOpenCount}
+                </span>
+                <div className="text-sm text-rose-700">
+                  미해결 신고가 처리를 기다리고 있습니다.
+                  <div className="text-[11px] text-rose-600 mt-0.5">
+                    GET /api/admin/reports?status=open · 30초 폴링
+                  </div>
+                </div>
+              </div>
+            </PanelCard>
+          ) : null}
         </div>
 
         <ProfileRail
@@ -460,6 +561,31 @@ export default async function DashboardHome() {
           </section>
         </div>
       </details>
+    </div>
+  );
+}
+
+function MiniMetric({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: string;
+  tone: "ok" | "warn" | "critical" | "muted";
+}) {
+  const toneClass =
+    tone === "critical"
+      ? "text-rose-700"
+      : tone === "warn"
+        ? "text-amber-700"
+        : tone === "ok"
+          ? "text-emerald-700"
+          : "text-slate-700";
+  return (
+    <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
+      <div className="text-[10px] text-slate-400">{label}</div>
+      <div className={`text-lg font-bold ${toneClass}`}>{value}</div>
     </div>
   );
 }

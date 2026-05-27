@@ -51,7 +51,8 @@ const CSP_DIRECTIVES = [
   "frame-ancestors 'none'",
   "form-action 'self'",
   "base-uri 'self'",
-  ...(IS_DEV ? [] : ["upgrade-insecure-requests"]),
+  // upgrade-insecure-requests 는 ALB+ACM HTTPS 도입 후 활성 (도메인 미보유 PoC 에선 disable - 브라우저가 :8082 HTTP 자산을 HTTPS 로 강제 변환해 404).
+  ...(IS_DEV || process.env.DISABLE_UPGRADE_INSECURE === "1" ? [] : ["upgrade-insecure-requests"]),
 ].join("; ");
 
 const nextConfig = {
