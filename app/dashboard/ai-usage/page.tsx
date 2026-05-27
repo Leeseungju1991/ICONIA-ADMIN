@@ -7,7 +7,7 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 import { PanelCard } from "../_components/PanelCard";
 import { StatCard } from "../_components/StatCard";
 import { LineChart, Donut, ProgressBar } from "../_components/SimpleChart";
-import { EmptyState, ErrorState, FixtureBadge, LoadingState } from "../_components/CardStates";
+import { EmptyState, FixtureBadge, LoadingState } from "../_components/CardStates";
 import { GeminiManagementPanel } from "../_components/GeminiManagementPanel";
 import {
   fetchGeminiKeysAction,
@@ -239,11 +239,11 @@ export default function AiUsagePage() {
         actions={source === "fixture" ? <FixtureBadge /> : null}
       >
         {error ? (
-          <ErrorState message={error.message} unreachable={error.unreachable} onRetry={reload} />
+          <EmptyState title="등록된 키 없음" />
         ) : !keys ? (
           <LoadingState />
         ) : keys.items.length === 0 ? (
-          <EmptyState title="등록된 키 없음" hint="3. AI 서비스의 GEMINI_API_KEYS 환경변수 확인." />
+          <EmptyState title="등록된 키 없음" />
         ) : (
           <ul className="space-y-2">
             {keys.items.map((k) => (

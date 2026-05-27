@@ -7,7 +7,7 @@ import { KpiChip } from "./_components/KpiChip";
 import { SummaryCardCarousel } from "./_components/SummaryCardCarousel";
 import { ProfileRail } from "./_components/ProfileRail";
 import { ProgressBar } from "./_components/SimpleChart";
-import { FixtureBadge, ServerDownBadge } from "./_components/CardStates";
+import { FixtureBadge } from "./_components/CardStates";
 import { fetchGeminiKeysAction } from "@/lib/actions/gemini";
 import { listReportsAction } from "@/lib/actions/reportsAdmin";
 import { geminiRatioTone, summarizeKeys } from "@/fixtures/gemini";
@@ -214,8 +214,8 @@ export default async function DashboardHome() {
   const identity = jwt ? await resolveIdentity(jwt) : null;
   const operatorEmail = identity?.email ?? "operator@iconia.example";
 
-  // Hero — Server 정본이 없으면 중립("ok") 톤으로 표시 + 본문에서 미가동 안내.
-  // 가짜 fallback 으로 critical 톤 UI 띄우지 않음.
+  // Hero — Server 정본이 없으면 중립 안내 (에러 문구 노출 금지). 가짜 fallback 으로
+  // critical 톤 UI 띄우지 않음. 수치만 "—" 로 비고 운영자가 상세 페이지로 진입해서 확인.
   const hero: {
     mode: "critical" | "warn" | "ok";
     title: string;
@@ -231,44 +231,44 @@ export default async function DashboardHome() {
       })
     : {
         mode: "ok",
-        title: "Server 미가동 — 대시보드 KPI 표시 불가",
-        subtitle:
-          "ICONIA-SERVER /api/v1/admin/overview 가 응답하지 않습니다. 모든 핵심 수치를 '—' 로 표시합니다.",
+        title: "ICONIA 운영 콘솔",
+        subtitle: "주요 지표를 한눈에 확인하세요.",
       };
 
+  // KPI — Server 정본 only, 미응답 시 수치만 "—" 로 비우고 에러 문구는 노출하지 않음.
   const kpis = [
     {
       label: "활성 디바이스",
       value: DASH(dash?.activeDevices),
-      delta: dash ? "Server 정본" : "Server 미가동",
-      deltaTone: dash ? ("up" as const) : ("flat" as const),
+      delta: dash ? "실시간" : "",
+      deltaTone: "up" as const,
       hint:
         dash?.totalDevices != null
           ? `전체 ${dash.totalDevices.toLocaleString()}대`
-          : "전체 — (server 필요)",
+          : "",
     },
     {
       label: "일일 대화량 (DAU)",
       value: dash?.dauLabel ?? "—",
-      delta: dash ? "실시간" : "Server 미가동",
-      deltaTone: dash ? ("up" as const) : ("flat" as const),
-      hint: dash ? "Server 24h refresh token 활성 사용자" : "Server overview 미응답",
+      delta: dash ? "실시간" : "",
+      deltaTone: "up" as const,
+      hint: dash ? "24h refresh token 활성 사용자" : "",
     },
     {
       label: "사용자 인지 에러율",
       value: perceivedRatePct == null ? "—" : `${perceivedRatePct.toFixed(2)}%`,
       delta:
-        sloMet == null ? "Server 미연동" : sloMet ? "SLO 충족" : "SLO 위반",
+        sloMet == null ? "" : sloMet ? "SLO 충족" : "SLO 위반",
       deltaTone:
         sloMet == null ? ("flat" as const) : sloMet ? ("up" as const) : ("down" as const),
-      hint: `목표 ≤ ${(USER_PERCEIVED_ERROR_SLO_TARGET * 100).toFixed(1)}% (server endpoint 도입 후 표시)`,
+      hint: `목표 ≤ ${(USER_PERCEIVED_ERROR_SLO_TARGET * 100).toFixed(1)}%`,
     },
     {
       label: "큐 적체 (dead-letter)",
       value: DASH(dash?.queueBacklog),
       delta:
         dash == null
-          ? "Server 미가동"
+          ? ""
           : dash.queueBacklog > 0
             ? "재투입 필요"
             : "정상",
@@ -290,16 +290,6 @@ export default async function DashboardHome() {
         <div className="space-y-5">
           <HeroBanner mode={hero.mode} title={hero.title} subtitle={hero.subtitle} cta={hero.cta} />
 
-          {/* Server 정본 미응답 시 KPI 상단에 명시적 경고. */}
-          {dash == null ? (
-            <div className="flex items-center gap-2">
-              <ServerDownBadge />
-              <span className="text-xs text-rose-700">
-                Server `/api/v1/admin/overview` 미응답 — 아래 핵심 KPI 는 모두 &quot;—&quot; 로 표시됩니다.
-              </span>
-            </div>
-          ) : null}
-
           <section className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             <KpiChip
               tone="indigo"
@@ -309,9 +299,7 @@ export default async function DashboardHome() {
               sub={
                 dash?.totalDevices != null
                   ? `전체 ${dash.totalDevices.toLocaleString()}대`
-                  : dash
-                    ? "전체 — (server 필드 없음)"
-                    : "Server 미가동"
+                  : ""
               }
             />
             <KpiChip
@@ -319,14 +307,14 @@ export default async function DashboardHome() {
               icon="chat"
               label="DAU"
               value={dash?.dauLabel ?? "—"}
-              sub={dash ? "실시간" : "Server 미가동"}
+              sub={dash ? "실시간" : ""}
             />
             <KpiChip
               tone="orange"
               icon="alert"
               label="인지 에러율"
               value={perceivedRatePct == null ? "—" : `${perceivedRatePct.toFixed(2)}%`}
-              sub={sloMet == null ? "Server 미연동" : sloMet ? "SLO 충족" : "SLO 위반"}
+              sub={sloMet == null ? "" : sloMet ? "SLO 충족" : "SLO 위반"}
             />
             <KpiChip
               tone="pink"
@@ -335,7 +323,7 @@ export default async function DashboardHome() {
               value={DASH(dash?.queueBacklog)}
               sub={
                 dash == null
-                  ? "Server 미가동"
+                  ? ""
                   : dash.queueBacklog > 0
                     ? "재투입 필요"
                     : "정상"
@@ -345,10 +333,10 @@ export default async function DashboardHome() {
 
           <SummaryCardCarousel
             cards={[
-              { id: "reports", title: "신고 대기", count: dash?.reportsPendingCount ?? null, hint: dash ? "검토 필요" : "Server 미가동", href: "/dashboard/reports" },
-              { id: "app", title: "앱 에러 (24h)", count: dash?.errors24hByDomain.app ?? null, hint: dash ? "Server 정본" : "Server 미가동", href: "/dashboard/app-errors" },
-              { id: "fw", title: "펌웨어 critical", count: dash?.fwCriticalCount ?? null, hint: dash ? "긴급" : "Server 미가동", href: "/dashboard/firmware-errors" },
-              { id: "srv", title: "서버 에러 (24h)", count: dash?.errors24hByDomain.server ?? null, hint: dash ? "Server 정본" : "Server 미가동", href: "/dashboard/server-errors" },
+              { id: "reports", title: "신고 대기", count: dash?.reportsPendingCount ?? null, hint: dash ? "검토 필요" : "—", href: "/dashboard/reports" },
+              { id: "app", title: "앱 에러 (24h)", count: dash?.errors24hByDomain.app ?? null, hint: "—", href: "/dashboard/app-errors" },
+              { id: "fw", title: "펌웨어 critical", count: dash?.fwCriticalCount ?? null, hint: dash ? "긴급" : "—", href: "/dashboard/firmware-errors" },
+              { id: "srv", title: "서버 에러 (24h)", count: dash?.errors24hByDomain.server ?? null, hint: "—", href: "/dashboard/server-errors" },
             ]}
           />
 
@@ -565,7 +553,8 @@ export default async function DashboardHome() {
             ))}
           </section>
 
-          {/* 2차 KPI — 에러/헬스/신고 운영 지표 (Server 정본 only). */}
+          {/* 2차 KPI — 에러/헬스/신고 운영 지표. Server 미응답 시 "—" 로만 비고
+             에러/미가동 텍스트는 노출하지 않음. */}
           <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <StatCard
               label="에러 발생 (24h)"
@@ -573,18 +562,18 @@ export default async function DashboardHome() {
               delta={
                 dash
                   ? `서버 ${dash.errors24hByDomain.server.toLocaleString()} · 앱 ${dash.errors24hByDomain.app.toLocaleString()} · FW ${dash.errors24hByDomain.firmware.toLocaleString()}`
-                  : "Server 미가동"
+                  : ""
               }
               deltaTone="flat"
-              hint="Server /api/v1/admin/overview.errors_24h 정본"
+              hint="전 카테고리 누적"
               accent="orange"
             />
             <StatCard
               label="서버 헬스"
               value={dash?.healthLabel ?? "—"}
-              delta={dash ? "Server overview 정본" : "Server 미가동"}
+              delta=""
               deltaTone={healthTone}
-              hint="Server /api/v1/admin/overview.server_health"
+              hint="health probe 집계"
               accent={
                 dash?.healthLabel === "장애"
                   ? "pink"
@@ -598,7 +587,7 @@ export default async function DashboardHome() {
               value={DASH(dash?.reportsPendingCount)}
               delta={
                 dash == null
-                  ? "Server 미가동"
+                  ? ""
                   : dash.reportsPendingCount > 0
                     ? "검토 필요"
                     : "없음"
@@ -610,7 +599,7 @@ export default async function DashboardHome() {
                     ? "down"
                     : "up"
               }
-              hint="Server overview 정본"
+              hint="pending 신고"
               accent="pink"
             />
             <StatCard
@@ -618,7 +607,7 @@ export default async function DashboardHome() {
               value={DASH(dash?.fwCriticalCount)}
               delta={
                 dash == null
-                  ? "Server 미가동"
+                  ? ""
                   : dash.fwCriticalCount > 0
                     ? "긴급"
                     : "없음"
@@ -626,14 +615,12 @@ export default async function DashboardHome() {
               deltaTone={
                 dash == null ? "flat" : dash.fwCriticalCount > 0 ? "down" : "up"
               }
-              hint="Server overview 정본"
+              hint="critical 펌웨어 에러"
               accent="blue"
             />
           </section>
 
-          {/* 미리보기 패널 — Server 정본 endpoint 도입 전까지 빈 상태로만 표시.
-             과거: mockReports / mockAppErrors / mockServerErrors 로 fake 미리보기.
-             현재: "Server 미가동" + 상세 페이지 링크. 상세 페이지에서 실 데이터 조회. */}
+          {/* 미리보기 패널 — 카운트 요약만 표시, 상세는 전체 보기 링크로 위임. */}
           <section className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <PanelCard
               title="처리 대기 신고"
@@ -645,7 +632,7 @@ export default async function DashboardHome() {
                   ? dash.reportsPendingCount > 0
                     ? `${dash.reportsPendingCount.toLocaleString()}건 대기 — 전체 보기에서 상세 확인.`
                     : "대기 중인 신고가 없습니다."
-                  : "Server 미가동 — 데이터 없음."}
+                  : "—"}
               </div>
             </PanelCard>
 
@@ -659,7 +646,7 @@ export default async function DashboardHome() {
                   ? dash.errors24hByDomain.app > 0
                     ? `${dash.errors24hByDomain.app.toLocaleString()}건 누적 (24h).`
                     : "24h 앱 에러 없음."
-                  : "Server 미가동 — 데이터 없음."}
+                  : "—"}
               </div>
             </PanelCard>
 
@@ -673,7 +660,7 @@ export default async function DashboardHome() {
                   ? dash.errors24hByDomain.server > 0
                     ? `${dash.errors24hByDomain.server.toLocaleString()}건 누적 (24h).`
                     : "24h 서버 에러 없음."
-                  : "Server 미가동 — 데이터 없음."}
+                  : "—"}
               </div>
             </PanelCard>
           </section>
