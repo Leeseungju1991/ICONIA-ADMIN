@@ -60,6 +60,9 @@ export const PATH_REQUIRED_ROLES: { prefix: string; roles: OperatorRole[] }[] = 
   { prefix: "/dashboard/cs", roles: CS_OR_ABOVE },
   // RAG / 대화 품질 — secops/sre/superadmin (AI 운영) + cs (피드백 확인) 까지 허용.
   { prefix: "/dashboard/knowledge", roles: CS_OR_ABOVE },
+  // User 360 통합 조회 + Community 모더레이션 — viewer 이상 모든 role 접근 가능.
+  { prefix: "/dashboard/user-360", roles: ALL_ROLES },
+  { prefix: "/dashboard/community", roles: ALL_ROLES },
   // 일반 조회 (대시보드 홈, 에러 모니터링, 통계, 공지, 푸시) 는 모든 role.
   { prefix: "/dashboard", roles: ALL_ROLES },
 ];

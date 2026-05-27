@@ -92,6 +92,20 @@ describe("operatorRoles — canAccessPath", () => {
   it("매트릭스에 없는 경로는 접근 허용 (보수적 차단은 매트릭스 명시)", () => {
     expect(canAccessPath("viewer", "/login")).toBe(true);
   });
+
+  it("viewer 는 user-360 통합 조회 접근 가능", () => {
+    expect(canAccessPath("viewer", "/dashboard/user-360")).toBe(true);
+  });
+
+  it("viewer 는 community 모더레이션 접근 가능", () => {
+    expect(canAccessPath("viewer", "/dashboard/community")).toBe(true);
+  });
+
+  it("비유효 /dashboard 하위 경로는 catch-all 로 ALL_ROLES 적용 (matrix 기본 동작)", () => {
+    // /dashboard 하위 미정의 경로는 마지막 /dashboard catch-all (ALL_ROLES) 에 잡힘.
+    expect(findRequiredRoles("/dashboard/non-existent")).toEqual(ALL_ROLES);
+    expect(canAccessPath("viewer", "/dashboard/non-existent")).toBe(true);
+  });
 });
 
 describe("operatorRoles — parseRoleFromJwtPayload", () => {
