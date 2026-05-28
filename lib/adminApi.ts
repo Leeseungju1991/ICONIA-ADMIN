@@ -1,5 +1,5 @@
 import { authedRequest } from "./httpClient";
-import type { ServerResult } from "./types";
+import type { ServerEnvelope, ServerResult } from "./types";
 
 // ---------------------------------------------------------------------------
 // Shared types
@@ -2592,4 +2592,276 @@ export function setMaintenanceMode(args: {
       ...(args.until ? { until: args.until } : {}),
     },
   });
+}
+
+// ---------------------------------------------------------------------------
+// 운영팀 수동 진입 (출시 정비) — 사용자 추가 · 피드 게시물 작성 · 미디어 업로드.
+//
+// SERVER 동시 작업이 추가하는 새 endpoint:
+//   POST /api/v1/admin/users           (수동 가입, password 평문 1회)
+//   POST /api/v1/admin/feed/posts      (수동 게시물 발행, 미디어 URL 배열)
+//   POST /api/v1/admin/media/upload    (multipart/form-data, 이미지/비디오)
+//
+// 미배포 환경에서도 wrapper 시그니처는 안정 — UI 가 "준비 중" graceful 분기.
+// ---------------------------------------------------------------------------
+
+export type AdminCreateUserInput = {
+  jwt: string;
+  email: string;
+  password: string;
+  displayName?: string;
+  role?: "user" | "operator" | "admin";
+  autoVerified?: boolean;
+  agreedTermsVersion: string;
+  ageVerified: boolean;
+  reason: string;
+};
+
+export type AdminCreatedUser = {
+  user: {
+    id: string;
+    email: string;
+    displayName?: string | null;
+    role: string;
+    account_status: string;
+    created_at: string;
+    is_verified: boolean;
+  };
+};
+
+/**
+ * 운영팀 수동 사용자 추가 — Server `/api/v1/admin/users` (POST).
+ * Body 는 Server Zod 스키마와 1:1 정합. 평문 password 는 즉시 bcrypt 해시되며
+ * Server audit_log 에 sha256(password) prefix(8자) 만 기록된다.
+ */
+export function createAdminUser(
+  args: AdminCreateUserInput,
+): Promise<ServerResult<AdminCreatedUser>> {
+  return authedRequest<AdminCreatedUser>({
+    jwt: args.jwt,
+    path: `/api/v1/admin/users`,
+    method: "POST",
+    body: {
+      email: args.email,
+      password: args.password,
+      ...(args.displayName ? { displayName: args.displayName } : {}),
+      role: args.role ?? "user",
+      autoVerified: args.autoVerified ?? true,
+      agreedTermsVersion: args.agreedTermsVersion,
+      ageVerified: args.ageVerified,
+      reason: args.reason,
+    },
+  });
+}
+
+export type AdminFeedPostMediaInput = {
+  url: string;
+  type: "image" | "video";
+  thumbnailUrl?: string;
+  durationSec?: number;
+  width?: number;
+  height?: number;
+};
+
+export type AdminCreateFeedPostInput = {
+  jwt: string;
+  authorId: string;
+  body: string;
+  media?: AdminFeedPostMediaInput[];
+  status?: "published" | "draft" | "hidden";
+  reason: string;
+};
+
+export type AdminCreatedFeedPost = {
+  post: AdminFeedPostRow;
+  mediaCount: number;
+};
+
+/**
+ * 운영팀 수동 피드 게시물 발행 — Server `/api/v1/admin/feed/posts` (POST).
+ * authorId 는 기존 사용자 UUID. media 는 사전 업로드된 URL 배열 (uploadAdminMedia 응답 누적).
+ */
+export function createAdminFeedPost(
+  args: AdminCreateFeedPostInput,
+): Promise<ServerResult<AdminCreatedFeedPost>> {
+  return authedRequest<AdminCreatedFeedPost>({
+    jwt: args.jwt,
+    path: `/api/v1/admin/feed/posts`,
+    method: "POST",
+    body: {
+      authorId: args.authorId,
+      body: args.body,
+      ...(args.media && args.media.length > 0 ? { media: args.media } : {}),
+      status: args.status ?? "published",
+      reason: args.reason,
+    },
+  });
+}
+
+export type AdminMediaUploadResult = {
+  url: string;
+  mimeType: string;
+  sizeBytes: number;
+  width?: number;
+  height?: number;
+  durationSec?: number;
+  thumbnailUrl?: string;
+};
+
+export type AdminMediaUploadProgress = {
+  loaded: number;
+  total: number;
+  /** 0~1 비율. total 이 0/미상이면 0. */
+  ratio: number;
+};
+
+/**
+ * 미디어 업로드 — Server `/api/v1/admin/media/upload` (multipart/form-data, field 명 `file`).
+ *
+ * 한도: image 5 MB · video 50 MB. 허용 MIME: jpeg/png/webp/gif/mp4/webm/mov.
+ * 본 함수는 server-side 진입점 (server action 또는 route handler 에서 호출).
+ * 브라우저 직접 호출은 admin-web 의 보안 정책상 금지 — 진행률 표시가 필요한
+ * 클라이언트 흐름은 `/api/admin/media/upload` route handler 를 XHR 로 호출.
+ *
+ * onProgress 콜백은 fetch 가 본문 송신 진행률을 노출하지 않으므로 server-side
+ * 호출 경로에서는 (0%, 100%) 두 차례만 호출된다. 정확한 진행률은 route handler
+ * + 브라우저 XHR 가 직접 노출한다.
+ */
+export async function uploadAdminMedia(args: {
+  jwt: string;
+  file: Blob;
+  fileName?: string;
+  onProgress?: (p: AdminMediaUploadProgress) => void;
+  /** Server URL override (테스트 주입). 미지정 시 env.ICONIA_SERVER_URL 사용. */
+  baseUrl?: string;
+  /** 타임아웃 (ms). 기본 60초 (대형 비디오 50MB 업로드 대비). */
+  timeoutMs?: number;
+}): Promise<ServerResult<AdminMediaUploadResult>> {
+  // env 는 server-side import. baseUrl override 시 env 로딩 skip.
+  let baseUrl = args.baseUrl;
+  if (!baseUrl) {
+    const { loadEnv } = await import("./env");
+    baseUrl = loadEnv().ICONIA_SERVER_URL;
+  }
+  const form = new FormData();
+  // 일부 환경(node-fetch / undici) 은 Blob 만 받아도 name 추론 가능. 안정성을 위해 명시.
+  if (args.fileName) {
+    form.append("file", args.file, args.fileName);
+  } else if (
+    typeof File !== "undefined" &&
+    args.file instanceof File &&
+    args.file.name
+  ) {
+    form.append("file", args.file, args.file.name);
+  } else {
+    form.append("file", args.file, "upload.bin");
+  }
+
+  args.onProgress?.({
+    loaded: 0,
+    total: args.file.size,
+    ratio: 0,
+  });
+
+  const timeoutMs = args.timeoutMs ?? 60_000;
+  const controller = timeoutMs > 0 ? new AbortController() : null;
+  const timer =
+    controller != null
+      ? setTimeout(() => controller.abort(), timeoutMs)
+      : null;
+
+  let response: Response;
+  try {
+    response = await fetch(`${baseUrl}/api/v1/admin/media/upload`, {
+      method: "POST",
+      // Content-Type 은 fetch 가 boundary 와 함께 자동 설정 — 명시 금지.
+      headers: { Authorization: `Bearer ${args.jwt}`, Accept: "application/json" },
+      body: form,
+      cache: "no-store",
+      signal: controller?.signal,
+    });
+  } catch (err) {
+    const isTimeout = err instanceof Error && err.name === "AbortError";
+    return {
+      ok: false,
+      code: "ERR_NETWORK",
+      message: isTimeout ? "request_timeout" : "network_error",
+      status: 0,
+    };
+  } finally {
+    if (timer != null) clearTimeout(timer);
+  }
+
+  args.onProgress?.({
+    loaded: args.file.size,
+    total: args.file.size,
+    ratio: 1,
+  });
+
+  type Envelope = ServerEnvelope<AdminMediaUploadResult>;
+  let envelope: Envelope;
+  try {
+    envelope = (await response.json()) as Envelope;
+  } catch {
+    return {
+      ok: false,
+      code: "ERR_INVALID_RESPONSE",
+      message: "invalid_response",
+      status: response.status,
+    };
+  }
+
+  if (response.status >= 500) {
+    return {
+      ok: false,
+      code: "ERR_SERVER_UNAVAILABLE",
+      message: "server_unavailable",
+      status: response.status,
+    };
+  }
+  if (envelope?.ok === true) return { ok: true, data: envelope.data };
+  if (envelope?.ok === false && envelope.error) {
+    return {
+      ok: false,
+      code: envelope.error.code,
+      message: envelope.error.message,
+      status: response.status,
+      details: envelope.error.details,
+    };
+  }
+  return {
+    ok: false,
+    code: "ERR_INVALID_RESPONSE",
+    message: "invalid_response",
+    status: response.status,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// 에러 코드 → 한글 메시지 매핑.
+//
+// SERVER 가 정의한 표준 에러 토큰 (ERR_USER_EMAIL_EXISTS 등) 을 운영자 화면에
+// 노출할 한 줄 한글 메시지로 변환한다. 미정의 코드는 그대로 반환.
+// ---------------------------------------------------------------------------
+
+const ADMIN_ERROR_MESSAGES_KO: Record<string, string> = {
+  ERR_USER_EMAIL_EXISTS: "이미 사용 중인 이메일입니다.",
+  ERR_TERMS_REQUIRED: "약관 동의·19세 이상 확인이 필요합니다.",
+  ERR_VALIDATION: "입력값이 올바르지 않습니다. 다시 확인하세요.",
+  ERR_AGE_GATE: "19세 이상 본인 확인이 필요합니다.",
+  ERR_PASSWORD_TOO_SHORT: "비밀번호는 8자 이상이어야 합니다.",
+  ERR_AUTHOR_NOT_FOUND: "지정한 작성자를 찾을 수 없습니다.",
+  ERR_MEDIA_TOO_LARGE: "미디어 용량 한도를 초과했습니다 (이미지 5 MB · 비디오 50 MB).",
+  ERR_MEDIA_TYPE_NOT_ALLOWED: "허용되지 않는 미디어 형식입니다.",
+  ERR_NETWORK: "Server 도달 실패 — 잠시 후 다시 시도하세요.",
+  ERR_SERVER_UNAVAILABLE: "Server 응답 없음 (준비 중일 수 있습니다).",
+  ERR_INVALID_RESPONSE: "Server 응답을 해석하지 못했습니다.",
+  ERR_FORBIDDEN: "권한이 없습니다.",
+  ERR_UNAUTHORIZED: "세션이 만료되었습니다. 다시 로그인하세요.",
+};
+
+/** 표준 에러 코드를 운영자가 이해할 수 있는 한글 한 줄 메시지로 변환. */
+export function adminErrorMessageKo(code: string | undefined): string {
+  if (!code) return "알 수 없는 오류가 발생했습니다.";
+  return ADMIN_ERROR_MESSAGES_KO[code] ?? code;
 }

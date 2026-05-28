@@ -18,6 +18,10 @@ import {
   closeCircuitBreaker,
   invalidateCache,
   setMaintenanceMode,
+  createAdminUser,
+  createAdminFeedPost,
+  uploadAdminMedia,
+  adminErrorMessageKo,
 } from "./adminApi";
 
 const BASE = "https://api.example.com";
@@ -589,5 +593,240 @@ describe("ops controls", () => {
     const body = JSON.parse(init.body as string);
     expect(body.enabled).toBe(true);
     expect(body.until).toBe("2026-05-27T03:00:00Z");
+  });
+});
+
+describe("admin manual create — users / feed / media", () => {
+  it("createAdminUser POSTs to /api/v1/admin/users with full body", async () => {
+    const fetchMock = mockFetchOnce({
+      status: 201,
+      body: {
+        ok: true,
+        data: {
+          user: {
+            id: "u-uuid",
+            email: "x@y.com",
+            displayName: "Ada",
+            role: "user",
+            account_status: "active",
+            created_at: "2026-05-27T00:00:00Z",
+            is_verified: true,
+          },
+        },
+        error: null,
+      },
+    });
+    const r = await createAdminUser({
+      jwt: "j",
+      email: "x@y.com",
+      password: "Strong#Pass1",
+      displayName: "Ada",
+      agreedTermsVersion: "1.0",
+      ageVerified: true,
+      autoVerified: true,
+      reason: "영업 미팅 시연용",
+    });
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.data.user.email).toBe("x@y.com");
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe(`${BASE}/api/v1/admin/users`);
+    expect(init.method).toBe("POST");
+    const body = JSON.parse(init.body as string);
+    expect(body.email).toBe("x@y.com");
+    expect(body.password).toBe("Strong#Pass1");
+    expect(body.agreedTermsVersion).toBe("1.0");
+    expect(body.ageVerified).toBe(true);
+    expect(body.autoVerified).toBe(true);
+    expect(body.role).toBe("user"); // default
+    expect(body.reason).toBe("영업 미팅 시연용");
+  });
+
+  it("createAdminUser propagates ERR_USER_EMAIL_EXISTS", async () => {
+    mockFetchOnce({
+      status: 409,
+      body: {
+        ok: false,
+        data: null,
+        error: {
+          code: "ERR_USER_EMAIL_EXISTS",
+          message: "email_already_in_use",
+        },
+      },
+    });
+    const r = await createAdminUser({
+      jwt: "j",
+      email: "dup@y.com",
+      password: "Strong#Pass1",
+      agreedTermsVersion: "1.0",
+      ageVerified: true,
+      reason: "테스트 중복 케이스",
+    });
+    expect(r.ok).toBe(false);
+    if (!r.ok) {
+      expect(r.code).toBe("ERR_USER_EMAIL_EXISTS");
+      expect(r.status).toBe(409);
+    }
+  });
+
+  it("createAdminFeedPost POSTs to /api/v1/admin/feed/posts with media array", async () => {
+    const fetchMock = mockFetchOnce({
+      status: 201,
+      body: {
+        ok: true,
+        data: {
+          post: {
+            id: "p_1",
+            author_id: "u_1",
+            body: "안녕",
+            comments_count: 0,
+            is_hidden: false,
+            created_at: "2026-05-27T00:00:00Z",
+          },
+          mediaCount: 1,
+        },
+        error: null,
+      },
+    });
+    const r = await createAdminFeedPost({
+      jwt: "j",
+      authorId: "00000000-0000-0000-0000-000000000001",
+      body: "안녕",
+      media: [
+        {
+          url: "https://cdn.example.com/x.jpg",
+          type: "image",
+          width: 1080,
+          height: 1920,
+        },
+      ],
+      status: "published",
+      reason: "운영팀 공지",
+    });
+    expect(r.ok).toBe(true);
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe(`${BASE}/api/v1/admin/feed/posts`);
+    expect(init.method).toBe("POST");
+    const body = JSON.parse(init.body as string);
+    expect(body.authorId).toBe("00000000-0000-0000-0000-000000000001");
+    expect(body.body).toBe("안녕");
+    expect(body.media).toEqual([
+      {
+        url: "https://cdn.example.com/x.jpg",
+        type: "image",
+        width: 1080,
+        height: 1920,
+      },
+    ]);
+    expect(body.status).toBe("published");
+    expect(body.reason).toBe("운영팀 공지");
+  });
+
+  it("createAdminFeedPost omits media when not provided", async () => {
+    const fetchMock = mockFetchOnce({
+      status: 201,
+      body: {
+        ok: true,
+        data: {
+          post: {
+            id: "p_2",
+            author_id: "u_1",
+            body: "text only",
+            comments_count: 0,
+            is_hidden: false,
+            created_at: "2026-05-27T00:00:00Z",
+          },
+          mediaCount: 0,
+        },
+        error: null,
+      },
+    });
+    await createAdminFeedPost({
+      jwt: "j",
+      authorId: "00000000-0000-0000-0000-000000000001",
+      body: "text only",
+      reason: "텍스트 게시물",
+    });
+    const [, init] = fetchMock.mock.calls[0];
+    const body = JSON.parse(init.body as string);
+    expect("media" in body).toBe(false);
+    expect(body.status).toBe("published"); // default
+  });
+
+  it("uploadAdminMedia POSTs multipart to /api/v1/admin/media/upload with file field", async () => {
+    const fetchMock = mockFetchOnce({
+      status: 201,
+      body: {
+        ok: true,
+        data: {
+          url: "https://cdn.example.com/abc.jpg",
+          mimeType: "image/jpeg",
+          sizeBytes: 1234,
+          width: 800,
+          height: 600,
+        },
+        error: null,
+      },
+    });
+    // Blob 으로 가벼운 jpeg 시뮬레이션. node 환경에서도 동작.
+    const blob = new Blob([new Uint8Array([0xff, 0xd8, 0xff])], { type: "image/jpeg" });
+    const progressEvents: number[] = [];
+    const r = await uploadAdminMedia({
+      jwt: "j",
+      file: blob,
+      fileName: "x.jpg",
+      baseUrl: BASE,
+      onProgress: (p) => {
+        progressEvents.push(p.ratio);
+      },
+    });
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.data.url).toBe("https://cdn.example.com/abc.jpg");
+      expect(r.data.mimeType).toBe("image/jpeg");
+    }
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe(`${BASE}/api/v1/admin/media/upload`);
+    expect(init.method).toBe("POST");
+    // Authorization 헤더 검증 + Content-Type 은 자동 (fetch 가 boundary 포함 설정).
+    expect(init.headers["Authorization"]).toBe("Bearer j");
+    expect("Content-Type" in init.headers).toBe(false);
+    expect(init.body).toBeInstanceOf(FormData);
+    // onProgress 는 server-side 경로에서 (0, 1) 두 번 호출.
+    expect(progressEvents[0]).toBe(0);
+    expect(progressEvents[progressEvents.length - 1]).toBe(1);
+  });
+
+  it("uploadAdminMedia maps ERR_MEDIA_TOO_LARGE error envelope", async () => {
+    mockFetchOnce({
+      status: 413,
+      body: {
+        ok: false,
+        data: null,
+        error: { code: "ERR_MEDIA_TOO_LARGE", message: "too_large" },
+      },
+    });
+    const blob = new Blob([new Uint8Array(10)], { type: "image/jpeg" });
+    const r = await uploadAdminMedia({
+      jwt: "j",
+      file: blob,
+      fileName: "big.jpg",
+      baseUrl: BASE,
+    });
+    expect(r.ok).toBe(false);
+    if (!r.ok) {
+      expect(r.code).toBe("ERR_MEDIA_TOO_LARGE");
+      expect(r.status).toBe(413);
+    }
+  });
+
+  it("adminErrorMessageKo maps known codes to Korean", () => {
+    expect(adminErrorMessageKo("ERR_USER_EMAIL_EXISTS")).toBe(
+      "이미 사용 중인 이메일입니다.",
+    );
+    expect(adminErrorMessageKo("ERR_TERMS_REQUIRED")).toContain("19세");
+    expect(adminErrorMessageKo("ERR_MEDIA_TOO_LARGE")).toContain("용량");
+    expect(adminErrorMessageKo(undefined)).toContain("알 수 없는");
+    // 미정의 코드는 그대로 반환 (개발자 추적용).
+    expect(adminErrorMessageKo("ERR_FOO_BAR_BAZ")).toBe("ERR_FOO_BAR_BAZ");
   });
 });

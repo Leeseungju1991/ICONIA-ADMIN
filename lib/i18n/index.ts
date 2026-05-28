@@ -1,16 +1,18 @@
-// ICONIA-Admin i18n — 운영자 locale 분리 (ko/en).
+// ICONIA-Admin i18n — 운영자 locale 분리 (ko/en/zh-CN).
 // 기본 locale 은 `ADMIN_DEFAULT_LOCALE` env, 미설정 시 'ko'.
 // 운영자 환경설정(쿠키) 가 있으면 그것을 우선.
 
 import { messagesKo } from "./messages-ko";
 import { messagesEn } from "./messages-en";
+import { messagesZhCN } from "./messages-zh-CN";
 
-export type Locale = "ko" | "en";
+export type Locale = "ko" | "en" | "zh-CN";
 
 const CATALOGS: Record<Locale, typeof messagesKo> = {
   ko: messagesKo,
-  // 영어 카탈로그는 ko 와 동일 shape — 누락 키는 ko 로 fallback.
+  // 영어 / 중국어 카탈로그는 ko 와 동일 shape — 누락 키는 ko 로 fallback.
   en: messagesEn as unknown as typeof messagesKo,
+  "zh-CN": messagesZhCN as unknown as typeof messagesKo,
 };
 
 const FALLBACK: Locale = "ko";
@@ -47,10 +49,12 @@ function resolveKey(catalog: unknown, key: string): unknown {
  *  3. 'ko'
  */
 export function resolveLocale(cookieValue?: string | null): Locale {
-  if (cookieValue === "ko" || cookieValue === "en") return cookieValue;
+  if (cookieValue === "ko" || cookieValue === "en" || cookieValue === "zh-CN") {
+    return cookieValue;
+  }
   const env = process.env.ADMIN_DEFAULT_LOCALE;
-  if (env === "ko" || env === "en") return env;
+  if (env === "ko" || env === "en" || env === "zh-CN") return env;
   return FALLBACK;
 }
 
-export const SUPPORTED_LOCALES: Locale[] = ["ko", "en"];
+export const SUPPORTED_LOCALES: Locale[] = ["ko", "en", "zh-CN"];

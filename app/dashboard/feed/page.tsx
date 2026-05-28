@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { PanelCard } from "../_components/PanelCard";
 import { DataTable, type Column } from "../_components/DataTable";
 import { StatCard } from "../_components/StatCard";
@@ -30,6 +32,7 @@ function classifyError(message: string): FeedError {
 }
 
 export default function FeedPage() {
+  const searchParams = useSearchParams();
   const [items, setItems] = useState<AdminFeedPostRow[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -41,6 +44,14 @@ export default function FeedPage() {
   const [loading, startLoad] = useTransition();
   const [picked, setPicked] = useState<AdminFeedPostRow | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+
+  // 새 게시물 생성 페이지에서 돌아온 경우 — flash 토스트.
+  useEffect(() => {
+    const created = searchParams?.get("created");
+    if (created) {
+      setToast(`게시물 발행 완료 (ID: ${created.slice(0, 12)}…). 감사 로그에 기록되었습니다.`);
+    }
+  }, [searchParams]);
 
   const reload = useCallback(() => {
     startLoad(async () => {
@@ -172,6 +183,15 @@ export default function FeedPage() {
 
   return (
     <div className="space-y-6">
+      <div className="flex justify-end">
+        <Link
+          href="/dashboard/feed/new"
+          className="rounded-xl bg-accent px-3 py-2 text-sm text-white font-medium hover:opacity-90"
+          data-testid="link-new-feed-post"
+        >
+          + 새 게시물
+        </Link>
+      </div>
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard label="현재 페이지 노출" value={String(summary.visible)} accent="teal" />
         <StatCard label="현재 페이지 숨김" value={String(summary.hidden)} accent="pink" />

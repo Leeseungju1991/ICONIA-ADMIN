@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { PanelCard } from "../_components/PanelCard";
 import { DataTable, type Column } from "../_components/DataTable";
 import { StatCard } from "../_components/StatCard";
@@ -70,11 +72,20 @@ function adaptServerUser(s: ServerUserRow): UserRow {
 }
 
 export default function UsersPage() {
+  const searchParams = useSearchParams();
   const [q, setQ] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | UserRow["account_status"]>("all");
   const [selected, setSelected] = useState<UserRow | null>(null);
   const [unmaskedIds, setUnmaskedIds] = useState<Set<string>>(new Set());
   const [toast, setToast] = useState<string | null>(null);
+
+  // 사용자 추가 페이지에서 돌아온 경우 — flash 토스트.
+  useEffect(() => {
+    const created = searchParams?.get("created");
+    if (created) {
+      setToast(`사용자 추가 완료 (ID: ${created.slice(0, 8)}…). 감사 로그에 기록되었습니다.`);
+    }
+  }, [searchParams]);
 
   // Phase 13-A — Server `/api/v1/admin/users` fetch. 도달 실패 시 빈 list + 에러 안내.
   const [users, setUsers] = useState<UserRow[]>([]);
@@ -227,6 +238,15 @@ export default function UsersPage() {
 
   return (
     <div className="space-y-6">
+      <div className="flex justify-end">
+        <Link
+          href="/dashboard/users/new"
+          className="rounded-xl bg-accent px-3 py-2 text-sm text-white font-medium hover:opacity-90"
+          data-testid="link-new-user"
+        >
+          + 사용자 추가
+        </Link>
+      </div>
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           label="오늘 가입"

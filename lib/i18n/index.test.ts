@@ -20,11 +20,17 @@ describe("i18n", () => {
   it("respects cookie locale", () => {
     expect(resolveLocale("ko")).toBe("ko");
     expect(resolveLocale("en")).toBe("en");
+    expect(resolveLocale("zh-CN")).toBe("zh-CN");
     expect(resolveLocale(undefined)).toBe("ko");
     expect(resolveLocale("garbage")).toBe("ko");
   });
 
   it("lists supported locales", () => {
-    expect(SUPPORTED_LOCALES).toEqual(["ko", "en"]);
+    expect(SUPPORTED_LOCALES).toEqual(["ko", "en", "zh-CN"]);
+  });
+
+  it("resolves a Simplified Chinese key", () => {
+    expect(t("common.save", "zh-CN")).toBe("保存");
+    expect(t("user_create.title", "zh-CN")).toBe("添加用户");
   });
 });

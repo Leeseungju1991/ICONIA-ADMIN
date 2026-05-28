@@ -74,6 +74,9 @@ ICONIA 운영자 콘솔 — Next.js 14 (App Router) · React 18 · Tailwind 3.
 - 강제 로그아웃 · 계정 일시정지 · MFA 초기화 · 탈퇴 처리
 - 개인정보(이메일·이름·전화) 기본 마스킹, 해제 시 감사 로그 자동 기록
 - PIPA(개인정보보호법) 사용자 권리 추적 (열람·정정·삭제·이관)
+- **사용자 수동 추가** (`/dashboard/users/new`) — 운영팀이 사용자를 대신해 가입 진행.
+  비밀번호 강도 표시 · 약관 4종 대리 동의 · 19세 이상 본인 확인 · 사유 5자 이상 강제.
+  확정 2단계 모달 + 감사 로그. Server `/api/v1/admin/users` (POST).
 
 ### 3.4b 사용자 360 통합 관리 (신규)
 - 이메일·시리얼·UUID 한 줄 검색으로 한 사용자의 HW · Server · AI · APP 상태를 한 화면에서 관리
@@ -104,6 +107,11 @@ ICONIA 운영자 콘솔 — Next.js 14 (App Router) · React 18 · Tailwind 3.
 - **리뷰·신고 관리** — 게시물 신고 검토, 숨김·복구 처리 (감사 로그 자동)
 - **피드 관리** — 사용자 피드 게시물 검색·숨김·복구·삭제 + 댓글 미리보기 (`/dashboard/feed`).
   Server `/api/v1/admin/feed/posts*` 정본. 삭제는 soft delete + DELETE 확인 문구.
+- **피드 게시물 수동 작성** (`/dashboard/feed/new`) — 운영팀이 직접 피드 게시물을
+  발행. 본문 4000자 · 미디어 drag-drop 업로드 (이미지 ≤ 5 MB · 비디오 ≤ 50 MB,
+  최대 10개) · 상태 published/draft/hidden · 사유 5자 이상. 미디어는 사전에
+  `/api/admin/media/upload` 프록시 (브라우저 XHR 진행률 표시) → Server
+  `/api/v1/admin/media/upload` 로 forward, 발행은 Server `/api/v1/admin/feed/posts` (POST).
 - **공지·배너 관리** — 앱/웹 공지사항 등록·수정·노출 일정
 - **푸시 알림** — 전체/세그먼트 캠페인 발송 · 도달율 추적
 - **운영 리포트 아카이브** — 매일 02:00 / 일요일 02:30 KST 자동 생성 리포트 조회 (수동 트리거는 최고관리자만)
@@ -202,12 +210,28 @@ ICONIA 운영자 콘솔 — Next.js 14 (App Router) · React 18 · Tailwind 3.
 - 모든 액션 감사 로그 (Server canonical hash chain + 세션 trail)
 
 ### 3.16 국제화
-- 한국어 / 영어 메시지 분리 (`i18n/ko.json`, `i18n/en.json`)
-- 운영자 환경설정에서 언어 토글
+- 한국어 / 영어 / 간체 중국어 메시지 분리 (`lib/i18n/messages-ko.ts`,
+  `messages-en.ts`, `messages-zh-CN.ts`)
+- 운영자 환경설정에서 언어 토글 (`admin_locale` 쿠키 + `ADMIN_DEFAULT_LOCALE` env)
 
 ### 3.17 디자인 시스템
 - Tailwind 3 + 일관된 디자인 토큰 (색상·간격·타이포)
 - 공통 컴포넌트 (PanelCard · StatCard · DataTable · 모달)
+
+### 3.18 신규 페이지 · SERVER endpoint 의존성 (출시 정비)
+
+운영팀 수동 진입 페이지 ↔ SERVER endpoint 매트릭스.
+
+| 운영자 페이지 | 액션 | SERVER endpoint | Body 핵심 필드 |
+| --- | --- | --- | --- |
+| `/dashboard/users/new` | 사용자 추가 | `POST /api/v1/admin/users` | `email`, `password`, `agreedTermsVersion`, `ageVerified`, `autoVerified`, `reason` |
+| `/dashboard/feed/new` | 게시물 발행 | `POST /api/v1/admin/feed/posts` | `authorId`, `body`, `media[]`, `status`, `reason` |
+| `/dashboard/feed/new` (drag-drop) | 미디어 업로드 | `POST /api/v1/admin/media/upload` (multipart) | `file` (이미지 ≤ 5 MB · 비디오 ≤ 50 MB) |
+
+- SERVER 미배포 시 ADMIN 폼은 정상 렌더하며 5xx/네트워크 오류는 "준비 중" 토스트로
+  graceful 표시. 입력값은 보존된다.
+- ADMIN 측 미디어 업로드는 `/api/admin/media/upload` Next.js Route Handler 가 인증을
+  처리하고 SERVER 로 multipart 본문을 forward — 브라우저 XHR 가 진행률을 직접 노출.
 
 ---
 
@@ -229,6 +253,14 @@ ICONIA 운영자 콘솔 — Next.js 14 (App Router) · React 18 · Tailwind 3.
   Server `/api/v1/admin/feed/posts*`, `/api/v1/admin/commerce/{products,orders}*`,
   `/api/v1/admin/seed/{status,run}` 신규 endpoint (SERVER 동시 작업)가 배포되면 자동 표시.
   대시보드 홈의 "피드 게시물 (24h)" / "신규 주문 (24h)" KPI 카드도 같은 endpoint 의존.
+- **운영팀 수동 진입 — 사용자 추가 / 피드 게시물 작성 / 미디어 업로드** —
+  `/dashboard/users/new` · `/dashboard/feed/new` 두 페이지가 client 시그니처와
+  graceful "준비 중" 안내까지 완비. 의존 endpoint (SERVER 동시 작업):
+  - `POST /api/v1/admin/users` — 운영팀 대리 가입. 약관 4종 동의 + 19+ 본인 확인 강제.
+  - `POST /api/v1/admin/feed/posts` — 미디어 URL 배열 포함 게시물 발행.
+  - `POST /api/v1/admin/media/upload` (multipart) — 이미지 ≤ 5 MB · 비디오 ≤ 50 MB.
+  ADMIN 측 미디어 업로드는 `/api/admin/media/upload` route handler 가 인증 + 프록시
+  (브라우저 XHR 가 본문 송신 progress 이벤트를 직접 노출).
 - **V1.0 관측성 / SLO / 알람 / 로그 / 운영 제어 실 연동** — `/dashboard/ops/{slo,
   alerts,logs,audit,runbook}` 5개 페이지가 client 시그니처와 graceful "준비 중"
   안내까지 완비. Server `/api/v1/admin/metrics/slo`, `/api/v1/admin/alerts/config*`,

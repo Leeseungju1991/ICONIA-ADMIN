@@ -176,7 +176,7 @@ describe("i18n — ko/en 카탈로그 (#35)", () => {
     expect(resolveLocale("zz")).toBe("ko");
   });
 
-  it("SUPPORTED_LOCALES 가 ko + en 만 노출", () => {
-    expect(new Set(SUPPORTED_LOCALES)).toEqual(new Set(["ko", "en"]));
+  it("SUPPORTED_LOCALES 가 ko + en + zh-CN 노출", () => {
+    expect(new Set(SUPPORTED_LOCALES)).toEqual(new Set(["ko", "en", "zh-CN"]));
   });
 });
