@@ -8,6 +8,11 @@
 //   - 사업자등록번호 / 통신판매업 / 대표자명 등 외부 노출 가능 정보만 정의.
 //   - 내부 운영자만 보는 footer / About 영역에서 사용.
 //   - Sidebar footer + /dashboard/legal 페이지가 본 모듈을 import.
+//
+// Source of truth (cross-repo):
+//   - `6. CI/docs/legal/business-info.md` 가 회사 정보 단일 정본.
+//   - 이메일 도메인은 `dollsoom.com` — companyInfo.ts 도 동일.
+//   - 사업자등록번호·CEO·주소·통신판매업 신고번호는 사업자 등록 완료 후 갱신.
 
 export type BusinessInfo = {
   /** 상호 (한글). */
@@ -49,9 +54,10 @@ export const COMPANY_INFO_PLACEHOLDER: BusinessInfo = {
   address_ko: "출시 전 등록 예정",
   address_en: "To be registered before launch",
   phone: "출시 전 등록 예정",
-  support_email: "support@soomkorea.com",
+  // 이메일 도메인은 `6. CI/docs/legal/business-info.md` 정본과 일치 (dollsoom.com).
+  support_email: "support@dollsoom.com",
   privacy_officer: "출시 전 지정 예정",
-  privacy_officer_email: "privacy@soomkorea.com",
+  privacy_officer_email: "privacy@dollsoom.com",
   placeholder: true,
 };
 
