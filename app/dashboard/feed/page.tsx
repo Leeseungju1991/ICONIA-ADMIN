@@ -1,11 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { PanelCard } from "../_components/PanelCard";
 import { DataTable, type Column } from "../_components/DataTable";
 import { StatCard } from "../_components/StatCard";
+import { AutoRefreshToggle } from "../_components/AutoRefreshToggle";
+import { useAutoRefresh } from "@/lib/hooks/useAutoRefresh";
 import type { AdminFeedPostRow, AdminFeedPostDetail } from "@/lib/adminApi";
 import {
   listFeedPostsAction,
@@ -44,6 +46,11 @@ export default function FeedPage() {
   const [loading, startLoad] = useTransition();
   const [picked, setPicked] = useState<AdminFeedPostRow | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  // 2026-05-28 — 자동 새로고침 (visibility-aware, 10s 기본).
+  const [autoOn, setAutoOn] = useState(false);
+  const [newIds, setNewIds] = useState<Set<string>>(new Set());
+  const knownIdsRef = useRef<Set<string>>(new Set());
+  const firstLoadRef = useRef(true);
 
   // 새 게시물 생성 페이지에서 돌아온 경우 — flash 토스트.
   useEffect(() => {
@@ -53,31 +60,73 @@ export default function FeedPage() {
     }
   }, [searchParams]);
 
-  const reload = useCallback(() => {
-    startLoad(async () => {
-      const r = await listFeedPostsAction({
-        q: q.trim() || undefined,
-        hidden,
-        from: from || undefined,
-        to: to || undefined,
-        page,
-        page_size: PAGE_SIZE,
+  const reload = useCallback((): Promise<boolean> => {
+    return new Promise<boolean>((resolve) => {
+      startLoad(async () => {
+        const r = await listFeedPostsAction({
+          q: q.trim() || undefined,
+          hidden,
+          from: from || undefined,
+          to: to || undefined,
+          page,
+          page_size: PAGE_SIZE,
+        });
+        if (!r.ok) {
+          setError(classifyError(r.message));
+          setItems([]);
+          setTotal(0);
+          resolve(false);
+        } else {
+          setError(null);
+          const incoming = r.data.items ?? [];
+          setItems(incoming);
+          setTotal(r.data.total ?? 0);
+          const incomingIds = new Set(incoming.map((p) => p.id));
+          if (firstLoadRef.current) {
+            firstLoadRef.current = false;
+          } else {
+            const added: string[] = [];
+            incomingIds.forEach((id) => {
+              if (!knownIdsRef.current.has(id)) added.push(id);
+            });
+            if (added.length > 0) {
+              setNewIds((prev) => {
+                const next = new Set(prev);
+                added.forEach((id) => next.add(id));
+                return next;
+              });
+              setTimeout(() => {
+                setNewIds((prev) => {
+                  const next = new Set(prev);
+                  added.forEach((id) => next.delete(id));
+                  return next;
+                });
+              }, 1200);
+            }
+          }
+          knownIdsRef.current = incomingIds;
+          resolve(true);
+        }
       });
-      if (!r.ok) {
-        setError(classifyError(r.message));
-        setItems([]);
-        setTotal(0);
-      } else {
-        setError(null);
-        setItems(r.data.items ?? []);
-        setTotal(r.data.total ?? 0);
-      }
     });
   }, [q, hidden, from, to, page]);
 
   useEffect(() => {
-    reload();
+    void reload();
   }, [reload]);
+
+  const refresh = useAutoRefresh(reload, {
+    intervalMs: 10000,
+    enabled: autoOn,
+    maxFailures: 3,
+    onResult: ({ ok }) => {
+      if (!ok) setToast("일시 연결 끊김 — 다음 갱신에서 재시도");
+    },
+    onMaxFailures: () => {
+      setAutoOn(false);
+      setToast("자동 갱신 중지 — 3회 연속 실패로 폴링을 중단했습니다.");
+    },
+  });
 
   const summary = useMemo(() => {
     const visible = items.filter((i) => !i.is_hidden).length;
@@ -123,7 +172,22 @@ export default function FeedPage() {
     {
       key: "id",
       header: "ID",
-      render: (r) => <span className="font-mono text-[11px]">{r.id}</span>,
+      render: (r) => (
+        <span className="font-mono text-[11px] inline-flex items-center gap-1.5">
+          {newIds.has(r.id) ? (
+            <span
+              className="chip chip-success"
+              data-testid="feed-row-new"
+              aria-label="신규 게시물"
+            >
+              NEW
+            </span>
+          ) : null}
+          <span className={newIds.has(r.id) ? "row-new-highlight inline-block px-1 rounded" : ""}>
+            {r.id}
+          </span>
+        </span>
+      ),
     },
     {
       key: "author",
@@ -214,14 +278,23 @@ export default function FeedPage() {
       <PanelCard
         title="피드 게시물"
         actions={
-          <button
-            type="button"
-            onClick={reload}
-            disabled={loading}
-            className="rounded-xl bg-accent px-3 py-1.5 text-xs text-white disabled:opacity-60"
-          >
-            {loading ? "조회 중..." : "새로고침"}
-          </button>
+          <>
+            <AutoRefreshToggle
+              enabled={autoOn}
+              onToggle={setAutoOn}
+              lastRefreshedAt={refresh.lastRefreshedAt}
+            />
+            <button
+              type="button"
+              onClick={() => {
+                void reload();
+              }}
+              disabled={loading}
+              className="rounded-xl bg-accent px-3 py-1.5 text-xs text-white disabled:opacity-60"
+            >
+              {loading ? "조회 중..." : "새로고침"}
+            </button>
+          </>
         }
       >
         <form

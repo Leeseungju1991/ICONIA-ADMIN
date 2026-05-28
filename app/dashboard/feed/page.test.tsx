@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, cleanup, waitFor } from "@testing-library/react";
+import { render, screen, cleanup, waitFor, fireEvent } from "@testing-library/react";
 
 // Mock server actions BEFORE importing page. The page is a client component but
 // imports the actions module which carries "use server" — vitest needs the mock.
@@ -84,5 +84,32 @@ describe("FeedPage — render states", () => {
       expect(screen.getByText("p_1")).toBeInTheDocument();
     });
     expect(screen.getByText("alice")).toBeInTheDocument();
+  });
+
+  it("renders auto-refresh toggle defaulting to OFF", async () => {
+    mList.mockResolvedValue({
+      ok: true,
+      data: { items: [], total: 0, page: 1, page_size: 25 },
+    });
+    render(<FeedPage />);
+    await waitFor(() => {
+      expect(screen.getByTestId("auto-refresh-toggle")).toBeInTheDocument();
+    });
+    const sw = screen.getByTestId("auto-refresh-switch");
+    expect(sw).toHaveAttribute("data-state", "off");
+  });
+
+  it("auto-refresh toggle flips state on click", async () => {
+    mList.mockResolvedValue({
+      ok: true,
+      data: { items: [], total: 0, page: 1, page_size: 25 },
+    });
+    render(<FeedPage />);
+    const sw = await screen.findByTestId("auto-refresh-switch");
+    expect(sw).toHaveAttribute("data-state", "off");
+    fireEvent.click(sw);
+    await waitFor(() => {
+      expect(screen.getByTestId("auto-refresh-switch")).toHaveAttribute("data-state", "on");
+    });
   });
 });

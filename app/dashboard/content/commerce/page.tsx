@@ -2,9 +2,12 @@
 
 // 커머스 상품 가격 정보 (Server `/api/v1/admin/commerce/products` 정본).
 // 2026-05-28 — localStorage mock 폐기. server CRUD 연동.
+// 2026-05-28 — 자동 새로고침 토글 (visibility-aware 10s polling + 신규 상품 highlight).
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { PanelCard } from "../../_components/PanelCard";
+import { AutoRefreshToggle } from "../../_components/AutoRefreshToggle";
+import { useAutoRefresh } from "@/lib/hooks/useAutoRefresh";
 import {
   listAdminCommerceProductsAction,
   createAdminCommerceProductAction,
@@ -18,17 +21,73 @@ export default function CommercePage() {
   const [loading, startLoad] = useTransition();
   const [creating, startCreate] = useTransition();
   const [toast, setToast] = useState<string | null>(null);
+  const [autoOn, setAutoOn] = useState(false);
+  const [newIds, setNewIds] = useState<Set<string>>(new Set());
+  const knownIdsRef = useRef<Set<string>>(new Set());
+  const firstLoadRef = useRef(true);
+
+  function diffAndMarkNew(items: AdminCommerceProductRow[]) {
+    const incoming = new Set(items.map((p) => p.id));
+    if (firstLoadRef.current) {
+      firstLoadRef.current = false;
+    } else {
+      const added: string[] = [];
+      incoming.forEach((id) => {
+        if (!knownIdsRef.current.has(id)) added.push(id);
+      });
+      if (added.length > 0) {
+        setNewIds((prev) => {
+          const next = new Set(prev);
+          added.forEach((id) => next.add(id));
+          return next;
+        });
+        setTimeout(() => {
+          setNewIds((prev) => {
+            const next = new Set(prev);
+            added.forEach((id) => next.delete(id));
+            return next;
+          });
+        }, 1200);
+      }
+    }
+    knownIdsRef.current = incoming;
+  }
 
   function reload() {
     startLoad(async () => {
       const r = await listAdminCommerceProductsAction({ page_size: 100 });
       setState(r);
+      if (r.ok) diffAndMarkNew(r.items);
     });
+  }
+
+  async function pollOnce(): Promise<boolean> {
+    const r = await listAdminCommerceProductsAction({ page_size: 100 });
+    setState(r);
+    if (r.ok) {
+      diffAndMarkNew(r.items);
+      return true;
+    }
+    return false;
   }
 
   useEffect(() => {
     reload();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const refresh = useAutoRefresh(pollOnce, {
+    intervalMs: 10000,
+    enabled: autoOn,
+    maxFailures: 3,
+    onResult: ({ ok }) => {
+      if (!ok) setToast("일시 연결 끊김 — 다음 갱신에서 재시도");
+    },
+    onMaxFailures: () => {
+      setAutoOn(false);
+      setToast("자동 갱신 중지 — 3회 연속 실패로 폴링을 중단했습니다.");
+    },
+  });
 
   function handleAdd(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -130,14 +189,21 @@ export default function CommercePage() {
       <PanelCard
         title={`상품 목록${state && state.ok ? ` (${state.total}개)` : ""}`}
         actions={
-          <button
-            type="button"
-            onClick={reload}
-            disabled={loading}
-            className="rounded-xl bg-white/70 border border-white/70 px-3 py-1.5 text-xs disabled:opacity-60"
-          >
-            {loading ? "조회 중..." : "새로고침"}
-          </button>
+          <>
+            <AutoRefreshToggle
+              enabled={autoOn}
+              onToggle={setAutoOn}
+              lastRefreshedAt={refresh.lastRefreshedAt}
+            />
+            <button
+              type="button"
+              onClick={reload}
+              disabled={loading}
+              className="rounded-xl bg-white/70 border border-white/70 px-3 py-1.5 text-xs disabled:opacity-60"
+            >
+              {loading ? "조회 중..." : "새로고침"}
+            </button>
+          </>
         }
       >
         {!state ? (
@@ -161,7 +227,14 @@ export default function CommercePage() {
               </thead>
               <tbody>
                 {items.map((p) => (
-                  <tr key={p.id} className="border-b border-slate-100 hover:bg-slate-50">
+                  <tr
+                    key={p.id}
+                    className={
+                      "border-b border-slate-100 hover:bg-slate-50 " +
+                      (newIds.has(p.id) ? "row-new-highlight" : "")
+                    }
+                    data-testid={newIds.has(p.id) ? "product-row-new" : "product-row"}
+                  >
                     <td className="px-2 py-2">
                       {p.image_url ? (
                         // eslint-disable-next-line @next/next/no-img-element
@@ -176,7 +249,12 @@ export default function CommercePage() {
                       )}
                     </td>
                     <td className="px-2 py-2">
-                      <div className="font-medium text-slate-800">{p.name}</div>
+                      <div className="font-medium text-slate-800 inline-flex items-center gap-2">
+                        {newIds.has(p.id) ? (
+                          <span className="chip chip-success" aria-label="신규 상품">NEW</span>
+                        ) : null}
+                        {p.name}
+                      </div>
                       {p.description ? (
                         <div className="text-xs text-muted line-clamp-1">{p.description}</div>
                       ) : null}

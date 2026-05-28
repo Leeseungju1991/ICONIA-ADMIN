@@ -121,8 +121,21 @@ a { color: inherit; text-decoration: none; }
 
 @keyframes iconia-spin { to { transform: rotate(360deg); } }
 
+/*
+ * Auto-refresh highlight — 폴링으로 새로 들어온 행 (사용자/피드/상품/주문) 강조.
+ * 1초 동안 부드러운 amber/yellow fade. prefers-reduced-motion 시 비활성.
+ */
+.row-new-highlight {
+  animation: iconia-row-highlight 1s ease-out;
+}
+@keyframes iconia-row-highlight {
+  0%   { background-color: rgba(253, 230, 138, 0.85); }
+  100% { background-color: transparent; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .spinner { animation: none; }
+  .row-new-highlight { animation: none; }
 }
 
 @media print {

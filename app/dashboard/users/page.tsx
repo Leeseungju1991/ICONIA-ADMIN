@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { PanelCard } from "../_components/PanelCard";
 import { DataTable, type Column } from "../_components/DataTable";
 import { StatCard } from "../_components/StatCard";
+import { AutoRefreshToggle } from "../_components/AutoRefreshToggle";
+import { useAutoRefresh } from "@/lib/hooks/useAutoRefresh";
 import { formatDate, type UserRow } from "@/lib/mockData";
 import { maskEmail, maskUserId, maskName } from "@/lib/maskPii";
 import { recordOperatorAuditAction } from "@/lib/actions/auditLog";
@@ -555,36 +557,88 @@ function Row({ k, v }: { k: string; v: React.ReactNode }) {
 // Phase 10-C — Server `/api/v1/admin/users` 실 사용자 목록 패널.
 // 가짜 구현 카탈로그 #1 (users import) 의 1차 wiring — 페이지 본문 통계는 mock
 // 유지하되 상단에 Server 실 데이터를 우선 노출. 다음 라운드에 DataTable rows 까지 swap.
+//
+// 2026-05-28 — 자동 새로고침 추가 (useAutoRefresh, 기본 10s + visibility-aware).
+// APP 회원가입 → SERVER 적재 → ADMIN 즉시 표시 흐름 확인용. 운영자가 토글로 활성화.
 function LiveUsersPanel() {
   const [items, setItems] = useState<ServerUserRow[] | null>(null);
   const [total, setTotal] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [autoOn, setAutoOn] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+  // 새로 들어온 사용자 ID 추적 — highlight 표시용. row mount 시 1초 후 클리어.
+  const [newIds, setNewIds] = useState<Set<string>>(new Set());
+  const knownIdsRef = useRef<Set<string>>(new Set());
+  const firstLoadRef = useRef(true);
+
+  async function fetchOnce(): Promise<boolean> {
+    const r = await listUsersAction({ limit: 20 });
+    if (!r.ok) {
+      setError(r.message);
+      return false;
+    }
+    setError(null);
+    setItems(r.users);
+    setTotal(r.total);
+    // diff 로 신규 사용자 식별 (최초 로딩은 highlight 생략).
+    const incoming = new Set(r.users.map((u) => u.id));
+    if (firstLoadRef.current) {
+      firstLoadRef.current = false;
+    } else {
+      const added: string[] = [];
+      incoming.forEach((id) => {
+        if (!knownIdsRef.current.has(id)) added.push(id);
+      });
+      if (added.length > 0) {
+        setNewIds((prev) => {
+          const next = new Set(prev);
+          added.forEach((id) => next.add(id));
+          return next;
+        });
+        // 1.2s 후 highlight 해제 (CSS animation 1s + 여유).
+        setTimeout(() => {
+          setNewIds((prev) => {
+            const next = new Set(prev);
+            added.forEach((id) => next.delete(id));
+            return next;
+          });
+        }, 1200);
+      }
+    }
+    knownIdsRef.current = incoming;
+    return true;
+  }
 
   useEffect(() => {
-    let cancelled = false;
-    listUsersAction({ limit: 20 })
-      .then((r) => {
-        if (cancelled) return;
-        if (!r.ok) {
-          setError(r.message);
-          return;
-        }
-        setItems(r.users);
-        setTotal(r.total);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
+    void fetchOnce().finally(() => setLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const refresh = useAutoRefresh(fetchOnce, {
+    intervalMs: 10000,
+    enabled: autoOn,
+    maxFailures: 3,
+    onResult: ({ ok }) => {
+      if (!ok) setToast("일시 연결 끊김 — 다음 갱신에서 재시도");
+    },
+    onMaxFailures: () => {
+      setAutoOn(false);
+      setToast("자동 갱신 중지 — 3회 연속 실패로 폴링을 중단했습니다.");
+    },
+  });
 
   return (
     <PanelCard
       title={loading ? "실시간 사용자 (Server) 로딩 중" : `실시간 사용자 (Server) — 총 ${total.toLocaleString()}명`}
       description="Server /api/v1/admin/users — adminUserService.searchUsers (active_session_count 집계 포함). PII 마스킹은 Server responseMask 미들웨어가 자동 처리."
+      actions={
+        <AutoRefreshToggle
+          enabled={autoOn}
+          onToggle={setAutoOn}
+          lastRefreshedAt={refresh.lastRefreshedAt}
+        />
+      }
     >
       {loading ? (
         <div className="text-sm text-muted">불러오는 중</div>
@@ -595,11 +649,15 @@ function LiveUsersPanel() {
       ) : !items || items.length === 0 ? (
         <div className="text-sm text-muted">등록된 사용자가 없습니다.</div>
       ) : (
-        <ul className="space-y-1">
+        <ul className="space-y-1" data-testid="live-users-list">
           {items.slice(0, 20).map((u) => (
             <li
               key={u.id}
-              className="rounded-xl border border-white/60 bg-white/55 px-3 py-2 text-xs"
+              className={
+                "rounded-xl border border-white/60 bg-white/55 px-3 py-2 text-xs " +
+                (newIds.has(u.id) ? "row-new-highlight" : "")
+              }
+              data-testid={newIds.has(u.id) ? "user-row-new" : "user-row"}
             >
               <div className="flex items-center justify-between gap-2">
                 <span className="font-mono">{u.email}</span>
@@ -623,6 +681,18 @@ function LiveUsersPanel() {
           ))}
         </ul>
       )}
+      {toast ? (
+        <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700 flex items-start gap-3">
+          <span className="flex-1">{toast}</span>
+          <button
+            type="button"
+            className="underline text-amber-800"
+            onClick={() => setToast(null)}
+          >
+            닫기
+          </button>
+        </div>
+      ) : null}
     </PanelCard>
   );
 }

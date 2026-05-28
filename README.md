@@ -233,6 +233,25 @@ ICONIA 운영자 콘솔 — Next.js 14 (App Router) · React 18 · Tailwind 3.
 - ADMIN 측 미디어 업로드는 `/api/admin/media/upload` Next.js Route Handler 가 인증을
   처리하고 SERVER 로 multipart 본문을 forward — 브라우저 XHR 가 진행률을 직접 노출.
 
+### 3.19 자동 새로고침 (polling) — 페이지 매트릭스
+
+운영자가 APP → SERVER → ADMIN 흐름을 즉시 확인할 수 있도록, 자주 갱신되는 페이지
+3종에 토글 ON/OFF 식 polling 을 제공한다. 공통 hook 은 `lib/hooks/useAutoRefresh.ts`.
+
+| 페이지 | 자동 갱신 | 주기 | 신규 행 표시 |
+| --- | --- | --- | --- |
+| `/dashboard/users` (실시간 사용자 패널) | ✅ | 10s | NEW 행 1초 highlight |
+| `/dashboard/feed` | ✅ | 10s | NEW 칩 + ID highlight 1초 |
+| `/dashboard/content/commerce` (상품) | ✅ | 10s | NEW 칩 + 행 highlight 1초 |
+
+공통 동작:
+- 기본 OFF (운영자 명시적 활성). 토글 클릭 시 즉시 polling 시작.
+- 페이지 포커스 잃으면 자동 일시정지 (`document.visibilitychange`) — 배터리/CPU 절약.
+- 포커스 복귀 시 즉시 1회 갱신 + interval 재개. "마지막 조회 HH:MM:SS" 표시.
+- 갱신 중 SERVER 5xx → "일시 연결 끊김 — 다음 갱신에서 재시도" 토스트, interval 유지.
+- 3회 연속 실패 → "자동 갱신 중지" 토스트 + 토글 자동 OFF (운영자 재활성화 필요).
+- `prefers-reduced-motion` 환경에서는 highlight 애니메이션 비활성.
+
 ---
 
 ## 4. 추가 개발 항목
@@ -274,6 +293,21 @@ ICONIA 운영자 콘솔 — Next.js 14 (App Router) · React 18 · Tailwind 3.
 ### ❌ 당장 불가능 (이유)
 
 - **실 운영자 트래픽 부하 테스트** — 실 사용자 운영자 다수가 동시에 콘솔을 쓰는 시나리오의 실측 부하는 베타 운영 단계 진입 후 가능. *(실 운영 환경 필요)*
+
+### 🔄 운영팀 가이드 — APP 가입 후 ADMIN 즉시 확인
+
+신규 APP 사용자가 정상 등록되었는지 ADMIN 콘솔에서 실시간 확인하는 표준 흐름:
+
+1. APP 에서 사용자가 회원가입 / 게시물 작성 / 상품 추가 등 액션 수행.
+2. APP → SERVER `/api/v1/...` 정상 호출 (사용자 가입은 `POST /api/v1/users`).
+3. 운영자가 ADMIN 의 해당 페이지 (`/dashboard/users` · `/dashboard/feed` ·
+   `/dashboard/content/commerce`) 진입.
+4. 우측 상단 "자동 갱신 (10s) — OFF" 토글을 ON 으로 전환. "마지막 조회 HH:MM:SS"
+   가 10초마다 업데이트되며, 신규 항목은 행에 **NEW** 칩 + 1초 highlight 로 표시.
+5. 확인 완료 후 토글을 OFF 로 되돌리면 polling 즉시 정지 (브라우저 자원 절약).
+6. 다른 탭으로 이동 시 자동 일시정지, 돌아오면 즉시 1회 갱신 + 재개.
+7. 일시적인 SERVER 5xx 는 토스트로만 안내 (polling 유지). 3회 연속 실패 시 자동
+   OFF 로 전환되어 운영자가 의식적으로 재활성화하도록 강제.
 
 ### 📋 운영팀 채울 항목 (출시 직전 (주)숨코리아 등록 작업)
 
