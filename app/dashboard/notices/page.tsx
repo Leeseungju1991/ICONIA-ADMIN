@@ -71,20 +71,20 @@ export default function NoticesPage() {
           <input
             name="title"
             placeholder="제목 (2자 이상)"
-            className="w-full rounded-xl border-2 border-slate-500 bg-white px-3 py-2 text-sm focus:border-slate-700 focus:outline-none"
+            className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
             required
           />
           <textarea
             name="body"
             placeholder="본문 (5자 이상)"
             rows={3}
-            className="w-full rounded-xl border-2 border-slate-500 bg-white px-3 py-2 text-sm focus:border-slate-700 focus:outline-none"
+            className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
             required
           />
           <div className="flex items-center gap-2">
             <select
               name="audience"
-              className="rounded-xl border-2 border-slate-500 bg-white px-3 py-2 text-sm"
+              className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm"
               defaultValue="all"
             >
               {AUDIENCES.map((a) => (

@@ -1,117 +1,169 @@
 "use client";
 import { useEffect, useState, useTransition } from "react";
-import { useSearchParams } from "next/navigation";
 import { PanelCard } from "../_components/PanelCard";
 import { CommunityHealthChips } from "../_components/CommunityHealthChips";
-import { FeedTimeline } from "../_components/FeedTimeline";
-import { PostInspector, type ModerationKey } from "../_components/PostInspector";
 import {
   listFeedAction,
-  getPostDetailAction,
   getCommunityHealthAction,
-  hidePostAction,
-  unhidePostAction,
   takedownPostAction,
 } from "@/lib/actions/community";
-import { hidePostsByUserAction } from "@/lib/actions/user360";
 import { recordOpsAuditWithSilentRetry } from "@/lib/opsAuditTrail";
-import type { FeedListItem, FeedPost, CommunityHealth } from "@/lib/mockFeed";
+import type { FeedListItem, CommunityHealth } from "@/lib/mockFeed";
 
-const ROLE: import("@/lib/operatorRoles").OperatorRole = "superadmin";
-
-type Tab = "latest" | "popular" | "reported";
+// 2026-05-28 — "피드 타임라인" 페이지를 신고된 피드 + 삭제 전용으로 단순화.
+// 각 카드에 [삭제] 버튼 직접 노출 → 사유 입력 모달(5자) → takedownPostAction.
 
 export default function CommunityPage() {
-  const sp = useSearchParams();
-  const initialTab = (sp.get("tab") as Tab) ?? "latest";
-  const [tab, setTab] = useState<Tab>(initialTab);
   const [items, setItems] = useState<FeedListItem[]>([]);
-  const [picked, setPicked] = useState<FeedPost | null>(null);
   const [health, setHealth] = useState<CommunityHealth | null>(null);
-  const [source, setSource] = useState<"server" | "mock" | null>(null);
   const [pending, start] = useTransition();
-  const [modal, setModal] = useState<ModerationKey | null>(null);
+  const [target, setTarget] = useState<FeedListItem | null>(null);
   const [reason, setReason] = useState("");
-  const [confirmText, setConfirmText] = useState("");
+  const [toast, setToast] = useState<string | null>(null);
 
-  function reload(t: Tab) {
+  function reload() {
     start(async () => {
-      const [feed, h] = await Promise.all([listFeedAction(t), getCommunityHealthAction()]);
-      if (feed.ok) { setItems(feed.items); setSource(feed.source); } else { setItems([]); }
+      const [feed, h] = await Promise.all([
+        listFeedAction("reported"),
+        getCommunityHealthAction(),
+      ]);
+      if (feed.ok) setItems(feed.items); else setItems([]);
       if (h.ok) setHealth(h.health);
     });
   }
 
-  useEffect(() => { reload(tab); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
-  function onTab(t: Tab) { setTab(t); reload(t); }
+  useEffect(() => {
+    reload();
+  }, []);
 
-  function onSelect(id: string) {
-    start(async () => {
-      const r = await getPostDetailAction(id);
-      if (r.ok) setPicked(r.post);
-    });
-  }
-
-  function onAction(k: ModerationKey) {
-    if (!picked) return;
+  function openDeleteModal(item: FeedListItem) {
+    setTarget(item);
     setReason("");
-    setConfirmText("");
-    setModal(k);
   }
 
-  async function executeModal() {
-    if (!picked || !modal) return;
-    const r5 = reason.trim().length >= 5;
-    if ((modal === "hide" || modal === "takedown" || modal === "hide_all_by_user") && !r5) return;
-    if (confirmText !== "EXECUTE") return;
+  function executeDelete() {
+    if (!target) return;
+    const trimmed = reason.trim();
+    if (trimmed.length < 5) return;
+    const id = target.id;
     start(async () => {
       await recordOpsAuditWithSilentRetry({
-        action: `community.${modal}`,
-        target_label: `게시물 · ${picked.id}`,
-        target_id: picked.id,
-        reason: reason.trim() || "(사유 없음)",
+        action: "community.takedown",
+        target_label: `게시물 · ${id}`,
+        target_id: id,
+        reason: trimmed,
         operator: "(현재 운영자 세션)",
         outcome: "queued",
       });
-      if (modal === "hide") await hidePostAction(picked.id, reason);
-      else if (modal === "unhide") await unhidePostAction(picked.id);
-      else if (modal === "takedown") await takedownPostAction(picked.id, reason);
-      else if (modal === "hide_all_by_user") await hidePostsByUserAction(picked.author_id, reason);
-      setModal(null);
-      // 새로고침
-      const r = await getPostDetailAction(picked.id);
-      if (r.ok) setPicked(r.post);
-      reload(tab);
+      const r = await takedownPostAction(id, trimmed);
+      setTarget(null);
+      setReason("");
+      setToast(r?.ok === false ? `삭제 실패: ${r.message ?? "알 수 없음"}` : `게시물 ${id} 삭제 완료`);
+      reload();
     });
   }
 
   return (
     <div className="space-y-4">
       {health ? <CommunityHealthChips health={health} /> : null}
-      <section className="grid grid-cols-1 lg:grid-cols-[1fr_420px] gap-4">
-        <PanelCard title="피드 타임라인" description="탭으로 최신 · 인기 · 신고됨 전환">
-          <FeedTimeline items={items} tab={tab} onTab={onTab} selectedId={picked?.id ?? null} onSelect={onSelect} />
-        </PanelCard>
-        <PostInspector post={picked} role={ROLE} onAction={onAction} />
-      </section>
 
-      {modal ? (
+      <PanelCard
+        title="신고된 피드"
+        description="신고된 게시물 목록입니다. 각 항목의 [삭제] 버튼으로 takedown 처리합니다."
+        actions={
+          <button
+            type="button"
+            onClick={reload}
+            disabled={pending}
+            className="rounded-xl bg-white/70 border border-white/70 px-3 py-1.5 text-xs disabled:opacity-60"
+          >
+            {pending ? "조회 중..." : "새로고침"}
+          </button>
+        }
+      >
+        {pending && items.length === 0 ? (
+          <div className="text-sm text-muted">불러오는 중</div>
+        ) : items.length === 0 ? (
+          <div className="text-sm text-muted">신고된 게시물이 없습니다.</div>
+        ) : (
+          <ul className="space-y-2">
+            {items.map((it) => (
+              <li
+                key={it.id}
+                className="rounded-xl border border-white/60 bg-white/55 px-3 py-2 flex items-start justify-between gap-3"
+              >
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-medium text-slate-800">{it.author_name}</span>
+                    <span className="font-mono text-[10px] text-slate-400">{it.author_id}</span>
+                    <span className="chip chip-error">신고 {it.report_count}건</span>
+                    {it.status === "taken_down" ? (
+                      <span className="chip chip-muted">이미 삭제됨</span>
+                    ) : it.status === "hidden" ? (
+                      <span className="chip chip-warn">숨김</span>
+                    ) : null}
+                  </div>
+                  <p className="mt-1 text-sm text-slate-700 line-clamp-2">{it.excerpt}</p>
+                  <div className="mt-1 text-[11px] text-muted">
+                    좋아요 {it.like_count.toLocaleString()} · 댓글 {it.comment_count.toLocaleString()} · {it.created_at}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  disabled={it.status === "taken_down" || pending}
+                  onClick={() => openDeleteModal(it)}
+                  className="rounded-lg bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs px-3 py-1.5 shrink-0"
+                >
+                  삭제
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </PanelCard>
+
+      {target ? (
         <div className="fixed inset-0 z-50 grid place-items-center bg-slate-900/40 p-4">
           <div className="bg-white rounded-2xl max-w-md w-full p-5 space-y-3">
-            <h3 className="font-semibold text-slate-900">모더레이션 — {modal}</h3>
-            {modal !== "unhide" ? (
-              <label className="block text-xs text-slate-700">사유 (5자 이상)
-                <textarea value={reason} onChange={(e) => setReason(e.target.value)} className="mt-1 w-full rounded-lg border border-slate-200 p-2 text-sm" rows={3} />
-              </label>
-            ) : null}
-            <label className="block text-xs text-slate-700">확인 — 정확히 &quot;EXECUTE&quot; 입력
-              <input value={confirmText} onChange={(e) => setConfirmText(e.target.value)} className="mt-1 w-full rounded-lg border border-slate-200 p-2 text-sm" />
+            <h3 className="font-semibold text-slate-900">게시물 삭제</h3>
+            <p className="text-xs text-slate-600 line-clamp-3">
+              <span className="font-medium text-slate-800">{target.author_name}</span> · {target.excerpt}
+            </p>
+            <label className="block text-xs text-slate-700">
+              삭제 사유 (5자 이상)
+              <textarea
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                rows={3}
+                className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-sm"
+                placeholder="예: 욕설/혐오 표현, 음란물, 스팸 등"
+              />
             </label>
             <div className="flex gap-2 justify-end">
-              <button type="button" onClick={() => setModal(null)} className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm">취소</button>
-              <button type="button" disabled={pending} onClick={executeModal} className="rounded-lg bg-red-600 disabled:opacity-50 text-white px-4 py-2 text-sm">실행</button>
+              <button
+                type="button"
+                onClick={() => setTarget(null)}
+                className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm"
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                disabled={reason.trim().length < 5 || pending}
+                onClick={executeDelete}
+                className="rounded-lg bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white px-4 py-2 text-sm"
+              >
+                {pending ? "삭제 중..." : "삭제"}
+              </button>
             </div>
           </div>
+        </div>
+      ) : null}
+
+      {toast ? (
+        <div className="fixed bottom-6 right-6 z-50 rounded-2xl bg-slate-900/85 text-white text-sm px-4 py-3 shadow-card max-w-md">
+          {toast}
+          <button className="ml-3 underline opacity-80" onClick={() => setToast(null)} type="button">닫기</button>
         </div>
       ) : null}
     </div>

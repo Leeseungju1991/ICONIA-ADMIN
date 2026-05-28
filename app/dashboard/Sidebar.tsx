@@ -44,7 +44,6 @@ const nav: NavItem[] = [
       { to: "/dashboard/content/catalog", label: "도감" },
     ],
   },
-  { to: "/dashboard/feed", label: "피드 관리", icon: FeedIcon },
   { to: "/dashboard/community", label: "피드 타임라인", icon: MegaphoneIcon },
   { to: "/dashboard/notice-push", label: "공지·푸시 관리", icon: BellIcon },
   { to: "/dashboard/legal", label: "법률 관리", icon: BookIcon },
@@ -127,7 +126,7 @@ function subtitleFor(to: string): string {
     case "/dashboard/ota": return "펌웨어 업로드·채널 배포·롤백 관리 (ESP32 OTA).";
     case "/dashboard/personas": return "SOUL 파일 업로드·검수·라이브 전환·롤백.";
     case "/dashboard/reports": return "이용자 리뷰와 신고된 게시물을 검토·처리합니다.";
-    case "/dashboard/community": return "피드 타임라인을 직접 브라우즈하고 게시물·댓글을 모더레이션합니다.";
+    case "/dashboard/community": return "신고된 피드 목록 — 각 항목의 [삭제] 버튼으로 takedown 처리.";
     case "/dashboard/feed": return "피드 게시물 검색·숨김·복구·삭제 + 댓글 미리보기.";
     case "/dashboard/notices": return "앱·웹 공지사항과 메인 배너를 등록·관리합니다.";
     case "/dashboard/notice-push": return "공지·배너 작성 + 푸시 알림 발송 통합.";
