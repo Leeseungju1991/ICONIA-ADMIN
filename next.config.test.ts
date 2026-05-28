@@ -69,6 +69,8 @@ describe("next.config security", () => {
   });
 
   it("CSP locks down default-src/object-src/frame-ancestors/form-action/base-uri", async () => {
+    // upgrade-insecure-requests 는 prod 만 — dev/test 에선 http://localhost 강제 차단을 막기 위해 제외.
+    (process.env as { NODE_ENV?: string }).NODE_ENV = "production";
     const cfg = await loadConfig();
     const blocks = await cfg.headers!();
     const csp = headerMap(blocks[0])["Content-Security-Policy"];

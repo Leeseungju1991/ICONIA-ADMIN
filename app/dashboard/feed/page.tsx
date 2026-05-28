@@ -179,6 +179,18 @@ export default function FeedPage() {
         <StatCard label="전체 게시물" value={String(total)} accent="orange" />
       </section>
 
+      {error?.unreachable ? (
+        <div
+          role="status"
+          className="rounded-2xl border border-amber-200 bg-amber-50/70 px-4 py-3 text-sm text-amber-800"
+        >
+          <span className="font-semibold mr-2">준비 중</span>
+          <span className="text-amber-700">
+            Server 피드 엔드포인트가 아직 응답하지 않습니다. 다른 메뉴는 정상 이용 가능합니다.
+          </span>
+        </div>
+      ) : null}
+
       <PanelCard
         title="피드 게시물"
         actions={
