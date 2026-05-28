@@ -53,6 +53,8 @@ ICONIA 운영자 콘솔 — Next.js 14 (App Router) · React 18 · Tailwind 3.
 
 ## 3. 기능
 
+> **Contract Matrix:** ADMIN ↔ SERVER endpoint 정합 매트릭스는 [`docs/contract-matrix.md`](docs/contract-matrix.md). 전체 정본은 `ICONIA-SERVER/docs/contract-matrix.md`. 정본 정책: **SERVER 가 single source of truth — ADMIN 은 SERVER spec 에 맞춤.** 회귀 가드는 `lib/adminApi.contractAlignment.test.ts` 가 담당.
+
 ### 3.1 환경 전환
 - **단일 토글** — `.env` 의 `DEPLOY_TARGET=local|aws` 한 줄로 로컬/운영 자동 전환
 - `aws` 토글 시 평문 http URL 차단, HTTPS 강제

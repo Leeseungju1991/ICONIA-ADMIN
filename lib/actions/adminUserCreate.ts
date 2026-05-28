@@ -20,7 +20,8 @@ export type CreateAdminUserInputClient = {
   email: string;
   password: string;
   displayName?: string;
-  role?: "user" | "operator" | "admin";
+  // SERVER zod 가 현재 `"user"` 만 허용. operator/admin 은 별도 operatorRoutes 사용.
+  role?: "user";
   autoVerified?: boolean;
   agreedTermsVersion: string;
   ageVerified: boolean;

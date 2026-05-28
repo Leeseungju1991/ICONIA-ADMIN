@@ -2610,7 +2610,10 @@ export type AdminCreateUserInput = {
   email: string;
   password: string;
   displayName?: string;
-  role?: "user" | "operator" | "admin";
+  // SERVER `adminUserCreateSchema` 의 role enum 은 현재 `"user"` 만 허용.
+  // operator / admin 계정은 별도 endpoint (operatorService) 가 정본 — 본 wrapper 는
+  // 일반 사용자 직추가 전용. (2026-05-28 contract 정합 라운드 — operator/admin 옵션 제거)
+  role?: "user";
   autoVerified?: boolean;
   agreedTermsVersion: string;
   ageVerified: boolean;
