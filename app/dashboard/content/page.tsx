@@ -42,12 +42,7 @@ export default function ContentHubPage() {
 
   return (
     <div className="space-y-6">
-      <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <StatCard
-          label="피드 게시물"
-          value={counts.feed?.toLocaleString() ?? "—"}
-          accent="blue"
-        />
+      <section className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <StatCard
           label="커머스 상품"
           value={counts.commerce?.toLocaleString() ?? "—"}
@@ -77,16 +72,10 @@ export default function ContentHubPage() {
           </div>
         }
       >
-        {loading && counts.feed === null ? (
+        {loading && counts.commerce === null ? (
           <LoadingState />
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <ContentTile
-              title="피드"
-              hint="피드 게시물 검색·숨김·복구·삭제."
-              count={counts.feed}
-              href="/dashboard/feed"
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <ContentTile
               title="커머스"
               hint="커머스 상품 가격 정보 — 추가·제거."

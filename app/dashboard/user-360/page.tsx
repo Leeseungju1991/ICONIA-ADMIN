@@ -5,6 +5,7 @@ import { PanelCard } from "../_components/PanelCard";
 import { UserSnapshotGrid, type ActionKey } from "../_components/UserSnapshotGrid";
 import { UserTimeline } from "../_components/UserTimeline";
 import { fetchUser360Action, fetchUser360TimelineAction, type User360ActionResult, type User360TimelineResult } from "@/lib/actions/user360";
+import { listUsersAction, type ListUsersResult } from "@/lib/actions/usersList";
 import { recordOpsAuditWithSilentRetry } from "@/lib/opsAuditTrail";
 
 const ROLE: import("@/lib/operatorRoles").OperatorRole = "superadmin"; // TODO: layout 에서 prop 으로 주입
@@ -20,6 +21,17 @@ export default function User360Page() {
   const [reasonModal, setReasonModal] = useState<{ key: ActionKey; serial?: string } | null>(null);
   const [reason, setReason] = useState("");
   const [confirmText, setConfirmText] = useState("");
+
+  // 전체 사용자 list (이메일+UUID 표) — 페이지 진입 시 자동 로드.
+  const [usersList, setUsersList] = useState<ListUsersResult | null>(null);
+  const [listLoading, startListLoad] = useTransition();
+
+  function loadUsersList(emailQ: string = "") {
+    startListLoad(async () => {
+      const r = await listUsersAction({ email: emailQ, limit: 50 });
+      setUsersList(r);
+    });
+  }
 
   function runLookup(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -37,6 +49,8 @@ export default function User360Page() {
   }
 
   useEffect(() => {
+    // 페이지 진입 시 전체 사용자 list 자동 로드.
+    loadUsersList("");
     if (initial) {
       start(async () => {
         const [s, t] = await Promise.all([
@@ -113,6 +127,93 @@ export default function User360Page() {
             className="flex-1 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-indigo-400" />
           <button type="submit" disabled={pending} className="rounded-2xl bg-indigo-600 hover:bg-indigo-700 px-5 py-3 text-sm font-medium text-white disabled:opacity-60">{pending ? "조회 중..." : "조회"}</button>
         </form>
+      </PanelCard>
+
+      <PanelCard
+        title="사용자 목록"
+        description={
+          usersList && usersList.ok
+            ? `이메일 · UUID · 가입일. 전체 ${usersList.total}명 중 ${usersList.users.length}명 표시.`
+            : "이메일 · UUID · 가입일."
+        }
+        actions={
+          <button
+            type="button"
+            onClick={() => loadUsersList("")}
+            disabled={listLoading}
+            className="rounded-xl bg-white/70 border border-white/70 px-3 py-1.5 text-xs disabled:opacity-60"
+          >
+            {listLoading ? "조회 중..." : "새로고침"}
+          </button>
+        }
+      >
+        {!usersList ? (
+          <div className="text-sm text-muted">불러오는 중</div>
+        ) : !usersList.ok ? (
+          <div className="text-sm text-rose-700">불러오기 실패: {usersList.message}</div>
+        ) : usersList.users.length === 0 ? (
+          <div className="text-sm text-muted">등록된 사용자가 없습니다.</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead>
+                <tr className="text-left text-muted border-b border-slate-200">
+                  <th className="px-2 py-2 font-medium">이메일</th>
+                  <th className="px-2 py-2 font-medium">표시 이름</th>
+                  <th className="px-2 py-2 font-medium">UUID</th>
+                  <th className="px-2 py-2 font-medium">상태</th>
+                  <th className="px-2 py-2 font-medium">가입일</th>
+                  <th className="px-2 py-2"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {usersList.users.map((u) => (
+                  <tr key={u.id} className="border-b border-slate-100 hover:bg-slate-50">
+                    <td className="px-2 py-2 text-slate-800">{u.email}</td>
+                    <td className="px-2 py-2 text-slate-700">{u.display_name || "—"}</td>
+                    <td className="px-2 py-2 font-mono text-[11px] text-slate-500">{u.id}</td>
+                    <td className="px-2 py-2">
+                      <span
+                        className={
+                          u.account_status === "active"
+                            ? "chip chip-success"
+                            : u.account_status === "paused"
+                              ? "chip chip-warn"
+                              : "chip chip-muted"
+                        }
+                      >
+                        {u.account_status ?? "—"}
+                      </span>
+                    </td>
+                    <td className="px-2 py-2 text-xs text-muted">
+                      {u.created_at ? u.created_at.slice(0, 10) : "—"}
+                    </td>
+                    <td className="px-2 py-2 text-right">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setQ(u.email);
+                          router.replace(`/dashboard/user-360?q=${encodeURIComponent(u.email)}`);
+                          start(async () => {
+                            const [s, t] = await Promise.all([
+                              fetchUser360Action(u.email),
+                              fetchUser360TimelineAction(u.email),
+                            ]);
+                            setSnap(s);
+                            setTl(t);
+                          });
+                        }}
+                        className="rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-xs hover:bg-slate-50"
+                      >
+                        상세
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </PanelCard>
 
       {okSnap ? (

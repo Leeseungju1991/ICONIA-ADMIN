@@ -36,10 +36,9 @@ const nav: NavItem[] = [
   { to: "/dashboard/ai-usage", label: "AI 사용량", icon: SparkleIcon },
   {
     to: "/dashboard/content",
-    label: "콘텐츠 (피드/커머스/도감)",
+    label: "콘텐츠 (커머스/도감)",
     icon: BookIcon,
     children: [
-      { to: "/dashboard/feed", label: "피드" },
       { to: "/dashboard/content/commerce", label: "커머스" },
       { to: "/dashboard/content/catalog", label: "도감" },
     ],
