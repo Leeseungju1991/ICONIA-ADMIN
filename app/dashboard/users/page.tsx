@@ -230,14 +230,13 @@ export default function UsersPage() {
       align: "right",
       render: (r) => (
         <div className="flex gap-1.5 justify-end">
-          <button className="btn-outline text-xs" onClick={() => setSelected(r)} type="button">
-            상세
-          </button>
           <button
             className="rounded-lg bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-xs px-3 py-1.5"
             type="button"
             disabled={r.account_status === "deleted"}
             onClick={async () => {
+              // 2026-06-01 — 사용자 요청: 상세 버튼 제거 + 삭제만 남김.
+              // 삭제 확인 단계는 EXECUTE 문구 + 사유 5자 이상으로 사고 방지 (audit 기록).
               if (!twoStepConfirm(`사용자 "${maskEmail(r.email)}" 삭제`)) {
                 setToast("삭제 취소 — 확인 문구 불일치.");
                 return;
