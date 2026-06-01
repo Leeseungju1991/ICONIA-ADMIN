@@ -26,6 +26,7 @@ import {
   type PipaActionResult,
 } from "@/lib/actions/pipa";
 import { listUsersAction } from "@/lib/actions/usersList";
+import { getUserDetailAction } from "@/lib/actions/userDetail";
 import { createAdminUserAction } from "@/lib/actions/adminUserCreate";
 import type { PipaUserRow, UserRow as ServerUserRow } from "@/lib/adminApi";
 
@@ -492,9 +493,41 @@ function UserDetailDrawer({
     });
   }
 
+  // 2026-06-01 — P0 fix: drawer 가 화면에 안 보인다는 보고. z-index 를 z-50 으로 올리고
+  // Server `GET /api/v1/admin/users/:id` 로 fresh detail (active_session_count 포함) fetch.
+  const [detail, setDetail] = useState<{
+    active_session_count: number | null;
+    fetchError: string | null;
+    loading: boolean;
+  }>({ active_session_count: null, fetchError: null, loading: true });
+
+  useEffect(() => {
+    let alive = true;
+    void (async () => {
+      const r = await getUserDetailAction({ userId: user.id });
+      if (!alive) return;
+      if (r.ok) {
+        setDetail({
+          active_session_count: r.data.active_session_count ?? 0,
+          fetchError: null,
+          loading: false,
+        });
+      } else {
+        setDetail({
+          active_session_count: null,
+          fetchError: r.message,
+          loading: false,
+        });
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [user.id]);
+
   return (
-    <div className="fixed inset-0 z-40 flex items-end sm:items-center justify-center sm:justify-end p-3 sm:p-6 bg-black/30">
-      <div className="w-full max-w-md glass-panel rounded-3xl p-6 relative">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:justify-end p-3 sm:p-6 bg-black/30">
+      <div className="w-full max-w-md glass-panel rounded-3xl p-6 relative max-h-[90vh] overflow-y-auto">
         <button
           className="absolute right-4 top-4 rounded-xl px-3 py-1.5 bg-white/70 border border-white/70 text-xs text-slate-600"
           onClick={onClose}
@@ -513,6 +546,16 @@ function UserDetailDrawer({
           <Row k="보유 인형" v={`${user.doll_count}개`} />
           <Row k="가입일" v={formatDate(user.created_at)} />
           <Row k="최근 로그인" v={formatDate(user.last_login_at)} />
+          <Row
+            k="활성 세션"
+            v={
+              detail.loading
+                ? "로딩 중..."
+                : detail.fetchError
+                  ? <span className="text-xs text-amber-700">조회 실패</span>
+                  : `${detail.active_session_count ?? 0}개`
+            }
+          />
         </dl>
 
         {!unmasked ? (

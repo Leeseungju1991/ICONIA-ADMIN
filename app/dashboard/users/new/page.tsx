@@ -92,7 +92,10 @@ export default function NewUserPage() {
       setError(ve);
       return;
     }
-    setConfirmOpen(true);
+    // 2026-06-01 — P0 폼 미동작 fix: 확정 모달 제거 후 즉시 server 호출.
+    // 모달이 z-index 또는 portal 문제로 안 보이는 케이스가 보고되어 직접 submit 으로 단순화.
+    // 사유 5자 강제 검증 + 약관/19+ 체크 + 비밀번호 확인 매칭이 이미 완료된 상태이므로 안전.
+    submit();
   }
 
   function submit() {

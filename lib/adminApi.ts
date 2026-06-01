@@ -3115,12 +3115,23 @@ export function updateGeminiKeyQuota(args: {
   jwt: string;
   alias: string;
   tier: GeminiTier;
+  rpm?: number | null;
+  tpm?: number | null;
+  rpd?: number | null;
+  monthly_token_cap?: number | null;
+  note?: string | null;
 }): Promise<ServerResult<{ key_alias: string; tier: string }>> {
+  const body: Record<string, unknown> = { tier: args.tier };
+  if (args.rpm != null) body.rpm = args.rpm;
+  if (args.tpm != null) body.tpm = args.tpm;
+  if (args.rpd != null) body.rpd = args.rpd;
+  if (args.monthly_token_cap != null) body.monthly_token_cap = args.monthly_token_cap;
+  if (args.note != null && String(args.note).trim() !== "") body.note = args.note;
   return authedRequest({
     jwt: args.jwt,
     path: `/api/v1/admin/gemini/keys/${encodeURIComponent(args.alias)}/quota`,
     method: "PUT",
-    body: { tier: args.tier },
+    body,
   });
 }
 

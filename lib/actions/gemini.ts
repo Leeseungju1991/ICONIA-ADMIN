@@ -390,3 +390,34 @@ export async function updateGeminiKeyTierAction(args: {
   if (!res.ok) return { ok: false, message: res.message, code: res.code };
   return { ok: true, alias: res.data.key_alias, tier: res.data.tier };
 }
+
+// 2026-06-01 — 키 alias 의 tier + 한도(rpm/tpm/rpd/monthly_token_cap) 통합 upsert.
+// 키 평문(secret) 등록은 `.env GEMINI_API_KEYS` 운영 절차 — 본 액션은 등록된 alias 의
+// 한도 metadata 만 갱신. server PUT /api/v1/admin/gemini/keys/:alias/quota.
+export async function upsertGeminiKeyQuotaAction(args: {
+  alias: string;
+  tier: GeminiTier;
+  rpm?: number | null;
+  tpm?: number | null;
+  rpd?: number | null;
+  monthly_token_cap?: number | null;
+  note?: string | null;
+}): Promise<GeminiQuotaUpdateResult> {
+  const jwt = readSession();
+  if (!jwt) return { ok: false, message: "세션 만료" };
+  const alias = String(args.alias || "").trim();
+  if (!alias) return { ok: false, message: "alias 누락" };
+  if (alias.length > 64) return { ok: false, message: "alias 는 64자 이하" };
+  const res = await updateGeminiKeyQuota({
+    jwt,
+    alias,
+    tier: args.tier,
+    rpm: args.rpm ?? null,
+    tpm: args.tpm ?? null,
+    rpd: args.rpd ?? null,
+    monthly_token_cap: args.monthly_token_cap ?? null,
+    note: args.note ?? null,
+  });
+  if (!res.ok) return { ok: false, message: res.message, code: res.code };
+  return { ok: true, alias: res.data.key_alias, tier: res.data.tier };
+}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition, type FormEvent } from "react";
 import { PanelCard } from "../_components/PanelCard";
 import { LoadingState, EmptyState } from "../_components/CardStates";
 import {
@@ -8,6 +8,7 @@ import {
   fetchGeminiUsageAction,
   fetchGeminiQuotaAlertsAction,
   updateGeminiKeyTierAction,
+  upsertGeminiKeyQuotaAction,
 } from "@/lib/actions/gemini";
 import type {
   GeminiKeyRow,
@@ -224,21 +225,46 @@ export default function GeminiClient() {
         )}
       </PanelCard>
 
-      {/* ───────────────── 4. 키 추가 안내 ───────────────── */}
+      {/* ───────────────── 4. 키 추가 / 한도 등록 폼 ───────────────── */}
       <PanelCard
-        title="키 추가"
-        description="신규 API Key 발급은 Google AI Studio (https://ai.google.dev) 에서 수행 후 환경 변수 GEMINI_API_KEYS 에 등록 — server-side 정본."
+        title="키 등록 · 한도 설정"
+        description="키 별칭(alias) 의 tier 와 한도(RPM/TPM/RPD/월간 토큰 cap)를 등록·수정합니다. 키 평문(secret)은 EC2 .env GEMINI_API_KEYS 에 운영자가 직접 추가하는 별도 절차이며 본 화면에서는 다루지 않습니다."
       >
-        <div className="rounded-xl border border-slate-200 bg-slate-50/60 px-3 py-3 text-sm text-slate-700">
-          <div className="font-medium mb-1">키 추가 절차</div>
-          <ol className="list-decimal pl-5 space-y-1 text-xs">
-            <li>https://ai.google.dev/ 에서 신규 API Key 생성</li>
-            <li>EC2 `.env` 의 <code>GEMINI_API_KEYS</code> 에 콤마로 append (재시작 필요)</li>
-            <li>본 화면 새로고침 — 추가된 키가 24h 윈도우 통계에 반영</li>
+        <KeyRegisterForm
+          existingAliases={(keys?.items || []).map((k) => k.id)}
+          disabled={mutating}
+          onSubmit={async (form) => {
+            return new Promise<void>((resolve) => {
+              startMutate(async () => {
+                const r = await upsertGeminiKeyQuotaAction({
+                  alias: form.alias,
+                  tier: TIER_TO_SERVER[form.tier],
+                  rpm: form.rpm,
+                  tpm: form.tpm,
+                  rpd: form.rpd,
+                  monthly_token_cap: form.monthly_token_cap,
+                  note: form.note,
+                });
+                if (!r.ok) {
+                  setToast(`등록 실패: ${messageForCode(r.code, r.message)}`);
+                } else {
+                  setToast(`등록 완료: ${r.alias} → ${r.tier}`);
+                  reload();
+                }
+                resolve();
+              });
+            });
+          }}
+        />
+        <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50/60 px-3 py-3 text-xs text-slate-700">
+          <div className="font-medium mb-1 text-sm">키 평문(secret) 추가 절차 (별도)</div>
+          <ol className="list-decimal pl-5 space-y-1">
+            <li>https://ai.google.dev/ 에서 신규 API Key 발급 (운영자 직접)</li>
+            <li>EC2 <code>.env</code> 의 <code>GEMINI_API_KEYS</code> 에 콤마 append → 서비스 재시작</li>
+            <li>본 화면 위 폼에서 해당 키의 alias 와 tier·한도 등록 → 사용량 추적 시작</li>
           </ol>
           <div className="mt-2 text-[11px] text-muted">
-            * 운영 규칙: 키 평문은 admin 콘솔에 노출되지 않음. 키 추가 mutation API
-            는 secops/sre 가 운영 채널에서 직접 실행. 본 화면은 가이드만 표시.
+            * 운영 규칙: 키 평문은 admin 콘솔에 노출되지 않음 · 본 폼은 등록된 alias 의 metadata(quota) 만 갱신.
           </div>
         </div>
         {recommendations.some((r) => r.rec.action === "suggest_add_key") ? (
@@ -333,3 +359,170 @@ function UsageStat({
 // `nextTier` 가 GeminiClient 직접 호출되진 않지만, recommend 가 반환한 next_tier 가
 // null 일 수도 있어 lint 경고 차단용으로 import 표면을 유지. 호출되진 않음.
 void nextTier;
+
+// ───────────────────────────────────────────────────────────────────────
+// KeyRegisterForm — alias + tier + quota 등록 폼.
+//   alias  : 키 별칭 (server keyPool aliasFor 와 일치해야 추적 매칭).
+//   tier   : free / tier1 / tier2 / tier3 (server 측 enterprise 는 별도 협의).
+//   rpm/tpm/rpd/monthly_token_cap : 선택 입력 — 비우면 server 가 tier 기본값 적용.
+//   note   : 메모 (예: "결제 카드 A · 2026Q3 발급").
+// 제출: upsertGeminiKeyQuotaAction → PUT /api/v1/admin/gemini/keys/:alias/quota.
+// ───────────────────────────────────────────────────────────────────────
+type FormPayload = {
+  alias: string;
+  tier: GeminiKeyTier;
+  rpm: number | null;
+  tpm: number | null;
+  rpd: number | null;
+  monthly_token_cap: number | null;
+  note: string | null;
+};
+
+function KeyRegisterForm({
+  existingAliases,
+  disabled,
+  onSubmit,
+}: {
+  existingAliases: string[];
+  disabled: boolean;
+  onSubmit: (form: FormPayload) => Promise<void>;
+}) {
+  const [alias, setAlias] = useState("");
+  const [tier, setTier] = useState<GeminiKeyTier>("tier1");
+  const [rpm, setRpm] = useState("");
+  const [tpm, setTpm] = useState("");
+  const [rpd, setRpd] = useState("");
+  const [cap, setCap] = useState("");
+  const [note, setNote] = useState("");
+
+  const trimmed = alias.trim();
+  const isExisting = trimmed.length > 0 && existingAliases.includes(trimmed);
+  const valid = trimmed.length >= 1 && trimmed.length <= 64;
+
+  function parseInt0(s: string): number | null {
+    const t = s.trim();
+    if (!t) return null;
+    const n = Number(t);
+    if (!Number.isFinite(n) || n < 0) return null;
+    return Math.floor(n);
+  }
+
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    if (!valid || disabled) return;
+    await onSubmit({
+      alias: trimmed,
+      tier,
+      rpm: parseInt0(rpm),
+      tpm: parseInt0(tpm),
+      rpd: parseInt0(rpd),
+      monthly_token_cap: parseInt0(cap),
+      note: note.trim() || null,
+    });
+    // 성공 시 입력값 유지 (운영자가 다음 키도 비슷한 값으로 등록 가능). alias 만 비움.
+    setAlias("");
+  }
+
+  return (
+    <form onSubmit={submit} className="space-y-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <label className="text-xs text-slate-700">
+          키 alias <span className="text-rose-600">*</span>
+          <input
+            value={alias}
+            onChange={(e) => setAlias(e.target.value)}
+            placeholder="예: AIza#0 (server keyPool aliasFor 형식)"
+            className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm font-mono"
+            maxLength={64}
+          />
+          {isExisting ? (
+            <div className="text-[10px] text-amber-700 mt-0.5">
+              기존 alias — 한도가 갱신(upsert)됩니다.
+            </div>
+          ) : (
+            <div className="text-[10px] text-muted mt-0.5">
+              .env GEMINI_API_KEYS 에 추가된 키의 alias 와 정확히 일치해야 사용량 매칭됨.
+            </div>
+          )}
+        </label>
+        <label className="text-xs text-slate-700">
+          Tier <span className="text-rose-600">*</span>
+          <select
+            value={tier}
+            onChange={(e) => setTier(e.target.value as GeminiKeyTier)}
+            className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm"
+          >
+            <option value="free">free</option>
+            <option value="tier1">tier_1</option>
+            <option value="tier2">tier_2</option>
+            <option value="tier3">tier_3</option>
+          </select>
+        </label>
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <label className="text-xs text-slate-700">
+          RPM
+          <input
+            value={rpm}
+            onChange={(e) => setRpm(e.target.value)}
+            inputMode="numeric"
+            placeholder="기본값"
+            className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm font-mono"
+          />
+        </label>
+        <label className="text-xs text-slate-700">
+          TPM
+          <input
+            value={tpm}
+            onChange={(e) => setTpm(e.target.value)}
+            inputMode="numeric"
+            placeholder="기본값"
+            className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm font-mono"
+          />
+        </label>
+        <label className="text-xs text-slate-700">
+          RPD
+          <input
+            value={rpd}
+            onChange={(e) => setRpd(e.target.value)}
+            inputMode="numeric"
+            placeholder="기본값"
+            className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm font-mono"
+          />
+        </label>
+        <label className="text-xs text-slate-700">
+          월 토큰 cap
+          <input
+            value={cap}
+            onChange={(e) => setCap(e.target.value)}
+            inputMode="numeric"
+            placeholder="기본값"
+            className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm font-mono"
+          />
+        </label>
+      </div>
+      <label className="block text-xs text-slate-700">
+        메모 (선택)
+        <input
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          placeholder="예: 결제 카드 A · 2026Q3 발급"
+          className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm"
+          maxLength={200}
+        />
+      </label>
+      <div className="flex items-center justify-end gap-2">
+        <span className="text-[11px] text-muted">
+          비워둔 필드는 tier 기본값 적용.
+        </span>
+        <button
+          type="submit"
+          disabled={!valid || disabled}
+          className="rounded-lg bg-slate-900 hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm px-4 py-2"
+        >
+          {disabled ? "등록 중..." : isExisting ? "한도 갱신" : "키 등록"}
+        </button>
+      </div>
+    </form>
+  );
+}

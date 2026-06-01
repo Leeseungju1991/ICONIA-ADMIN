@@ -1,15 +1,23 @@
 /** @type {import('next').NextConfig} */
 
-// Server Actions allowedOrigins:
+// Server Actions allowedOrigins / allowedForwardedHosts:
 //   dev: localhost:3000 항상 허용.
 //   prod: env ADMIN_ALLOWED_ORIGIN (콤마 구분 다중 호스트) — 누락 시 dev 만으로 동작.
-// 정본: docs/api-contracts.md §2 + admin/docs/api_contract.md.
+//   ADMIN_ALLOWED_FORWARDED_HOSTS (별도 env, 콤마 구분) — CloudFront/ALB 가 origin host 와
+//     다른 값을 x-forwarded-host 에 채울 때 추가 허용 (예: CloudFront 가 Host 를 origin
+//     으로 forward 하면서 ALB 의 :8082 port 가 붙은 경우). 미설정 시 ADMIN_ALLOWED_ORIGIN
+//     fallback.
 const ADMIN_ALLOWED_ORIGINS = (() => {
   const fromEnv = (process.env.ADMIN_ALLOWED_ORIGIN || "")
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
   // 항상 dev origin 포함 (개발자 로컬 개발용).
+  return Array.from(new Set(["localhost:3000", ...fromEnv]));
+})();
+const ADMIN_ALLOWED_FORWARDED_HOSTS = (() => {
+  const raw = process.env.ADMIN_ALLOWED_FORWARDED_HOSTS || process.env.ADMIN_ALLOWED_ORIGIN || "";
+  const fromEnv = raw.split(",").map((s) => s.trim()).filter(Boolean);
   return Array.from(new Set(["localhost:3000", ...fromEnv]));
 })();
 
@@ -66,6 +74,10 @@ const nextConfig = {
       // 운영 설정: env ADMIN_ALLOWED_ORIGIN 에 쉼표 구분 origin 나열 (admin.iconia.example).
       // 미설정 시 localhost:3000 만 허용 (개발 전용). 운영 배포 전에 반드시 설정.
       allowedOrigins: ADMIN_ALLOWED_ORIGINS,
+      // CloudFront → ALB origin port(:8082) 가 x-forwarded-host 에 붙어 origin 과 다를 때
+      // Next 14.2 의 CSRF check 가 abort 하는 케이스 회피. ADMIN_ALLOWED_FORWARDED_HOSTS
+      // (또는 fallback 으로 ADMIN_ALLOWED_ORIGIN) 의 host 들을 forwarded-host 화이트리스트로.
+      allowedForwardedHosts: ADMIN_ALLOWED_FORWARDED_HOSTS,
     },
   },
   async headers() {
