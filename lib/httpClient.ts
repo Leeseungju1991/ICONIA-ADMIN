@@ -55,16 +55,8 @@ export async function authedRequest<T>(
   const env = loadEnv();
   const headers: Record<string, string> = {
     Accept: "application/json",
+    Authorization: `Bearer ${args.jwt}`,
   };
-  // Dev 한정 X-Admin-Token 우회 (2026-05-22):
-  //   server adminGate 가 Bearer 우선 → operator service 미부팅 시 503.
-  //   local 토글 + ADMIN_LEGACY_TOKEN 세팅된 경우 Bearer 대신 X-Admin-Token 만 보냄.
-  //   loadEnv() 가 aws 토글에서는 ADMIN_LEGACY_TOKEN 을 undefined 로 강제하므로 prod 안전.
-  if (env.ADMIN_LEGACY_TOKEN) {
-    headers["X-Admin-Token"] = env.ADMIN_LEGACY_TOKEN;
-  } else {
-    headers["Authorization"] = `Bearer ${args.jwt}`;
-  }
   if (args.body !== undefined) headers["Content-Type"] = "application/json";
   if (args.idempotencyKey) headers["Idempotency-Key"] = args.idempotencyKey;
   if (args.requestId) headers["X-Request-Id"] = args.requestId;

@@ -962,7 +962,7 @@ export type AdminOverview = {
   server_health: "ok" | "degraded" | "down";
   firmware_critical_count: number;
   reports_pending: number;
-  /** Phase4-A — 6도메인 health probe. AWS는 DEPLOY_TARGET=local 일 때 not_applicable. */
+  /** Phase4-A — 6도메인 health probe. 해당 도메인 미적용 시 not_applicable. */
   domains?: {
     hw: DomainHealth;
     server: DomainHealth;

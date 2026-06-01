@@ -1,16 +1,15 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import {
-  loadEnv,
-  loadIconiaEnv,
-  loadIdleTimeoutMinutes,
-  loadDeployTarget,
-} from "./env";
+import { loadEnv, loadIconiaEnv, loadIdleTimeoutMinutes } from "./env";
+
+// AWS 실서버 정본 ALB URL — env override 가 없을 때의 단일 데이터 대상.
+const AWS_SERVER_URL =
+  "http://iconia-prod-alb-1600486872.ap-northeast-2.elb.amazonaws.com";
 
 function setNodeEnv(v: string) {
   (process.env as { NODE_ENV?: string }).NODE_ENV = v;
 }
 
-describe("loadEnv", () => {
+describe("loadEnv — AWS 실서버 단일 연결", () => {
   let original: NodeJS.ProcessEnv;
 
   beforeEach(() => {
@@ -21,7 +20,12 @@ describe("loadEnv", () => {
     process.env = original;
   });
 
-  it("returns ICONIA_SERVER_URL when set", () => {
+  it("defaults ICONIA_SERVER_URL to the AWS ALB when unset", () => {
+    delete process.env.ICONIA_SERVER_URL;
+    expect(loadEnv().ICONIA_SERVER_URL).toBe(AWS_SERVER_URL);
+  });
+
+  it("env override wins over the AWS default", () => {
     process.env.ICONIA_SERVER_URL = "https://api.example.com";
     setNodeEnv("production");
     expect(loadEnv().ICONIA_SERVER_URL).toBe("https://api.example.com");
@@ -37,87 +41,14 @@ describe("loadEnv", () => {
     expect(() => loadEnv()).toThrow(/ICONIA_SERVER_URL/);
   });
 
-  it("COOKIE_SECURE=true when NODE_ENV=production", () => {
-    process.env.ICONIA_SERVER_URL = "https://api.example.com";
-    setNodeEnv("production");
+  it("COOKIE_SECURE defaults to true", () => {
+    delete process.env.COOKIE_SECURE_OVERRIDE;
     expect(loadEnv().COOKIE_SECURE).toBe(true);
   });
 
-  it("COOKIE_SECURE=false when NODE_ENV is not production and target=local", () => {
-    process.env.ICONIA_SERVER_URL = "https://api.example.com";
-    process.env.DEPLOY_TARGET = "local";
-    setNodeEnv("development");
+  it("COOKIE_SECURE=false only when COOKIE_SECURE_OVERRIDE=false", () => {
+    process.env.COOKIE_SECURE_OVERRIDE = "false";
     expect(loadEnv().COOKIE_SECURE).toBe(false);
-  });
-});
-
-describe("DEPLOY_TARGET — localhost ↔ AWS 단일 토글", () => {
-  let original: NodeJS.ProcessEnv;
-
-  beforeEach(() => {
-    original = { ...process.env };
-  });
-
-  afterEach(() => {
-    process.env = original;
-  });
-
-  it("defaults to local when DEPLOY_TARGET is unset", () => {
-    delete process.env.DEPLOY_TARGET;
-    expect(loadDeployTarget()).toBe("local");
-  });
-
-  it("accepts local / aws (case-insensitive)", () => {
-    process.env.DEPLOY_TARGET = "AWS";
-    expect(loadDeployTarget()).toBe("aws");
-    process.env.DEPLOY_TARGET = "local";
-    expect(loadDeployTarget()).toBe("local");
-  });
-
-  it("throws when DEPLOY_TARGET is an unknown value", () => {
-    process.env.DEPLOY_TARGET = "staging";
-    expect(() => loadDeployTarget()).toThrow(/DEPLOY_TARGET/);
-  });
-
-  it("local toggle: ICONIA_SERVER_URL defaults to localhost:8080", () => {
-    process.env.DEPLOY_TARGET = "local";
-    delete process.env.ICONIA_SERVER_URL;
-    delete process.env.ICONIA_ENV;
-    setNodeEnv("development");
-    const env = loadEnv();
-    expect(env.ICONIA_SERVER_URL).toBe("http://localhost:8080");
-    expect(env.ICONIA_ENV).toBe("development");
-    expect(env.COOKIE_SECURE).toBe(false);
-    expect(env.DEPLOY_TARGET).toBe("local");
-  });
-
-  it("aws toggle: ICONIA_ENV=production + COOKIE_SECURE=true from preset", () => {
-    process.env.DEPLOY_TARGET = "aws";
-    process.env.ICONIA_SERVER_URL = "https://api.iconia.example.com";
-    delete process.env.ICONIA_ENV;
-    setNodeEnv("development");
-    const env = loadEnv();
-    expect(env.ICONIA_ENV).toBe("production");
-    expect(env.COOKIE_SECURE).toBe(true);
-    expect(env.DEPLOY_TARGET).toBe("aws");
-  });
-
-  it("aws toggle throws when ICONIA_SERVER_URL override is missing", () => {
-    process.env.DEPLOY_TARGET = "aws";
-    delete process.env.ICONIA_SERVER_URL;
-    expect(() => loadEnv()).toThrow(/ICONIA_SERVER_URL is required/);
-  });
-
-  it("aws toggle rejects a plain-http Server URL", () => {
-    process.env.DEPLOY_TARGET = "aws";
-    process.env.ICONIA_SERVER_URL = "http://api.iconia.example.com";
-    expect(() => loadEnv()).toThrow(/aws requires an https/);
-  });
-
-  it("explicit ICONIA_SERVER_URL overrides the toggle preset", () => {
-    process.env.DEPLOY_TARGET = "local";
-    process.env.ICONIA_SERVER_URL = "http://127.0.0.1:9090";
-    expect(loadEnv().ICONIA_SERVER_URL).toBe("http://127.0.0.1:9090");
   });
 });
 
@@ -149,16 +80,9 @@ describe("loadIconiaEnv + loadIdleTimeoutMinutes", () => {
     expect(() => loadIconiaEnv()).toThrow(/ICONIA_ENV/);
   });
 
-  it("falls back to production when ICONIA_ENV missing and DEPLOY_TARGET=aws", () => {
+  it("defaults to production when ICONIA_ENV is unset", () => {
     delete process.env.ICONIA_ENV;
-    process.env.DEPLOY_TARGET = "aws";
     expect(loadIconiaEnv()).toBe("production");
-  });
-
-  it("falls back to development when ICONIA_ENV missing and DEPLOY_TARGET=local", () => {
-    delete process.env.ICONIA_ENV;
-    process.env.DEPLOY_TARGET = "local";
-    expect(loadIconiaEnv()).toBe("development");
   });
 
   it("defaults to 30 when ADMIN_IDLE_TIMEOUT_MINUTES is unset", () => {

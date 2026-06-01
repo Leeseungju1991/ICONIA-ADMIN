@@ -49,10 +49,12 @@ describe("writeSession", () => {
     expect(call.maxAge).toBe(30 * 60);
   });
 
-  it("uses secure=false when not production", () => {
+  it("uses secure=false only when COOKIE_SECURE_OVERRIDE=false", () => {
     setNodeEnv("development");
+    process.env.COOKIE_SECURE_OVERRIDE = "false";
     writeSession({ jwt: "j", expiresAt: "2026-05-08T10:30:00.000Z" });
     expect(cookieStore.set.mock.calls[0][0].secure).toBe(false);
+    delete process.env.COOKIE_SECURE_OVERRIDE;
   });
 
   it("clamps maxAge to >= 1 second when already past", () => {
