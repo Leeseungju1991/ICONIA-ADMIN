@@ -110,48 +110,23 @@ export default function GeminiClient() {
 
   return (
     <div className="space-y-6">
-      {/* ───────────────── 1. 사용량 요약 카드 ───────────────── */}
-      <PanelCard
-        title="사용량 요약"
-        description="24h / 7d / 30d 토큰·요청·비용. range 토글은 시계열 패널에만 영향."
-        actions={
-          <div className="flex items-center gap-2">
-            {(["24h", "7d", "30d"] as Range[]).map((r) => (
-              <button
-                key={r}
-                type="button"
-                onClick={() => setRange(r)}
-                className={`rounded-lg px-3 py-1.5 text-xs border ${
-                  range === r
-                    ? "bg-slate-900 text-white border-slate-900"
-                    : "bg-white text-slate-700 border-slate-300"
-                }`}
-              >
-                {r}
-              </button>
-            ))}
-            <button
-              type="button"
-              onClick={reload}
-              disabled={loading}
-              className="rounded-lg bg-white px-3 py-1.5 text-xs text-slate-700 border border-slate-300"
-            >
-              {loading ? "조회 중..." : "새로고침"}
-            </button>
-          </div>
-        }
-      >
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <UsageStat label="24시간" data={usage} />
-          <UsageStat label="7일" data={usage7d} />
-          <UsageStat label="30일" data={usage30d} />
-        </div>
-      </PanelCard>
+      {/* 2026-06-01 — 사용자 요청으로 간소화. 사용량 요약 / 알림 히스토리는 /dashboard/ai-usage 에 있어 중복 제거.
+          본 페이지는 키별 진행률·tier 추천 + 키 등록·한도 설정 두 패널만 유지. */}
 
-      {/* ───────────────── 2. 키별 progress bar + 3. 추천 ───────────────── */}
+      {/* ───────────────── 키별 사용량 + tier 추천 ───────────────── */}
       <PanelCard
-        title="키별 사용량"
-        description="24h 한도 대비 사용량 (요청 또는 토큰 중 큰 값). 80%/95% 도달 키는 추천 카드로 표시."
+        title="키별 사용량 · 한도 추천"
+        description="24h 한도 대비 사용량. 80%/95% 도달 키는 다음 tier 상승 또는 키 추가 추천."
+        actions={
+          <button
+            type="button"
+            onClick={reload}
+            disabled={loading}
+            className="rounded-lg bg-white px-3 py-1.5 text-xs text-slate-700 border border-slate-300"
+          >
+            {loading ? "조회 중..." : "새로고침"}
+          </button>
+        }
       >
         {!keys && loading ? (
           <LoadingState />
@@ -225,10 +200,10 @@ export default function GeminiClient() {
         )}
       </PanelCard>
 
-      {/* ───────────────── 4. 키 추가 / 한도 등록 폼 ───────────────── */}
+      {/* ───────────────── 키 등록 · 한도 설정 ───────────────── */}
       <PanelCard
         title="키 등록 · 한도 설정"
-        description="키 별칭(alias) 의 tier 와 한도(RPM/TPM/RPD/월간 토큰 cap)를 등록·수정합니다. 키 평문(secret)은 EC2 .env GEMINI_API_KEYS 에 운영자가 직접 추가하는 별도 절차이며 본 화면에서는 다루지 않습니다."
+        description="키 별칭(alias)의 tier·한도를 등록 또는 수정합니다."
       >
         <KeyRegisterForm
           existingAliases={(keys?.items || []).map((k) => k.id)}
@@ -272,48 +247,6 @@ export default function GeminiClient() {
             <span className="font-semibold">권장:</span> 엔터프라이즈 한도에 근접한 키가 있습니다. 신규 키 추가를 우선 검토하세요.
           </div>
         ) : null}
-      </PanelCard>
-
-      {/* ───────────────── 5. 알림 히스토리 ───────────────── */}
-      <PanelCard
-        title="quota 알림 히스토리"
-        description="최근 20건 — open + resolved. 동일 키가 80%/95%/100% 단계로 여러 번 등록될 수 있습니다."
-      >
-        {!alerts ? (
-          <EmptyState title="알림 데이터가 없습니다." />
-        ) : alerts.items.length === 0 ? (
-          <EmptyState title="quota 알림이 없습니다. 정상 운영 중." />
-        ) : (
-          <ul className="space-y-2 text-sm">
-            {alerts.items.slice(0, 20).map((a) => (
-              <li
-                key={a.id}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-2 flex items-center justify-between gap-3"
-              >
-                <div className="min-w-0">
-                  <div className="font-medium text-slate-800">{a.key_label}</div>
-                  <div className="text-[11px] text-muted">
-                    opened {new Date(a.opened_at).toLocaleString("ko-KR")}
-                    {a.closed_at
-                      ? ` · resolved ${new Date(a.closed_at).toLocaleString("ko-KR")}`
-                      : " · open"}
-                  </div>
-                </div>
-                <span
-                  className={
-                    a.level === "exhausted"
-                      ? "chip chip-error"
-                      : a.level === "critical"
-                        ? "chip chip-error"
-                        : "chip chip-warn"
-                  }
-                >
-                  {a.level} {Math.round(a.ratio * 100)}%
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
       </PanelCard>
 
       {toast ? (

@@ -172,9 +172,10 @@ export default function User360Page() {
   }
 
   function deleteRow(userId: string, email: string) {
-    const confirm1 = window.prompt(`사용자 "${email}" 삭제\n\n강력 액션입니다. 실행하려면 정확히 "EXECUTE" 를 입력하세요.`);
-    if (confirm1 !== "EXECUTE") {
-      setToast("삭제 취소 — 확인 문구 불일치.");
+    // 2026-06-01 — 사용자 요청: 영문 "EXECUTE" 대신 한글 "삭제" 입력으로 확인.
+    const confirm1 = window.prompt(`사용자 "${email}" 삭제\n\n강력 액션입니다. 실행하려면 정확히 "삭제" 를 입력하세요.`);
+    if (confirm1 !== "삭제") {
+      setToast("삭제 취소 — 확인 문구 불일치 (정확히 '삭제' 를 입력).");
       return;
     }
     const reasonText = window.prompt("삭제 사유 (감사 로그 기록, 5자 이상)");

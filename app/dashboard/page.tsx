@@ -48,6 +48,35 @@ export default async function DashboardHome() {
     <div className="space-y-5">
       <ForbiddenNotice />
 
+      {/* 2026-06-01 — 신고 대기 강조 박스. 4-KPI 그리드 위에 큰 배너로 표시.
+          클릭 시 신고 조치 페이지(/dashboard/reports)로 이동. */}
+      <Link
+        href="/dashboard/reports"
+        className="block rounded-2xl border border-rose-200 bg-gradient-to-r from-rose-50 to-pink-50 px-5 py-4 hover:border-rose-300 hover:shadow-card transition-all"
+      >
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="rounded-xl bg-rose-100 text-rose-700 px-3 py-2 text-xs font-semibold">
+              신고 대기
+            </div>
+            <div>
+              <div className="text-3xl font-bold text-rose-900 leading-none">
+                {DASH(reportsPendingDisplay)}
+                <span className="ml-2 text-sm font-normal text-rose-700">건</span>
+              </div>
+              <div className="text-xs text-rose-700/80 mt-1">
+                {reportsPendingDisplay && reportsPendingDisplay > 0
+                  ? "검토가 필요한 신고가 있습니다. 클릭해서 조치 페이지로 이동."
+                  : "현재 검토 대기 중인 신고가 없습니다."}
+              </div>
+            </div>
+          </div>
+          <div className="text-rose-700 text-sm font-medium whitespace-nowrap">
+            신고 조치 →
+          </div>
+        </div>
+      </Link>
+
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <KpiChip
           tone="indigo"
