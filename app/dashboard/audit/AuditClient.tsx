@@ -230,18 +230,18 @@ export default function AuditClient() {
             />
           </label>
           <label className="block">
-            <span className="block text-xs text-muted mb-1">OUTCOME</span>
+            <span className="block text-xs text-muted mb-1">결과</span>
             <select
               value={outcome}
               onChange={(e) => setOutcome(e.target.value)}
               className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
             >
               <option value="">전체</option>
-              <option value="success">success</option>
-              <option value="ok">ok</option>
-              <option value="failed">failed</option>
-              <option value="error">error</option>
-              <option value="blocked">blocked</option>
+              <option value="success">성공</option>
+              <option value="ok">정상</option>
+              <option value="failed">실패</option>
+              <option value="error">오류</option>
+              <option value="blocked">차단됨</option>
             </select>
           </label>
           <label className="block">

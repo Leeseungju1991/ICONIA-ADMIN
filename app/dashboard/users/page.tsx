@@ -614,7 +614,7 @@ function UserDetailDrawer({
             탈퇴 처리
           </button>
         </div>
-        <p className="text-[11px] text-muted mt-3">※ 모든 액션 Server mutation 으로 wiring 완료. 탈퇴 처리는 PIPA finalize (30일 grace 검증). hash-chain audit_log 자동 기록.</p>
+        <p className="text-[11px] text-muted mt-3">※ 모든 액션은 즉시 적용되며 감사 로그에 자동 기록됩니다. 탈퇴 처리는 개인정보 보호법에 따라 30일 유예 기간을 거쳐 완료됩니다.</p>
       </div>
     </div>
   );

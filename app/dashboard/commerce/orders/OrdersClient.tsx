@@ -82,7 +82,7 @@ export default function OrdersClient() {
   return (
     <div className="space-y-6">
       <PanelCard
-        title="주문 목록 (display-only)"
+        title="주문 목록"
         description="조회 전용 화면입니다. 결제·환불은 외부 시스템에서 처리됩니다."
         actions={
           <div className="flex items-center gap-2">
@@ -231,7 +231,7 @@ export default function OrdersClient() {
                 )}
               </div>
               <div className="text-[11px] text-muted">
-                * 본 화면은 display-only — 결제·환불 mutation 비구현.
+                * 본 화면은 조회 전용입니다. 결제·환불 처리는 외부 시스템에서 수행됩니다.
               </div>
             </div>
           </aside>
