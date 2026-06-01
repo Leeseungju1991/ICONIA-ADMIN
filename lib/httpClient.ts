@@ -14,7 +14,7 @@
 import { loadEnv } from "./env";
 import type { ServerEnvelope, ServerResult } from "./types";
 
-export type HttpMethod = "GET" | "POST" | "PATCH" | "DELETE";
+export type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
 // 양산화 — Server 응답 hang 으로부터 관리자 패널 보호.
 //   Server 가 멈추거나 네트워크가 끊긴 채 소켓이 살아 있으면 fetch 는 무한 대기한다.

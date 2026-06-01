@@ -34,6 +34,7 @@ const nav: NavItem[] = [
   { to: "/dashboard", label: "대시보드", icon: DashboardIcon },
   { to: "/dashboard/user-360", label: "사용자 정보", icon: UsersIcon },
   { to: "/dashboard/ai-usage", label: "AI 사용량", icon: SparkleIcon },
+  { to: "/dashboard/gemini", label: "Gemini Key 관리", icon: KeyIcon },
   {
     to: "/dashboard/content",
     label: "콘텐츠 (피드/커머스/도감)",
@@ -44,10 +45,20 @@ const nav: NavItem[] = [
       { to: "/dashboard/content/catalog", label: "도감" },
     ],
   },
-  { to: "/dashboard/community", label: "피드 타임라인", icon: MegaphoneIcon },
+  {
+    to: "/dashboard/commerce",
+    label: "커머스 (배너/주문)",
+    icon: ReceiptIcon,
+    children: [
+      { to: "/dashboard/commerce/banners", label: "배너" },
+      { to: "/dashboard/commerce/orders", label: "주문 (read-only)" },
+    ],
+  },
+  { to: "/dashboard/info/faqs", label: "FAQ 관리", icon: LifebuoyIcon },
+  { to: "/dashboard/community", label: "신고된 피드", icon: MegaphoneIcon },
   { to: "/dashboard/notice-push", label: "공지·푸시 관리", icon: BellIcon },
-  { to: "/dashboard/legal", label: "법률 관리", icon: BookIcon },
   { to: "/dashboard/error-tracking", label: "오류 추적", icon: ServerIcon },
+  { to: "/dashboard/audit", label: "감사 로그", icon: ShieldIcon },
 ];
 
 // 사이드바에서 빠졌지만 직접 URL 입력 시 노출되는 페이지들의 타이틀 (TopbarRich 용).
@@ -111,6 +122,12 @@ function pageTitle(pathname: string): { title: string; subtitle: string } {
 function subtitleFor(to: string): string {
   switch (to) {
     case "/dashboard/ai-usage": return "Gemini API Key 사용량 — 키별 일일 한도, 모델별 분포, 24h/7d/30d 시계열.";
+    case "/dashboard/gemini": return "Gemini API Key 관리 — quota 추적, 업그레이드 추천, 키 추가 가이드.";
+    case "/dashboard/info/faqs": return "앱·웹 FAQ 등록·수정·비공개 처리.";
+    case "/dashboard/commerce": return "커머스 표면 운영 — 배너 / 주문 read-only.";
+    case "/dashboard/commerce/banners": return "메인 배너 등록·정렬·노출 기간 관리.";
+    case "/dashboard/commerce/orders": return "주문 조회 (display-only) — 결제·환불 액션 없음.";
+    case "/dashboard/audit": return "AuditLog 통합 뷰어 — secops+ 전용. action / outcome / 운영자 / 기간 필터.";
     case "/dashboard/moderation": return "미해결 신고 통합 — 욕설/혐오/스팸 게시물·댓글·사용자·리뷰를 한 화면에서 처리.";
     case "/dashboard/error-tracking": return "기능별 24시간 에러 — 스택, 빈도, 영향 사용자 수.";
     case "/dashboard/ota-deploy": return "펌웨어 업로드 + 디바이스 그룹 선택 + 단계 배포.";
@@ -130,7 +147,6 @@ function subtitleFor(to: string): string {
     case "/dashboard/feed": return "피드 게시물 검색·숨김·복구·삭제 + 댓글 미리보기.";
     case "/dashboard/notices": return "앱·웹 공지사항과 메인 배너를 등록·관리합니다.";
     case "/dashboard/notice-push": return "공지·배너 작성 + 푸시 알림 발송 통합.";
-    case "/dashboard/legal": return "약관 4종 활성 버전·본문 미리보기·신버전 발행.";
     case "/dashboard/users/rights": return "PIPA 제35/36/37조 사용자 권리 요청 (열람·정정·삭제·이관) 큐.";
     case "/dashboard/push": return "전체 사용자 푸시 알림을 작성·발송합니다.";
     case "/dashboard/firmware-errors": return "ESP32 OTA 실패·런타임 크래시 로그.";

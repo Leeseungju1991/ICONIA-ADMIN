@@ -42,8 +42,8 @@ export function resolveHeroMode(input: HeroInput): HeroOutput {
     return {
       mode: "warn",
       title: `신고 ${input.reports_pending}건 대기`,
-      subtitle: "검토를 기다리는 신고가 있습니다.",
-      cta: { label: "커뮤니티 모더레이션", href: "/dashboard/community?tab=reported" },
+      subtitle: "신고된 피드가 검토를 기다리고 있습니다.",
+      cta: { label: "신고된 피드 열기", href: "/dashboard/community" },
     };
   }
   if (input.server_health === "degraded") {

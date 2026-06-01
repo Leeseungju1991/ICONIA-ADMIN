@@ -16,6 +16,7 @@ import {
   pauseUser,
   resumeUser,
   mfaResetUser,
+  deleteUser,
 } from "@/lib/adminApi";
 
 export type UserMutationResult =
@@ -87,5 +88,21 @@ export async function mfaResetUserAction(args: {
   return {
     ok: true,
     note: res.data.was_enrolled ? "MFA 가 등록 해제되었습니다." : "MFA 가 비등록 상태였습니다 — 변화 없음.",
+  };
+}
+
+export async function deleteUserAction(args: {
+  userId: string;
+  reason: string;
+}): Promise<UserMutationResult> {
+  const jwt = readSession();
+  if (!jwt) return { ok: false, message: "세션이 만료되었습니다. 다시 로그인하세요." };
+  const v = validateReason(args.reason);
+  if (v) return { ok: false, message: v };
+  const res = await deleteUser({ jwt, userId: args.userId, reason: args.reason.trim() });
+  if (!res.ok) return { ok: false, message: res.message, code: res.code };
+  return {
+    ok: true,
+    note: res.data.already_deleted ? "이미 삭제된 계정이었습니다." : undefined,
   };
 }

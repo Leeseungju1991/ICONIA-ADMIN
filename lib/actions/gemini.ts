@@ -19,6 +19,7 @@
 
 import { readSession } from "@/lib/authCookie";
 import { authedRequest } from "@/lib/httpClient";
+import { updateGeminiKeyQuota, type GeminiTier } from "@/lib/adminApi";
 import type {
   AdminResult,
   GeminiKeyRow,
@@ -365,4 +366,27 @@ export async function fetchGeminiQuotaAlertsAction(): Promise<
   });
 
   return { ok: true, data: { items }, source: "server" };
+}
+
+// ── PUT /keys/:alias/quota ───────────────────────────────────────────
+// 2026-06-01 — 사용자 요청 "tier 변경" 액션. server endpoint 가 없으면 404 →
+// ERR_VALIDATION/ERR_INVALID_RESPONSE 로 fall through, UI 는 graceful toast.
+export type GeminiQuotaUpdateResult =
+  | { ok: true; alias: string; tier: string }
+  | { ok: false; message: string; code?: string };
+
+export async function updateGeminiKeyTierAction(args: {
+  alias: string;
+  tier: GeminiTier;
+}): Promise<GeminiQuotaUpdateResult> {
+  const jwt = readSession();
+  if (!jwt) return { ok: false, message: "세션 만료" };
+  if (!args.alias) return { ok: false, message: "alias 누락" };
+  const res = await updateGeminiKeyQuota({
+    jwt,
+    alias: args.alias,
+    tier: args.tier,
+  });
+  if (!res.ok) return { ok: false, message: res.message, code: res.code };
+  return { ok: true, alias: res.data.key_alias, tier: res.data.tier };
 }

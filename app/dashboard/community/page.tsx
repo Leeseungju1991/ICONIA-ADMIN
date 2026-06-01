@@ -6,6 +6,7 @@ import {
   listFeedAction,
   getCommunityHealthAction,
   takedownPostAction,
+  unhidePostAction,
 } from "@/lib/actions/community";
 import { recordOpsAuditWithSilentRetry } from "@/lib/opsAuditTrail";
 import type { FeedListItem, CommunityHealth } from "@/lib/mockFeed";
@@ -63,6 +64,23 @@ export default function CommunityPage() {
     });
   }
 
+  function executeRestore(item: FeedListItem) {
+    const id = item.id;
+    start(async () => {
+      await recordOpsAuditWithSilentRetry({
+        action: "community.unhide",
+        target_label: `게시물 · ${id}`,
+        target_id: id,
+        reason: "운영자 복귀 처리",
+        operator: "(현재 운영자 세션)",
+        outcome: "queued",
+      });
+      const r = await unhidePostAction(id);
+      setToast(r?.ok === false ? `복귀 실패: ${r.message ?? "알 수 없음"}` : `게시물 ${id} 복귀 완료`);
+      reload();
+    });
+  }
+
   return (
     <div className="space-y-4">
       {health ? <CommunityHealthChips health={health} /> : null}
@@ -108,14 +126,27 @@ export default function CommunityPage() {
                     좋아요 {it.like_count.toLocaleString()} · 댓글 {it.comment_count.toLocaleString()} · {it.created_at}
                   </div>
                 </div>
-                <button
-                  type="button"
-                  disabled={it.status === "taken_down" || pending}
-                  onClick={() => openDeleteModal(it)}
-                  className="rounded-lg bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs px-3 py-1.5 shrink-0"
-                >
-                  삭제
-                </button>
+                <div className="flex gap-2 shrink-0">
+                  {it.status === "visible" ? (
+                    <button
+                      type="button"
+                      disabled={pending}
+                      onClick={() => openDeleteModal(it)}
+                      className="rounded-lg bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs px-3 py-1.5"
+                    >
+                      삭제
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled={pending}
+                      onClick={() => executeRestore(it)}
+                      className="rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs px-3 py-1.5"
+                    >
+                      복귀
+                    </button>
+                  )}
+                </div>
               </li>
             ))}
           </ul>

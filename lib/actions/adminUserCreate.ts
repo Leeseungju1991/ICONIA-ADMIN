@@ -26,6 +26,7 @@ export type CreateAdminUserInputClient = {
   agreedTermsVersion: string;
   ageVerified: boolean;
   reason: string;
+  id?: string;
 };
 
 /** 단순 client-side 와 동일한 1차 검증 — server 가 정합 검증을 다시 한다. */
@@ -47,6 +48,11 @@ function validateInput(input: CreateAdminUserInputClient): string | null {
   }
   if (input.reason.length > 256) {
     return "사유는 256자 이하로 입력하세요.";
+  }
+  if (input.id !== undefined && input.id !== "") {
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(input.id)) {
+      return "UUID 형식이 올바르지 않습니다 (예: 8-4-4-4-12 hex)";
+    }
   }
   return null;
 }
@@ -71,6 +77,7 @@ export async function createAdminUserAction(
     agreedTermsVersion: input.agreedTermsVersion.trim(),
     ageVerified: input.ageVerified,
     reason: input.reason.trim(),
+    ...(input.id && input.id.trim() ? { id: input.id.trim() } : {}),
   });
   if (!res.ok) return { ok: false, message: res.message, code: res.code };
   return { ok: true, data: res.data };

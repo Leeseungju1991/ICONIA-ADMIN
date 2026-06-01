@@ -56,6 +56,16 @@ export const PATH_REQUIRED_ROLES: { prefix: string; roles: OperatorRole[] }[] = 
   { prefix: "/dashboard/factory-test", roles: SRE_OR_ABOVE },
   // secops/sre/superadmin — Fleet 출하 잠금 invariant (V3.0 #27 Phase 12 #8).
   { prefix: "/dashboard/boot-invariants", roles: SECOPS_OR_ABOVE },
+  // secops/sre/superadmin — AuditLog top-level 뷰어 (/dashboard/audit, 신규).
+  // 기존 /dashboard/ops/audit 과 별도 path. 모든 audit 항목을 secops 가 한 화면에서 조회.
+  { prefix: "/dashboard/audit", roles: SECOPS_OR_ABOVE },
+  // sre/secops/superadmin — Gemini Key 관리 대시보드 (◈5번 신규).
+  // free → tier_1 → ... → enterprise 업그레이드 추천 + 키 추가 권장.
+  { prefix: "/dashboard/gemini", roles: SRE_OR_ABOVE },
+  // CS 이상 — FAQ / 배너 / 주문 read-only (커머스 표면 admin CRUD).
+  { prefix: "/dashboard/info/faqs", roles: CS_OR_ABOVE },
+  { prefix: "/dashboard/commerce/banners", roles: CS_OR_ABOVE },
+  { prefix: "/dashboard/commerce/orders", roles: CS_OR_ABOVE },
   // CS 이상 — AS 접수/조회 (replace/close 는 server 가 SRE 이상으로 분기).
   { prefix: "/dashboard/as", roles: CS_OR_ABOVE },
   // 사용자 권리 큐 — CS 가 일선 처리. superadmin 이 최종 승인. 더 구체적 prefix 이므로

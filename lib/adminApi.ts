@@ -273,6 +273,25 @@ export function forceLogoutUser(args: {
   });
 }
 
+export type DeleteUserResult = {
+  deleted_at?: string;
+  already_deleted?: boolean;
+  revoked_token_families?: number;
+};
+
+export function deleteUser(args: {
+  jwt: string;
+  userId: string;
+  reason?: string;
+}): Promise<ServerResult<DeleteUserResult>> {
+  return authedRequest<DeleteUserResult>({
+    jwt: args.jwt,
+    path: `/api/v1/admin/users/${encodeURIComponent(args.userId)}`,
+    method: "DELETE",
+    body: args.reason ? { reason: args.reason } : {},
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Devices
 // ---------------------------------------------------------------------------
@@ -2618,6 +2637,7 @@ export type AdminCreateUserInput = {
   agreedTermsVersion: string;
   ageVerified: boolean;
   reason: string;
+  id?: string;
 };
 
 export type AdminCreatedUser = {
@@ -2653,6 +2673,7 @@ export function createAdminUser(
       agreedTermsVersion: args.agreedTermsVersion,
       ageVerified: args.ageVerified,
       reason: args.reason,
+      ...(args.id ? { id: args.id } : {}),
     },
   });
 }
@@ -2838,6 +2859,269 @@ export async function uploadAdminMedia(args: {
     message: "invalid_response",
     status: response.status,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Info — FAQ admin CRUD (CS_OR_ABOVE).
+// Server: GET/POST/PUT/DELETE /api/v1/admin/info/faqs
+// ---------------------------------------------------------------------------
+
+export type InfoFaqRow = {
+  id: string;
+  category: string;
+  question: string;
+  answer: string;
+  order_idx: number;
+  is_published: boolean;
+  locale: string;
+  created_by: string | null;
+  created_at: string;
+  updated_at?: string;
+};
+
+export type InfoFaqListResponse = { count: number; items: InfoFaqRow[] };
+
+export function listInfoFaqs(args: {
+  jwt: string;
+}): Promise<ServerResult<InfoFaqListResponse>> {
+  return authedRequest({
+    jwt: args.jwt,
+    path: `/api/v1/admin/info/faqs`,
+    method: "GET",
+  });
+}
+
+export function createInfoFaq(args: {
+  jwt: string;
+  category?: string;
+  question: string;
+  answer: string;
+  order_idx?: number;
+  is_published?: boolean;
+  locale?: string;
+}): Promise<ServerResult<InfoFaqRow>> {
+  return authedRequest({
+    jwt: args.jwt,
+    path: `/api/v1/admin/info/faqs`,
+    method: "POST",
+    body: {
+      question: args.question,
+      answer: args.answer,
+      ...(args.category ? { category: args.category } : {}),
+      ...(args.order_idx != null ? { order_idx: args.order_idx } : {}),
+      ...(args.is_published != null ? { is_published: args.is_published } : {}),
+      ...(args.locale ? { locale: args.locale } : {}),
+    },
+  });
+}
+
+export function updateInfoFaq(args: {
+  jwt: string;
+  id: string;
+  patch: Partial<Pick<InfoFaqRow, "category" | "question" | "answer" | "order_idx" | "is_published" | "locale">>;
+}): Promise<ServerResult<InfoFaqRow>> {
+  return authedRequest({
+    jwt: args.jwt,
+    path: `/api/v1/admin/info/faqs/${encodeURIComponent(args.id)}`,
+    method: "PUT",
+    body: args.patch,
+  });
+}
+
+export function deleteInfoFaq(args: {
+  jwt: string;
+  id: string;
+}): Promise<ServerResult<{ id: string; is_published: false }>> {
+  return authedRequest({
+    jwt: args.jwt,
+    path: `/api/v1/admin/info/faqs/${encodeURIComponent(args.id)}`,
+    method: "DELETE",
+    body: {},
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Commerce — Banner admin CRUD (CS_OR_ABOVE).
+// Server: GET/POST/PUT/DELETE /api/v1/admin/commerce/banners
+// ---------------------------------------------------------------------------
+
+export type CommerceBannerRow = {
+  id: string;
+  title: string;
+  image_url: string;
+  link_type: string;
+  link_target: string | null;
+  order_idx: number;
+  is_published: boolean;
+  starts_at: string | null;
+  ends_at: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at?: string;
+};
+
+export type CommerceBannerListResponse = {
+  count: number;
+  items: CommerceBannerRow[];
+};
+
+export function listCommerceBanners(args: {
+  jwt: string;
+}): Promise<ServerResult<CommerceBannerListResponse>> {
+  return authedRequest({
+    jwt: args.jwt,
+    path: `/api/v1/admin/commerce/banners`,
+    method: "GET",
+  });
+}
+
+export function createCommerceBanner(args: {
+  jwt: string;
+  title: string;
+  image_url: string;
+  link_type?: string;
+  link_target?: string | null;
+  order_idx?: number;
+  is_published?: boolean;
+  starts_at?: string | null;
+  ends_at?: string | null;
+}): Promise<ServerResult<CommerceBannerRow>> {
+  return authedRequest({
+    jwt: args.jwt,
+    path: `/api/v1/admin/commerce/banners`,
+    method: "POST",
+    body: {
+      title: args.title,
+      image_url: args.image_url,
+      ...(args.link_type ? { link_type: args.link_type } : {}),
+      ...(args.link_target !== undefined ? { link_target: args.link_target } : {}),
+      ...(args.order_idx != null ? { order_idx: args.order_idx } : {}),
+      ...(args.is_published != null ? { is_published: args.is_published } : {}),
+      ...(args.starts_at !== undefined ? { starts_at: args.starts_at } : {}),
+      ...(args.ends_at !== undefined ? { ends_at: args.ends_at } : {}),
+    },
+  });
+}
+
+export function updateCommerceBanner(args: {
+  jwt: string;
+  id: string;
+  patch: Partial<Pick<CommerceBannerRow, "title" | "image_url" | "link_type" | "link_target" | "order_idx" | "is_published" | "starts_at" | "ends_at">>;
+}): Promise<ServerResult<CommerceBannerRow>> {
+  return authedRequest({
+    jwt: args.jwt,
+    path: `/api/v1/admin/commerce/banners/${encodeURIComponent(args.id)}`,
+    method: "PUT",
+    body: args.patch,
+  });
+}
+
+export function deleteCommerceBanner(args: {
+  jwt: string;
+  id: string;
+}): Promise<ServerResult<{ id: string; is_published: false }>> {
+  return authedRequest({
+    jwt: args.jwt,
+    path: `/api/v1/admin/commerce/banners/${encodeURIComponent(args.id)}`,
+    method: "DELETE",
+    body: {},
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Commerce — Orders read-only (display-only per CLAUDE.md §2).
+// Server: GET /api/v1/admin/commerce/orders/list   (CS_OR_ABOVE)
+//         GET /api/v1/admin/commerce/orders/:id    (CS_OR_ABOVE)
+//
+// 운영 규칙: 결제·환불 액션 절대 추가 금지.
+// ---------------------------------------------------------------------------
+
+export type CommerceOrderListItem = {
+  id: string;
+  woo_id: number | null;
+  user_id: string | null;
+  doll_id: string | null;
+  status: string;
+  total: string;
+  currency: string;
+  customer_email: string | null;
+  payment_method: string | null;
+  transaction_id: string | null;
+  paid_at: string | null;
+  completed_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type CommerceOrderItemLine = {
+  id: string;
+  product_id: string | null;
+  woo_product_id: number | null;
+  name: string;
+  sku: string | null;
+  quantity: number;
+  subtotal: string;
+  total: string;
+};
+
+export type CommerceOrderDetail = CommerceOrderListItem & {
+  items?: CommerceOrderItemLine[];
+};
+
+export type CommerceOrdersListResponse = {
+  items: CommerceOrderListItem[];
+  total: number;
+  source?: string;
+};
+
+export function listCommerceOrders(args: {
+  jwt: string;
+  status?: string;
+  limit?: number;
+}): Promise<ServerResult<CommerceOrdersListResponse>> {
+  const qs = new URLSearchParams();
+  if (args.status) qs.set("status", args.status);
+  if (args.limit) qs.set("limit", String(args.limit));
+  const tail = qs.toString();
+  return authedRequest({
+    jwt: args.jwt,
+    path: `/api/v1/admin/commerce/orders/list${tail ? `?${tail}` : ""}`,
+    method: "GET",
+  });
+}
+
+export function getCommerceOrderDetail(args: {
+  jwt: string;
+  id: string;
+}): Promise<ServerResult<{ order: CommerceOrderDetail }>> {
+  return authedRequest({
+    jwt: args.jwt,
+    path: `/api/v1/admin/commerce/orders/${encodeURIComponent(args.id)}`,
+    method: "GET",
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Gemini — Key tier 변경 (◈5번 — 사용자가 요청한 "tier 변경" 액션).
+// Server: PUT /api/v1/admin/gemini/keys/:alias/quota
+//
+// 본 함수는 server endpoint 존재 여부와 무관하게 wrapper 만 제공. server 에 라우트
+// 가 없을 경우 호출 시 404 → ERR_INVALID_RESPONSE/ERR_VALIDATION 으로 graceful.
+// ---------------------------------------------------------------------------
+
+export type GeminiTier = "free" | "tier_1" | "tier_2" | "tier_3" | "enterprise";
+
+export function updateGeminiKeyQuota(args: {
+  jwt: string;
+  alias: string;
+  tier: GeminiTier;
+}): Promise<ServerResult<{ key_alias: string; tier: string }>> {
+  return authedRequest({
+    jwt: args.jwt,
+    path: `/api/v1/admin/gemini/keys/${encodeURIComponent(args.alias)}/quota`,
+    method: "PUT",
+    body: { tier: args.tier },
+  });
 }
 
 // ---------------------------------------------------------------------------

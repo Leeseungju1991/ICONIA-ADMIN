@@ -4,37 +4,40 @@ import { z } from "zod";
 import { redirect } from "next/navigation";
 
 import { writeSession } from "../authCookie";
+import { operatorLoginStep1 } from "../serverApi";
 import type { FormState } from "../types";
 
-// Dev/demo 전용 로컬 자격증명 (2026-05-22):
-//   - 본 server action 은 서버 호출 없이 soom/soom 자격증명만 통과시킨다.
-//   - 2026-05-19 P0 보안 라운드(로컬 우회 제거)를 의도적으로 되돌리는 dev/demo 정책.
-//   - 운영 배포 금지 — middleware/RequireAuth 는 JWT exp+role 클레임만 보므로
-//     서명 없는 (alg:none) JWT 페이로드를 발급해 통과시킨다.
+// 2026-06-01: real server-side operator login.
+//   - Calls /api/v1/operator/login (operatorLoginStep1).
+//   - If the operator has mfa_required=false, server returns access_token
+//     directly in step1 — we write it to the session cookie and redirect.
+//   - If mfa_required=true, this single-form UI cannot finish the flow
+//     (no TOTP input) — returns ERR_OPERATOR_MFA_REQUIRED.
+//   - ID field accepts either an email or a bare username (auto-suffixed
+//     with the default operator domain).
 
 const schema = z.object({
   username: z.string().min(1).max(254),
   password: z.string().min(1).max(256),
 });
 
-const DEMO_USERNAME = "soom";
-const DEMO_PASSWORD = "soom";
-const DEMO_SESSION_TTL_SEC = 60 * 60; // 1h
+const DEFAULT_EMAIL_DOMAIN = "soomkorea.com";
 
-function base64UrlEncode(input: string): string {
-  const b64 =
-    typeof btoa === "function"
-      ? btoa(input)
-      : Buffer.from(input, "utf8").toString("base64");
-  return b64.replace(/=+$/, "").replace(/\+/g, "-").replace(/\//g, "_");
-}
+type LoginIssuedRaw = {
+  mfa_required: false;
+  access_token: string;
+  access_token_expires_in_sec: number;
+  session_id: string;
+  operator: { id: string; email: string; role?: string };
+};
 
-function mintDemoJwt(expSec: number): string {
-  const header = base64UrlEncode(JSON.stringify({ alg: "none", typ: "JWT" }));
-  const payload = base64UrlEncode(
-    JSON.stringify({ role: "superadmin", sub: DEMO_USERNAME, exp: expSec }),
+function isIssued(data: unknown): data is LoginIssuedRaw {
+  return (
+    typeof data === "object" &&
+    data !== null &&
+    (data as { mfa_required?: unknown }).mfa_required === false &&
+    typeof (data as { access_token?: unknown }).access_token === "string"
   );
-  return `${header}.${payload}.`;
 }
 
 export async function loginAction(
@@ -48,19 +51,24 @@ export async function loginAction(
   if (!parsed.success) {
     return { status: "error", code: "ERR_VALIDATION_LOCAL" };
   }
+  const rawId = parsed.data.username.trim().toLowerCase();
+  const email = rawId.includes("@") ? rawId : `${rawId}@${DEFAULT_EMAIL_DOMAIN}`;
 
-  if (
-    parsed.data.username !== DEMO_USERNAME ||
-    parsed.data.password !== DEMO_PASSWORD
-  ) {
-    return { status: "error", code: "ERR_OPERATOR_INVALID_CREDENTIALS" };
+  const result = await operatorLoginStep1({ email, password: parsed.data.password });
+  if (!result.ok) {
+    return { status: "error", code: result.code, message: result.message };
   }
 
-  const nowSec = Math.floor(Date.now() / 1000);
-  const expSec = nowSec + DEMO_SESSION_TTL_SEC;
-  writeSession({
-    jwt: mintDemoJwt(expSec),
-    expiresAt: new Date(expSec * 1000).toISOString(),
-  });
-  redirect("/dashboard");
+  if (isIssued(result.data)) {
+    const ttlSec = result.data.access_token_expires_in_sec || 3600;
+    const expiresAt = new Date(Date.now() + ttlSec * 1000).toISOString();
+    writeSession({ jwt: result.data.access_token, expiresAt });
+    redirect("/dashboard");
+  }
+
+  return {
+    status: "error",
+    code: "ERR_OPERATOR_MFA_REQUIRED",
+    message: "MFA enabled — single-form login disabled for this account",
+  };
 }

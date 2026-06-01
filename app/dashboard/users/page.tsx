@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { PanelCard } from "../_components/PanelCard";
@@ -16,6 +16,7 @@ import {
   pauseUserAction,
   resumeUserAction,
   mfaResetUserAction,
+  deleteUserAction,
   type UserMutationResult,
 } from "@/lib/actions/userMutations";
 import {
@@ -25,6 +26,7 @@ import {
   type PipaActionResult,
 } from "@/lib/actions/pipa";
 import { listUsersAction } from "@/lib/actions/usersList";
+import { createAdminUserAction } from "@/lib/actions/adminUserCreate";
 import type { PipaUserRow, UserRow as ServerUserRow } from "@/lib/adminApi";
 
 // 강력 액션 2단계 확인 — /dashboard/ops 페이지와 같은 정책 (EXECUTE 정확 입력).
@@ -93,26 +95,21 @@ export default function UsersPage() {
   const [users, setUsers] = useState<UserRow[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  useEffect(() => {
-    let cancelled = false;
+  const reloadUsers = useCallback(async () => {
     setLoading(true);
-    listUsersAction({ limit: 200 })
-      .then((r) => {
-        if (cancelled) return;
-        if (!r.ok) {
-          setLoadError(r.message);
-          setUsers([]);
-        } else {
-          setUsers(r.users.map(adaptServerUser));
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
+    const r = await listUsersAction({ limit: 200 });
+    if (!r.ok) {
+      setLoadError(r.message);
+      setUsers([]);
+    } else {
+      setLoadError(null);
+      setUsers(r.users.map(adaptServerUser));
+    }
+    setLoading(false);
   }, []);
+  useEffect(() => {
+    void reloadUsers();
+  }, [reloadUsers]);
 
   async function handleUnmask(userId: string) {
     // V1.0 #12+#19+#20 (Phase 7) — PIPA 마스킹 해제 3중 가드:
@@ -231,9 +228,38 @@ export default function UsersPage() {
       header: "",
       align: "right",
       render: (r) => (
-        <button className="btn-outline text-xs" onClick={() => setSelected(r)} type="button">
-          상세
-        </button>
+        <div className="flex gap-1.5 justify-end">
+          <button className="btn-outline text-xs" onClick={() => setSelected(r)} type="button">
+            상세
+          </button>
+          <button
+            className="rounded-lg bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-xs px-3 py-1.5"
+            type="button"
+            disabled={r.account_status === "deleted"}
+            onClick={async () => {
+              if (!twoStepConfirm(`사용자 "${maskEmail(r.email)}" 삭제`)) {
+                setToast("삭제 취소 — 확인 문구 불일치.");
+                return;
+              }
+              const reason = window.prompt(
+                "삭제 사유를 입력하세요 (감사 로그 기록, 5자 이상).",
+              );
+              if (!reason || reason.trim().length < 5) {
+                setToast("사유가 5자 이상 필요합니다. 삭제를 취소했습니다.");
+                return;
+              }
+              const res = await deleteUserAction({ userId: r.id, reason: reason.trim() });
+              if (!res.ok) {
+                setToast(`삭제 실패: ${res.message}`);
+                return;
+              }
+              setToast(res.note ?? "사용자가 삭제되었습니다. (감사 로그 기록됨)");
+              void reloadUsers();
+            }}
+          >
+            삭제
+          </button>
+        </div>
       ),
     },
   ];
@@ -327,6 +353,8 @@ export default function UsersPage() {
           </p>
         </PanelCard>
       ) : null}
+
+      <InlineCreateUserPanel onCreated={(msg) => { setToast(msg); void reloadUsers(); }} />
 
       <PanelCard
         title="회원 검색"
@@ -551,6 +579,130 @@ function Row({ k, v }: { k: string; v: React.ReactNode }) {
       <dt className="text-xs text-muted">{k}</dt>
       <dd className="text-sm text-slate-800 font-medium">{v}</dd>
     </div>
+  );
+}
+
+function InlineCreateUserPanel({ onCreated }: { onCreated: (msg: string) => void }) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [customId, setCustomId] = useState("");
+  const [expanded, setExpanded] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+
+  function reset() {
+    setEmail("");
+    setPassword("");
+    setCustomId("");
+    setError(null);
+  }
+
+  function submit() {
+    setError(null);
+    startTransition(async () => {
+      const res = await createAdminUserAction({
+        email: email.trim(),
+        password,
+        agreedTermsVersion: "1.0",
+        ageVerified: true,
+        autoVerified: true,
+        reason: "운영자 콘솔에서 직접 추가",
+        ...(customId.trim() ? { id: customId.trim() } : {}),
+      });
+      if (!res.ok) {
+        setError(res.message);
+        onCreated(`사용자 추가 실패 (${res.code ?? "ERR"}): ${res.message}`);
+        return;
+      }
+      onCreated(`사용자 추가 완료 (이메일: ${res.data.user.email})`);
+      reset();
+    });
+  }
+
+  return (
+    <PanelCard
+      title="사용자 빠른 추가"
+      description="이메일·비밀번호로 즉시 계정을 생성합니다. UUID 를 지정하면 해당 ID 로 가입, 비워두면 서버가 자동 생성합니다."
+      actions={
+        <button
+          type="button"
+          className="btn-outline text-xs"
+          onClick={() => setExpanded((v) => !v)}
+        >
+          {expanded ? "접기" : "펼치기"}
+        </button>
+      }
+    >
+      {expanded ? (
+        <div className="space-y-3">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+            <label className="flex flex-col gap-1 text-xs text-slate-700">
+              <span>이메일 *</span>
+              <input
+                className="input"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="user@example.com"
+                autoComplete="off"
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-xs text-slate-700">
+              <span>비밀번호 * (8자 이상)</span>
+              <input
+                className="input"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete="new-password"
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-xs text-slate-700">
+              <span>UUID (선택)</span>
+              <input
+                className="input font-mono"
+                type="text"
+                value={customId}
+                onChange={(e) => setCustomId(e.target.value)}
+                placeholder="비워두면 자동 생성"
+                autoComplete="off"
+              />
+            </label>
+          </div>
+          {error ? (
+            <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+              {error}
+            </div>
+          ) : null}
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              className="btn-primary text-sm disabled:opacity-60"
+              onClick={submit}
+              disabled={isPending || !email || password.length < 8}
+            >
+              {isPending ? "추가 중" : "사용자 추가"}
+            </button>
+            <button
+              type="button"
+              className="btn-outline text-sm"
+              onClick={reset}
+              disabled={isPending}
+            >
+              초기화
+            </button>
+            <span className="text-[11px] text-muted">
+              운영자 사유 = &quot;운영자 콘솔에서 직접 추가&quot; · agreedTermsVersion=1.0 · autoVerified=true.
+            </span>
+          </div>
+        </div>
+      ) : (
+        <p className="text-xs text-muted">
+          펼치기를 눌러 이메일·비밀번호·UUID 로 신규 사용자를 즉시 추가하세요. 기존
+          <Link href="/dashboard/users/new" className="ml-1 underline">전체 가입 페이지</Link>도 그대로 사용 가능합니다.
+        </p>
+      )}
+    </PanelCard>
   );
 }
 
