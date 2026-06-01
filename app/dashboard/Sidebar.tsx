@@ -47,11 +47,11 @@ const nav: NavItem[] = [
   },
   {
     to: "/dashboard/commerce",
-    label: "커머스 (배너/주문)",
+    label: "커머스 (배너)",
     icon: ReceiptIcon,
     children: [
       { to: "/dashboard/commerce/banners", label: "배너" },
-      { to: "/dashboard/commerce/orders", label: "주문 (read-only)" },
+      // 2026-06-01 — "주문" sub-item 사이드바 노출 제거. 라우트 /dashboard/commerce/orders 는 직접 URL 접근만 보존.
     ],
   },
   { to: "/dashboard/info/faqs", label: "FAQ 관리", icon: LifebuoyIcon },
@@ -259,8 +259,9 @@ export default function Sidebar({
 }
 
 function Brand({ compact: _compact }: { compact?: boolean }) {
+  // 2026-06-01 — 로고/타이틀 영역을 메인 대시보드 link 로. 클릭 시 /dashboard 로 이동.
   return (
-    <div className="flex items-center gap-2.5">
+    <Link href="/dashboard" className="flex items-center gap-2.5 hover:opacity-80 transition">
       <div className="h-9 w-9 rounded-lg bg-accent text-white shadow-soft flex items-center justify-center">
         <span className="font-black text-base">I</span>
       </div>
@@ -268,7 +269,7 @@ function Brand({ compact: _compact }: { compact?: boolean }) {
         <div className="font-bold tracking-tight text-slate-900 text-[15px]">ICONIA</div>
         <div className="text-[11px] text-muted -mt-0.5">Admin Console</div>
       </div>
-    </div>
+    </Link>
   );
 }
 

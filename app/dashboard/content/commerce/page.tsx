@@ -237,13 +237,31 @@ export default function CommercePage() {
                   >
                     <td className="px-2 py-2">
                       {p.image_url ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={p.image_url}
-                          alt=""
-                          className="w-12 h-12 rounded-lg object-cover bg-slate-100"
-                          loading="lazy"
-                        />
+                        <span className="relative inline-block w-12 h-12">
+                          {/* 2026-06-01 P0 fix — 시드 데이터의 awscdn.dollsoom.com URL 다수가
+                              dead-link. onError 발생 시 placeholder 로 교체하여 깨진 이미지
+                              아이콘이 노출되지 않도록 한다. */}
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={p.image_url}
+                            alt=""
+                            className="w-12 h-12 rounded-lg object-cover bg-slate-100"
+                            loading="lazy"
+                            onError={(e) => {
+                              const t = e.currentTarget;
+                              t.style.display = "none";
+                              const sib = t.nextElementSibling as HTMLElement | null;
+                              if (sib) sib.style.display = "flex";
+                            }}
+                          />
+                          <span
+                            className="absolute inset-0 rounded-lg bg-slate-100 items-center justify-center text-[9px] text-slate-400"
+                            style={{ display: "none" }}
+                            aria-label="이미지 로드 실패"
+                          >
+                            n/a
+                          </span>
+                        </span>
                       ) : (
                         <div className="w-12 h-12 rounded-lg bg-slate-100" />
                       )}

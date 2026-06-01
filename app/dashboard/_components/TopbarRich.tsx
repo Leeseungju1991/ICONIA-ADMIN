@@ -32,10 +32,11 @@ export function TopbarRich({ title, subtitle, operatorEmail, onOpenMenu }: {
     router.push(`/dashboard/${target}?q=${encodeURIComponent(q.trim())}`);
   }
 
-  const initial = (operatorEmail ?? "U").slice(0, 1).toUpperCase();
+  // operatorEmail 은 더 이상 표시하지 않지만 props 호환 유지 (호출부 변경 없음).
+  void operatorEmail;
   return (
-    <header className="sticky top-0 z-10 bg-surface border-b border-slate-200 px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
-      <div className="flex items-center gap-3 min-w-0">
+    <header className="sticky top-0 z-10 bg-surface border-b border-slate-200 px-4 sm:px-6 py-3 flex items-center gap-3">
+      <div className="flex items-center gap-3 min-w-0 shrink-0">
         <button
           className="md:hidden rounded-lg px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700"
           type="button"
@@ -47,7 +48,8 @@ export function TopbarRich({ title, subtitle, operatorEmail, onOpenMenu }: {
           <p className="text-xs sm:text-sm text-muted mt-0.5 truncate">{subtitle}</p>
         </div>
       </div>
-      <form role="search" onSubmit={onSubmit} className="hidden lg:flex flex-1 max-w-xl mx-4">
+      {/* 2026-06-01 — 검색바: 헤더 중앙에서 우측 4/5 지점까지 확장 (~65% 폭). 기존 알림·Guest 칩은 제거. */}
+      <form role="search" onSubmit={onSubmit} className="hidden lg:flex flex-1 basis-[65%] ml-auto">
         <div className="flex w-full items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 focus-within:border-indigo-400">
           <span aria-hidden>🔍</span>
           <input
@@ -59,13 +61,6 @@ export function TopbarRich({ title, subtitle, operatorEmail, onOpenMenu }: {
           />
         </div>
       </form>
-      <div className="flex items-center gap-2 shrink-0">
-        <button type="button" aria-label="알림" className="hidden sm:inline-flex h-9 w-9 rounded-full border border-slate-200 bg-white text-slate-600 items-center justify-center">🔔</button>
-        <div className="hidden sm:flex items-center gap-2 px-2 py-1.5 rounded-full bg-white border border-slate-200">
-          <div className="h-7 w-7 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-bold">{initial}</div>
-          <div className="text-xs text-slate-700 max-w-[160px] truncate">{operatorEmail ?? "Guest"}</div>
-        </div>
-      </div>
     </header>
   );
 }

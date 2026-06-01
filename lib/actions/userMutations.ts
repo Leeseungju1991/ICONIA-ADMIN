@@ -91,6 +91,36 @@ export async function mfaResetUserAction(args: {
   };
 }
 
+// 2026-06-01 — 사용자 목록 inline 수정 모달용 통합 액션.
+// 현 단계 server endpoint 범위: pause / resume 만 존재.
+// display_name 변경·password 재설정은 server endpoint 추가 후 본 액션 확장 예정.
+export async function updateUserAction(args: {
+  userId: string;
+  reason: string;
+  status?: "active" | "paused";
+  currentStatus?: string | null;
+}): Promise<UserMutationResult> {
+  const jwt = readSession();
+  if (!jwt) return { ok: false, message: "세션이 만료되었습니다. 다시 로그인하세요." };
+  const v = validateReason(args.reason);
+  if (v) return { ok: false, message: v };
+  // status 가 변경되지 않으면 no-op.
+  if (!args.status || args.status === args.currentStatus) {
+    return { ok: true, note: "변경 사항 없음." };
+  }
+  if (args.status === "paused") {
+    const res = await pauseUser({ jwt, userId: args.userId, reason: args.reason.trim() });
+    if (!res.ok) return { ok: false, message: res.message, code: res.code };
+    return { ok: true, note: res.data.already_paused ? "이미 일시정지 상태였습니다." : "일시정지 적용 완료." };
+  }
+  if (args.status === "active") {
+    const res = await resumeUser({ jwt, userId: args.userId, reason: args.reason.trim() });
+    if (!res.ok) return { ok: false, message: res.message, code: res.code };
+    return { ok: true, note: res.data.already_active ? "이미 활성 상태였습니다." : "활성 전환 완료." };
+  }
+  return { ok: false, message: "지원하지 않는 상태값입니다." };
+}
+
 export async function deleteUserAction(args: {
   userId: string;
   reason: string;

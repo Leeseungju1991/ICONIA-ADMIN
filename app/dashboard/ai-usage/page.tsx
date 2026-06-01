@@ -9,7 +9,6 @@ import { PanelCard } from "../_components/PanelCard";
 import { StatCard } from "../_components/StatCard";
 import { LineChart, Donut, ProgressBar } from "../_components/SimpleChart";
 import { EmptyState, FixtureBadge, LoadingState } from "../_components/CardStates";
-import { GeminiManagementPanel } from "../_components/GeminiManagementPanel";
 import {
   fetchGeminiKeysAction,
   fetchGeminiQuotaAlertsAction,
@@ -64,19 +63,6 @@ export default function AiUsagePage() {
     () => (keys ? summarizeKeys(keys.items) : { total: 0, active: 0, warn: 0, critical: 0 }),
     [keys],
   );
-
-  // Tier 분포 — 운영 매뉴얼 패널에서 "free 1 · tier1 2" 형태로 노출.
-  const tierBreakdown = useMemo(() => {
-    if (!keys || keys.items.length === 0) return "—";
-    const counts: Record<string, number> = {};
-    for (const k of keys.items) {
-      counts[k.tier] = (counts[k.tier] || 0) + 1;
-    }
-    return Object.entries(counts)
-      .sort((a, b) => a[0].localeCompare(b[0]))
-      .map(([tier, n]) => `${tier} ${n}`)
-      .join(" · ");
-  }, [keys]);
 
   const linePoints = useMemo(() => {
     if (!usage) return [];
@@ -165,7 +151,7 @@ export default function AiUsagePage() {
       {/* 시계열 차트 */}
       <PanelCard
         title="시간대별 Gemini 호출"
-        description="GET /api/admin/gemini/usage?range=… — server 가 1시간(24h) / 1일(7d/30d) bucket 집계."
+        description="선택한 기간(24h / 7d / 30d) 의 시간대별 호출량 추이."
         actions={
           <div className="flex items-center gap-2">
             {source === "fixture" ? <FixtureBadge /> : null}
@@ -198,7 +184,7 @@ export default function AiUsagePage() {
         {loading && !usage ? (
           <LoadingState />
         ) : !usage ? (
-          <EmptyState title="시계열 데이터 없음" hint={`/api/admin/gemini/usage?range=${range}`} />
+          <EmptyState title="시계열 데이터 없음" hint={`선택 기간: ${range}`} />
         ) : (
           <LineChart data={linePoints} accent="#6D5DFE" yLabel={`요청 수 — ${range}`} />
         )}
@@ -207,7 +193,7 @@ export default function AiUsagePage() {
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <PanelCard
           title="모델별 분포"
-          description="`by_model` 응답 기반. 호출 수 기준 비율."
+          description="모델별 호출 수 기준 비율."
         >
           {donutSegments.length === 0 ? (
             <EmptyState title="모델 분해 없음" />
@@ -218,7 +204,7 @@ export default function AiUsagePage() {
 
         <PanelCard
           title="할당량 알림 (열림)"
-          description="80% 도달 시 warn, 95%+ critical. server 가 5분마다 평가."
+          description="80% 도달 시 주의, 95% 이상은 즉시 구매 권장."
         >
           {!alerts || alerts.items.length === 0 ? (
             <EmptyState title="활성 알림 없음" hint="모든 키가 일일 한도 80% 미만." />
@@ -259,7 +245,7 @@ export default function AiUsagePage() {
       {/* 키별 사용량 */}
       <PanelCard
         title="키별 사용량 — Gemini API Key"
-        description="GET /api/admin/gemini/keys — 키 평문 노출 금지, 마지막 4자만 표시."
+        description="키 평문은 표시하지 않으며 마지막 4자만 노출합니다."
         actions={source === "fixture" ? <FixtureBadge /> : null}
       >
         {error ? (
@@ -276,14 +262,6 @@ export default function AiUsagePage() {
           </ul>
         )}
       </PanelCard>
-
-      {/* 2026-05-27 — Gemini 키 관리 방안 (docs/Gemini-API-Key-운영가이드.md 임베드). */}
-      <GeminiManagementPanel
-        totalKeys={summary.total}
-        activeKeys={summary.active}
-        criticalKeys={summary.critical}
-        tierBreakdown={tierBreakdown}
-      />
     </div>
   );
 }

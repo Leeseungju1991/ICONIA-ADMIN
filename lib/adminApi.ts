@@ -1994,6 +1994,19 @@ export function getBusinessInfo(args: {
 //   본 wrapper 는 SERVER 가 아직 미배포일 때도 graceful 동작 (실패 시 ERR_NETWORK).
 // ---------------------------------------------------------------------------
 
+/** 피드 첨부 미디어 — server `projectMedia` 정합 (2026-06-01 P0 fix #2). */
+export type AdminFeedMedia = {
+  id: string;
+  kind: "image" | "video" | string;
+  url: string | null;
+  thumbnail_url: string | null;
+  storage_key: string | null;
+  width: number | null;
+  height: number | null;
+  duration_ms: number | null;
+  ordinal: number;
+};
+
 /** 피드 관리 — `GET /api/v1/admin/feed/posts` 응답 행 (paginated). */
 export type AdminFeedPostRow = {
   id: string;
@@ -2010,6 +2023,10 @@ export type AdminFeedPostRow = {
   visibility?: "public" | "followers" | "private";
   /** Phase B 신규 — 운영자 메모 (audit_log 별도). */
   moderation_note?: string | null;
+  /** 2026-06-01 P0 fix #2 — 게시물 첨부 미디어 (image|video). */
+  media?: AdminFeedMedia[];
+  media_count?: number;
+  thumbnail_url?: string | null;
 };
 
 export type AdminFeedPostsList = {

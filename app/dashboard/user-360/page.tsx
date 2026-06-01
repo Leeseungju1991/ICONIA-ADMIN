@@ -7,7 +7,8 @@ import { UserTimeline } from "../_components/UserTimeline";
 import { fetchUser360Action, fetchUser360TimelineAction, type User360ActionResult, type User360TimelineResult } from "@/lib/actions/user360";
 import { listUsersAction, type ListUsersResult } from "@/lib/actions/usersList";
 import { createAdminUserAction } from "@/lib/actions/adminUserCreate";
-import { deleteUserAction } from "@/lib/actions/userMutations";
+import { deleteUserAction, updateUserAction } from "@/lib/actions/userMutations";
+import type { UserRow } from "@/lib/adminApi";
 import { recordOpsAuditWithSilentRetry } from "@/lib/opsAuditTrail";
 
 const ROLE: import("@/lib/operatorRoles").OperatorRole = "superadmin"; // TODO: layout 에서 prop 으로 주입
@@ -132,6 +133,44 @@ export default function User360Page() {
     });
   }
 
+  // 2026-06-01 — 사용자 목록 inline 수정 모달.
+  // server endpoint: status 변경은 pause/resume 활용 (updateUserAction). display_name
+  // 변경·password 재설정은 server endpoint 미구현 → 모달에서 disabled + 안내.
+  const [editTarget, setEditTarget] = useState<UserRow | null>(null);
+  const [editStatus, setEditStatus] = useState<"active" | "paused">("active");
+  const [editReason, setEditReason] = useState("");
+  const [editError, setEditError] = useState<string | null>(null);
+  const [editPending, startEdit] = useTransition();
+
+  function openEdit(u: UserRow) {
+    setEditTarget(u);
+    setEditStatus(u.account_status === "paused" ? "paused" : "active");
+    setEditReason("");
+    setEditError(null);
+  }
+
+  function submitEdit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!editTarget) return;
+    setEditError(null);
+    if (editReason.trim().length < 5) {
+      setEditError("사유는 5자 이상 입력해야 합니다.");
+      return;
+    }
+    startEdit(async () => {
+      const r = await updateUserAction({
+        userId: editTarget.id,
+        reason: editReason.trim(),
+        status: editStatus,
+        currentStatus: editTarget.account_status ?? null,
+      });
+      if (!r.ok) { setEditError(r.message); return; }
+      setToast(r.note ?? "사용자 정보가 갱신되었습니다.");
+      setEditTarget(null);
+      loadUsersList("");
+    });
+  }
+
   function deleteRow(userId: string, email: string) {
     const confirm1 = window.prompt(`사용자 "${email}" 삭제\n\n강력 액션입니다. 실행하려면 정확히 "EXECUTE" 를 입력하세요.`);
     if (confirm1 !== "EXECUTE") {
@@ -233,14 +272,24 @@ export default function User360Page() {
                       {u.created_at ? u.created_at.slice(0, 10) : "—"}
                     </td>
                     <td className="px-2 py-2 text-right">
-                      <button
-                        type="button"
-                        disabled={u.account_status === "deleted"}
-                        onClick={() => deleteRow(u.id, u.email)}
-                        className="rounded-lg bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-xs px-3 py-1.5"
-                      >
-                        삭제
-                      </button>
+                      <div className="inline-flex gap-2">
+                        <button
+                          type="button"
+                          disabled={u.account_status === "deleted"}
+                          onClick={() => openEdit(u)}
+                          className="rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-xs px-3 py-1.5"
+                        >
+                          수정
+                        </button>
+                        <button
+                          type="button"
+                          disabled={u.account_status === "deleted"}
+                          onClick={() => deleteRow(u.id, u.email)}
+                          className="rounded-lg bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-xs px-3 py-1.5"
+                        >
+                          삭제
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -278,6 +327,79 @@ export default function User360Page() {
                 className="rounded-lg bg-red-600 disabled:opacity-50 text-white px-4 py-2 text-sm">실행</button>
             </div>
           </div>
+        </div>
+      ) : null}
+
+      {editTarget ? (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-slate-900/40 p-4">
+          <form onSubmit={submitEdit} className="bg-white rounded-2xl max-w-md w-full p-5 space-y-3">
+            <h3 className="font-semibold text-slate-900">사용자 정보 수정</h3>
+            <p className="text-[11px] text-slate-500">
+              이메일은 server 측 unique key 이므로 변경 불가. 상태 변경은 즉시
+              audit log 에 기록됩니다.
+            </p>
+            {editError ? (
+              <div role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+                {editError}
+              </div>
+            ) : null}
+            <label className="block text-xs text-slate-700">이메일 (read-only)
+              <input
+                type="email"
+                value={editTarget.email}
+                readOnly
+                disabled
+                className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 p-2 text-sm text-slate-500"
+              />
+            </label>
+            <label className="block text-xs text-slate-700">표시 이름
+              <input
+                type="text"
+                value={editTarget.display_name ?? ""}
+                disabled
+                className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 p-2 text-sm text-slate-500"
+              />
+              <span className="mt-1 block text-[10px] text-amber-700">
+                server PATCH 엔드포인트 추가 필요 — 현재는 표시만.
+              </span>
+            </label>
+            <label className="block text-xs text-slate-700">상태
+              <select
+                value={editStatus}
+                onChange={(e) => setEditStatus(e.target.value as "active" | "paused")}
+                className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-sm"
+              >
+                <option value="active">active</option>
+                <option value="paused">paused</option>
+              </select>
+            </label>
+            <label className="block text-xs text-slate-700">비밀번호 재설정
+              <input
+                type="password"
+                disabled
+                placeholder="endpoint 추가 필요 — 현재 비활성"
+                autoComplete="new-password"
+                className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 p-2 text-sm text-slate-500"
+              />
+              <span className="mt-1 block text-[10px] text-amber-700">
+                server POST /api/v1/admin/users/:id/reset-password 미구현 — 추가 후 활성화.
+              </span>
+            </label>
+            <label className="block text-xs text-slate-700">사유 (5자 이상, 감사 로그 기록)
+              <textarea
+                value={editReason}
+                onChange={(e) => setEditReason(e.target.value)}
+                rows={2}
+                className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-sm"
+              />
+            </label>
+            <div className="flex gap-2 justify-end pt-1">
+              <button type="button" onClick={() => setEditTarget(null)} disabled={editPending} className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm disabled:opacity-60">취소</button>
+              <button type="submit" disabled={editPending} className="rounded-lg bg-indigo-600 disabled:opacity-50 text-white px-4 py-2 text-sm">
+                {editPending ? "저장 중..." : "저장"}
+              </button>
+            </div>
+          </form>
         </div>
       ) : null}
 

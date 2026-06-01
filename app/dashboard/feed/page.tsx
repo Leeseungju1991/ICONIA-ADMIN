@@ -8,7 +8,7 @@ import { DataTable, type Column } from "../_components/DataTable";
 import { StatCard } from "../_components/StatCard";
 import { AutoRefreshToggle } from "../_components/AutoRefreshToggle";
 import { useAutoRefresh } from "@/lib/hooks/useAutoRefresh";
-import type { AdminFeedPostRow, AdminFeedPostDetail } from "@/lib/adminApi";
+import type { AdminFeedPostRow, AdminFeedPostDetail, AdminFeedMedia } from "@/lib/adminApi";
 import {
   listFeedPostsAction,
   getFeedPostAction,
@@ -188,6 +188,11 @@ export default function FeedPage() {
           </span>
         </span>
       ),
+    },
+    {
+      key: "media",
+      header: "미디어",
+      render: (r) => <FeedRowThumb post={r} />,
     },
     {
       key: "author",
@@ -478,6 +483,7 @@ function FeedDetailDrawer({
               </p>
             )}
           </div>
+          <FeedMediaGrid media={detail?.post.media ?? post.media ?? []} />
           <div className="grid grid-cols-2 gap-2 text-xs">
             <Field label="작성자">
               <span>{post.author_handle ?? "이름 없음"}</span>
@@ -544,6 +550,124 @@ function FeedDetailDrawer({
             </>
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+// 2026-06-01 P0 fix #2 — 피드 리스트 row 의 미디어 썸네일 미니 셀.
+// thumbnail_url > 첫 image url > 비디오 카운트 표시. onError → placeholder.
+function FeedRowThumb({ post }: { post: AdminFeedPostRow }) {
+  const media = post.media ?? [];
+  const thumb = post.thumbnail_url
+    || media.find((m) => m.kind === "image")?.thumbnail_url
+    || media.find((m) => m.kind === "image")?.url
+    || media.find((m) => m.kind === "video")?.thumbnail_url
+    || null;
+  const count = post.media_count ?? media.length;
+  if (!thumb && count === 0) {
+    return <span className="text-[10px] text-slate-300">—</span>;
+  }
+  return (
+    <div className="inline-flex items-center gap-1.5">
+      {thumb ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={thumb}
+          alt=""
+          className="w-10 h-10 rounded-md object-cover bg-slate-100"
+          loading="lazy"
+          onError={(e) => {
+            const t = e.currentTarget;
+            t.style.display = "none";
+            const sib = t.nextElementSibling as HTMLElement | null;
+            if (sib) sib.style.display = "inline-flex";
+          }}
+        />
+      ) : null}
+      <span
+        className="w-10 h-10 rounded-md bg-slate-100 text-[10px] text-slate-400 items-center justify-center"
+        style={{ display: thumb ? "none" : "inline-flex" }}
+      >
+        n/a
+      </span>
+      {count > 1 ? (
+        <span className="chip chip-info text-[10px]">+{count - 1}</span>
+      ) : null}
+    </div>
+  );
+}
+
+// 피드 상세 미디어 그리드 — image=썸네일 클릭=원본 열기, video=video tag.
+// url 이 dead-link 일 가능성 대비 onError 처리.
+function FeedMediaGrid({ media }: { media: AdminFeedMedia[] }) {
+  if (!media || media.length === 0) {
+    return (
+      <div className="rounded-xl bg-white/60 border border-white/60 p-3">
+        <div className="text-xs text-muted">첨부 미디어 없음.</div>
+      </div>
+    );
+  }
+  return (
+    <div className="rounded-xl bg-white/60 border border-white/60 p-3">
+      <div className="text-xs text-muted mb-2">미디어 ({media.length})</div>
+      <div className="grid grid-cols-3 gap-2">
+        {media.map((m) => (
+          <div
+            key={m.id}
+            className="aspect-square rounded-lg overflow-hidden bg-slate-100 border border-slate-200 relative"
+          >
+            {m.kind === "video" ? (
+              m.url ? (
+                <video
+                  src={m.url}
+                  poster={m.thumbnail_url ?? undefined}
+                  controls
+                  preload="metadata"
+                  className="w-full h-full object-cover bg-black"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-[10px] text-slate-400">
+                  video (no url)
+                </div>
+              )
+            ) : m.url || m.thumbnail_url ? (
+              <a
+                href={m.url ?? m.thumbnail_url ?? "#"}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block w-full h-full"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={m.thumbnail_url ?? m.url ?? ""}
+                  alt=""
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                  onError={(e) => {
+                    const t = e.currentTarget;
+                    t.style.display = "none";
+                    const sib = t.nextElementSibling as HTMLElement | null;
+                    if (sib) sib.style.display = "flex";
+                  }}
+                />
+                <div
+                  className="absolute inset-0 items-center justify-center text-[10px] text-slate-400 bg-slate-100"
+                  style={{ display: "none" }}
+                >
+                  이미지 로드 실패
+                </div>
+              </a>
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-[10px] text-slate-400">
+                {m.storage_key ? "키만 존재" : "URL 없음"}
+              </div>
+            )}
+            <span className="absolute bottom-1 right-1 chip chip-info text-[10px]">
+              {m.kind}
+            </span>
+          </div>
+        ))}
       </div>
     </div>
   );
