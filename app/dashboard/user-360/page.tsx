@@ -6,6 +6,8 @@ import { UserSnapshotGrid, type ActionKey } from "../_components/UserSnapshotGri
 import { UserTimeline } from "../_components/UserTimeline";
 import { fetchUser360Action, fetchUser360TimelineAction, type User360ActionResult, type User360TimelineResult } from "@/lib/actions/user360";
 import { listUsersAction, type ListUsersResult } from "@/lib/actions/usersList";
+import { createAdminUserAction } from "@/lib/actions/adminUserCreate";
+import { deleteUserAction } from "@/lib/actions/userMutations";
 import { recordOpsAuditWithSilentRetry } from "@/lib/opsAuditTrail";
 
 const ROLE: import("@/lib/operatorRoles").OperatorRole = "superadmin"; // TODO: layout 에서 prop 으로 주입
@@ -49,7 +51,6 @@ export default function User360Page() {
   }
 
   useEffect(() => {
-    // 페이지 진입 시 전체 사용자 list 자동 로드.
     loadUsersList("");
     if (initial) {
       start(async () => {
@@ -61,7 +62,6 @@ export default function User360Page() {
         setTl(t);
       });
     }
-  // 최초 마운트만
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -73,7 +73,6 @@ export default function User360Page() {
 
   function executeModal() {
     if (!reasonModal) return;
-    // 실제 server action 매핑은 Task 23 에서 추가. 지금은 audit 기록만.
     const fallbackId = snap?.ok ? snap.snapshot.user.id : "(unknown)";
     void recordOpsAuditWithSilentRetry({
       action: `user360.${reasonModal.key}`,
@@ -89,22 +88,67 @@ export default function User360Page() {
   const okSnap = snap?.ok ? snap : null;
   const okTl = tl?.ok ? tl : null;
 
+  // 2026-06-01 — 사용자 추가 모달: 이메일·비밀번호·UUID(선택) → 실 server endpoint 호출.
   const [addOpen, setAddOpen] = useState(false);
   const [addEmail, setAddEmail] = useState("");
+  const [addPassword, setAddPassword] = useState("");
   const [addUuid, setAddUuid] = useState("");
-  const [addToast, setAddToast] = useState<string | null>(null);
+  const [addPending, startAdd] = useTransition();
+  const [addError, setAddError] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
 
   function submitAdd(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    setAddError(null);
     const email = addEmail.trim();
+    const password = addPassword;
     const uuid = addUuid.trim();
-    if (!email && !uuid) return;
-    // 서버 endpoint(POST /admin/users) 미구현 — 운영자 임의 계정 생성은 PIPA 위험으로
-    // 별도 합의 후 추가 예정. 지금은 입력 흐름만 검증하고 안내 토스트.
-    setAddToast(`접수됨 — 사용자 추가 endpoint 미구현. 이메일=${email || "(없음)"}, UUID=${uuid || "(없음)"}`);
-    setAddEmail("");
-    setAddUuid("");
-    setAddOpen(false);
+    if (!email) { setAddError("이메일을 입력하세요."); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setAddError("이메일 형식이 올바르지 않습니다."); return; }
+    if (!password || password.length < 8) { setAddError("비밀번호는 8자 이상이어야 합니다."); return; }
+    if (uuid && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(uuid)) {
+      setAddError("UUID 형식이 올바르지 않습니다 (8-4-4-4-12 hex). 비우면 자동 생성."); return;
+    }
+    startAdd(async () => {
+      const r = await createAdminUserAction({
+        email,
+        password,
+        agreedTermsVersion: "1.0",
+        ageVerified: true,
+        autoVerified: true,
+        reason: "admin_manual_create",
+        ...(uuid ? { id: uuid } : {}),
+      });
+      if (!r.ok) {
+        if (r.code === "ERR_USER_EMAIL_EXISTS") { setAddError("이미 사용 중인 이메일입니다."); return; }
+        if (r.code === "ERR_USER_ID_EXISTS") { setAddError("이미 사용 중인 UUID 입니다."); return; }
+        setAddError(r.message || "사용자 추가 실패");
+        return;
+      }
+      setToast(`사용자 추가 완료: ${r.data.user.email} (${r.data.user.id.slice(0, 8)}…)`);
+      setAddEmail(""); setAddPassword(""); setAddUuid("");
+      setAddOpen(false);
+      loadUsersList("");
+    });
+  }
+
+  function deleteRow(userId: string, email: string) {
+    const confirm1 = window.prompt(`사용자 "${email}" 삭제\n\n강력 액션입니다. 실행하려면 정확히 "EXECUTE" 를 입력하세요.`);
+    if (confirm1 !== "EXECUTE") {
+      setToast("삭제 취소 — 확인 문구 불일치.");
+      return;
+    }
+    const reasonText = window.prompt("삭제 사유 (감사 로그 기록, 5자 이상)");
+    if (!reasonText || reasonText.trim().length < 5) {
+      setToast("사유가 5자 이상 필요합니다. 삭제를 취소했습니다.");
+      return;
+    }
+    void (async () => {
+      const r = await deleteUserAction({ userId, reason: reasonText.trim() });
+      if (!r.ok) { setToast(`삭제 실패: ${r.message}`); return; }
+      setToast(r.note ?? "사용자가 삭제되었습니다. (감사 로그 기록됨)");
+      loadUsersList("");
+    })();
   }
 
   return (
@@ -191,21 +235,11 @@ export default function User360Page() {
                     <td className="px-2 py-2 text-right">
                       <button
                         type="button"
-                        onClick={() => {
-                          setQ(u.email);
-                          router.replace(`/dashboard/user-360?q=${encodeURIComponent(u.email)}`);
-                          start(async () => {
-                            const [s, t] = await Promise.all([
-                              fetchUser360Action(u.email),
-                              fetchUser360TimelineAction(u.email),
-                            ]);
-                            setSnap(s);
-                            setTl(t);
-                          });
-                        }}
-                        className="rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-xs hover:bg-slate-50"
+                        disabled={u.account_status === "deleted"}
+                        onClick={() => deleteRow(u.id, u.email)}
+                        className="rounded-lg bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-xs px-3 py-1.5"
                       >
-                        상세
+                        삭제
                       </button>
                     </td>
                   </tr>
@@ -251,35 +285,59 @@ export default function User360Page() {
         <div className="fixed inset-0 z-50 grid place-items-center bg-slate-900/40 p-4">
           <form onSubmit={submitAdd} className="bg-white rounded-2xl max-w-md w-full p-5 space-y-3">
             <h3 className="font-semibold text-slate-900">사용자 추가</h3>
-            <label className="block text-xs text-slate-700">이메일
+            <p className="text-[11px] text-slate-500">
+              이메일·비밀번호는 필수. UUID는 비우면 자동 생성됩니다. 약관 v1.0 / 19+ 확인 / 자동 검증은
+              운영자 책임으로 자동 적용되며 감사 로그에 기록됩니다.
+            </p>
+            {addError ? (
+              <div role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+                {addError}
+              </div>
+            ) : null}
+            <label className="block text-xs text-slate-700">이메일 *
               <input
                 type="email"
                 value={addEmail}
                 onChange={(e) => setAddEmail(e.target.value)}
                 placeholder="user@example.com"
+                required
                 className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-sm"
               />
             </label>
-            <label className="block text-xs text-slate-700">UUID (선택)
+            <label className="block text-xs text-slate-700">비밀번호 (8자 이상) *
+              <input
+                type="password"
+                value={addPassword}
+                onChange={(e) => setAddPassword(e.target.value)}
+                minLength={8}
+                required
+                autoComplete="new-password"
+                className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-sm"
+              />
+            </label>
+            <label className="block text-xs text-slate-700">UUID (선택 — 비우면 자동 생성)
               <input
                 value={addUuid}
                 onChange={(e) => setAddUuid(e.target.value)}
                 placeholder="자동 생성하려면 비워두세요"
+                maxLength={36}
                 className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-sm font-mono"
               />
             </label>
-            <div className="flex gap-2 justify-end">
-              <button type="button" onClick={() => setAddOpen(false)} className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm">취소</button>
-              <button type="submit" disabled={!addEmail.trim() && !addUuid.trim()} className="rounded-lg bg-indigo-600 disabled:opacity-50 text-white px-4 py-2 text-sm">추가</button>
+            <div className="flex gap-2 justify-end pt-1">
+              <button type="button" onClick={() => setAddOpen(false)} disabled={addPending} className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm disabled:opacity-60">취소</button>
+              <button type="submit" disabled={addPending} className="rounded-lg bg-indigo-600 disabled:opacity-50 text-white px-4 py-2 text-sm">
+                {addPending ? "추가 중..." : "추가"}
+              </button>
             </div>
           </form>
         </div>
       ) : null}
 
-      {addToast ? (
+      {toast ? (
         <div className="fixed bottom-6 right-6 z-50 rounded-2xl bg-slate-900/85 text-white text-sm px-4 py-3 shadow-card max-w-md">
-          {addToast}
-          <button className="ml-3 underline opacity-80" onClick={() => setAddToast(null)} type="button">닫기</button>
+          {toast}
+          <button className="ml-3 underline opacity-80" onClick={() => setToast(null)} type="button">닫기</button>
         </div>
       ) : null}
     </div>
