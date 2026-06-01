@@ -13,22 +13,38 @@ export type ActionKey =
   | "fallback_toggle" | "persona_reset"
   | "test_push";
 
+// 서버가 빈/0 데이터를 반환해도 렌더가 깨지지 않도록 방어적 헬퍼.
+// (User360Snapshot 타입은 server 와 정합하지만, 일부 도메인이 비어 있는 신규
+//  사용자의 경우 sub-object 가 비거나 null/undefined 일 수 있다.)
+function safeDate(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? "—" : d.toLocaleString();
+}
+
 export function UserSnapshotGrid({ snapshot, role, onAction }: {
   snapshot: User360Snapshot;
   role: OperatorRole;
   onAction: (key: ActionKey, ctx: { serial?: string }) => void;
 }) {
+  const devices = snapshot.devices ?? [];
+  const server = snapshot.server;
+  const ai = snapshot.ai;
+  const app = snapshot.app;
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
       {/* HW */}
       <Card title="HW" subtitle="페어링 디바이스">
-        {snapshot.devices.map((d) => (
+        {devices.length === 0 ? (
+          <div className="text-xs text-muted">페어링된 디바이스가 없습니다.</div>
+        ) : null}
+        {devices.map((d) => (
           <div key={d.serial} className="rounded-xl border border-slate-200 p-3 mb-2 last:mb-0">
             <div className="flex items-center justify-between">
               <div className="font-mono text-xs">{d.serial}</div>
               <span className={`chip ${d.online ? "chip-success" : "chip-muted"}`}>{d.online ? "online" : "offline"}</span>
             </div>
-            <div className="text-[11px] text-muted mt-1">FW {d.firmware_version} · 배터리 {d.battery_pct}% · last {new Date(d.last_seen).toLocaleString()}</div>
+            <div className="text-[11px] text-muted mt-1">FW {d.firmware_version} · 배터리 {d.battery_pct}% · last {safeDate(d.last_seen)}</div>
             <div className="mt-2 flex gap-2 flex-wrap">
               <ActionBtn label="OTA 채널 강제" disabled={!allow(role, "sre")} onClick={() => onAction("ota_channel", { serial: d.serial })} />
               <ActionBtn label="force-unpair" tone="danger" disabled={!allow(role, "secops")} onClick={() => onAction("force_unpair", { serial: d.serial })} />
@@ -40,10 +56,10 @@ export function UserSnapshotGrid({ snapshot, role, onAction }: {
 
       {/* Server */}
       <Card title="Server" subtitle="계정 · 세션">
-        <KV k="활성 세션" v={String(snapshot.server.active_sessions)} />
-        <KV k="24h refresh token" v={String(snapshot.server.refresh_tokens_24h)} />
-        <KV k="rate limit" v={snapshot.server.rate_limit_state} />
-        <KV k="PIPA 동의" v={snapshot.server.pipa_consent_version} />
+        <KV k="활성 세션" v={server ? String(server.active_sessions ?? 0) : "—"} />
+        <KV k="24h refresh token" v={server ? String(server.refresh_tokens_24h ?? 0) : "—"} />
+        <KV k="rate limit" v={server?.rate_limit_state ?? "—"} />
+        <KV k="PIPA 동의" v={server?.pipa_consent_version ?? "—"} />
         <div className="mt-3 flex gap-2 flex-wrap">
           <ActionBtn label="강제 로그아웃" disabled={!allow(role, "cs")} onClick={() => onAction("force_logout", {})} />
           <ActionBtn label="계정 일시정지" tone="danger" disabled={!allow(role, "secops")} onClick={() => onAction("suspend", {})} />
@@ -53,10 +69,10 @@ export function UserSnapshotGrid({ snapshot, role, onAction }: {
 
       {/* AI */}
       <Card title="AI" subtitle="페르소나">
-        <KV k="페르소나" v={`${snapshot.ai.persona_name} ${snapshot.ai.persona_version}`} />
-        <KV k="24h fallback" v={`${(snapshot.ai.fallback_rate_24h * 100).toFixed(2)}%`} />
-        <KV k="평균 지연" v={`${snapshot.ai.avg_latency_ms} ms`} />
-        <KV k="컨텍스트 압축" v={`${snapshot.ai.compression_events_24h}회`} />
+        <KV k="페르소나" v={ai ? `${ai.persona_name ?? "—"} ${ai.persona_version ?? ""}`.trim() : "—"} />
+        <KV k="24h fallback" v={ai ? `${((ai.fallback_rate_24h ?? 0) * 100).toFixed(2)}%` : "—"} />
+        <KV k="평균 지연" v={ai ? `${ai.avg_latency_ms ?? 0} ms` : "—"} />
+        <KV k="컨텍스트 압축" v={ai ? `${ai.compression_events_24h ?? 0}회` : "—"} />
         <div className="mt-3 flex gap-2 flex-wrap">
           <ActionBtn label="fallback 강제 ON" disabled={!allow(role, "sre")} onClick={() => onAction("fallback_toggle", {})} />
           <ActionBtn label="persona 리셋" tone="danger" disabled={!allow(role, "superadmin")} onClick={() => onAction("persona_reset", {})} />
@@ -65,14 +81,14 @@ export function UserSnapshotGrid({ snapshot, role, onAction }: {
 
       {/* APP */}
       <Card title="APP" subtitle="모바일">
-        <KV k="앱 버전" v={snapshot.app.app_version} />
-        <KV k="OS / 모델" v={`${snapshot.app.os} · ${snapshot.app.model}`} />
-        <KV k="마지막 푸시" v={snapshot.app.last_push_at ? new Date(snapshot.app.last_push_at).toLocaleString() : "—"} />
-        {snapshot.app.last_crash ? (
+        <KV k="앱 버전" v={app?.app_version ?? "—"} />
+        <KV k="OS / 모델" v={app ? `${app.os ?? "—"} · ${app.model ?? "—"}` : "—"} />
+        <KV k="마지막 푸시" v={safeDate(app?.last_push_at)} />
+        {app?.last_crash ? (
           <div className="mt-2 rounded-lg bg-red-50 border border-red-200 p-2 text-[11px] text-red-700">
-            <div className="font-semibold">{snapshot.app.last_crash.type}</div>
-            <div className="truncate">{snapshot.app.last_crash.message}</div>
-            <div className="opacity-75">{new Date(snapshot.app.last_crash.at).toLocaleString()}</div>
+            <div className="font-semibold">{app.last_crash.type}</div>
+            <div className="truncate">{app.last_crash.message}</div>
+            <div className="opacity-75">{safeDate(app.last_crash.at)}</div>
           </div>
         ) : null}
         <div className="mt-3 flex gap-2 flex-wrap">

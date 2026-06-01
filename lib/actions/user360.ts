@@ -3,6 +3,7 @@
 import { cookies } from "next/headers";
 import { fetchUser360Snapshot, fetchUser360Timeline } from "../serverApi.user360";
 import type { User360Snapshot, User360Event } from "../mockUser360";
+import { mockUser360Snapshot, mockUser360Timeline } from "../mockUser360";
 import { hideCommunityPost, takedownCommunityPost, unhideCommunityPost, hidePostsByAuthor } from "../serverApi.community";
 
 const COOKIE = "iconia_admin_jwt";
@@ -11,8 +12,12 @@ function jwt(): string | null {
   return cookies().get(COOKIE)?.value ?? null;
 }
 
+// 서버 미도달(network/5xx) 시에만 mock 으로 graceful fallback. 인증/권한 오류
+// (ERR_UNAUTHENTICATED / ERR_FORBIDDEN 등) 는 fallback 하지 않고 그대로 노출한다.
+const FALLBACK_CODES = new Set(["ERR_NETWORK", "ERR_SERVER_UNAVAILABLE"]);
+
 export type User360ActionResult =
-  | { ok: true; source: "server"; snapshot: User360Snapshot }
+  | { ok: true; source: "server" | "mock"; snapshot: User360Snapshot }
   | { ok: false; code: string; message: string };
 
 export async function fetchUser360Action(key: string): Promise<User360ActionResult> {
@@ -20,11 +25,14 @@ export async function fetchUser360Action(key: string): Promise<User360ActionResu
   if (!token) return { ok: false, code: "ERR_UNAUTHENTICATED", message: "no_jwt" };
   const r = await fetchUser360Snapshot(token, key);
   if (r.ok) return { ok: true, source: "server", snapshot: r.data };
+  if (FALLBACK_CODES.has(r.code)) {
+    return { ok: true, source: "mock", snapshot: mockUser360Snapshot(key) };
+  }
   return { ok: false, code: r.code, message: r.message };
 }
 
 export type User360TimelineResult =
-  | { ok: true; source: "server"; events: User360Event[]; next_cursor: string | null }
+  | { ok: true; source: "server" | "mock"; events: User360Event[]; next_cursor: string | null }
   | { ok: false; code: string; message: string };
 
 export async function fetchUser360TimelineAction(key: string): Promise<User360TimelineResult> {
@@ -32,6 +40,9 @@ export async function fetchUser360TimelineAction(key: string): Promise<User360Ti
   if (!token) return { ok: false, code: "ERR_UNAUTHENTICATED", message: "no_jwt" };
   const r = await fetchUser360Timeline(token, key);
   if (r.ok) return { ok: true, source: "server", events: r.data.items, next_cursor: r.data.next_cursor };
+  if (FALLBACK_CODES.has(r.code)) {
+    return { ok: true, source: "mock", events: mockUser360Timeline(key), next_cursor: null };
+  }
   return { ok: false, code: r.code, message: r.message };
 }
 
