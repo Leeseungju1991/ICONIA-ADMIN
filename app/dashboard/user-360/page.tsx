@@ -7,7 +7,7 @@ import { UserTimeline } from "../_components/UserTimeline";
 import { fetchUser360Action, fetchUser360TimelineAction, type User360ActionResult, type User360TimelineResult } from "@/lib/actions/user360";
 import { listUsersAction, type ListUsersResult } from "@/lib/actions/usersList";
 import { createAdminUserAction } from "@/lib/actions/adminUserCreate";
-import { deleteUserAction, updateUserAction } from "@/lib/actions/userMutations";
+import { deleteUserAction, updateUserAction, resetUserPasswordAction } from "@/lib/actions/userMutations";
 import type { UserRow } from "@/lib/adminApi";
 import { recordOpsAuditWithSilentRetry } from "@/lib/opsAuditTrail";
 
@@ -134,10 +134,11 @@ export default function User360Page() {
   }
 
   // 2026-06-01 — 사용자 목록 inline 수정 모달.
-  // server endpoint: status 변경은 pause/resume 활용 (updateUserAction). display_name
-  // 변경·password 재설정은 server endpoint 미구현 → 모달에서 disabled + 안내.
+  // status 변경은 pause/resume(updateUserAction), 비밀번호 재설정은
+  // resetUserPasswordAction(POST /api/v1/admin/users/:id/reset-password) 로 처리.
   const [editTarget, setEditTarget] = useState<UserRow | null>(null);
   const [editStatus, setEditStatus] = useState<"active" | "paused">("active");
+  const [editPassword, setEditPassword] = useState("");
   const [editReason, setEditReason] = useState("");
   const [editError, setEditError] = useState<string | null>(null);
   const [editPending, startEdit] = useTransition();
@@ -145,6 +146,7 @@ export default function User360Page() {
   function openEdit(u: UserRow) {
     setEditTarget(u);
     setEditStatus(u.account_status === "paused" ? "paused" : "active");
+    setEditPassword("");
     setEditReason("");
     setEditError(null);
   }
@@ -157,15 +159,34 @@ export default function User360Page() {
       setEditError("사유는 5자 이상 입력해야 합니다.");
       return;
     }
+    const target = editTarget;
+    const reason = editReason.trim();
+    const newPassword = editPassword;
+    const statusChanged = editStatus !== (target.account_status === "paused" ? "paused" : "active");
+    if (!newPassword && !statusChanged) {
+      setEditError("변경할 항목(상태 또는 비밀번호)을 입력하세요.");
+      return;
+    }
     startEdit(async () => {
-      const r = await updateUserAction({
-        userId: editTarget.id,
-        reason: editReason.trim(),
-        status: editStatus,
-        currentStatus: editTarget.account_status ?? null,
-      });
-      if (!r.ok) { setEditError(r.message); return; }
-      setToast(r.note ?? "사용자 정보가 갱신되었습니다.");
+      const notes: string[] = [];
+      // 1) 비밀번호 재설정 (입력된 경우).
+      if (newPassword) {
+        const pr = await resetUserPasswordAction({ userId: target.id, password: newPassword, reason });
+        if (!pr.ok) { setEditError(pr.message); return; }
+        if (pr.note) notes.push(pr.note);
+      }
+      // 2) 상태 변경 (변경된 경우).
+      if (statusChanged) {
+        const sr = await updateUserAction({
+          userId: target.id,
+          reason,
+          status: editStatus,
+          currentStatus: target.account_status ?? null,
+        });
+        if (!sr.ok) { setEditError(sr.message); return; }
+        if (sr.note) notes.push(sr.note);
+      }
+      setToast(notes.length ? notes.join(" ") : "사용자 정보가 갱신되었습니다.");
       setEditTarget(null);
       loadUsersList("");
     });
@@ -313,7 +334,7 @@ export default function User360Page() {
 
       {reasonModal ? (
         <div className="fixed inset-0 z-50 grid place-items-center bg-slate-900/40 p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-5 space-y-3">
+          <div className="bg-white rounded-2xl max-w-md w-full p-5 space-y-3 max-h-[90vh] overflow-y-auto">
             <h3 className="font-semibold text-slate-900">액션 확인 — {reasonModal.key}</h3>
             {reasonModal.serial ? <p className="text-xs text-muted">대상: {reasonModal.serial}</p> : null}
             <label className="block text-xs text-slate-700">사유 (5자 이상)
@@ -333,12 +354,8 @@ export default function User360Page() {
 
       {editTarget ? (
         <div className="fixed inset-0 z-50 grid place-items-center bg-slate-900/40 p-4">
-          <form onSubmit={submitEdit} className="bg-white rounded-2xl max-w-md w-full p-5 space-y-3">
+          <form onSubmit={submitEdit} className="bg-white rounded-2xl max-w-md w-full p-5 space-y-3 max-h-[90vh] overflow-y-auto">
             <h3 className="font-semibold text-slate-900">사용자 정보 수정</h3>
-            <p className="text-[11px] text-slate-500">
-              이메일은 server 측 unique key 이므로 변경 불가. 상태 변경은 즉시
-              audit log 에 기록됩니다.
-            </p>
             {editError ? (
               <div role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
                 {editError}
@@ -360,9 +377,6 @@ export default function User360Page() {
                 disabled
                 className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 p-2 text-sm text-slate-500"
               />
-              <span className="mt-1 block text-[10px] text-amber-700">
-                server PATCH 엔드포인트 추가 필요 — 현재는 표시만.
-              </span>
             </label>
             <label className="block text-xs text-slate-700">상태
               <select
@@ -374,17 +388,16 @@ export default function User360Page() {
                 <option value="paused">paused</option>
               </select>
             </label>
-            <label className="block text-xs text-slate-700">비밀번호 재설정
+            <label className="block text-xs text-slate-700">비밀번호 재설정 (변경 시에만 입력)
               <input
                 type="password"
-                disabled
-                placeholder="endpoint 추가 필요 — 현재 비활성"
+                value={editPassword}
+                onChange={(e) => setEditPassword(e.target.value)}
+                placeholder="새 비밀번호 (10자 이상, 영문+숫자)"
+                minLength={10}
                 autoComplete="new-password"
-                className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 p-2 text-sm text-slate-500"
+                className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-sm"
               />
-              <span className="mt-1 block text-[10px] text-amber-700">
-                server POST /api/v1/admin/users/:id/reset-password 미구현 — 추가 후 활성화.
-              </span>
             </label>
             <label className="block text-xs text-slate-700">사유 (5자 이상, 감사 로그 기록)
               <textarea
@@ -406,7 +419,7 @@ export default function User360Page() {
 
       {addOpen ? (
         <div className="fixed inset-0 z-50 grid place-items-center bg-slate-900/40 p-4">
-          <form onSubmit={submitAdd} className="bg-white rounded-2xl max-w-md w-full p-5 space-y-3">
+          <form onSubmit={submitAdd} className="bg-white rounded-2xl max-w-md w-full p-5 space-y-3 max-h-[90vh] overflow-y-auto">
             <h3 className="font-semibold text-slate-900">사용자 추가</h3>
             <p className="text-[11px] text-slate-500">
               이메일·비밀번호는 필수. UUID는 비우면 자동 생성됩니다. 약관 v1.0 / 19+ 확인 / 자동 검증은

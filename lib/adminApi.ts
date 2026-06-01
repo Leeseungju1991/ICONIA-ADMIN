@@ -636,6 +636,22 @@ export function mfaResetUser(args: {
   });
 }
 
+// 비밀번호 강제 재설정 — Server: POST /api/v1/admin/users/:id/reset-password
+//   강도 정책(최소 10자 + 영문/숫자) 위반 시 ERR_PASSWORD_TOO_WEAK. 성공 시 기존 세션 전부 revoke.
+export function resetPasswordUser(args: {
+  jwt: string;
+  userId: string;
+  password: string;
+  reason?: string;
+}): Promise<ServerResult<{ reset: boolean; revoked_token_families: number }>> {
+  return authedRequest({
+    jwt: args.jwt,
+    path: `/api/v1/admin/users/${encodeURIComponent(args.userId)}/reset-password`,
+    method: "POST",
+    body: args.reason ? { password: args.password, reason: args.reason } : { password: args.password },
+  });
+}
+
 // ---------------------------------------------------------------------------
 // V1.0 #3 — AI 페르소나 admin 표면
 //   Server: GET /api/v1/admin/personas
@@ -954,6 +970,13 @@ export type AdminOverview = {
     app: DomainHealth;
     admin: DomainHealth;
     aws: DomainHealth;
+  };
+  /** 최근 7일 일별 추세 (KPI 스파크라인용). 각 배열은 oldest→newest 7개 버킷. */
+  trend_7d?: {
+    active_devices: number[];
+    dau: number[];
+    reports_pending: number[];
+    queue_depth: number[];
   };
 };
 

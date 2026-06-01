@@ -29,6 +29,9 @@ export default async function DashboardHome() {
       }
     : null;
 
+  // 최근 7일 추세 — KPI 박스 스파크라인용 (server overview.trend_7d 정본).
+  const trend = sv?.trend_7d ?? null;
+
   const DASH = (n: number | null | undefined): string =>
     n == null ? "—" : n.toLocaleString();
 
@@ -77,13 +80,14 @@ export default async function DashboardHome() {
         </div>
       </Link>
 
-      <section className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <KpiChip
           tone="indigo"
           icon="device"
           label="활성 디바이스"
           value={DASH(dash?.activeDevices)}
           sub=""
+          trend={trend?.active_devices}
         />
         <KpiChip
           tone="teal"
@@ -91,6 +95,7 @@ export default async function DashboardHome() {
           label="DAU"
           value={dash?.dauLabel ?? "—"}
           sub=""
+          trend={trend?.dau}
         />
         <KpiChip
           tone="orange"
@@ -104,6 +109,7 @@ export default async function DashboardHome() {
                 ? "검토 필요"
                 : "정상"
           }
+          trend={trend?.reports_pending}
         />
         <KpiChip
           tone="pink"
@@ -117,6 +123,7 @@ export default async function DashboardHome() {
                 ? "재투입 필요"
                 : "정상"
           }
+          trend={trend?.queue_depth}
         />
       </section>
 

@@ -16,8 +16,13 @@ import {
   pauseUser,
   resumeUser,
   mfaResetUser,
+  resetPasswordUser,
   deleteUser,
 } from "@/lib/adminApi";
+
+// 비밀번호 정책 — Server passwordService 와 동일 기준 (최소 10자 + 영문/숫자).
+const PASSWORD_MIN_LENGTH = 10;
+const PASSWORD_STRENGTH_REGEX = /^(?=.*[A-Za-z])(?=.*\d).{10,}$/;
 
 export type UserMutationResult =
   | { ok: true; note?: string }
@@ -119,6 +124,44 @@ export async function updateUserAction(args: {
     return { ok: true, note: res.data.already_active ? "이미 활성 상태였습니다." : "활성 전환 완료." };
   }
   return { ok: false, message: "지원하지 않는 상태값입니다." };
+}
+
+// 비밀번호 강제 재설정 — server 가 hash + 세션 전부 revoke.
+//   강도 정책은 client 에서 1차 검증 후 server passwordService 가 최종 강제.
+export async function resetUserPasswordAction(args: {
+  userId: string;
+  password: string;
+  reason: string;
+}): Promise<UserMutationResult> {
+  const jwt = readSession();
+  if (!jwt) return { ok: false, message: "세션이 만료되었습니다. 다시 로그인하세요." };
+  const v = validateReason(args.reason);
+  if (v) return { ok: false, message: v };
+  if (!args.password || args.password.length < PASSWORD_MIN_LENGTH) {
+    return { ok: false, message: `비밀번호는 ${PASSWORD_MIN_LENGTH}자 이상이어야 합니다.` };
+  }
+  if (!PASSWORD_STRENGTH_REGEX.test(args.password)) {
+    return { ok: false, message: "비밀번호는 영문과 숫자를 모두 포함해야 합니다 (최소 10자)." };
+  }
+  const res = await resetPasswordUser({
+    jwt,
+    userId: args.userId,
+    password: args.password,
+    reason: args.reason.trim(),
+  });
+  if (!res.ok) {
+    if (res.code === "ERR_PASSWORD_TOO_WEAK") {
+      return { ok: false, message: "비밀번호가 정책을 충족하지 않습니다 (최소 10자, 영문+숫자)." };
+    }
+    return { ok: false, message: res.message, code: res.code };
+  }
+  return {
+    ok: true,
+    note:
+      res.data.revoked_token_families > 0
+        ? `비밀번호가 재설정되었습니다. 기존 세션 ${res.data.revoked_token_families}개가 로그아웃되었습니다.`
+        : "비밀번호가 재설정되었습니다.",
+  };
 }
 
 export async function deleteUserAction(args: {

@@ -372,11 +372,7 @@ function KeyRegisterForm({
             <div className="text-[10px] text-amber-700 mt-0.5">
               기존 alias — 한도가 갱신(upsert)됩니다.
             </div>
-          ) : (
-            <div className="text-[10px] text-muted mt-0.5">
-              .env GEMINI_API_KEYS 에 추가된 키의 alias 와 정확히 일치해야 사용량 매칭됨.
-            </div>
-          )}
+          ) : null}
         </label>
         <label className="text-xs text-slate-700">
           Tier <span className="text-rose-600">*</span>

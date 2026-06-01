@@ -1,23 +1,27 @@
 import type { ReactNode } from "react";
+import { Sparkline } from "./SimpleChart";
 
 type Tone = "indigo" | "pink" | "teal" | "orange";
 type IconName = "device" | "chat" | "alert" | "queue";
 
-const TONE: Record<Tone, { bg: string; ring: string; text: string }> = {
-  indigo: { bg: "bg-indigo-50", ring: "ring-indigo-200", text: "text-indigo-700" },
-  pink:   { bg: "bg-pink-50",   ring: "ring-pink-200",   text: "text-pink-700"   },
-  teal:   { bg: "bg-teal-50",   ring: "ring-teal-200",   text: "text-teal-700"   },
-  orange: { bg: "bg-orange-50", ring: "ring-orange-200", text: "text-orange-700" },
+const TONE: Record<Tone, { bg: string; ring: string; text: string; accent: string }> = {
+  indigo: { bg: "bg-indigo-50", ring: "ring-indigo-200", text: "text-indigo-700", accent: "#6366f1" },
+  pink:   { bg: "bg-pink-50",   ring: "ring-pink-200",   text: "text-pink-700",   accent: "#ec4899" },
+  teal:   { bg: "bg-teal-50",   ring: "ring-teal-200",   text: "text-teal-700",   accent: "#14b8a6" },
+  orange: { bg: "bg-orange-50", ring: "ring-orange-200", text: "text-orange-700", accent: "#f97316" },
 };
 
-export function KpiChip({ label, value, sub, tone = "indigo", icon = "device" }: {
+export function KpiChip({ label, value, sub, tone = "indigo", icon = "device", trend }: {
   label: string;
   value: string;
   sub?: string;
   tone?: Tone;
   icon?: IconName;
+  /** 최근 7일 추세 — 있으면 우측에 스파크라인 표시. */
+  trend?: number[];
 }) {
   const t = TONE[tone];
+  const hasTrend = Array.isArray(trend) && trend.length > 0;
   return (
     <div className="flex items-center gap-3 rounded-2xl bg-white border border-slate-200 px-4 py-3 shadow-sm">
       <div className={`h-12 w-12 shrink-0 rounded-full flex items-center justify-center ring-1 ${t.bg} ${t.ring} ${t.text}`}>
@@ -28,6 +32,12 @@ export function KpiChip({ label, value, sub, tone = "indigo", icon = "device" }:
         <div className="font-semibold text-slate-900 truncate text-sm">{label}</div>
         <div className="text-lg font-bold tracking-tight text-slate-900">{value}</div>
       </div>
+      {hasTrend ? (
+        <div className="ml-auto flex flex-col items-end gap-0.5 shrink-0">
+          <Sparkline values={trend} accent={t.accent} width={72} height={26} />
+          <span className="text-[9px] text-slate-400">최근 7일</span>
+        </div>
+      ) : null}
     </div>
   );
 }
