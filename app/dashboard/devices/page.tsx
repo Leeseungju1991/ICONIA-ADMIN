@@ -61,8 +61,9 @@ function rssiLabel(rssi: number): string {
   return "끊김";
 }
 
-// Phase 13-C — Server `ServerDeviceRow` (lib/adminApi) → mockData DeviceRow shape adapter.
-// 누락 필드(region/wifi_rssi/silenced) fallback. 부수 UI 코드 보존.
+// Server `ServerDeviceRow` (lib/adminApi) → UI DeviceRow shape adapter.
+// Server 응답에 미존재한 필드(wifi_rssi/region/silenced) 는 null 로 두고 UI 가
+// "—" 표시. 정본 추가 시 server 응답에 필드 추가 후 본 adapter 도 갱신.
 function adaptServerDevice(s: ServerDeviceRow): DeviceRow {
   return {
     id: s.device_id,
@@ -72,17 +73,19 @@ function adaptServerDevice(s: ServerDeviceRow): DeviceRow {
     last_seen_at: s.last_seen_at ?? new Date(0).toISOString(),
     online: s.online,
     battery_pct: typeof s.last_battery_percent === "number" ? s.last_battery_percent : 0,
-    wifi_rssi: -70, // Server schema 미존재 — 중간값 fallback (UI 표시는 "중")
-    region: "KR", // Server schema 미존재 — 기본값
+    wifi_rssi: null,
+    region: null,
     paired_at: s.paired_at ?? new Date(0).toISOString(),
-    silenced: false, // Server schema 미존재 — 기본 false
+    silenced: null,
   };
 }
 
 export default function DevicesPage() {
   const [q, setQ] = useState("");
   const [state, setState] = useState<"all" | "online" | "offline" | "low_battery">("all");
-  const [region, setRegion] = useState<"all" | DeviceRow["region"]>("all");
+  // region select 는 명시 enum (DeviceRow.region 의 null 가능성을 제외 — null 디바이스는
+  // region 필터가 켜진 동안 모두 필터 아웃).
+  const [region, setRegion] = useState<"all" | "KR" | "JP" | "US">("all");
   const [picked, setPicked] = useState<DeviceRow | null>(null);
 
   // Phase 13-C — Server `/api/v1/admin/devices` fetch.
@@ -108,6 +111,7 @@ export default function DevicesPage() {
   const filtered = useMemo(
     () =>
       devices.filter((d) => {
+        // region 이 server 응답에 미존재 (null) — region 필터가 켜지면 모두 제외.
         if (region !== "all" && d.region !== region) return false;
         if (state === "online" && !d.online) return false;
         if (state === "offline" && d.online) return false;
@@ -220,13 +224,25 @@ export default function DevicesPage() {
     {
       key: "rssi",
       header: "Wi-Fi",
-      render: (r) => (
-        <span className="text-xs text-slate-700">
-          {rssiLabel(r.wifi_rssi)} <span className="text-muted ml-1">{r.wifi_rssi}dBm</span>
-        </span>
-      ),
+      render: (r) =>
+        r.wifi_rssi == null ? (
+          <span className="text-xs text-muted">—</span>
+        ) : (
+          <span className="text-xs text-slate-700">
+            {rssiLabel(r.wifi_rssi)} <span className="text-muted ml-1">{r.wifi_rssi}dBm</span>
+          </span>
+        ),
     },
-    { key: "region", header: "지역", render: (r) => <span className="chip chip-muted">{r.region}</span> },
+    {
+      key: "region",
+      header: "지역",
+      render: (r) =>
+        r.region == null ? (
+          <span className="text-xs text-muted">—</span>
+        ) : (
+          <span className="chip chip-muted">{r.region}</span>
+        ),
+    },
     {
       key: "fwerr",
       header: "FW 에러",
@@ -483,18 +499,27 @@ function DeviceDrawer({
           <Row k="소유자" v={<span className="font-mono">{device.owner_user_id ?? "미페어링"}</span>} />
           <Row k="펌웨어" v={device.firmware_version} />
           <Row k="배터리" v={<span className={batteryChip(device.battery_pct)}>{device.battery_pct}%</span>} />
-          <Row k="Wi-Fi" v={`${rssiLabel(device.wifi_rssi)} (${device.wifi_rssi}dBm)`} />
-          <Row k="지역" v={device.region} />
+          <Row
+            k="Wi-Fi"
+            v={device.wifi_rssi == null ? "—" : `${rssiLabel(device.wifi_rssi)} (${device.wifi_rssi}dBm)`}
+          />
+          <Row k="지역" v={device.region ?? "—"} />
           <Row k="페어링" v={formatDate(device.paired_at)} />
           <Row k="마지막 통신" v={formatDate(device.last_seen_at)} />
-          <Row k="음소거" v={device.silenced ? "예" : "아니오"} />
+          <Row k="음소거" v={device.silenced == null ? "—" : device.silenced ? "예" : "아니오"} />
         </dl>
 
         <div className="mt-6 grid grid-cols-2 gap-2">
           <button className="btn-outline text-sm" type="button" onClick={() => runAction("Ping (BLE/WSS)")}>핑 전송</button>
           <button className="btn-outline text-sm" type="button" onClick={() => runAction("OTA 강제 적용")}>OTA 강제</button>
-          <button className="btn-outline text-sm" type="button" onClick={() => runAction("음소거 토글")}>
-            {device.silenced ? "음소거 해제" : "음소거"}
+          <button
+            className="btn-outline text-sm"
+            type="button"
+            disabled={device.silenced == null}
+            title={device.silenced == null ? "Server 정본 미연동" : undefined}
+            onClick={() => runAction("음소거 토글")}
+          >
+            {device.silenced == null ? "음소거 (불가)" : device.silenced ? "음소거 해제" : "음소거"}
           </button>
           <button className="btn-danger text-sm" type="button" onClick={() => runAction("페어링 해제")}>페어링 해제</button>
         </div>

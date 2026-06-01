@@ -9,7 +9,8 @@ export type UserRow = {
   totp_enabled: boolean;
   last_login_at: string;
   created_at: string;
-  doll_count: number;
+  // Server `/api/v1/admin/users` 응답에 미존재 — null 일 때 UI 가 "—" 표시.
+  doll_count: number | null;
 };
 
 export const mockUsers: UserRow[] = [
@@ -258,10 +259,11 @@ export type DeviceRow = {
   last_seen_at: string;
   online: boolean;
   battery_pct: number;
-  wifi_rssi: number;
-  region: "KR" | "JP" | "US";
+  // Server `/api/v1/admin/devices` 응답에 미존재 — null 일 때 UI 가 "—" 표시.
+  wifi_rssi: number | null;
+  region: "KR" | "JP" | "US" | null;
   paired_at: string;
-  silenced: boolean;
+  silenced: boolean | null;
 };
 
 export const mockDevices: DeviceRow[] = [

@@ -9,14 +9,7 @@ import {
   unhideCommunityPost,
   takedownCommunityPost,
 } from "../serverApi.community";
-import {
-  mockFeedList,
-  mockFeedPost,
-  mockCommunityHealth,
-  type FeedListItem,
-  type FeedPost,
-  type CommunityHealth,
-} from "../mockFeed";
+import type { FeedListItem, FeedPost, CommunityHealth } from "../mockFeed";
 import type { ServerResult } from "../types";
 
 const COOKIE = "iconia_admin_jwt";
@@ -28,7 +21,7 @@ function jwt(): string | null {
 export type FeedListResult =
   | {
       ok: true;
-      source: "server" | "mock";
+      source: "server";
       items: FeedListItem[];
       next_cursor: string | null;
     }
@@ -49,15 +42,11 @@ export async function listFeedAction(
       next_cursor: r.data.next_cursor,
     };
   }
-  if (r.code === "ERR_NETWORK" || r.code === "ERR_SERVER_UNAVAILABLE") {
-    const m = mockFeedList(tab);
-    return { ok: true, source: "mock", items: m.items, next_cursor: m.next_cursor };
-  }
   return { ok: false, code: r.code, message: r.message };
 }
 
 export type PostDetailResult =
-  | { ok: true; source: "server" | "mock"; post: FeedPost }
+  | { ok: true; source: "server"; post: FeedPost }
   | { ok: false; code: string; message: string };
 
 export async function getPostDetailAction(postId: string): Promise<PostDetailResult> {
@@ -65,14 +54,11 @@ export async function getPostDetailAction(postId: string): Promise<PostDetailRes
   if (!token) return { ok: false, code: "ERR_UNAUTHENTICATED", message: "no_jwt" };
   const r = await fetchCommunityPost(token, postId);
   if (r.ok) return { ok: true, source: "server", post: r.data };
-  if (r.code === "ERR_NETWORK" || r.code === "ERR_SERVER_UNAVAILABLE") {
-    return { ok: true, source: "mock", post: mockFeedPost(postId) };
-  }
   return { ok: false, code: r.code, message: r.message };
 }
 
 export type CommunityHealthResult =
-  | { ok: true; source: "server" | "mock"; health: CommunityHealth }
+  | { ok: true; source: "server"; health: CommunityHealth }
   | { ok: false; code: string; message: string };
 
 export async function getCommunityHealthAction(): Promise<CommunityHealthResult> {
@@ -80,9 +66,6 @@ export async function getCommunityHealthAction(): Promise<CommunityHealthResult>
   if (!token) return { ok: false, code: "ERR_UNAUTHENTICATED", message: "no_jwt" };
   const r = await fetchCommunityHealth(token);
   if (r.ok) return { ok: true, source: "server", health: r.data };
-  if (r.code === "ERR_NETWORK" || r.code === "ERR_SERVER_UNAVAILABLE") {
-    return { ok: true, source: "mock", health: mockCommunityHealth() };
-  }
   return { ok: false, code: r.code, message: r.message };
 }
 

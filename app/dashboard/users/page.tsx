@@ -61,8 +61,9 @@ const statusLabel: Record<UserRow["account_status"], string> = {
   pending_deletion: "탈퇴 대기",
 };
 
-// Phase 13-A — Server adapter: ServerUserRow (lib/adminApi) → mockData UserRow shape.
-// mockData 에만 있는 필드(display_name·doll_count) 는 fallback. 기존 UI 코드 무수정.
+// Server `ServerUserRow` (lib/adminApi) → UI UserRow shape adapter.
+// Server 응답에 미존재한 필드(doll_count) 는 null 로 두고 UI 가 "—" 표시.
+// display_name 은 응답에 없으면 email local-part 로 surrogate.
 function adaptServerUser(s: ServerUserRow): UserRow {
   return {
     id: s.id,
@@ -72,7 +73,7 @@ function adaptServerUser(s: ServerUserRow): UserRow {
     created_at: s.created_at ?? new Date().toISOString(),
     last_login_at: s.last_login_at ?? s.created_at ?? new Date().toISOString(),
     totp_enabled: Boolean(s.totp_enabled),
-    doll_count: 0,
+    doll_count: null,
   };
 }
 
@@ -222,7 +223,12 @@ export default function UsersPage() {
     },
     { key: "status", header: "상태", render: (r) => <span className={statusChip[r.account_status]}>{statusLabel[r.account_status]}</span> },
     { key: "mfa", header: "MFA", render: (r) => r.totp_enabled ? <span className="chip chip-info">ON</span> : <span className="chip chip-muted">OFF</span> },
-    { key: "dolls", header: "인형", align: "right", render: (r) => r.doll_count },
+    {
+      key: "dolls",
+      header: "인형",
+      align: "right",
+      render: (r) => (r.doll_count == null ? <span className="text-muted">—</span> : r.doll_count),
+    },
     { key: "last", header: "최근 로그인", render: (r) => <span className="text-xs text-muted">{formatDate(r.last_login_at)}</span> },
     {
       key: "actions",
@@ -279,7 +285,7 @@ export default function UsersPage() {
         <StatCard
           label="오늘 가입"
           value={String(lifecycleStats.signupsToday)}
-          hint={`최근 ${TODAY_WINDOW_HOURS}h (mock)`}
+          hint={`최근 ${TODAY_WINDOW_HOURS}h`}
           accent="pink"
         />
         <StatCard
@@ -313,7 +319,7 @@ export default function UsersPage() {
       {pipaTrackList.length > 0 ? (
         <PanelCard
           title="PIPA 권리 추적 — 탈퇴 보류 / 데이터 export 요청"
-          description="개인정보보호법(PIPA) 제35조 열람 청구 + 제36조 삭제 요청. 보류 기간 30일 내 운영자가 export·복구 처리 가능. (mock — Phase 7 LivePipaPanel 가 Server 정본 표시 중)"
+          description="개인정보보호법(PIPA) 제35조 열람 청구 + 제36조 삭제 요청. 보류 기간 30일 내 운영자가 export·복구 처리 가능."
         >
           <ul className="space-y-2">
             {pipaTrackList.map((u) => (
@@ -542,7 +548,7 @@ function UserDetailDrawer({
           <Row k="이메일" v={unmasked ? user.email : maskEmail(user.email)} />
           <Row k="상태" v={<span className={statusChip[user.account_status]}>{statusLabel[user.account_status]}</span>} />
           <Row k="MFA" v={user.totp_enabled ? "활성화" : "비활성"} />
-          <Row k="보유 인형" v={`${user.doll_count}개`} />
+          <Row k="보유 인형" v={user.doll_count == null ? "—" : `${user.doll_count}개`} />
           <Row k="가입일" v={formatDate(user.created_at)} />
           <Row k="최근 로그인" v={formatDate(user.last_login_at)} />
           <Row
