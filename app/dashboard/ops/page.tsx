@@ -114,6 +114,26 @@ export default function OpsPage() {
   );
 }
 
+const healthStatusLabel = (s: string): string => {
+  switch (s) {
+    case "ok": return "정상";
+    case "degraded": return "저하";
+    case "down": return "장애";
+    default: return s;
+  }
+};
+
+const dlqStatusLabel = (s: string): string => {
+  switch (s) {
+    case "pending": return "대기";
+    case "queued": return "대기";
+    case "processing": return "처리 중";
+    case "failed": return "실패";
+    case "resolved": return "해결됨";
+    default: return s;
+  }
+};
+
 // ── 1) observability ─────────────────────────────────────────────
 function ObservabilityBlock() {
   const probes = mockHealthProbes;
@@ -140,7 +160,7 @@ function ObservabilityBlock() {
     {
       key: "status",
       header: "상태",
-      render: (r) => <span className={healthStatusChip(r.status)}>{r.status}</span>,
+      render: (r) => <span className={healthStatusChip(r.status)}>{healthStatusLabel(r.status)}</span>,
     },
     {
       key: "p50",
@@ -1186,7 +1206,7 @@ function LiveDlqSubPanel({
                   className="h-3.5 w-3.5"
                 />
                 <span className="font-mono">{d.event_id}</span>
-                <span className="chip chip-warn">{d.status}</span>
+                <span className="chip chip-warn">{dlqStatusLabel(d.status)}</span>
                 <span className="text-muted">attempts {d.attempts}</span>
                 {d.last_error_code ? (
                   <span className="ml-auto text-amber-700 font-mono">{d.last_error_code}</span>

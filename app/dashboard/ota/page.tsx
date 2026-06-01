@@ -31,6 +31,12 @@ const channelChip: Record<string, string> = {
   canary: "chip chip-warn",
   dev: "chip chip-muted",
 };
+const channelLabel: Record<string, string> = {
+  stable: "안정",
+  beta: "베타",
+  canary: "카나리",
+  dev: "개발",
+};
 const stateChip = (state: string) =>
   state === "completed"
     ? "chip chip-success"
@@ -41,6 +47,18 @@ const stateChip = (state: string) =>
         : state === "rolling"
           ? "chip chip-info"
           : "chip chip-muted";
+const stateLabel = (state: string): string => {
+  switch (state) {
+    case "completed": return "완료";
+    case "aborted": return "중단";
+    case "paused": return "일시정지";
+    case "holding": return "보류";
+    case "rolling": return "배포 중";
+    case "queued": return "대기";
+    case "scheduled": return "예약됨";
+    default: return state;
+  }
+};
 
 function formatSize(b: number | null): string {
   if (b == null) return "—";
@@ -172,7 +190,7 @@ export default function OtaPage() {
               >
                 <div className="flex items-center justify-between gap-2 flex-wrap">
                   <span className="font-mono">{d.version}</span>
-                  <span className={stateChip(d.state)}>{d.state}</span>
+                  <span className={stateChip(d.state)}>{stateLabel(d.state)}</span>
                   <span className="text-xs text-muted">
                     {d.started_at ?? "—"} → {d.completed_at ?? "진행 중"}
                   </span>
@@ -221,7 +239,7 @@ function VersionRow({ v }: { v: FirmwareVersionRow }) {
   return (
     <li className="rounded-xl border border-white/60 bg-white/55 px-3 py-2 flex items-center justify-between gap-2 flex-wrap">
       <span className="font-mono">{v.version}</span>
-      <span className={channelChip[v.channel] ?? "chip chip-muted"}>{v.channel}</span>
+      <span className={channelChip[v.channel] ?? "chip chip-muted"}>{channelLabel[v.channel] ?? v.channel}</span>
       <span className="text-xs text-muted">{v.released_at}</span>
       <span className="text-xs text-muted">{formatSize(v.size_bytes)}</span>
       {v.sha256 ? (
@@ -239,7 +257,7 @@ function DeploymentCard({ d }: { d: DeploymentRow }) {
     <div className="rounded-xl border border-white/60 bg-white/55 px-3 py-3">
       <div className="flex items-center justify-between gap-2">
         <span className="font-mono text-sm">{d.version}</span>
-        <span className={stateChip(d.state)}>{d.state}</span>
+        <span className={stateChip(d.state)}>{stateLabel(d.state)}</span>
       </div>
       <div className="mt-2 text-xs text-muted flex items-center gap-2 flex-wrap">
         <span>progress {d.rollout_percent}%</span>

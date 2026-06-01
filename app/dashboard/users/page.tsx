@@ -353,9 +353,8 @@ export default function UsersPage() {
             ))}
           </ul>
           <p className="text-[11px] text-muted mt-3">
-            ※ 본 목록은 `account_status === &quot;pending_deletion&quot;` 만 표시. export 다운로드 / 복구
-            확정은 백엔드 endpoint (`/api/v1/admin/users/&lt;id&gt;/pipa/export`) 도입 후 활성화.
-            모든 처리는 server canonical audit log 에 기록됩니다.
+            ※ 본 목록은 탈퇴 대기 상태(pending_deletion) 사용자만 표시합니다. 개인정보 내보내기와 복구 확정 기능은 서버 준비 완료 후 활성화됩니다.
+            모든 처리는 운영 감사 로그에 자동 기록됩니다.
           </p>
         </PanelCard>
       ) : null}

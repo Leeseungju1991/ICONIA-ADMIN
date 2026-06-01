@@ -401,11 +401,14 @@ function Field({
 }
 
 function PreparingNotice({ endpoint }: { endpoint: string }) {
+  if (typeof console !== "undefined") {
+    console.warn("[admin] preparing endpoint not yet available:", endpoint);
+  }
   return (
     <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-700">
       <div className="font-medium">준비 중</div>
       <div className="mt-1 text-xs text-muted">
-        Server endpoint <code>{endpoint}</code> 도달 불가. 권한 또는 endpoint 미배포.
+        해당 기능을 준비 중입니다. 권한 또는 배포 상태를 확인하세요.
       </div>
     </div>
   );

@@ -24,7 +24,7 @@ export default function FactoryTestPage() {
         description="LOT 생성·시리얼 발급·출고 테스트 결과를 수동으로 입력합니다."
       >
         <div className="text-xs text-muted">
-          ★ 시리얼은 1회 발급 후 변경 불가 — 발급 즉시 QR 토큰을 공장 PC 로 받아 인쇄·NVS burn 에 사용하세요.
+          ★ 시리얼은 1회 발급 후 변경 불가 — 발급 즉시 QR 토큰을 공장 PC 로 받아 인쇄 및 기기 식별 정보 영구 기록에 사용하세요.
         </div>
       </PanelCard>
 

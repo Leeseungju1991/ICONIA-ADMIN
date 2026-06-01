@@ -20,6 +20,14 @@ const OUTCOME_CHIP: Record<string, string> = {
   blocked: "chip chip-warn",
 };
 
+const OUTCOME_LABEL: Record<string, string> = {
+  success: "성공",
+  ok: "성공",
+  failed: "실패",
+  error: "오류",
+  blocked: "차단",
+};
+
 function nowMinusHours(h: number): string {
   return new Date(Date.now() - h * 3600 * 1000).toISOString().slice(0, 16);
 }
@@ -105,7 +113,7 @@ export default function AuditClient() {
     () => [
       {
         key: "created_at",
-        header: "created_at",
+        header: "시각",
         render: (r) => (
           <span className="text-[11px] text-slate-700 whitespace-nowrap">
             {new Date(r.created_at).toLocaleString("ko-KR")}
@@ -114,7 +122,7 @@ export default function AuditClient() {
       },
       {
         key: "operator_email",
-        header: "operator_email",
+        header: "운영자",
         render: (r) => (
           <span className="text-[11px] text-slate-700">
             <code className="text-[10px] text-muted">
@@ -127,18 +135,18 @@ export default function AuditClient() {
       },
       {
         key: "action",
-        header: "action",
+        header: "동작",
         render: (r) => (
           <span className="font-mono text-xs text-slate-700">{r.action}</span>
         ),
       },
       {
         key: "outcome",
-        header: "outcome",
+        header: "결과",
         render: (r) =>
           r.action_outcome ? (
             <span className={OUTCOME_CHIP[r.action_outcome] ?? "chip chip-info"}>
-              {r.action_outcome}
+              {OUTCOME_LABEL[r.action_outcome] ?? r.action_outcome}
             </span>
           ) : (
             <span className="text-muted text-xs">—</span>
@@ -146,7 +154,7 @@ export default function AuditClient() {
       },
       {
         key: "target_resource_type",
-        header: "target_type",
+        header: "대상 유형",
         render: (r) => (
           <span className="text-[11px] text-slate-700">
             {r.target_resource_type ?? "—"}
@@ -155,7 +163,7 @@ export default function AuditClient() {
       },
       {
         key: "target_resource_id",
-        header: "target_id",
+        header: "대상 ID",
         render: (r) => (
           <code className="text-[10px] text-muted">
             {r.target_resource_id ? r.target_resource_id.slice(0, 16) : "—"}
@@ -164,7 +172,7 @@ export default function AuditClient() {
       },
       {
         key: "ip",
-        header: "ip",
+        header: "IP",
         render: (r) => (
           <span className="font-mono text-[10px] text-slate-600">{r.ip || "—"}</span>
         ),

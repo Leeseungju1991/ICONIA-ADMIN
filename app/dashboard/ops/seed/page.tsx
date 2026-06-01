@@ -92,7 +92,7 @@ export default function OpsSeedPage() {
         <StatCard
           label="마지막 실행 시각"
           value={status?.last_run_at ?? "—"}
-          hint={status?.last_run_by ?? "Server seed/status"}
+          hint={status?.last_run_by ?? "시드 상태 조회 준비 중"}
           accent="blue"
         />
         <StatCard
@@ -136,9 +136,7 @@ export default function OpsSeedPage() {
             <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-700">
               <div className="font-medium">준비 중</div>
               <div className="mt-1 text-xs text-muted">
-                Server 신규 admin endpoint{" "}
-                <code>/api/v1/admin/seed/status</code> 가 아직 도달 가능하지
-                않습니다. SERVER 배포가 끝나면 자동으로 표시됩니다.
+                시드 상태 조회 준비 중입니다. 잠시 후 다시 시도하세요.
               </div>
             </div>
           ) : (

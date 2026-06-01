@@ -24,6 +24,16 @@ const STATUS_CHIP: Record<string, string> = {
   failed: "chip chip-error",
 };
 
+const STATUS_LABEL: Record<string, string> = {
+  pending: "대기",
+  processing: "처리 중",
+  on_hold: "보류",
+  completed: "완료",
+  cancelled: "취소",
+  refunded: "환불",
+  failed: "실패",
+};
+
 function fmtKRW(amount: string, currency: string): string {
   const n = Number(amount);
   if (Number.isFinite(n)) {
@@ -82,13 +92,13 @@ export default function OrdersClient() {
               className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs"
             >
               <option value="">전체 상태</option>
-              <option value="pending">pending</option>
-              <option value="processing">processing</option>
-              <option value="on_hold">on_hold</option>
-              <option value="completed">completed</option>
-              <option value="cancelled">cancelled</option>
-              <option value="refunded">refunded</option>
-              <option value="failed">failed</option>
+              <option value="pending">대기</option>
+              <option value="processing">처리 중</option>
+              <option value="on_hold">보류</option>
+              <option value="completed">완료</option>
+              <option value="cancelled">취소</option>
+              <option value="refunded">환불</option>
+              <option value="failed">실패</option>
             </select>
             <button
               type="button"
@@ -115,11 +125,11 @@ export default function OrdersClient() {
             <table className="min-w-full text-sm">
               <thead>
                 <tr className="text-left text-[11px] text-muted">
-                  <th className="px-2 py-1">order_id</th>
-                  <th className="px-2 py-1">user_email</th>
-                  <th className="px-2 py-1">total</th>
-                  <th className="px-2 py-1">status</th>
-                  <th className="px-2 py-1">created_at</th>
+                  <th className="px-2 py-1">주문 ID</th>
+                  <th className="px-2 py-1">이메일</th>
+                  <th className="px-2 py-1">합계</th>
+                  <th className="px-2 py-1">상태</th>
+                  <th className="px-2 py-1">생성 시각</th>
                   <th className="px-2 py-1">상세</th>
                 </tr>
               </thead>
@@ -141,7 +151,7 @@ export default function OrdersClient() {
                     </td>
                     <td className="px-2 py-2">
                       <span className={STATUS_CHIP[o.status] ?? "chip chip-muted"}>
-                        {o.status}
+                        {STATUS_LABEL[o.status] ?? o.status}
                       </span>
                     </td>
                     <td className="px-2 py-2 text-xs text-muted whitespace-nowrap">
@@ -184,21 +194,21 @@ export default function OrdersClient() {
               </button>
             </div>
             <div className="p-4 space-y-3 text-sm">
-              <Field label="user_email" value={selected.customer_email ?? "—"} />
+              <Field label="이메일" value={selected.customer_email ?? "—"} />
               <Field
-                label="status"
-                value={selected.status}
+                label="상태"
+                value={STATUS_LABEL[selected.status] ?? selected.status}
                 chip={STATUS_CHIP[selected.status]}
               />
               <Field
-                label="total"
+                label="합계"
                 value={fmtKRW(selected.total, selected.currency)}
               />
-              <Field label="paid_at" value={selected.paid_at ?? "—"} />
-              <Field label="completed_at" value={selected.completed_at ?? "—"} />
-              <Field label="payment_method" value={selected.payment_method ?? "—"} />
+              <Field label="결제 시각" value={selected.paid_at ?? "—"} />
+              <Field label="완료 시각" value={selected.completed_at ?? "—"} />
+              <Field label="결제 수단" value={selected.payment_method ?? "—"} />
               <div>
-                <div className="text-[11px] text-muted mb-1">items</div>
+                <div className="text-[11px] text-muted mb-1">상품 목록</div>
                 {selected.items && selected.items.length > 0 ? (
                   <ul className="space-y-1 text-xs text-slate-700">
                     {selected.items.map((it) => (

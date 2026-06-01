@@ -406,12 +406,14 @@ function Field({
 }
 
 function PreparingNotice({ endpoint }: { endpoint: string }) {
+  if (typeof console !== "undefined") {
+    console.warn("[admin] preparing endpoint not yet available:", endpoint);
+  }
   return (
     <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-700">
       <div className="font-medium">준비 중</div>
       <div className="mt-1 text-xs text-muted">
-        Server endpoint <code>{endpoint}</code> 가 아직 배포되지 않았습니다. 배포
-        완료 즉시 검색이 활성화됩니다.
+        로그 검색을 준비 중입니다. 배포 완료 즉시 검색이 활성화됩니다.
       </div>
     </div>
   );

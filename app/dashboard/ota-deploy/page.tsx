@@ -186,10 +186,10 @@ export default function OtaDeployPage() {
                 value={channel}
                 onChange={(e) => setChannel(e.target.value as typeof channel)}
               >
-                <option value="canary">canary</option>
-                <option value="beta">beta</option>
-                <option value="stable">stable</option>
-                <option value="dev">dev</option>
+                <option value="canary">카나리</option>
+                <option value="beta">베타</option>
+                <option value="stable">안정</option>
+                <option value="dev">개발</option>
               </select>
             </label>
           </div>
