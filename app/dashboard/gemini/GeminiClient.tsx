@@ -116,7 +116,7 @@ export default function GeminiClient() {
       {/* ───────────────── 키별 사용량 + tier 추천 ───────────────── */}
       <PanelCard
         title="키별 사용량 · 한도 추천"
-        description="24h 한도 대비 사용량. 80%/95% 도달 키는 다음 tier 상승 또는 키 추가 추천."
+        description="일일 한도 대비 사용량입니다. 80%·95% 도달 시 등급 상승 또는 키 추가가 권장됩니다."
         actions={
           <button
             type="button"
@@ -203,7 +203,7 @@ export default function GeminiClient() {
       {/* ───────────────── 키 등록 · 한도 설정 ───────────────── */}
       <PanelCard
         title="키 등록 · 한도 설정"
-        description="키 별칭(alias)의 tier·한도를 등록 또는 수정합니다."
+        description="키의 등급과 사용 한도를 등록·수정합니다."
       >
         <KeyRegisterForm
           existingAliases={(keys?.items || []).map((k) => k.id)}

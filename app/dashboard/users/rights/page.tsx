@@ -107,7 +107,7 @@ export default function RightsQueuePage() {
     <div className="space-y-6">
       <PanelCard
         title="권리 요청 큐 — 상태별 카운트"
-        description="PIPA 제35/36/37조에 따른 사용자 권리 요청 (열람·정정·삭제·이관)."
+        description="개인정보보호법에 따른 사용자 권리 요청(열람·정정·삭제·이관) 현황입니다."
       >
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {(Object.keys(counts) as RightsRequestStatus[]).map((s) => (

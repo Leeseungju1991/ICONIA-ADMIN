@@ -161,7 +161,7 @@ export default function ModerationPage() {
 
       <PanelCard
         title="미해결 신고 — 통합 보기"
-        description="GET /api/admin/reports?status=open — 30초 폴링. 욕설/혐오/비방은 빨간 강조."
+        description="처리되지 않은 신고를 30초마다 자동 갱신합니다. 욕설·혐오·비방은 빨간색으로 강조됩니다."
         actions={
           <div className="flex items-center gap-2">
             {source === "fixture" ? <FixtureBadge /> : null}

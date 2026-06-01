@@ -62,7 +62,7 @@ export default function ContentHubPage() {
 
       <PanelCard
         title="콘텐츠 진입"
-        description="각 표면별 상세 페이지로 이동합니다."
+        description="각 콘텐츠 관리 페이지로 이동합니다."
         actions={
           <div className="flex items-center gap-2">
             {counts.source === "fixture" ? <FixtureBadge /> : null}

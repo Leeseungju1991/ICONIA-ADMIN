@@ -123,7 +123,7 @@ export default async function DashboardHome() {
       {/* Gemini API Key 사용량 카드 — 본문 마지막 섹션. 사이드바 footer(로그아웃)와 정렬. */}
       <PanelCard
         title="Gemini API 사용량"
-        description="키별 일일 한도 대비 사용량. 80% 도달 시 주의, 95%+ 빨강 강조 + 구매 권장."
+        description="키별 일일 한도 대비 사용량입니다. 80% 도달 시 주의, 95% 이상은 키 추가가 권장됩니다."
         actions={
           <Link href="/dashboard/ai-usage" className="btn-outline text-xs">
             자세히 →

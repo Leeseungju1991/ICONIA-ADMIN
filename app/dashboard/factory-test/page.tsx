@@ -21,7 +21,7 @@ export default function FactoryTestPage() {
     <div className="space-y-4">
       <PanelCard
         title="양산 관리 — LOT / 시리얼 / 출고 테스트"
-        description="1.HW production_test 가 자동 업로드한 결과는 후속 화면에서 LOT 별 yield 로 집계됩니다. 본 화면은 운영자 수동 입력 + 시리얼 발급."
+        description="LOT 생성·시리얼 발급·출고 테스트 결과를 수동으로 입력합니다."
       >
         <div className="text-xs text-muted">
           ★ 시리얼은 1회 발급 후 변경 불가 — 발급 즉시 QR 토큰을 공장 PC 로 받아 인쇄·NVS burn 에 사용하세요.
@@ -159,7 +159,7 @@ function FactoryTestSubmitPanel() {
   return (
     <PanelCard
       title="③ 출고 테스트 결과 수동 입력"
-      description="펌웨어 production_test 가 자동 업로드 못한 경우 (시리얼 USB·점퍼 검수) 운영자가 직접 입력."
+      description="자동 업로드되지 않은 출고 테스트 결과를 직접 입력합니다."
     >
       <form
         onSubmit={(e) => {

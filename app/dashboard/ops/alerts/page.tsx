@@ -75,7 +75,7 @@ export default function OpsAlertsPage() {
     <div className="space-y-6">
       <PanelCard
         title="알림 채널"
-        description="알람 발생 시 메시지를 보낼 채널. 임계치별로 채널을 선택해 발송."
+        description="알람을 받을 채널을 설정합니다."
         actions={
           <button
             type="button"
@@ -127,7 +127,7 @@ export default function OpsAlertsPage() {
 
       <PanelCard
         title="임계치 규칙"
-        description="각 규칙은 SLO 위반 시 트리거. 임계치 / 활성화 / 채널 변경은 사유 5자 + audit_log."
+        description="기준에 도달하면 알람이 발송됩니다. 변경 시 사유 5자 이상이 필요하며 감사 로그에 기록됩니다."
       >
         {error ? (
           error.unreachable ? (
@@ -160,7 +160,7 @@ export default function OpsAlertsPage() {
 
       <PanelCard
         title="관련 페이지"
-        description="알람이 발생하면 점프할 페이지."
+        description="알람 발생 시 바로 이동할 수 있는 페이지입니다."
       >
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           <Link

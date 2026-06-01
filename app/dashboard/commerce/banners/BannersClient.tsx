@@ -188,7 +188,7 @@ export default function BannersClient() {
 
   return (
     <div className="space-y-6">
-      <PanelCard title="배너 작성" description="이미지 5MB / 비디오 50MB 한도. JPG/PNG/WEBP/MP4.">
+      <PanelCard title="배너 작성" description="이미지는 5MB, 비디오는 50MB 까지 업로드할 수 있습니다.">
         <form onSubmit={handleCreate} className="space-y-3">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <input

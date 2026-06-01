@@ -164,7 +164,7 @@ export default function OpsLogsPage() {
     <div className="space-y-6">
       <PanelCard
         title="로그 검색"
-        description="시간 범위 / 레벨 / 라우트 / request-id / user-id / status / 자유 검색. PII 는 마스킹."
+        description="시간·레벨·라우트·사용자·상태 등으로 검색합니다. 개인정보는 자동 마스킹됩니다."
       >
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <label className="block">
@@ -288,7 +288,7 @@ export default function OpsLogsPage() {
 
       <PanelCard
         title="검색 결과"
-        description="메시지를 클릭하면 raw payload (마스킹 후) 가 우측 드로어에 표시됩니다."
+        description="메시지를 클릭하면 상세 내용이 우측에 표시됩니다."
       >
         {!hasSearched ? (
           <div className="py-8 text-center text-xs text-muted">

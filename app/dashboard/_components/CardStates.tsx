@@ -80,7 +80,7 @@ export function ServerDownBadge({
   return (
     <span
       className="inline-flex items-center gap-1 rounded-full bg-rose-50 border border-rose-200 px-2 py-0.5 text-[10px] font-medium text-rose-700"
-      title="Server /api/v1/admin/overview 가 응답하지 않습니다. 표시값이 아닌 '—' 로 표기됩니다."
+      title="서버가 응답하지 않아 값을 가져올 수 없습니다."
     >
       <span className="w-1.5 h-1.5 rounded-full bg-rose-500" aria-hidden />
       {label}

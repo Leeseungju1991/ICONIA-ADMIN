@@ -73,7 +73,7 @@ export default function OrdersClient() {
     <div className="space-y-6">
       <PanelCard
         title="주문 목록 (display-only)"
-        description="결제/환불 액션은 admin web 에서 제공하지 않습니다. 외부 결제 시스템 정본 — 본 화면은 운영 조회 전용."
+        description="조회 전용 화면입니다. 결제·환불은 외부 시스템에서 처리됩니다."
         actions={
           <div className="flex items-center gap-2">
             <select

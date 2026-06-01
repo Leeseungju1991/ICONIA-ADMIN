@@ -132,7 +132,7 @@ export default function OpsRunbookPage() {
     <div className="space-y-6">
       <PanelCard
         title="장애 대응 runbook"
-        description="알람 본문에서 #anchor 로 deep link. 각 항목에 증상 / 절차 / 관련 페이지."
+        description="장애 유형별 증상·대응 절차·관련 페이지를 제공합니다."
       >
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {RUNBOOKS.map((r) => (
@@ -159,7 +159,7 @@ export default function OpsRunbookPage() {
         >
           <PanelCard
             title={r.title}
-            description={`알람 key: ${r.alertKey}`}
+            description={`알람 종류: ${r.alertKey}`}
           >
             <div className="space-y-3">
               <div>
@@ -299,7 +299,7 @@ function OpsControlsPanel({ onToast }: { onToast: (m: string) => void }) {
   return (
     <PanelCard
       title="수동 운영 작업"
-      description="circuit breaker 강제 close · 캐시 invalidate · 메인터넌스 모드. 모두 사유 5자 + EXECUTE 2단계 확인 + Server audit_log."
+      description="서킷 강제 차단·캐시 무효화·점검 모드 등 수동 작업입니다. 사유 5자 이상 입력과 2단계 확인이 필요하며 감사 로그에 기록됩니다."
     >
       <div className="space-y-6">
         <div className="space-y-2">

@@ -207,7 +207,7 @@ export default function OpsSloPage() {
 
       <PanelCard
         title="API 라우트별 SLO (5분 윈도우)"
-        description="호출량 TOP. p95 / p99 / 5xx 비율. error_rate > 1% 인 행은 빨간색."
+        description="호출량이 많은 API 의 응답 속도와 오류율입니다. 오류율 1% 이상은 빨간색으로 강조됩니다."
         actions={
           <button
             type="button"
@@ -239,7 +239,7 @@ export default function OpsSloPage() {
 
       <PanelCard
         title="외부 의존성 상태"
-        description="DB · Redis · AI 서비스 · WP 커머스 등. 마지막 health probe 결과."
+        description="DB·캐시·AI·커머스 등 외부 시스템의 최근 상태입니다."
       >
         {error ? (
           error.unreachable ? (
@@ -261,7 +261,7 @@ export default function OpsSloPage() {
 
       <PanelCard
         title="관련 페이지"
-        description="SLO 위반 또는 외부 의존성 장애 시 점프할 페이지."
+        description="문제 발생 시 바로 이동할 수 있는 페이지입니다."
       >
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           <RelatedLink

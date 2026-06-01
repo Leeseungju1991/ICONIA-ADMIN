@@ -22,7 +22,7 @@ export function GeminiManagementPanel(props: SummaryProps) {
   return (
     <PanelCard
       title="Gemini 키 관리 방안"
-      description={`정본: docs/Gemini-API-Key-운영가이드.md — 본 패널은 PDF 운영 매뉴얼의 핵심 절차/체크포인트/비상 대응을 대시보드 안에 임베드합니다.`}
+      description={`운영 매뉴얼의 핵심 절차·점검 항목·비상 대응을 한 화면에서 확인합니다.`}
     >
       <div className="space-y-4">
         <CurrentState {...props} />

@@ -90,7 +90,7 @@ export default function AiUsagePage() {
           중복 추출을 피하기 위해 link 로 안내. */}
       <PanelCard
         title="Gemini Key 등록 · 한도 설정"
-        description="신규 키 별칭(alias)·tier·일/월 한도를 등록하거나 기존 키의 한도를 갱신합니다."
+        description="키의 등급과 사용 한도를 등록·수정합니다."
         actions={
           <Link
             href="/dashboard/gemini"
@@ -151,7 +151,7 @@ export default function AiUsagePage() {
       {/* 시계열 차트 */}
       <PanelCard
         title="시간대별 Gemini 호출"
-        description="선택한 기간(24h / 7d / 30d) 의 시간대별 호출량 추이."
+        description="선택한 기간의 시간대별 호출량 추이."
         actions={
           <div className="flex items-center gap-2">
             {source === "fixture" ? <FixtureBadge /> : null}
@@ -190,62 +190,13 @@ export default function AiUsagePage() {
         )}
       </PanelCard>
 
-      <section className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        <PanelCard
-          title="모델별 분포"
-          description="모델별 호출 수 기준 비율."
-        >
-          {donutSegments.length === 0 ? (
-            <EmptyState title="모델 분해 없음" />
-          ) : (
-            <Donut segments={donutSegments} />
-          )}
-        </PanelCard>
-
-        <PanelCard
-          title="할당량 알림 (열림)"
-          description="80% 도달 시 주의, 95% 이상은 즉시 구매 권장."
-        >
-          {!alerts || alerts.items.length === 0 ? (
-            <EmptyState title="활성 알림 없음" hint="모든 키가 일일 한도 80% 미만." />
-          ) : (
-            <ul className="space-y-2">
-              {alerts.items.map((a) => (
-                <li
-                  key={a.id}
-                  className={[
-                    "rounded-xl border px-3 py-2 text-sm flex items-center justify-between",
-                    a.level === "critical"
-                      ? "border-rose-200 bg-rose-50"
-                      : "border-amber-200 bg-amber-50",
-                  ].join(" ")}
-                >
-                  <div>
-                    <div className="font-medium text-slate-800">{a.key_label}</div>
-                    <div className="text-[11px] text-slate-500">
-                      열린지 {Math.max(1, Math.round((Date.now() - new Date(a.opened_at).getTime()) / 60_000))}분
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <span
-                      className={
-                        a.level === "critical" ? "chip chip-error" : "chip chip-warn"
-                      }
-                    >
-                      {Math.round(a.ratio * 100)}%
-                    </span>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </PanelCard>
-      </section>
+      {/* 2026-06-01 — 사용자 요청: "모델별 분포" + "할당량 알림 (열림)" 패널 제거.
+          키 사용량 상세는 아래 "키별 사용량" 패널의 progress bar 색상으로 충분히 표현. */}
 
       {/* 키별 사용량 */}
       <PanelCard
         title="키별 사용량 — Gemini API Key"
-        description="키 평문은 표시하지 않으며 마지막 4자만 노출합니다."
+        description="보안을 위해 키의 마지막 4자만 표시됩니다."
         actions={source === "fixture" ? <FixtureBadge /> : null}
       >
         {error ? (

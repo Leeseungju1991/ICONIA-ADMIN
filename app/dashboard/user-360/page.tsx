@@ -195,7 +195,7 @@ export default function User360Page() {
     <div className="space-y-4">
       <PanelCard
         title="사용자 검색"
-        description="이메일 · IC-시리얼 · UUID 중 하나로 한 사용자를 통합 관리합니다."
+        description="이메일·시리얼·사용자 ID 로 한 명의 사용자를 통합 관리합니다."
         actions={
           <button
             type="button"
@@ -217,8 +217,8 @@ export default function User360Page() {
         title="사용자 목록"
         description={
           usersList && usersList.ok
-            ? `이메일 · UUID · 가입일. 전체 ${usersList.total}명 중 ${usersList.users.length}명 표시.`
-            : "이메일 · UUID · 가입일."
+            ? `이메일·ID·가입일. 전체 ${usersList.total}명 중 ${usersList.users.length}명 표시.`
+            : "이메일·ID·가입일을 표시합니다."
         }
         actions={
           <button
@@ -302,10 +302,10 @@ export default function User360Page() {
 
       {okSnap ? (
         <>
-          <PanelCard title={okSnap.snapshot.user.email} description={`UUID ${okSnap.snapshot.user.id} · 상태 ${okSnap.snapshot.user.account_status}`}>
+          <PanelCard title={okSnap.snapshot.user.email} description={`ID ${okSnap.snapshot.user.id} · 상태 ${okSnap.snapshot.user.account_status}`}>
             <UserSnapshotGrid snapshot={okSnap.snapshot} role={ROLE} onAction={onAction} />
           </PanelCard>
-          <PanelCard title="이벤트 타임라인" description="audit + ops events (시간 역순)">
+          <PanelCard title="이벤트 타임라인" description="최근 활동 내역을 시간 역순으로 표시합니다.">
             <UserTimeline events={okTl?.events ?? []} />
           </PanelCard>
         </>

@@ -112,8 +112,8 @@ export default function OtaPage() {
       </section>
 
       <PanelCard
-        title="펌웨어 빌드 카탈로그 — Server 정본"
-        description="Server /api/v1/admin/firmware.versions — 채널/릴리즈 시각/SHA256/크기. 출고 가능 빌드는 stable 채널."
+        title="펌웨어 빌드 카탈로그"
+        description="등록된 펌웨어 빌드의 채널·릴리즈 시각·체크섬·크기를 확인합니다."
         actions={
           <button
             type="button"
@@ -142,7 +142,7 @@ export default function OtaPage() {
 
       <PanelCard
         title="진행 중 / 최근 배포"
-        description="Server /api/v1/admin/firmware.deployments — canary → early → stable 자동 진행률 + 자동 hold 시 cohort_id 표시."
+        description="배포 단계별 진행률과 자동 중단된 그룹을 확인합니다."
       >
         {deployments.length === 0 ? (
           <div className="text-sm text-muted">배포 이력이 없습니다.</div>
@@ -156,8 +156,8 @@ export default function OtaPage() {
       </PanelCard>
 
       <PanelCard
-        title="배포 ledger (Phase 12 cohort hold/rollback)"
-        description="Server /api/v1/admin/deployments — cursor 페이지네이션. hold_reason/abort_reason/rollback_window_until 정본 표시."
+        title="배포 이력"
+        description="배포 중단·취소 사유와 롤백 가능 기간을 확인합니다."
       >
         {!ledger ? (
           <div className="text-sm text-muted">불러오는 중</div>
@@ -197,7 +197,7 @@ export default function OtaPage() {
       {failures && failures.ok && failures.data.total > 0 ? (
         <PanelCard
           title={`OTA 실패 집계 — ${failures.data.total}건 (since ${failures.data.since})`}
-          description="firmware_deployment_failure + otaTelemetry 결합. 자세한 디바이스별 실패는 /dashboard/firmware-errors."
+          description="OTA 실패 사유별 집계입니다. 기기별 상세는 펌웨어 오류 페이지에서 확인하세요."
         >
           <div className="flex flex-wrap gap-2">
             {failures.data.by_reason.slice(0, 8).map((r) => (

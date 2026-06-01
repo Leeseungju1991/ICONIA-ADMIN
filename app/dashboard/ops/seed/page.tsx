@@ -118,8 +118,8 @@ export default function OpsSeedPage() {
       </section>
 
       <PanelCard
-        title="Seed 카테고리별 카운트 (Server)"
-        description="Server /api/v1/admin/seed/status — Seed 가 채운 시드 데이터의 카테고리별 행 수."
+        title="시드 데이터 카테고리별 개수"
+        description="시드로 생성된 카테고리별 데이터 개수입니다."
         actions={
           <button
             type="button"
@@ -169,7 +169,7 @@ export default function OpsSeedPage() {
 
       <PanelCard
         title="Seed 수동 실행 (SRE 이상)"
-        description="출시 직전 시드 데이터 충전이 필요할 때만 실행. 매 실행은 audit_log 영구 기록 + SEED 확인 문구 필요."
+        description="출시 직전에만 사용하세요. 실행 시 감사 로그에 영구 기록되며 확인 문구 입력이 필요합니다."
       >
         <div className="space-y-3">
           <label className="block">

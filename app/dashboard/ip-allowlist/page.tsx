@@ -85,7 +85,7 @@ export default function IpAllowlistPage() {
     <div className="space-y-6">
       <PanelCard
         title="운영자 IP 허용목록"
-        description="등록된 IP 만 운영자 콘솔 로그인 가능. 신규 등록 / 삭제는 최고관리자(superadmin) 전용. break-glass 비상 흐름은 별도 라운드."
+        description="등록된 IP 에서만 운영자 콘솔 로그인이 가능합니다. 추가·삭제는 최고관리자 전용입니다."
         actions={
           <button
             type="button"

@@ -99,8 +99,8 @@ export default function PersonasPage() {
       </section>
 
       <PanelCard
-        title="SOUL 카탈로그 — Server 정본"
-        description="Server /api/v1/admin/personas + aiHealthTracker.snapshot().by_soul_catalog_id 결합. 페르소나별 fallback_rate · last_response · 누적 비용."
+        title="SOUL 카탈로그"
+        description="페르소나별 응답 실패율·최근 응답·누적 비용을 확인합니다."
         actions={
           <>
             <select
@@ -152,7 +152,7 @@ export default function PersonasPage() {
       {byKindCost ? (
         <PanelCard
           title="응답 종류별 비용 분포"
-          description="AI metricsBuffer.by_kind — text / voice / vision 별 누적 USD/KRW."
+          description="텍스트·음성·이미지 응답의 누적 비용입니다."
         >
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
             {(["text", "voice", "vision"] as const).map((k) => (

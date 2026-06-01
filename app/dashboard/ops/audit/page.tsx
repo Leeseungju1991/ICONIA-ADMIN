@@ -217,7 +217,7 @@ export default function OpsAuditPage() {
     <div className="space-y-6">
       <PanelCard
         title="감사 로그 검색"
-        description="action / 운영자 / 대상 type / 시작 시각. hash chain 정본 — Server 가 무결성 보장."
+        description="동작·운영자·대상·시작 시각으로 감사 로그를 검색합니다."
         actions={
           items.length > 0 ? (
             <button
@@ -283,7 +283,7 @@ export default function OpsAuditPage() {
         </div>
       </PanelCard>
 
-      <PanelCard title="결과" description="상세 row 를 클릭하면 metadata 와 hash 가 표시됩니다.">
+      <PanelCard title="결과" description="행을 클릭하면 상세 정보가 표시됩니다.">
         {!hasSearched ? (
           <div className="py-8 text-center text-xs text-muted">
             조건을 설정한 뒤 「조회」를 누르세요.

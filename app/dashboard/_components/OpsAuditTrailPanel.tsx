@@ -23,8 +23,8 @@ export type OpsAuditTrailRefresh = { tick: number };
 
 export function OpsAuditTrailPanel({
   prefix,
-  title = "운영자 액션 audit (세션)",
-  description = "본 세션 내 실행된 retry/rollback/수동 조치. 백엔드 연동 후 Server audit_log 와 머지됩니다.",
+  title = "운영자 활동 기록 (세션)",
+  description = "이번 세션에서 수행한 재시도·롤백·수동 조치 내역입니다.",
   refresh,
 }: {
   prefix: string;

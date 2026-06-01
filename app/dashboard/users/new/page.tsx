@@ -97,7 +97,7 @@ export default function NewUserPage() {
     <div className="space-y-6">
       <PanelCard
         title="사용자 추가"
-        description="이메일·비밀번호로 신규 사용자를 생성합니다. UUID는 선택 (비우면 자동 생성). 감사 로그에 기록됩니다."
+        description="이메일·비밀번호로 신규 사용자를 생성합니다. ID 를 비워두면 자동 생성되며 감사 로그에 기록됩니다."
         actions={
           <button
             type="button"

@@ -61,7 +61,7 @@ export default function AsPage() {
     <div className="space-y-4">
       <PanelCard
         title="AS · 교환 티켓"
-        description="신규 접수 시 이전 페어링은 자동 force-unpair 됩니다. 교체 기기 등록 시 새 owner 페어링이 활성화됩니다."
+        description="AS 접수 시 기존 페어링은 자동 해제되고, 교체 기기 등록 시 새 페어링이 시작됩니다."
         actions={
           <select
             className="select max-w-[160px]"

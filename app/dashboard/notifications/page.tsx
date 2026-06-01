@@ -99,7 +99,7 @@ export default function NotificationsBroadcastPage() {
     <div className="space-y-6">
       <PanelCard
         title="공지/알람 작성 + 발송"
-        description="POST /api/admin/notifications — 앱푸시 / 인앱 배너 채널 + 대상 세그먼트 선택."
+        description="앱 푸시·인앱 배너로 공지·알림을 작성해 발송합니다."
       >
         <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-5">
           <div className="space-y-3">

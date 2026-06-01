@@ -87,7 +87,7 @@ export default function CommunityPage() {
 
       <PanelCard
         title="신고된 피드"
-        description="신고된 게시물 목록입니다. 각 항목의 [삭제] 버튼으로 takedown 처리합니다."
+        description="신고된 게시물을 확인하고 삭제할 수 있습니다."
         actions={
           <button
             type="button"

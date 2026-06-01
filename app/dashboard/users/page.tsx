@@ -319,7 +319,7 @@ export default function UsersPage() {
       {pipaTrackList.length > 0 ? (
         <PanelCard
           title="PIPA 권리 추적 — 탈퇴 보류 / 데이터 export 요청"
-          description="개인정보보호법(PIPA) 제35조 열람 청구 + 제36조 삭제 요청. 보류 기간 30일 내 운영자가 export·복구 처리 가능."
+          description="개인정보보호법에 따른 열람·삭제 요청입니다. 보류 30일 이내에 데이터 내보내기·복구를 처리할 수 있습니다."
         >
           <ul className="space-y-2">
             {pipaTrackList.map((u) => (
@@ -364,7 +364,7 @@ export default function UsersPage() {
 
       <PanelCard
         title="회원 검색"
-        description="이메일·이름·ID로 회원을 찾고 상세 정보 및 운영자 액션을 수행합니다. 기본 표시는 PII 마스킹되어 있으며, 해제는 감사 로그에 기록됩니다."
+        description="이메일·이름·ID 로 회원을 찾고 상세 정보를 관리합니다. 개인정보는 마스킹되며 해제 시 감사 로그에 기록됩니다."
         actions={
           <>
             <input
@@ -670,7 +670,7 @@ function InlineCreateUserPanel({ onCreated }: { onCreated: (msg: string) => void
   return (
     <PanelCard
       title="사용자 빠른 추가"
-      description="이메일·비밀번호로 즉시 계정을 생성합니다. UUID 를 지정하면 해당 ID 로 가입, 비워두면 서버가 자동 생성합니다."
+      description="이메일·비밀번호로 즉시 계정을 생성합니다. ID 를 비워두면 자동 생성됩니다."
       actions={
         <button
           type="button"
@@ -831,7 +831,7 @@ function LiveUsersPanel() {
   return (
     <PanelCard
       title={loading ? "실시간 사용자 (Server) 로딩 중" : `실시간 사용자 (Server) — 총 ${total.toLocaleString()}명`}
-      description="Server /api/v1/admin/users — adminUserService.searchUsers (active_session_count 집계 포함). PII 마스킹은 Server responseMask 미들웨어가 자동 처리."
+      description="현재 활성 세션을 포함한 사용자 정보를 실시간으로 표시합니다. 개인정보는 자동 마스킹됩니다."
       actions={
         <AutoRefreshToggle
           enabled={autoOn}
@@ -952,7 +952,7 @@ function LivePipaPanel() {
   return (
     <PanelCard
       title="PIPA 실시간 추적 (Server)"
-      description="Server /api/v1/admin/users/pipa — 탈퇴 대기 / 최근 export 요청. SUPERADMIN_ONLY."
+      description="탈퇴 대기·최근 데이터 내보내기 요청을 표시합니다. 최고관리자 전용."
     >
       {loading ? (
         <div className="text-sm text-muted">불러오는 중</div>

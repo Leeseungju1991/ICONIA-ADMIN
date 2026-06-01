@@ -34,7 +34,7 @@ export default function BootInvariantsPage() {
             ? `Fleet 출하 잠금 invariant 위반 — ${state.total.toLocaleString()}대`
             : "Fleet 출하 잠금 invariant 위반"
         }
-        description="REQUIRED_BOOT_INVARIANT_MASK 미충족 디바이스 (Secure Boot · Flash Enc · JTAG Disable · OTA Anti-Rollback). 양산 라인 burn 실수 또는 펌웨어 빌드 결함 추적."
+        description="출하 보안 기준을 충족하지 못한 기기 목록입니다. 생산 라인이나 펌웨어 결함 점검에 사용됩니다."
         actions={
           <button
             type="button"

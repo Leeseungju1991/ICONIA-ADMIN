@@ -165,7 +165,7 @@ export default function OtaDeployPage() {
     <div className="space-y-6">
       <PanelCard
         title="① 펌웨어 업로드"
-        description="POST /api/admin/ota/firmwares → presigned PUT 으로 S3 업로드 → register 로 메타 확정."
+        description="펌웨어 파일을 업로드하고 버전·채널 정보를 등록합니다."
       >
         <form onSubmit={handleUpload} className="space-y-3">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -236,7 +236,7 @@ export default function OtaDeployPage() {
 
       <PanelCard
         title="② 디바이스 그룹 선택 + 배포"
-        description="POST /api/admin/ota/rollouts — canary % 로 단계 진행. 5% → 25% → 100% 자동 promotion 은 서버 정책."
+        description="대상 그룹을 선택해 단계적으로 배포합니다. 비율은 자동으로 확대됩니다."
         actions={source === "fixture" ? <FixtureBadge /> : null}
       >
         {loadingGroups ? (

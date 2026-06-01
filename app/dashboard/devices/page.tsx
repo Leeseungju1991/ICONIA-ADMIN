@@ -354,7 +354,7 @@ export default function DevicesPage() {
       {/* 출시준비 라운드 §8 — 배터리 분포 카드 (high / mid / low / critical). */}
       <PanelCard
         title="배터리 분포"
-        description="전체 디바이스의 배터리 수준 분포. critical 구간은 알림 권장."
+        description="전체 기기의 배터리 잔량 분포입니다. 위험 구간은 알림이 권장됩니다."
       >
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {([
@@ -393,7 +393,7 @@ export default function DevicesPage() {
 
       <PanelCard
         title="디바이스 목록"
-        description="ESP32 인형의 최근 통신·배터리·펌웨어 버전·Wi-Fi 상태를 모니터링합니다."
+        description="인형의 최근 통신·배터리·펌웨어·Wi-Fi 상태를 확인합니다."
         actions={
           <>
             <input
@@ -655,7 +655,7 @@ function LiveDevicesPanel() {
   return (
     <PanelCard
       title="실시간 디바이스 (Server)"
-      description="Server /api/v1/admin/devices — adminStub→prisma 실 결합 (Phase1-A). last_battery_percent · firmware_version 정본."
+      description="최근 통신·배터리·펌웨어 정보가 실시간으로 표시됩니다."
     >
       {loading ? (
         <div className="text-sm text-muted">불러오는 중</div>
@@ -734,7 +734,7 @@ function FleetDistributionPanel() {
   return (
     <PanelCard
       title="Fleet 분포 (Server)"
-      description="Server /api/v1/admin/devices/distribution — 양산직전 #15 fleet 가시화."
+      description="전체 기기의 분포 현황을 확인합니다."
       actions={
         <select
           className="select max-w-[160px]"

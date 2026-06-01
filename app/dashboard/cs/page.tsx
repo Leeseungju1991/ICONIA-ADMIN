@@ -32,7 +32,7 @@ export default function CsLookupPage() {
     <div className="space-y-4">
       <PanelCard
         title="CS 1차 응대 — 통합 조회"
-        description="이메일 · 시리얼 · 사용자/디바이스 UUID 중 하나로 검색"
+        description="이메일·시리얼·사용자/기기 ID 로 검색합니다."
       >
         <form onSubmit={runLookup} className="flex gap-2">
           <input

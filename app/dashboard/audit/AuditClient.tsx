@@ -190,7 +190,7 @@ export default function AuditClient() {
     <div className="space-y-6">
       <PanelCard
         title="감사 로그 검색"
-        description="action / outcome / 운영자 / 시작·종료 시각. hash chain 정본 — Server 가 무결성 보장. secops+ 전용."
+        description="운영자 활동 기록을 기간·동작·결과·담당자로 검색합니다."
       >
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           <label className="block">
@@ -261,7 +261,7 @@ export default function AuditClient() {
 
       <PanelCard
         title="결과"
-        description="row 클릭 시 metadata + hash chain 상세 패널이 열립니다."
+        description="행을 클릭하면 상세 정보가 표시됩니다."
         actions={
           hasSearched && items.length > 0 ? (
             <div className="flex items-center gap-2">

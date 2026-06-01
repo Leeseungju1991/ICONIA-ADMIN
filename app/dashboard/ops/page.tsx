@@ -205,8 +205,8 @@ function ObservabilityBlock() {
       </section>
 
       <PanelCard
-        title="① observability — 서비스 헬스 probe"
-        description="서비스·리전별 health probe (mock — 백엔드 미연동). 자세한 SLO 시계열은 /dashboard/stats 참조."
+        title="① 서비스 상태 점검"
+        description="서비스·지역별 상태를 확인합니다. 상세 추이는 통계 페이지에서 확인하세요."
       >
         <DataTable columns={columns} rows={probes} empty="probe 데이터가 없습니다." />
       </PanelCard>
@@ -275,11 +275,11 @@ function AiTimeoutBlock() {
 
   return (
     <PanelCard
-      title="① -b AI 호출 모니터링 — timeout · fallback · p95"
+      title="① -b AI 호출 모니터링 — 응답 시간·실패율"
       description={
         live
-          ? "Server /api/v1/admin/ai-health 실 연동 — aiHealthTracker 5분 윈도우 (fallback rate · p50/p95/p99)."
-          : "Gemini gateway timeout / rate-limit 비율과 ai-worker p95 latency. Bedrock fallback flag 와 함께 운영."
+          ? "최근 5분 간 AI 호출의 실패율과 응답 속도를 표시합니다."
+          : "AI 게이트웨이의 시간 초과·요청 제한 비율과 응답 속도를 확인합니다."
       }
     >
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -504,12 +504,9 @@ function AiTimeoutBlock() {
       ) : null}
       <p className="text-[11px] text-muted mt-3">
         {live ? (
-          <>※ Server `/api/v1/admin/ai-health` 실 연동 — `aiHealthTracker` 5분 sliding
-          window. fallback_breakdown / 모델별 토큰은 Server snapshot 에 포함.</>
+          <>※ 최근 5분 간의 실측 데이터를 표시합니다. 실패 사유·모델별 토큰 정보가 포함됩니다.</>
         ) : (
-          <>※ Server 미도달 — `mockHealthProbes` · `mockServerErrors` 근사값 표시 중.
-          Server `/api/v1/admin/ai-health` 도달 시 실측 fallback rate / p50·p95·p99 로
-          자동 전환.</>
+          <>※ 서버 미도달 상태로 근사값을 표시 중입니다. 연결이 복구되면 실측 데이터로 자동 전환됩니다.</>
         )}
       </p>
     </PanelCard>
@@ -588,8 +585,8 @@ function AlertingBlock({
 
   return (
     <PanelCard
-      title="③ alerting — 활성 알람"
-      description="임계 도달 시 운영자에게 발송되는 in-app / Slack / email 알람. 본 패널이 in-app banner 의 단일 진입점."
+      title="③ 활성 알람"
+      description="임계치 도달 시 운영자에게 발송되는 알림입니다. 인앱 배너 진입점도 여기입니다."
       actions={
         <span className={active.length > 0 ? "chip chip-error" : "chip chip-success"}>
           활성 {active.length} · 진정 {resolved.length}
@@ -700,7 +697,7 @@ function AlertingBlock({
         )}
       </div>
       <p className="text-[11px] text-muted mt-3">
-        ※ 하단 IncidentAlert sub-section 이 Server `/api/v1/admin/alerts` 정본 — aiHealthTracker fallback threshold 알람 자동 insert.
+        ※ 아래 알람 영역에 임계치 초과 알람이 자동으로 표시됩니다.
       </p>
     </PanelCard>
   );
@@ -761,8 +758,8 @@ function TracingBlock() {
   return (
     <>
       <PanelCard
-        title="② tracing — trace_id / request_id 종단간 검색"
-        description="App → Server → AI → Firmware 의 단일 trace 흐름. 행 클릭 시 raw payload preview."
+        title="② 요청 추적 — 종단 간 검색"
+        description="앱·서버·AI·기기 사이의 요청 흐름을 한 번에 확인합니다. 행을 클릭하면 상세 데이터가 표시됩니다."
         actions={
           <input
             className="input max-w-[260px]"
@@ -809,9 +806,7 @@ function TracingBlock() {
           </div>
         )}
         <p className="text-[11px] text-muted mt-3">
-          ※ 상단 mock 은 단일 trace 시나리오 2종 (chat happy → retry 성공, OTA 다운로드 실패).
-          하단 sub-section 이 Server `/api/v1/admin/trace/:traceId` (Phase2-A) 실 연동 —
-          event_store + audit_logs + firmware_deployment_failure 결합.
+          ※ 상단은 예시 추적 시나리오(채팅 재시도 성공, 펌웨어 다운로드 실패)이고, 하단에서 실제 추적 ID 를 조회할 수 있습니다.
         </p>
 
         {/* V2.0 #9 — Server `/api/v1/admin/trace/:traceId` (Phase2-A) wiring sub-section */}
@@ -1025,8 +1020,8 @@ function ReplayBlock({
   return (
     <>
       <PanelCard
-        title="⑤ replay tool · ⑦ force retry — dead-letter 큐"
-        description="silent retry 가 모두 소진된 dead-letter. 운영자가 payload 를 검증하고 강제 재투입."
+        title="⑤ 실패 큐 — 강제 재시도"
+        description="자동 재시도가 모두 실패한 작업입니다. 내용을 확인하고 직접 재투입합니다."
         actions={
           <select
             className="select max-w-[160px]"
@@ -1314,8 +1309,8 @@ function RecoveryActionsBlock({
 
   return (
     <PanelCard
-      title="⑥ admin recovery actions — 즉시 실행 복구 액션"
-      description="OTA 롤백 · Persona 회수 · Push 재발송 · 디바이스 reset · 사용자 강제 logout. 강력 액션은 사유 + 2단계 확인 (EXECUTE) 필수."
+      title="⑥ 긴급 복구 액션"
+      description="펌웨어 롤백·페르소나 회수·푸시 재발송·기기 초기화·강제 로그아웃 등 즉시 실행 기능입니다. 강력 액션은 사유 입력과 2단계 확인이 필요합니다."
     >
       <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {RECOVERY_ACTION_KIND_LIST.map((kind) => {
@@ -1406,8 +1401,8 @@ function KillSwitchBlock({
 
   return (
     <PanelCard
-      title="⑧ kill switch — 전역/지역 기능 차단"
-      description="강력 액션 — 사유 + 2단계 확인(EXECUTE) 필수. 활성화 시 즉시 차단. 백엔드 미연동 — UI 상태만 변경."
+      title="⑧ 긴급 차단 — 전역·지역 기능 차단"
+      description="활성화 시 즉시 차단됩니다. 사유 입력과 2단계 확인이 필요합니다."
       actions={
         <span className={switches.some((s) => s.enabled) ? "chip chip-error" : "chip chip-muted"}>
           활성 {switches.filter((s) => s.enabled).length} / {switches.length}
@@ -1500,7 +1495,7 @@ function FeatureFlagBlock({
     <>
       <PanelCard
         title="⑨ feature flag — 캠페인 / 실험 / 단계적 배포"
-        description="활성 ON/OFF + 단계적 노출 비율 (0~100%). 갱신 시 사유 입력 필수."
+        description="기능 활성 여부와 노출 비율을 설정합니다. 변경 시 사유 입력이 필요합니다."
       >
         <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {flags.map((f) => (
@@ -1634,8 +1629,8 @@ function AuditLogBlock({ auditTick }: { auditTick: number }) {
   return (
     <OpsAuditTrailPanel
       prefix=""
-      title="④ audit log — 본 세션 운영자 액션"
-      description="모든 운영자 액션의 단일 패널 (ops.*, recovery.*, kill_switch.*, feature_flag.*). 백엔드 연동 후 Server audit_log 와 머지."
+      title="④ 운영자 활동 로그 — 이번 세션"
+      description="이번 세션에서 수행한 모든 운영자 액션이 표시됩니다."
       refresh={{ tick: auditTick }}
     />
   );

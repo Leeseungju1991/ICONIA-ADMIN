@@ -202,8 +202,8 @@ export default function ReportsPage() {
       </section>
 
       <PanelCard
-        title="신고 처리 — 게시물 (Server 정본)"
-        description="Server /api/v1/admin/posts?filter=reported — FeedReport 가 걸린 FeedPost 만. 숨김·복구는 Server mutation 으로 적용."
+        title="신고 처리 — 게시물"
+        description="신고 누적 게시물을 검토하고 숨김·복구합니다."
         actions={
           <button
             type="button"
@@ -242,8 +242,8 @@ export default function ReportsPage() {
 
       <OpsAuditTrailPanel
         prefix="report."
-        title="신고 처리 운영자 액션 audit (세션)"
-        description="콘텐츠 숨김·복구 등 운영자 조치 기록. Server audit_log 와 자동 머지 — adminStub posts 라우트가 audit_log 자동 기록."
+        title="신고 처리 활동 기록 (세션)"
+        description="콘텐츠 숨김·복구 등 운영자 조치 내역이 감사 로그에 기록됩니다."
         refresh={{ tick: auditTick }}
       />
 

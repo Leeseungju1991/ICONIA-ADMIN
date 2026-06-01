@@ -261,8 +261,8 @@ export default function OperatorsClient({
 
       <OpsAuditTrailPanel
         prefix="operator."
-        title="운영자 관리 audit (세션)"
-        description="운영자 초대·비활성화 등 RBAC 조치 기록. 비활성화는 Server audit_log (operator_role_changed) 에도 canonical 기록됩니다."
+        title="운영자 관리 활동 기록 (세션)"
+        description="운영자 초대·비활성화 등 권한 변경 내역이 감사 로그에 기록됩니다."
         refresh={{ tick: auditTick }}
       />
 
