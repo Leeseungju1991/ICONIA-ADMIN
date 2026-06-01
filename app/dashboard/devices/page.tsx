@@ -11,7 +11,7 @@ import {
   type DeviceRow,
 } from "@/lib/mockData";
 import { fetchDeviceOwnershipHistoryAction } from "@/lib/actions/deviceOwnership";
-import { listDevicesAction } from "@/lib/actions/devices";
+import { listDevicesAction, listDeviceEventsAction } from "@/lib/actions/devices";
 import { getDeviceBootInvariantsAction } from "@/lib/actions/bootInvariants";
 import { fetchDistributionAction } from "@/lib/actions/deviceDistribution";
 import type {
@@ -20,17 +20,8 @@ import type {
   DeviceBootInvariants,
   DistributionBy,
   DistributionItem,
+  DeviceEventRow,
 } from "@/lib/adminApi";
-
-// 강력 액션 2단계 확인 — /dashboard/ops 와 동일 정책.
-const TWO_STEP_PHRASE = "EXECUTE";
-function twoStepConfirm(label: string): boolean {
-  if (typeof window === "undefined") return false;
-  const phrase = window.prompt(
-    `${label}\n\n강력 액션입니다. 실행하려면 정확히 "${TWO_STEP_PHRASE}" 를 입력하세요.`,
-  );
-  return phrase === TWO_STEP_PHRASE;
-}
 
 // 오늘 페어링 카운트 — paired_at 이 최근 48h 이내. mock baseline.
 const PAIRING_WINDOW_HOURS = 48;
@@ -245,7 +236,7 @@ export default function DevicesPage() {
     },
     {
       key: "fwerr",
-      header: "FW 에러",
+      header: "FW 에러 (예시)",
       align: "right",
       render: (r) => {
         const c = fwErrorsByDevice.get(r.id) ?? 0;
@@ -298,49 +289,50 @@ export default function DevicesPage() {
           accent="teal"
         />
         <StatCard
-          label="FW 에러 (24h)"
+          label="FW 에러 (24h) · 예시"
           value={lifecycle.fwErrCount.toLocaleString()}
           delta={`${mockFirmwareErrors.length} 유형`}
           deltaTone={lifecycle.fwErrCount > 100 ? "down" : "flat"}
-          hint="펌웨어 에러 페이지 참조"
+          hint="예시/데모 데이터 (실데이터 미연동)"
           accent="pink"
         />
         <StatCard
-          label="OTA 진행 중"
+          label="OTA 진행 중 · 예시"
           value={String(lifecycle.rolling.length)}
-          hint={lifecycle.rolling.length ? "rolling_out 캠페인" : "진행 중인 배포 없음"}
+          hint="예시/데모 데이터 (실데이터 미연동)"
           accent="orange"
         />
         <StatCard
-          label="OTA 적용률"
+          label="OTA 적용률 · 예시"
           value={`${lifecycle.rolloutPct}%`}
           delta={lifecycle.rolling.length ? "활성 캠페인 합" : "—"}
           deltaTone="up"
-          hint="rolling_out 누적"
+          hint="예시/데모 데이터 (실데이터 미연동)"
           accent="blue"
         />
       </section>
 
-      {/* 출시준비 라운드 §9 — BLE 페어링 실패율 (firmware BLE_GATT_TIMEOUT 기반 근사). */}
+      {/* 출시준비 라운드 §9 — BLE 페어링 실패율 (firmware BLE_GATT_TIMEOUT 기반 근사).
+          ⚠ 예시/데모 데이터: mockFirmwareErrors 기반 근사치로, 실 페어링 카운터 미연동. */}
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
-          label="BLE 페어링 실패"
+          label="BLE 페어링 실패 · 예시"
           value={blePairingStability.bleTimeouts.toLocaleString()}
-          hint="BLE_GATT_TIMEOUT 누적 (24h)"
+          hint="예시/데모 데이터 (실데이터 미연동)"
           accent="pink"
         />
         <StatCard
-          label="BLE 페어링 실패율"
+          label="BLE 페어링 실패율 · 예시"
           value={`${blePairingStability.failureRate.toFixed(1)}%`}
           delta={blePairingStability.failureRate > 10 ? "임계 초과" : "정상"}
           deltaTone={blePairingStability.failureRate > 10 ? "down" : "up"}
-          hint="실패 / (성공 + 실패) — mock 근사"
+          hint="예시/데모 데이터 (mock 근사)"
           accent={blePairingStability.failureRate > 10 ? "pink" : "teal"}
         />
         <StatCard
-          label="BLE 페어링 시도"
+          label="BLE 페어링 시도 · 예시"
           value={blePairingStability.attempts.toLocaleString()}
-          hint="paired + timeout — 24h 추정"
+          hint="예시/데모 데이터 (실데이터 미연동)"
           accent="blue"
         />
         <StatCard
@@ -455,23 +447,11 @@ function DeviceDrawer({
 }: {
   device: DeviceRow;
   onClose: () => void;
+  // onToast 는 상단 페이지가 주입하지만, 현재 드로어 액션이 모두 "준비 중" 으로
+  // 비활성화되어 직접 사용처는 없다. 백엔드 연동 시 재사용 예정이라 시그니처는 유지.
   onToast: (msg: string) => void;
 }) {
-  // 파괴적 액션 (페어링 해제) 은 EXECUTE 2단계 확인 필수.
-  const DESTRUCTIVE_DEVICE_ACTIONS = new Set(["페어링 해제"]);
-
-  function runAction(label: string) {
-    if (DESTRUCTIVE_DEVICE_ACTIONS.has(label) && !twoStepConfirm(label)) {
-      onToast(`${label} 실행 취소 — 확인 문구 불일치.`);
-      return;
-    }
-    const reason = window.prompt(`${label} 사유를 입력하세요 (감사 로그에 기록됩니다, 5자 이상).`);
-    if (!reason || reason.trim().length < 5) {
-      onToast("사유가 5자 이상 필요합니다. 액션을 취소했습니다.");
-      return;
-    }
-    onToast(`${label} 요청을 기록했습니다. (백엔드 연동 후 활성화)`);
-  }
+  void onToast;
 
   return (
     <div className="fixed inset-0 z-40 flex items-end sm:items-center justify-center sm:justify-end p-3 sm:p-6 bg-black/30">
@@ -509,26 +489,124 @@ function DeviceDrawer({
           <Row k="음소거" v={device.silenced == null ? "—" : device.silenced ? "예" : "아니오"} />
         </dl>
 
+        {/* 아래 액션은 Server 정본 endpoint 미연동 — 비활성 ("준비 중") 으로 표시해
+            운영자가 동작하는 기능으로 오인하지 않도록 한다. */}
         <div className="mt-6 grid grid-cols-2 gap-2">
-          <button className="btn-outline text-sm" type="button" onClick={() => runAction("Ping (BLE/WSS)")}>핑 전송</button>
-          <button className="btn-outline text-sm" type="button" onClick={() => runAction("OTA 강제 적용")}>OTA 강제</button>
-          <button
-            className="btn-outline text-sm"
-            type="button"
-            disabled={device.silenced == null}
-            title={device.silenced == null ? "Server 정본 미연동" : undefined}
-            onClick={() => runAction("음소거 토글")}
-          >
-            {device.silenced == null ? "음소거 (불가)" : device.silenced ? "음소거 해제" : "음소거"}
-          </button>
-          <button className="btn-danger text-sm" type="button" onClick={() => runAction("페어링 해제")}>페어링 해제</button>
+          <button className="btn-outline text-sm" type="button" disabled title="준비 중 (백엔드 미연동)">핑 전송 (준비 중)</button>
+          <button className="btn-outline text-sm" type="button" disabled title="준비 중 (백엔드 미연동)">OTA 강제 (준비 중)</button>
+          <button className="btn-outline text-sm" type="button" disabled title="준비 중 (백엔드 미연동)">음소거 (준비 중)</button>
+          <button className="btn-danger text-sm" type="button" disabled title="준비 중 (백엔드 미연동)">페어링 해제 (준비 중)</button>
         </div>
+        <p className="mt-2 text-[11px] text-muted">※ 핑/OTA/음소거/페어링 해제 액션은 백엔드 연동 준비 중입니다.</p>
 
+        <DeviceMediaPanel deviceId={device.id} />
         <OwnershipTimeline deviceId={device.id} />
         <BootInvariantsPanel deviceId={device.id} />
 
         <p className="text-[11px] text-muted mt-3">※ 소유권 이력 Server `/api/v1/admin/devices/:id/ownership-history` 정본 연동.</p>
       </div>
+    </div>
+  );
+}
+
+// 센서/미디어 — Server `/api/v1/admin/devices/:id/events` 정본.
+// 사진(image_url) / 터치 면(touch) / 배터리(battery) / 시각(at) 을 이벤트 단위로 표시.
+// 시나리오 "사진/터치/센서 데이터" 운영자 조회 요건을 충족.
+function DeviceMediaPanel({ deviceId }: { deviceId: string }) {
+  const [items, setItems] = useState<DeviceEventRow[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    listDeviceEventsAction({ deviceId, limit: 30 })
+      .then((r) => {
+        if (cancelled) return;
+        if (!r.ok) {
+          setError(r.message);
+          setItems(null);
+        } else {
+          setItems(r.items);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [deviceId]);
+
+  return (
+    <div className="mt-5 rounded-2xl border border-white/60 bg-white/30 p-3">
+      <div className="text-sm font-semibold mb-2">센서/미디어 (사진·터치·배터리)</div>
+      {loading ? (
+        <div className="text-xs text-muted">불러오는 중</div>
+      ) : error ? (
+        <div className="text-xs text-amber-700 bg-amber-50/80 border border-amber-200 rounded-xl px-3 py-2">
+          Server 도달 실패: {error}
+        </div>
+      ) : !items || items.length === 0 ? (
+        <div className="text-xs text-muted">센서/미디어 이벤트가 없습니다.</div>
+      ) : (
+        <ol className="space-y-2">
+          {items.map((ev) => (
+            <li
+              key={ev.event_id}
+              className="rounded-xl bg-white/65 border border-white/50 px-3 py-2 text-xs"
+            >
+              <div className="flex items-start gap-3">
+                {ev.image_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={ev.image_url}
+                    alt={`이벤트 ${ev.event_id} 사진`}
+                    loading="lazy"
+                    className="h-14 w-14 shrink-0 rounded-lg object-cover border border-white/60 bg-slate-100"
+                  />
+                ) : (
+                  <div className="h-14 w-14 shrink-0 rounded-lg border border-white/60 bg-slate-100 grid place-items-center text-[10px] text-muted">
+                    사진 없음
+                  </div>
+                )}
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="chip chip-info">{ev.kind}</span>
+                    <span className="text-muted">{formatDate(ev.at)}</span>
+                  </div>
+                  <div className="mt-1 flex gap-3 flex-wrap text-slate-700">
+                    <span>
+                      터치:{" "}
+                      <span className="font-medium">{ev.touch ?? "—"}</span>
+                    </span>
+                    <span>
+                      배터리:{" "}
+                      <span className={ev.battery == null ? "" : batteryChip(ev.battery)}>
+                        {ev.battery == null ? "—" : `${ev.battery}%`}
+                      </span>
+                    </span>
+                  </div>
+                  {ev.image_url ? (
+                    <a
+                      href={ev.image_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-1 inline-block text-indigo-600 underline"
+                    >
+                      원본 보기
+                    </a>
+                  ) : null}
+                </div>
+              </div>
+            </li>
+          ))}
+        </ol>
+      )}
+      <p className="mt-2 text-[11px] text-muted italic">
+        ※ 운영자 전용 진단. Server `/api/v1/admin/devices/:id/events` 정본 연동.
+      </p>
     </div>
   );
 }

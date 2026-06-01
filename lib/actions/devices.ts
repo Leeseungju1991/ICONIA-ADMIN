@@ -6,7 +6,9 @@ import {
   forceUnpairDevice,
   markDeviceLost,
   listDevices,
+  fetchDeviceEvents,
   type DeviceRow,
+  type DeviceEventRow,
 } from "@/lib/adminApi";
 
 export type ListDevicesResult =
@@ -25,6 +27,29 @@ export async function listDevicesAction(args?: {
     query: args?.query,
     status: args?.status,
     limit: args?.limit ?? 50,
+  });
+  if (!res.ok) return { ok: false, message: res.message, code: res.code };
+  return { ok: true, items: res.data.items, next_cursor: res.data.next_cursor };
+}
+
+export type ListDeviceEventsResult =
+  | { ok: true; items: DeviceEventRow[]; next_cursor: string | null }
+  | { ok: false; message: string; code?: string };
+
+// 기기 센서/미디어 이벤트 (사진/터치/배터리) — Server GET /api/v1/admin/devices/:id/events.
+export async function listDeviceEventsAction(args: {
+  deviceId: string;
+  cursor?: string | null;
+  limit?: number;
+}): Promise<ListDeviceEventsResult> {
+  const jwt = readSession();
+  if (!jwt) return { ok: false, message: "세션이 만료되었습니다." };
+  if (!args.deviceId) return { ok: false, message: "device_id 누락" };
+  const res = await fetchDeviceEvents({
+    jwt,
+    deviceId: args.deviceId,
+    cursor: args.cursor ?? undefined,
+    limit: args.limit ?? 30,
   });
   if (!res.ok) return { ok: false, message: res.message, code: res.code };
   return { ok: true, items: res.data.items, next_cursor: res.data.next_cursor };

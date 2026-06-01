@@ -1093,6 +1093,41 @@ export function fetchDeviceOwnershipHistory(args: {
 }
 
 // ---------------------------------------------------------------------------
+// 기기 센서/미디어 이벤트 (사진 / 터치 / 배터리)
+//   Server: GET /api/v1/admin/devices/:id/events  (adminGate)
+//   응답: { items: [{ event_id, at, kind, touch, battery, image_url }], next_cursor }
+//   - touch: 터치 면(side) 식별자 또는 null
+//   - battery: 이벤트 시점 배터리(%) 또는 null
+//   - image_url: 업로드 사진 URL 또는 null (kind 가 사진 이벤트가 아니면 null)
+// ---------------------------------------------------------------------------
+
+export type DeviceEventRow = {
+  event_id: string;
+  at: string;
+  kind: string;
+  touch: string | null;
+  battery: number | null;
+  image_url: string | null;
+};
+
+export function fetchDeviceEvents(args: {
+  jwt: string;
+  deviceId: string;
+  cursor?: string | null;
+  limit?: number;
+}): Promise<ServerResult<{ items: DeviceEventRow[]; next_cursor: string | null }>> {
+  const params = new URLSearchParams();
+  if (args.cursor) params.set("cursor", args.cursor);
+  if (args.limit) params.set("limit", String(args.limit));
+  const qs = params.toString();
+  return authedRequest({
+    jwt: args.jwt,
+    path: `/api/v1/admin/devices/${encodeURIComponent(args.deviceId)}/events${qs ? `?${qs}` : ""}`,
+    method: "GET",
+  });
+}
+
+// ---------------------------------------------------------------------------
 // V3.0 #18 — PIPA admin
 //   Server: GET /api/v1/admin/users/pipa?status=
 //           POST /api/v1/admin/users/:id/pipa/export
