@@ -259,8 +259,8 @@ export default function User360Page() {
         ) : usersList.users.length === 0 ? (
           <div className="text-sm text-muted">등록된 사용자가 없습니다.</div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
+          <div className="scroll-x-touch">
+            <table className="w-full min-w-[720px] text-sm">
               <thead>
                 <tr className="text-left text-muted border-b border-slate-200">
                   <th className="px-2 py-2 font-medium">이메일</th>

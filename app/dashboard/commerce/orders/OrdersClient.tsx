@@ -121,8 +121,8 @@ export default function OrdersClient() {
         ) : items.length === 0 ? (
           <EmptyState title="주문이 없습니다." />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
+          <div className="scroll-x-touch">
+            <table className="w-full min-w-[680px] text-sm">
               <thead>
                 <tr className="text-left text-[11px] text-muted">
                   <th className="px-2 py-1">주문 ID</th>

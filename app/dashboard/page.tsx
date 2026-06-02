@@ -57,15 +57,15 @@ export default async function DashboardHome() {
           클릭 시 신고 조치 페이지(/dashboard/reports)로 이동. */}
       <Link
         href="/dashboard/reports"
-        className="block rounded-2xl border border-rose-200 bg-gradient-to-r from-rose-50 to-pink-50 px-5 py-4 hover:border-rose-300 hover:shadow-card transition-all"
+        className="block rounded-2xl border border-rose-200 bg-gradient-to-r from-rose-50 to-pink-50 px-4 py-4 sm:px-5 hover:border-rose-300 hover:shadow-card transition-all"
       >
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="rounded-xl bg-rose-100 text-rose-700 px-3 py-2 text-xs font-semibold">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+          <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+            <div className="shrink-0 rounded-xl bg-rose-100 text-rose-700 px-3 py-2 text-xs font-semibold">
               신고 대기
             </div>
-            <div>
-              <div className="text-3xl font-bold text-rose-900 leading-none">
+            <div className="min-w-0">
+              <div className="text-2xl sm:text-3xl font-bold text-rose-900 leading-none">
                 {DASH(reportsPendingDisplay)}
                 <span className="ml-2 text-sm font-normal text-rose-700">건</span>
               </div>
@@ -76,7 +76,7 @@ export default async function DashboardHome() {
               </div>
             </div>
           </div>
-          <div className="text-rose-700 text-sm font-medium whitespace-nowrap">
+          <div className="text-rose-700 text-sm font-medium whitespace-nowrap self-end sm:self-auto">
             신고 조치 →
           </div>
         </div>

@@ -86,12 +86,12 @@ export function DangerConfirmDialog({
             이 동작은 되돌릴 수 없습니다. 정말 진행하시려면 아래 "{confirmLabel}" 버튼을 누르세요.
           </p>
         </div>
-        <footer className="flex justify-end gap-2 px-4 py-3 bg-slate-50 border-t border-slate-200">
+        <footer className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 px-4 py-3 bg-slate-50 border-t border-slate-200">
           <button
             type="button"
             onClick={onCancel}
             disabled={busy}
-            className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+            className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60 min-h-[44px]"
           >
             {cancelLabel}
           </button>
@@ -99,7 +99,7 @@ export function DangerConfirmDialog({
             type="button"
             onClick={onConfirm}
             disabled={busy}
-            className="rounded-lg bg-red-600 hover:bg-red-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+            className="rounded-lg bg-red-600 hover:bg-red-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60 min-h-[44px]"
           >
             {busy ? "처리 중..." : confirmLabel}
           </button>

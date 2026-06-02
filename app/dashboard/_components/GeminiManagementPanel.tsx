@@ -116,8 +116,8 @@ function ScenarioMatrix() {
   ];
   return (
     <Section title="3. 시나리오별 평가 (Free 1키 기준)">
-      <div className="overflow-x-auto -mx-1">
-        <table className="min-w-full text-xs">
+      <div className="scroll-x-touch -mx-1">
+        <table className="w-full min-w-[560px] text-xs">
           <thead>
             <tr className="text-left text-muted">
               <th className="px-2 py-1">시나리오</th>
@@ -193,8 +193,8 @@ function DecisionTable() {
   ];
   return (
     <Section title="4. 사용자 규모별 권장 조치">
-      <div className="overflow-x-auto -mx-1">
-        <table className="min-w-full text-xs">
+      <div className="scroll-x-touch -mx-1">
+        <table className="w-full min-w-[640px] text-xs">
           <thead>
             <tr className="text-left text-muted">
               <th className="px-2 py-1">규모</th>

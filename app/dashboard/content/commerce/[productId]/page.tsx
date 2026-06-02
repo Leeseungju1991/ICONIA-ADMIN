@@ -254,9 +254,9 @@ function Field({
   children: React.ReactNode;
 }) {
   return (
-    <div className="grid grid-cols-[100px_1fr] items-center gap-2">
+    <div className="grid grid-cols-1 sm:grid-cols-[100px_1fr] sm:items-center gap-1 sm:gap-2">
       <div className="text-[11px] text-muted">{label}</div>
-      <div>{children}</div>
+      <div className="break-words">{children}</div>
     </div>
   );
 }

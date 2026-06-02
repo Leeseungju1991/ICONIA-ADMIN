@@ -14,7 +14,7 @@ export function PanelCard({
   className?: string;
 }) {
   return (
-    <section className={`relative overflow-hidden rounded-3xl glass-panel p-5 sm:p-6 ${className}`}>
+    <section className={`relative overflow-hidden rounded-3xl glass-panel p-4 sm:p-6 ${className}`}>
       {(title || actions) && (
         <header className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>

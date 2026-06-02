@@ -333,13 +333,13 @@ export default function UsersPage() {
         actions={
           <>
             <input
-              className="input max-w-[260px]"
+              className="input w-full sm:max-w-[260px]"
               placeholder="이메일/이름/ID 검색"
               value={q}
               onChange={(e) => setQ(e.target.value)}
             />
             <select
-              className="select max-w-[160px]"
+              className="select w-full sm:max-w-[160px]"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
             >
@@ -739,12 +739,17 @@ function PasswordResetModal({
           ) : null}
         </div>
 
-        <div className="mt-5 flex justify-end gap-2">
-          <button className="btn-outline text-sm" type="button" onClick={onClose} disabled={pending}>
+        <div className="mt-5 flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+          <button
+            className="btn-outline text-sm min-h-[44px]"
+            type="button"
+            onClick={onClose}
+            disabled={pending}
+          >
             취소
           </button>
           <button
-            className="btn-primary text-sm disabled:opacity-60"
+            className="btn-primary text-sm disabled:opacity-60 min-h-[44px]"
             type="button"
             onClick={submit}
             disabled={pending}

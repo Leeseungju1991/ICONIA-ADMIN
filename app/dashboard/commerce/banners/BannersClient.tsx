@@ -332,8 +332,8 @@ export default function BannersClient() {
         ) : items.length === 0 ? (
           <EmptyState title="등록된 배너가 없습니다." />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
+          <div className="scroll-x-touch">
+            <table className="w-full min-w-[720px] text-sm">
               <thead>
                 <tr className="text-left text-[11px] text-muted">
                   <th className="px-2 py-1">이미지</th>

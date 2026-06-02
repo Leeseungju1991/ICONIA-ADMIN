@@ -197,8 +197,9 @@ export default function Sidebar({
         paddingLeft: "env(safe-area-inset-left)",
       }}
     >
-      {/* 데스크탑 사이드바 — 흰 배경, 우측 하단 1px 보더, sticky. */}
-      <aside className="hidden md:flex md:flex-col w-60 lg:w-64 shrink-0 bg-surface border-r border-slate-200 sticky top-0 h-[100dvh] overflow-y-auto">
+      {/* 데스크탑 사이드바 — 흰 배경, 우측 하단 1px 보더, sticky.
+          lg(1024px) 미만에서는 햄버거 드로어 사용 (태블릿 포함). */}
+      <aside className="hidden lg:flex lg:flex-col w-60 lg:w-64 shrink-0 bg-surface border-r border-slate-200 sticky top-0 h-[100dvh] overflow-y-auto">
         <div className="p-5 border-b border-slate-100">
           <Brand />
         </div>
@@ -210,9 +211,9 @@ export default function Sidebar({
         </div>
       </aside>
 
-      {/* 모바일 드로어 — 동일 흰 사이드바를 슬라이드 인. */}
+      {/* 모바일/태블릿 드로어 — 동일 흰 사이드바를 슬라이드 인. lg 미만 모두 적용. */}
       {navOpen ? (
-        <div className="fixed inset-0 z-50 md:hidden">
+        <div className="fixed inset-0 z-50 lg:hidden">
           <button
             className="absolute inset-0 bg-slate-900/40"
             aria-label="메뉴 닫기"
