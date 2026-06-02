@@ -7,15 +7,21 @@ vi.mock("@/lib/adminApi", () => ({
   disableOperator: vi.fn(),
   listOperators: vi.fn(),
   getOperatorMe: vi.fn(),
+  createOperator: vi.fn(),
 }));
 
-import { disableOperator, listOperators, getOperatorMe } from "@/lib/adminApi";
+import { disableOperator, listOperators, getOperatorMe, createOperator } from "@/lib/adminApi";
 import { revalidatePath } from "next/cache";
-import { disableOperatorAction, listOperatorsAction } from "./operators";
+import {
+  createOperatorAction,
+  disableOperatorAction,
+  listOperatorsAction,
+} from "./operators";
 
 const mockedDisable = disableOperator as unknown as ReturnType<typeof vi.fn>;
 const mockedList = listOperators as unknown as ReturnType<typeof vi.fn>;
 const mockedGetMe = getOperatorMe as unknown as ReturnType<typeof vi.fn>;
+const mockedCreate = createOperator as unknown as ReturnType<typeof vi.fn>;
 const mockedRevalidate = revalidatePath as unknown as ReturnType<typeof vi.fn>;
 
 beforeEach(() => {
@@ -23,6 +29,7 @@ beforeEach(() => {
   mockedDisable.mockReset();
   mockedList.mockReset();
   mockedGetMe.mockReset();
+  mockedCreate.mockReset();
   mockedRevalidate.mockReset();
   // 기본: Server /operator/me 도달 불가 → disableOperatorAction 의 self-disable
   // 가드는 JWT payload fallback 으로 동작 (resolveIdentity).
@@ -173,5 +180,113 @@ describe("listOperatorsAction", () => {
     const r = await listOperatorsAction();
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.message).toContain("ERR_FORBIDDEN");
+  });
+});
+
+describe("createOperatorAction (viewer 등 신규 운영자 생성)", () => {
+  it("세션 미존재면 거절", async () => {
+    cookieStore.get.mockReturnValue(undefined);
+    const r = await createOperatorAction({
+      email: "v@x.com",
+      password: "Aa1!Aa1!Aa1!",
+      role: "viewer",
+    });
+    expect(r.ok).toBe(false);
+    expect(mockedCreate).not.toHaveBeenCalled();
+  });
+
+  it("이메일 형식 오류 거절", async () => {
+    cookieStore.get.mockReturnValue({ value: "j" });
+    const r = await createOperatorAction({
+      email: "not-an-email",
+      password: "Aa1!Aa1!Aa1!",
+      role: "viewer",
+    });
+    expect(r.ok).toBe(false);
+    expect(mockedCreate).not.toHaveBeenCalled();
+  });
+
+  it("12자 미만 비밀번호 거절", async () => {
+    cookieStore.get.mockReturnValue({ value: "j" });
+    const r = await createOperatorAction({
+      email: "v@x.com",
+      password: "short!1",
+      role: "viewer",
+    });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.message).toMatch(/12자/);
+    expect(mockedCreate).not.toHaveBeenCalled();
+  });
+
+  it("잘못된 role 거절", async () => {
+    cookieStore.get.mockReturnValue({ value: "j" });
+    const r = await createOperatorAction({
+      email: "v@x.com",
+      password: "Aa1!Aa1!Aa1!",
+      // @ts-expect-error - 잘못된 role 으로 보호 검증
+      role: "hacker",
+    });
+    expect(r.ok).toBe(false);
+    expect(mockedCreate).not.toHaveBeenCalled();
+  });
+
+  it("성공 시 createOperator 호출 + revalidate + secret 응답 통과", async () => {
+    cookieStore.get.mockReturnValue({ value: "j-xyz" });
+    mockedCreate.mockResolvedValue({
+      ok: true,
+      data: {
+        operator: {
+          id: "op-1",
+          email: "v@x.com",
+          role: "viewer",
+          totp_enrolled: false,
+          last_login_at: null,
+          disabled_at: null,
+          created_at: "2026-06-02T00:00:00Z",
+        },
+        totp_secret_base32: "JBSWY3DPEHPK3PXP",
+        otpauth_uri: "otpauth://totp/v@x.com?secret=JBSWY3DPEHPK3PXP",
+        recovery_codes: ["code-1", "code-2"],
+      },
+    });
+    const r = await createOperatorAction({
+      email: "V@x.COM", // 대소문자/공백은 정규화 되어야 함
+      password: "Aa1!Aa1!Aa1!",
+      role: "viewer",
+    });
+    expect(r.ok).toBe(true);
+    expect(mockedCreate).toHaveBeenCalledWith({
+      jwt: "j-xyz",
+      email: "v@x.com",
+      password: "Aa1!Aa1!Aa1!",
+      role: "viewer",
+    });
+    expect(mockedRevalidate).toHaveBeenCalledWith("/dashboard/operators");
+    if (r.ok) {
+      expect(r.data.operator.role).toBe("viewer");
+      expect(r.data.totp_secret_base32).toBe("JBSWY3DPEHPK3PXP");
+      expect(r.data.recovery_codes).toHaveLength(2);
+    }
+  });
+
+  it("server 거절 시 메시지 노출 + revalidate 안 함", async () => {
+    cookieStore.get.mockReturnValue({ value: "j" });
+    mockedCreate.mockResolvedValue({
+      ok: false,
+      code: "ERR_OPERATOR_EMAIL_TAKEN",
+      message: "email already in use",
+      status: 409,
+    });
+    const r = await createOperatorAction({
+      email: "v@x.com",
+      password: "Aa1!Aa1!Aa1!",
+      role: "viewer",
+    });
+    expect(r.ok).toBe(false);
+    if (!r.ok) {
+      expect(r.message).toContain("ERR_OPERATOR_EMAIL_TAKEN");
+      expect(r.code).toBe("ERR_OPERATOR_EMAIL_TAKEN");
+    }
+    expect(mockedRevalidate).not.toHaveBeenCalled();
   });
 });

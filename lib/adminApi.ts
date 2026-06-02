@@ -506,6 +506,30 @@ export function disableOperator(args: {
   });
 }
 
+// 2026-06-02 — 운영자 생성 (superadmin 전용).
+//   Server: POST /api/v1/operator  body: { email, password, role }
+//   role 은 'cs' | 'sre' | 'secops' | 'superadmin' | 'viewer'.
+//   응답에는 1회용 totp_secret_base32 + otpauth_uri + recovery_codes 가 포함.
+export type CreateOperatorResponse = {
+  operator: OperatorRow;
+  totp_secret_base32: string;
+  otpauth_uri: string;
+  recovery_codes: string[];
+};
+export function createOperator(args: {
+  jwt: string;
+  email: string;
+  password: string;
+  role: string;
+}): Promise<ServerResult<CreateOperatorResponse>> {
+  return authedRequest<CreateOperatorResponse>({
+    jwt: args.jwt,
+    path: `/api/v1/operator`,
+    method: "POST",
+    body: { email: args.email, password: args.password, role: args.role },
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Commerce — EXCLUDES payment fields per round scope.
 // ---------------------------------------------------------------------------

@@ -3,7 +3,15 @@
 import { revalidatePath } from "next/cache";
 import { readSession } from "@/lib/authCookie";
 import { resolveIdentity } from "@/lib/identity";
-import { disableOperator, listOperators, type OperatorRow } from "@/lib/adminApi";
+import {
+  createOperator,
+  disableOperator,
+  listOperators,
+  type CreateOperatorResponse,
+  type OperatorRow,
+} from "@/lib/adminApi";
+import type { OperatorRole } from "@/lib/operatorRoles";
+import { ALL_ROLES } from "@/lib/operatorRoles";
 
 export type DisableOperatorResult = { ok: true } | { ok: false; message: string };
 
@@ -52,4 +60,47 @@ export async function listOperatorsAction(): Promise<ListOperatorsResult> {
     return { ok: false, message: `운영자 목록을 불러오지 못했습니다 (${res.code}).` };
   }
   return { ok: true, operators: res.data.operators };
+}
+
+// 2026-06-02 — superadmin 이 신규 운영자(viewer 등)를 즉시 생성.
+//   - 서버 정책: 비밀번호 12자+ (영문/숫자/특수) — checkPasswordPolicy.
+//   - 본 action 은 1차 client 검증 (12자+) 후 server 에 위임 — 422 시 그대로 노출.
+//   - role 은 ALL_ROLES (cs/sre/secops/superadmin/viewer) 중 하나.
+//   - 응답에 1회용 totp_secret_base32 + otpauth_uri + recovery_codes 포함 (caller 가
+//     UI 에 1회 노출 후 폐기 — 본 action 은 그대로 통과).
+export type CreateOperatorResult =
+  | { ok: true; data: CreateOperatorResponse }
+  | { ok: false; message: string; code?: string };
+
+export async function createOperatorAction(args: {
+  email: string;
+  password: string;
+  role: OperatorRole;
+}): Promise<CreateOperatorResult> {
+  const jwt = readSession();
+  if (!jwt) return { ok: false, message: "세션이 만료되었습니다. 다시 로그인하세요." };
+  const email = args.email.trim().toLowerCase();
+  if (!email || !email.includes("@")) {
+    return { ok: false, message: "이메일 형식이 올바르지 않습니다." };
+  }
+  if (!args.password || args.password.length < 12) {
+    return {
+      ok: false,
+      message: "비밀번호는 12자 이상이어야 합니다 (영문+숫자+특수 포함).",
+    };
+  }
+  if (!(ALL_ROLES as readonly string[]).includes(args.role)) {
+    return { ok: false, message: "역할이 올바르지 않습니다." };
+  }
+  const res = await createOperator({
+    jwt,
+    email,
+    password: args.password,
+    role: args.role,
+  });
+  if (!res.ok) {
+    return { ok: false, message: `${res.code ?? "ERR"}: ${res.message}`, code: res.code };
+  }
+  revalidatePath("/dashboard/operators");
+  return { ok: true, data: res.data };
 }

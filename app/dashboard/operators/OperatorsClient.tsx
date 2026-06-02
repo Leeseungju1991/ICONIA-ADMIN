@@ -15,6 +15,7 @@ import {
 } from "@/lib/operatorRoles";
 import type { OperatorRow } from "@/lib/adminApi";
 import {
+  createOperatorAction,
   disableOperatorAction,
   type ListOperatorsResult,
 } from "@/lib/actions/operators";
@@ -238,7 +239,7 @@ export default function OperatorsClient({
             type="button"
             onClick={() => setInviting(true)}
           >
-            + 운영자 초대
+            + 운영자 생성
           </button>
         }
       >
@@ -287,8 +288,13 @@ export default function OperatorsClient({
             setInviting(false);
             setAuditTick((t) => t + 1);
             setToast(
-              `${email} 초대 요청을 감사 로그에 기록했습니다. (Server 초대 엔드포인트 연동 후 메일 발송)`,
+              `${email} 운영자 계정을 생성했습니다. 1회용 TOTP/recovery 정보는 폐기되었습니다.`,
             );
+            // 목록 즉시 갱신 — 새 운영자가 표시되도록.
+            void (async () => {
+              const refreshed = await import("@/lib/actions/operators").then((m) => m.listOperatorsAction());
+              if (refreshed.ok) setOperators(refreshed.operators);
+            })();
           }}
         />
       ) : null}
@@ -296,10 +302,11 @@ export default function OperatorsClient({
   );
 }
 
-// 운영자 초대 모달.
-// Server 측 초대 엔드포인트 (POST /api/v1/operator/admin/operators) 는 아직 없음 —
-// 본 모달은 입력 검증 + 세션 audit trail 기록만 수행한다 (dead button 방지).
-// TODO(server-wire-up): Server 운영자 초대 라우트 도입 후 inviteOperator() API 연결.
+// 운영자 초대 모달 (2026-06-02 — 실 server endpoint 연동).
+// Server `POST /api/v1/operator` (superadmin 전용) 가 즉시 운영자 row + TOTP secret 발급.
+// 응답에는 1회용 totp_secret_base32 + recovery_codes 가 포함 — 운영자에게 1회 노출 후
+// 영구 폐기. 본 모달이 노출 화면을 관리한다.
+// 본 라운드부터 viewer (읽기 전용) 역할도 생성 가능.
 function InviteModal({
   currentOperatorEmail,
   onClose,
@@ -311,9 +318,18 @@ function InviteModal({
 }) {
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<OperatorRole>("viewer");
+  const [password, setPassword] = useState("");
   const [reason, setReason] = useState("");
+  const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  // 생성 성공 시 1회용 secret 표시 — 닫기 누르면 영구 폐기.
+  const [issued, setIssued] = useState<{
+    email: string;
+    totp_secret_base32: string;
+    otpauth_uri: string;
+    recovery_codes: string[];
+  } | null>(null);
 
   function validEmail(value: string): boolean {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
@@ -325,27 +341,94 @@ function InviteModal({
       setError("유효한 이메일 주소를 입력하세요.");
       return;
     }
+    if (password.length < 12) {
+      setError("비밀번호는 12자 이상이어야 합니다 (영문+숫자+특수 포함).");
+      return;
+    }
     if (reason.trim().length < 5) {
-      setError("초대 사유는 5자 이상 입력하세요 (감사 로그 기록).");
+      setError("생성 사유는 5자 이상 입력하세요 (감사 로그 기록).");
       return;
     }
     setError(null);
     setSubmitting(true);
-    // Server 초대 엔드포인트 부재 — 세션 audit trail 에만 기록 (canonical 은 도입 후).
-    const result = await recordOpsAuditWithSilentRetry({
-      action: "operator.invite",
+    const res = await createOperatorAction({
+      email: trimmedEmail,
+      password,
+      role,
+    });
+    // 운영자 액션 세션 trail — Server audit (operator_created) 와 별도로 화면 표시용.
+    await recordOpsAuditWithSilentRetry({
+      action: "operator.create",
       target_label: `${trimmedEmail} · ${roleLabel(role)}`,
       target_id: trimmedEmail,
       reason: reason.trim(),
       operator: currentOperatorEmail ?? "(현재 운영자 세션)",
-      outcome: "queued",
+      outcome: res.ok ? "succeeded" : "failed",
     });
     setSubmitting(false);
-    if (!result.ok) {
-      setError(`초대 기록 최종 실패 — 운영자 확인 필요. [${result.attempts}회 시도]`);
+    if (!res.ok) {
+      setError(`운영자 생성 실패 — ${res.message}`);
       return;
     }
-    onInvited(trimmedEmail);
+    setIssued({
+      email: res.data.operator.email,
+      totp_secret_base32: res.data.totp_secret_base32,
+      otpauth_uri: res.data.otpauth_uri,
+      recovery_codes: res.data.recovery_codes,
+    });
+  }
+
+  // 발급 화면 — 1회용 secret + recovery codes 노출 후 사용자가 "확인" 누르면 onInvited.
+  if (issued) {
+    return (
+      <div className="fixed inset-0 z-40 flex items-center justify-center p-3 bg-black/30">
+        <div className="w-full max-w-md glass-panel rounded-3xl p-6 relative">
+          <h3 className="text-lg font-bold text-slate-900">운영자 생성 완료</h3>
+          <p className="text-xs text-muted mt-0.5">
+            아래 정보를 운영자에게 안전하게 전달하세요. 이 화면을 닫으면 다시 표시되지 않습니다.
+          </p>
+          <div className="mt-4 space-y-3 text-xs">
+            <div>
+              <div className="text-muted">이메일</div>
+              <div className="font-mono text-slate-800">{issued.email}</div>
+            </div>
+            <div>
+              <div className="text-muted">TOTP secret (Base32)</div>
+              <div className="font-mono text-slate-800 break-all bg-white/55 border border-white/55 rounded-xl px-3 py-2">
+                {issued.totp_secret_base32}
+              </div>
+            </div>
+            <div>
+              <div className="text-muted">otpauth URI</div>
+              <div className="font-mono text-[11px] text-slate-800 break-all bg-white/55 border border-white/55 rounded-xl px-3 py-2">
+                {issued.otpauth_uri}
+              </div>
+            </div>
+            <div>
+              <div className="text-muted">Recovery codes (1회용 × {issued.recovery_codes.length})</div>
+              <ul className="font-mono text-slate-800 bg-white/55 border border-white/55 rounded-xl px-3 py-2 space-y-0.5">
+                {issued.recovery_codes.map((c) => (
+                  <li key={c}>{c}</li>
+                ))}
+              </ul>
+            </div>
+            <p className="text-rose-700 bg-rose-50/80 border border-rose-200 rounded-xl px-3 py-2">
+              ⚠ TOTP secret + recovery codes 는 본 화면에서만 노출됩니다. 화면을 닫은 뒤에는
+              복구가 불가능합니다 (서버에는 해시만 저장).
+            </p>
+          </div>
+          <div className="mt-5 flex justify-end">
+            <button
+              className="btn-primary text-sm"
+              type="button"
+              onClick={() => onInvited(issued.email)}
+            >
+              확인 (1회용 정보 폐기)
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -358,9 +441,9 @@ function InviteModal({
         >
           닫기
         </button>
-        <h3 className="text-lg font-bold text-slate-900">운영자 초대</h3>
+        <h3 className="text-lg font-bold text-slate-900">운영자 생성</h3>
         <p className="text-xs text-muted mt-0.5">
-          신규 운영자에게 역할을 부여해 콘솔 접근을 허용합니다.
+          신규 운영자에게 역할을 부여해 콘솔 접근을 허용합니다. (viewer 는 읽기 전용)
         </p>
 
         <div className="mt-5 space-y-3">
@@ -373,6 +456,7 @@ function InviteModal({
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               autoComplete="off"
+              data-testid="operator-invite-email"
             />
           </label>
           <label className="block text-xs text-slate-600">
@@ -381,6 +465,7 @@ function InviteModal({
               className="select mt-1"
               value={role}
               onChange={(e) => setRole(e.target.value as OperatorRole)}
+              data-testid="operator-invite-role"
             >
               {ALL_ROLES.map((r) => (
                 <option key={r} value={r}>
@@ -393,13 +478,36 @@ function InviteModal({
             {roleLabel(role)} — {roleHint(role)}
           </p>
           <label className="block text-xs text-slate-600">
-            초대 사유
+            초기 비밀번호 (12자 이상, 영문+숫자+특수)
+            <div className="relative mt-1">
+              <input
+                className="input w-full pr-16"
+                type={showPw ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete="new-password"
+                minLength={12}
+                data-testid="operator-invite-password"
+              />
+              <button
+                type="button"
+                aria-label={showPw ? "비밀번호 숨기기" : "비밀번호 보기"}
+                onClick={() => setShowPw((v) => !v)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md bg-white/70 border border-white/70 px-2 py-0.5 text-[11px] text-slate-600"
+              >
+                {showPw ? "숨기기" : "보기"}
+              </button>
+            </div>
+          </label>
+          <label className="block text-xs text-slate-600">
+            생성 사유
             <textarea
               className="input mt-1 min-h-[72px]"
               placeholder="예: 신규 CS 담당자 온보딩 (5자 이상)"
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               maxLength={300}
+              data-testid="operator-invite-reason"
             />
           </label>
           {error ? (
@@ -408,8 +516,8 @@ function InviteModal({
             </p>
           ) : null}
           <p className="text-[11px] text-muted bg-white/55 border border-white/55 rounded-xl px-3 py-2">
-            ※ Server 운영자 초대 엔드포인트 도입 전까지 본 초대는 감사 로그에만 기록되며
-            실제 메일 발송은 후속 연동에서 활성화됩니다.
+            ※ Server 가 즉시 운영자 row + TOTP secret + recovery codes 를 발급합니다.
+            발급된 1회용 정보는 본 화면에서만 노출됩니다.
           </p>
         </div>
 
@@ -422,8 +530,9 @@ function InviteModal({
             type="button"
             onClick={submit}
             disabled={submitting}
+            data-testid="operator-invite-submit"
           >
-            {submitting ? "기록 중..." : "초대 기록"}
+            {submitting ? "생성 중..." : "운영자 생성"}
           </button>
         </div>
       </div>

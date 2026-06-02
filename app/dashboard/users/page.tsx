@@ -9,13 +9,16 @@ import { StatCard } from "../_components/StatCard";
 import { AutoRefreshToggle } from "../_components/AutoRefreshToggle";
 import { useAutoRefresh } from "@/lib/hooks/useAutoRefresh";
 import { formatDate, type UserRow } from "@/lib/mockData";
-import { maskEmail, maskUserId, maskName } from "@/lib/maskPii";
+// 2026-06-02 — 사용자 요청: 이메일/표시이름/ID 마스킹 제거. lib/maskPii 는 legacy
+// 참조용으로 보존(다른 surface 에서 사용). 본 페이지(목록·상세 drawer)에서는
+// 호출하지 않고 원본을 그대로 표시. PII 접근 audit log 는 그대로 유지.
 import { recordOperatorAuditAction } from "@/lib/actions/auditLog";
 import {
   forceLogoutUserAction,
   pauseUserAction,
   resumeUserAction,
   mfaResetUserAction,
+  resetUserPasswordAction,
   deleteUserAction,
   type UserMutationResult,
 } from "@/lib/actions/userMutations";
@@ -82,7 +85,6 @@ export default function UsersPage() {
   const [q, setQ] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | UserRow["account_status"]>("all");
   const [selected, setSelected] = useState<UserRow | null>(null);
-  const [unmaskedIds, setUnmaskedIds] = useState<Set<string>>(new Set());
   const [toast, setToast] = useState<string | null>(null);
 
   // 사용자 추가 페이지에서 돌아온 경우 — flash 토스트.
@@ -113,50 +115,18 @@ export default function UsersPage() {
     void reloadUsers();
   }, [reloadUsers]);
 
-  async function handleUnmask(userId: string) {
-    // V1.0 #12+#19+#20 (Phase 7) — PIPA 마스킹 해제 3중 가드:
-    //   (a) 경고 모달 (사용자 인지) — confirm()
-    //   (b) 사유 입력 (자유 텍스트 5자 이상) — prompt()
-    //   (c) 감사 로그 기록 (이미 구현, action=admin_pii_unmasked)
-    // TOTP 2차 검증은 Server endpoint 결정 후 후속 라운드. 본 라운드는 경고+사유.
-    const confirmed =
-      typeof window === "undefined"
-        ? false
-        : window.confirm(
-            "이 사용자의 PII 마스킹을 해제합니다.\n\n" +
-              "⚠ 이 행동은 영구 감사 로그(hash chain)에 기록되며 취소할 수 없습니다.\n" +
-              "PIPA 안전성 확보 조치에 따라 정당한 사유가 있을 때만 수행하세요.\n\n" +
-              "계속하시겠습니까?",
-          );
-    if (!confirmed) {
-      setToast("마스킹 해제를 취소했습니다.");
-      return;
-    }
-    const reasonText =
-      typeof window !== "undefined"
-        ? window.prompt(
-            "마스킹 해제 사유를 입력하세요 (감사 로그에 기록, 5자 이상). 예: CS 문의 #1234 / 보안 조사 등.",
-          )
-        : null;
-    if (!reasonText || reasonText.trim().length < 5) {
-      setToast("사유가 5자 이상 필요합니다. 마스킹 해제가 취소되었습니다.");
-      return;
-    }
+  // 2026-06-02 — 마스킹 제거에 따라 "해제" 버튼 흐름 폐기.
+  //   대신 drawer 가 열릴 때마다 1회 user.pii_unmasked audit 를 자동 기록한다.
+  //   (PIPA: PII 접근 사실의 감사 가시성은 유지. 사유는 "drawer_open_auto" 고정.)
+  async function recordPiiAccessAudit(userId: string) {
     const res = await recordOperatorAuditAction({
       action: "user.pii_unmasked",
       targetUserId: userId,
-      reasonText: reasonText.trim(),
+      reasonText: "drawer_open_auto",
     });
     if (res.status === "error") {
-      setToast("감사 로그 기록에 실패했습니다. 마스킹 해제가 차단되었습니다.");
-      return;
+      setToast("PII 접근 감사 로그 기록 실패 — 운영자 확인 필요.");
     }
-    setUnmaskedIds((prev) => {
-      const next = new Set(prev);
-      next.add(userId);
-      return next;
-    });
-    setToast("마스킹을 해제했습니다. (감사 로그 기록됨)");
   }
 
   const filtered = useMemo(() => {
@@ -202,24 +172,20 @@ export default function UsersPage() {
       key: "id",
       header: "ID",
       render: (r) => (
-        <span className="font-mono text-xs text-muted">
-          {unmaskedIds.has(r.id) ? r.id : maskUserId(r.id)}
-        </span>
+        <span className="font-mono text-xs text-muted">{r.id}</span>
       ),
     },
     {
       key: "name",
       header: "이름",
       render: (r) => (
-        <span className="font-medium text-slate-800">
-          {unmaskedIds.has(r.id) ? r.display_name : maskName(r.display_name)}
-        </span>
+        <span className="font-medium text-slate-800">{r.display_name}</span>
       ),
     },
     {
       key: "email",
       header: "이메일",
-      render: (r) => (unmaskedIds.has(r.id) ? r.email : maskEmail(r.email)),
+      render: (r) => r.email,
     },
     { key: "status", header: "상태", render: (r) => <span className={statusChip[r.account_status]}>{statusLabel[r.account_status]}</span> },
     { key: "mfa", header: "MFA", render: (r) => r.totp_enabled ? <span className="chip chip-info">ON</span> : <span className="chip chip-muted">OFF</span> },
@@ -243,7 +209,7 @@ export default function UsersPage() {
             onClick={async () => {
               // 2026-06-01 — 사용자 요청: 상세 버튼 제거 + 삭제만 남김.
               // 삭제 확인 단계는 EXECUTE 문구 + 사유 5자 이상으로 사고 방지 (audit 기록).
-              if (!twoStepConfirm(`사용자 "${maskEmail(r.email)}" 삭제`)) {
+              if (!twoStepConfirm(`사용자 "${r.email}" 삭제`)) {
                 setToast("삭제 취소 — 확인 문구 불일치.");
                 return;
               }
@@ -332,12 +298,12 @@ export default function UsersPage() {
                     <span className="chip chip-error">탈퇴 대기</span>
                     <span className="chip chip-info">export 가능</span>
                     <span className="font-mono text-xs text-slate-700 truncate max-w-[260px]">
-                      {unmaskedIds.has(u.id) ? u.email : maskEmail(u.email)}
+                      {u.email}
                     </span>
                   </div>
                   <div className="text-[11px] text-muted mt-1">
                     가입 {formatDate(u.created_at)} · 최근 로그인 {formatDate(u.last_login_at)} · ID{" "}
-                    <span className="font-mono">{unmaskedIds.has(u.id) ? u.id : maskUserId(u.id)}</span>
+                    <span className="font-mono">{u.id}</span>
                   </div>
                 </div>
                 <div className="flex gap-2 shrink-0">
@@ -404,10 +370,11 @@ export default function UsersPage() {
       {selected ? (
         <UserDetailDrawer
           user={selected}
-          unmasked={unmaskedIds.has(selected.id)}
-          onUnmask={() => handleUnmask(selected.id)}
           onClose={() => setSelected(null)}
           onToast={(m) => setToast(m)}
+          onMounted={(uid) => {
+            void recordPiiAccessAudit(uid);
+          }}
         />
       ) : null}
     </div>
@@ -416,18 +383,26 @@ export default function UsersPage() {
 
 function UserDetailDrawer({
   user,
-  unmasked,
-  onUnmask,
   onClose,
   onToast,
+  onMounted,
 }: {
   user: UserRow;
-  unmasked: boolean;
-  onUnmask: () => void;
   onClose: () => void;
   onToast: (msg: string) => void;
+  onMounted?: (userId: string) => void;
 }) {
   const [isPending, startTransition] = useTransition();
+  // 비밀번호 변경 모달 — 관리자가 사용자 비밀번호를 강제 재설정.
+  // 2026-06-02 사용자 요청. server endpoint POST /api/v1/admin/users/:id/reset-password
+  // 가 argon2id hash + 기존 refresh family revoke + audit_log admin_password_reset 자동 기록.
+  const [showPwReset, setShowPwReset] = useState(false);
+
+  // drawer 가 mount 될 때 1회 PII 접근 audit 기록 — 마스킹 제거에 따른 가시성 보존.
+  useEffect(() => {
+    if (onMounted) onMounted(user.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user.id]);
 
   // E2E QC 라운드 (2026-05-20): 파괴적 액션 (강제 로그아웃 / 탈퇴) 은 EXECUTE 2단계 확인.
   const DESTRUCTIVE_ACTIONS = new Set([
@@ -540,11 +515,11 @@ function UserDetailDrawer({
           닫기
         </button>
         <h3 className="text-lg font-bold text-slate-900">회원 상세</h3>
-        <p className="text-xs text-muted mt-0.5">{unmasked ? user.id : maskUserId(user.id)}</p>
+        <p className="text-xs text-muted mt-0.5">{user.id}</p>
 
         <dl className="mt-5 space-y-3 text-sm">
-          <Row k="이름" v={unmasked ? user.display_name : maskName(user.display_name)} />
-          <Row k="이메일" v={unmasked ? user.email : maskEmail(user.email)} />
+          <Row k="이름" v={user.display_name} />
+          <Row k="이메일" v={user.email} />
           <Row k="상태" v={<span className={statusChip[user.account_status]}>{statusLabel[user.account_status]}</span>} />
           <Row k="MFA" v={user.totp_enabled ? "활성화" : "비활성"} />
           <Row k="보유 인형" v={user.doll_count == null ? "—" : `${user.doll_count}개`} />
@@ -562,17 +537,30 @@ function UserDetailDrawer({
           />
         </dl>
 
-        {!unmasked ? (
-          <button className="mt-4 w-full btn-outline text-sm" type="button" onClick={onUnmask}>
-            PII 마스킹 해제 (감사 로그 기록 + 향후 2FA 재확인)
-          </button>
-        ) : (
-          <div className="mt-4 text-[11px] text-amber-700 bg-amber-50/80 border border-amber-200 rounded-xl px-3 py-2">
-            ⚠ PII 마스킹 해제 상태입니다. 본 행동은 감사 로그에 기록되었습니다.
-          </div>
-        )}
+        {/* 2026-06-02 — 사용자 요청에 따라 마스킹 제거. PII 접근은 audit log
+            (user.pii_unmasked) 가 운영자 시점에 자동 기록된다 — 본 drawer 가
+            열리는 시점에 1회 기록. */}
+        <div className="mt-4 text-[11px] text-amber-700 bg-amber-50/80 border border-amber-200 rounded-xl px-3 py-2">
+          ⚠ PII 가 그대로 표시됩니다. 본 조회는 감사 로그에 자동 기록됩니다.
+        </div>
 
-        <div className="mt-6 grid grid-cols-2 gap-2">
+        <div className="mt-4">
+          <button
+            className="btn-primary text-sm w-full disabled:opacity-60"
+            type="button"
+            disabled={isPending}
+            onClick={() => setShowPwReset(true)}
+            data-testid="btn-open-password-reset"
+          >
+            사용자 비밀번호 변경
+          </button>
+          <p className="text-[11px] text-muted mt-1">
+            ※ 관리자가 직접 새 비밀번호를 입력합니다. 서버가 argon2id 로 해시하고
+            기존 세션을 모두 로그아웃시키며 admin_password_reset 감사 로그를 기록합니다.
+          </p>
+        </div>
+
+        <div className="mt-4 grid grid-cols-2 gap-2">
           <button
             className="btn-outline text-sm disabled:opacity-60"
             type="button"
@@ -615,6 +603,156 @@ function UserDetailDrawer({
           </button>
         </div>
         <p className="text-[11px] text-muted mt-3">※ 모든 액션은 즉시 적용되며 감사 로그에 자동 기록됩니다. 탈퇴 처리는 개인정보 보호법에 따라 30일 유예 기간을 거쳐 완료됩니다.</p>
+      </div>
+
+      {showPwReset ? (
+        <PasswordResetModal
+          user={user}
+          onClose={() => setShowPwReset(false)}
+          onDone={(msg) => {
+            setShowPwReset(false);
+            onToast(msg);
+          }}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+// 2026-06-02 — 관리자 비밀번호 재설정 모달.
+//   - 8자+ client 검증 (서버는 10자+영문/숫자 정책을 추가 강제).
+//   - 새 비밀번호 / 확인 일치 검사.
+//   - 사유 5자+ 강제 (audit log 메타).
+//   - confirm 다이얼로그로 마지막 안전장치 — 우발 클릭 차단.
+//   - Server 가 argon2id 해시 + refresh family revoke + audit 자동.
+function PasswordResetModal({
+  user,
+  onClose,
+  onDone,
+}: {
+  user: UserRow;
+  onClose: () => void;
+  onDone: (msg: string) => void;
+}) {
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [reason, setReason] = useState("");
+  const [show, setShow] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+
+  function clientValidate(): string | null {
+    if (!password) return "새 비밀번호를 입력하세요.";
+    if (password.length < 8) return "비밀번호는 8자 이상이어야 합니다. (서버 정책은 10자 + 영문/숫자)";
+    if (password !== confirm) return "비밀번호 확인이 일치하지 않습니다.";
+    if (!reason || reason.trim().length < 5) return "사유는 5자 이상 입력해야 합니다.";
+    return null;
+  }
+
+  function submit() {
+    const ve = clientValidate();
+    if (ve) { setError(ve); return; }
+    setError(null);
+    // 마지막 confirm — 우발 클릭 차단.
+    const ok = window.confirm(
+      `사용자 "${user.email}" 의 비밀번호를 새로 설정합니다.\n\n` +
+        `기존 세션이 모두 로그아웃되고 감사 로그(admin_password_reset)가 기록됩니다.\n\n` +
+        `계속하시겠습니까?`,
+    );
+    if (!ok) return;
+    startTransition(async () => {
+      const res = await resetUserPasswordAction({
+        userId: user.id,
+        password,
+        reason: reason.trim(),
+      });
+      if (!res.ok) {
+        setError(res.message);
+        return;
+      }
+      onDone(res.note ?? "비밀번호가 재설정되었습니다. (감사 로그 기록됨)");
+    });
+  }
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-3 bg-black/40">
+      <div className="w-full max-w-md glass-panel rounded-3xl p-6 relative" data-testid="modal-password-reset">
+        <button
+          className="absolute right-4 top-4 rounded-xl px-3 py-1.5 bg-white/70 border border-white/70 text-xs text-slate-600"
+          onClick={onClose}
+          type="button"
+        >
+          닫기
+        </button>
+        <h3 className="text-lg font-bold text-slate-900">비밀번호 변경</h3>
+        <p className="text-xs text-muted mt-0.5">{user.email}</p>
+
+        <div className="mt-5 space-y-3">
+          <label className="block text-xs text-slate-700">
+            새 비밀번호 (8자 이상, 영문+숫자)
+            <div className="relative mt-1">
+              <input
+                className="input w-full pr-16"
+                type={show ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete="new-password"
+                minLength={8}
+                data-testid="input-new-password"
+              />
+              <button
+                type="button"
+                aria-label={show ? "비밀번호 숨기기" : "비밀번호 보기"}
+                onClick={() => setShow((v) => !v)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md bg-white/70 border border-white/70 px-2 py-0.5 text-[11px] text-slate-600"
+              >
+                {show ? "숨기기" : "보기"}
+              </button>
+            </div>
+          </label>
+          <label className="block text-xs text-slate-700">
+            새 비밀번호 확인
+            <input
+              className="input w-full mt-1"
+              type={show ? "text" : "password"}
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
+              autoComplete="new-password"
+              data-testid="input-confirm-password"
+            />
+          </label>
+          <label className="block text-xs text-slate-700">
+            사유 (감사 로그 기록, 5자 이상)
+            <textarea
+              className="input mt-1 min-h-[64px]"
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="예: 사용자 요청 #1234 / 보안 사고 대응"
+              maxLength={256}
+              data-testid="input-reset-reason"
+            />
+          </label>
+          {error ? (
+            <p className="text-xs text-rose-700 bg-rose-50/80 border border-rose-200 rounded-xl px-3 py-2">
+              {error}
+            </p>
+          ) : null}
+        </div>
+
+        <div className="mt-5 flex justify-end gap-2">
+          <button className="btn-outline text-sm" type="button" onClick={onClose} disabled={pending}>
+            취소
+          </button>
+          <button
+            className="btn-primary text-sm disabled:opacity-60"
+            type="button"
+            onClick={submit}
+            disabled={pending}
+            data-testid="btn-submit-password-reset"
+          >
+            {pending ? "변경 중..." : "비밀번호 변경"}
+          </button>
+        </div>
       </div>
     </div>
   );
