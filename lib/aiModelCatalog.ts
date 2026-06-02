@@ -10,9 +10,10 @@
 // 정책:
 //   - text / image / diary 는 Gemini 가 공식 지원하므로 실모델 ID 제공.
 //   - tts / stt 는 Gemini 가 공식 지원하지 않아 placeholder 만 제공 (운영자 안내 메시지 동반).
-//   - 운영자가 키 등록 시 선택한 카테고리별 모델은 ADMIN 측 metadata (note JSON) 로
-//     인코딩되어 server 의 PUT /keys/:alias/quota 에 함께 전달. server 측 정식 컬럼
-//     추가는 후속 SERVER 라운드에서 진행. (TODO 참고)
+//   - 2026-06-02 — 카테고리별 모델 선택은 서버 PUT /keys/:alias/quota 의 정식
+//     `models` body 필드 + GET /keys 응답의 정식 `models` 컬럼으로 전달된다.
+//     본 파일의 encodeNoteWithModels / decodeModelsFromNote 는 @deprecated 상태로
+//     남아 구 데이터(`note` 안 `__models__=` prefix) 폴백 디코딩에만 사용된다.
 
 export type AiModelKind = "text" | "image" | "diary" | "tts" | "stt";
 
@@ -185,15 +186,22 @@ export const DEFAULT_MODEL_BY_KIND: Record<AiModelKind, string> = {
 export type ModelAssignments = Partial<Record<AiModelKind, string>>;
 
 // ──────────────────────────────────────────────────────────────────────
-// metadata 인코딩 / 디코딩 — server 의 note 컬럼 (string 최대 500자) 에 prefix
-// `__models__=` 로 직렬화. 정식 컬럼 추가는 후속 SERVER 라운드.
+// (LEGACY) metadata 인코딩 / 디코딩 — server 의 note 컬럼에 `__models__=` prefix 로
+// 직렬화하던 임시 처리. 2026-06-02 server 가 PUT /keys/:alias/quota 의 body.models
+// + GET /keys 응답의 `models` 컬럼을 정식 채택하면서 사실상 사용 중단.
 //
-// TODO(server-round-next): adminGeminiRoutes.js PUT /keys/:alias/quota 가
-//   body.models: { text, image, diary, tts, stt } 를 정식 컬럼으로 받도록 확장.
+// 두 함수는 한 라운드 동안 @deprecated 상태로 보존 — 운영 환경의 기존 alias note
+// 안에 남아있는 prefix 를 안전하게 디코딩(decodeModelsFromNote)하여 새 컬럼이
+// 비어있을 때 폴백 표시한다. 다음 라운드에서 데이터 마이그레이션 후 삭제 예정.
 // ──────────────────────────────────────────────────────────────────────
 
 const MODELS_PREFIX = "__models__=";
 
+/**
+ * @deprecated 2026-06-02 — server `models` 컬럼이 정식 채택되어 신규 호출은 사용 금지.
+ *   GeminiKeyRow.models 필드 + adminApi.updateGeminiKeyQuota({ models }) 사용.
+ *   본 함수는 다음 라운드에서 제거 예정 (회귀 안전을 위해 1라운드 보존).
+ */
 export function encodeNoteWithModels(
   note: string | null | undefined,
   models: ModelAssignments,
@@ -216,6 +224,11 @@ export function encodeNoteWithModels(
   return `${payload} ${baseNote}`.slice(0, 200);
 }
 
+/**
+ * @deprecated 2026-06-02 — server `models` 컬럼이 정식 채택. 본 함수는 구 데이터
+ *   (`note` 안에 `__models__=` prefix 가 남아있는 alias) 에 한해 폴백 디코딩
+ *   용도로만 사용. 다음 라운드에서 제거 예정.
+ */
 export function decodeModelsFromNote(
   note: string | null | undefined,
 ): { models: ModelAssignments; rest: string } {

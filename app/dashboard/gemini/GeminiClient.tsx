@@ -33,11 +33,25 @@ import {
   MODEL_KIND_LABEL,
   MODEL_KIND_ORDER,
   DEFAULT_MODEL_BY_KIND,
-  encodeNoteWithModels,
   decodeModelsFromNote,
   type AiModelKind,
   type ModelAssignments,
 } from "@/lib/aiModelCatalog";
+
+// 2026-06-02 — server 정식 `models` 컬럼이 비어있는 구 데이터 alias 에 한해
+// note 안의 `__models__=` prefix 를 디코딩하는 폴백.
+function modelsFromRow(row: GeminiKeyRow): ModelAssignments {
+  const fromCol = row.models;
+  if (fromCol && typeof fromCol === "object") {
+    const out: ModelAssignments = {};
+    for (const k of MODEL_KIND_ORDER) {
+      const v = fromCol[k];
+      if (typeof v === "string" && v.length > 0) out[k] = v;
+    }
+    if (Object.keys(out).length > 0) return out;
+  }
+  return decodeModelsFromNote(row.note).models;
+}
 
 type Range = "24h" | "7d" | "30d";
 
@@ -152,7 +166,8 @@ export default function GeminiClient() {
             {keys.items.map((k) => {
               const pct = Math.min(1, k.usage_ratio_24h);
               const rec = recommend(k.usage_ratio_24h, 1, k.tier);
-              const { models: assignedModels } = decodeModelsFromNote(k.note);
+              // 2026-06-02 — server 정식 `models` 컬럼 사용 + 구 note prefix 폴백.
+              const assignedModels = modelsFromRow(k);
               const assignedCount =
                 MODEL_KIND_ORDER.filter((kind) => !!assignedModels[kind]).length;
               return (
@@ -290,12 +305,14 @@ export default function GeminiClient() {
                       rpd: form.rpd,
                       monthly_token_cap: form.monthly_token_cap,
                       note: form.note,
+                      // 2026-06-02 — server 정식 컬럼 직접 전송.
+                      models: form.models,
                     });
                     if (!r.ok) {
                       setToast(`등록 실패: ${messageForCode(r.code, r.message)}`);
                     } else {
                       setToast(
-                        `등록 완료: ${r.alias} → ${r.tier} (모델 ${Object.keys(form.modelsRaw).length}개 지정)`,
+                        `등록 완료: ${r.alias} → ${r.tier} (모델 ${Object.keys(form.models).length}개 지정)`,
                       );
                       reload();
                       setRegisterOpen(false);
@@ -386,10 +403,10 @@ type FormPayload = {
   tpm: number | null;
   rpd: number | null;
   monthly_token_cap: number | null;
-  /** server 로 전송되는 인코딩된 note (모델 metadata 포함). */
+  /** 운영자 메모 — 모델 매핑은 별도 `models` 필드로 분리됨 (2026-06-02). */
   note: string | null;
-  /** 운영자 안내용 - 선택된 모델 매핑 raw. */
-  modelsRaw: ModelAssignments;
+  /** 카테고리별 모델 매핑. server 정식 컬럼으로 전송. */
+  models: ModelAssignments;
 };
 
 function KeyRegisterForm({
@@ -441,7 +458,8 @@ function KeyRegisterForm({
   async function submit(e: FormEvent) {
     e.preventDefault();
     if (!valid || disabled) return;
-    const encodedNote = encodeNoteWithModels(note.trim() || null, models);
+    // 2026-06-02 — 운영자 note 는 그대로 전달. 모델 매핑은 별도 `models` 필드로 전송.
+    const cleanNote = note.trim();
     await onSubmit({
       alias: trimmedAlias,
       tier,
@@ -449,8 +467,8 @@ function KeyRegisterForm({
       tpm: parseInt0(tpm),
       rpd: parseInt0(rpd),
       monthly_token_cap: parseInt0(cap),
-      note: encodedNote,
-      modelsRaw: models,
+      note: cleanNote.length > 0 ? cleanNote : null,
+      models,
     });
     // 성공 시 KEY 평문 즉시 폐기 (메모리 잔류 최소화). alias 도 비움.
     setApiKey("");

@@ -55,11 +55,23 @@ export type GeminiKeyRow = {
   last_used_at: string | null;
   /**
    * 운영자 메모 (note). server 의 PUT /keys/:alias/quota 가 받은 raw 문자열을
-   * 그대로 노출 — ADMIN UI 는 이 안에 `__models__={...}` prefix 가 있으면
-   * 모델 카테고리(text/image/diary/tts/stt) 별 선택 모델을 디코딩해 표시한다.
-   * 후속 SERVER 라운드에서 별도 컬럼화 예정.
+   * 그대로 노출. 2026-06-02 이전 데이터에는 `__models__={...}` prefix 가 포함될 수
+   * 있어 ADMIN UI 는 `models` 컬럼이 비어있을 때 폴백 디코딩을 시도한다.
    */
   note?: string | null;
+  /**
+   * 2026-06-02 — 카테고리별 모델 매핑 (server 정식 컬럼).
+   * server PUT /api/v1/admin/gemini/keys/:alias/quota 가 body.models 를 정식 컬럼으로
+   * 받아 GET 응답에도 포함시킨다. 신규 서버 배포 이전에는 응답에 없을 수 있어 optional.
+   * 그 경우 ADMIN UI 는 `decodeModelsFromNote(note)` 폴백으로 호환성 유지.
+   */
+  models?: {
+    text?: string | null;
+    image?: string | null;
+    diary?: string | null;
+    tts?: string | null;
+    stt?: string | null;
+  } | null;
 };
 
 export type GeminiKeysResponse = {

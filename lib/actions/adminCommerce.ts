@@ -15,6 +15,8 @@ import {
   listAdminCommerceProducts,
   createAdminCommerceProduct,
   deleteAdminCommerceProduct,
+  getAdminCommerceProduct,
+  type AdminCommerceProductDetailRaw,
   type AdminCommerceProductRow,
   type CreateProductInput,
 } from "@/lib/adminApi";
@@ -117,13 +119,15 @@ export async function deleteAdminCommerceProductAction(args: {
 }
 
 // 2026-06-02 — 상품 상세 페이지(13) 용 단일 상품 조회.
-// SERVER 에 GET /api/v1/admin/commerce/products/:id endpoint 가 아직 없다 (목록/생성/
-// 수정/삭제만 존재 — adminFeedCommerceRoutes.js 참조). 임시 처리로 목록을 큰 page_size
-// 로 받아 client-side 에서 id 매칭하여 반환한다. 데이터가 수천 건으로 늘어나면
-// SERVER 측에 단건 조회 라우트를 추가하고 본 action 을 직접 호출로 교체할 것.
-// TODO(server): GET /api/v1/admin/commerce/products/:id 라우트 추가 후 단순화.
+// SERVER 의 정식 단건 endpoint (GET /api/v1/admin/commerce/products/:id) 직접 호출.
+// 응답 = 목록 응답의 단일 item 동일 스키마 + `recent_orders_count` 필드.
 export type ProductDetailResult =
-  | { ok: true; product: AdminCommerceProductRow }
+  | {
+      ok: true;
+      product: AdminCommerceProductRow;
+      /** server 가 산출한 최근 N일 본 상품 포함 주문 수 (없으면 null). */
+      recent_orders_count: number | null;
+    }
   | { ok: false; message: string; code?: string };
 
 export async function getAdminCommerceProductAction(args: {
@@ -134,12 +138,18 @@ export async function getAdminCommerceProductAction(args: {
   if (!args.id || args.id.trim().length === 0) {
     return { ok: false, message: "상품 id 누락" };
   }
-  const res = await listAdminCommerceProducts({ jwt, page_size: 200 });
+  const res = await getAdminCommerceProduct({ jwt, id: args.id });
   if (!res.ok) return { ok: false, message: res.message, code: res.code };
-  const raw = (res.data as { items: ServerProductRaw[] }).items ?? [];
-  const found = raw.find((p) => p.id === args.id);
-  if (!found) {
+  const raw = res.data as AdminCommerceProductDetailRaw;
+  if (!raw || !raw.id) {
     return { ok: false, message: "상품을 찾을 수 없습니다.", code: "ERR_NOT_FOUND" };
   }
-  return { ok: true, product: normalizeProduct(found) };
+  const recentRaw = raw.recent_orders_count;
+  const recent =
+    typeof recentRaw === "number" && Number.isFinite(recentRaw) ? recentRaw : null;
+  return {
+    ok: true,
+    product: normalizeProduct(raw),
+    recent_orders_count: recent,
+  };
 }

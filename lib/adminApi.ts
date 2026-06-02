@@ -2303,6 +2303,40 @@ export function updateAdminCommerceProduct(args: {
   });
 }
 
+/**
+ * 2026-06-02 — 단건 상품 조회 (◈상세 페이지 정합).
+ * server: GET /api/v1/admin/commerce/products/:id.
+ * 응답 = 목록 응답의 단일 item 동일 스키마 + `recent_orders_count` 필드.
+ * server 배포 이전엔 404 가 떨어질 수 있어 호출자는 ServerErr 를 graceful 처리.
+ */
+export type AdminCommerceProductDetailRaw = {
+  id: string;
+  name: string;
+  short_desc?: string | null;
+  description?: string | null;
+  price?: string | number | null;
+  currency?: string;
+  stock_status?: string;
+  stock_quantity?: number | null;
+  primary_image?: string | null;
+  status?: string;
+  created_at?: string;
+  updated_at?: string;
+  /** server 가 최근 N일 (보통 30일) 동안 본 상품을 포함한 주문 수. */
+  recent_orders_count?: number | null;
+};
+
+export function getAdminCommerceProduct(args: {
+  jwt: string;
+  id: string;
+}): Promise<ServerResult<AdminCommerceProductDetailRaw>> {
+  return authedRequest<AdminCommerceProductDetailRaw>({
+    jwt: args.jwt,
+    path: `/api/v1/admin/commerce/products/${encodeURIComponent(args.id)}`,
+    method: "GET",
+  });
+}
+
 export function deleteAdminCommerceProduct(args: {
   jwt: string;
   id: string;
@@ -3210,6 +3244,19 @@ export function getCommerceOrderDetail(args: {
 
 export type GeminiTier = "free" | "tier_1" | "tier_2" | "tier_3" | "enterprise";
 
+/**
+ * 2026-06-02 — 카테고리별 모델 매핑 (server 정식 컬럼).
+ * server PUT /keys/:alias/quota 가 body.models 를 정식 컬럼으로 수용. server 배포
+ * 이전엔 zod 가 unknown field 를 무시하므로 호출 자체는 안전 (서버 측 무시).
+ */
+export type GeminiKeyModels = {
+  text?: string | null;
+  image?: string | null;
+  diary?: string | null;
+  tts?: string | null;
+  stt?: string | null;
+};
+
 export function updateGeminiKeyQuota(args: {
   jwt: string;
   alias: string;
@@ -3219,6 +3266,8 @@ export function updateGeminiKeyQuota(args: {
   rpd?: number | null;
   monthly_token_cap?: number | null;
   note?: string | null;
+  /** 2026-06-02 — 카테고리별 모델 매핑 정식 컬럼. 빈 객체면 전송하지 않음. */
+  models?: GeminiKeyModels | null;
 }): Promise<ServerResult<{ key_alias: string; tier: string }>> {
   const body: Record<string, unknown> = { tier: args.tier };
   if (args.rpm != null) body.rpm = args.rpm;
@@ -3226,6 +3275,18 @@ export function updateGeminiKeyQuota(args: {
   if (args.rpd != null) body.rpd = args.rpd;
   if (args.monthly_token_cap != null) body.monthly_token_cap = args.monthly_token_cap;
   if (args.note != null && String(args.note).trim() !== "") body.note = args.note;
+  if (args.models && typeof args.models === "object") {
+    const clean: Record<string, string | null> = {};
+    let hasAny = false;
+    for (const k of ["text", "image", "diary", "tts", "stt"] as const) {
+      const v = args.models[k];
+      if (typeof v === "string" && v.length > 0) {
+        clean[k] = v;
+        hasAny = true;
+      }
+    }
+    if (hasAny) body.models = clean;
+  }
   return authedRequest({
     jwt: args.jwt,
     path: `/api/v1/admin/gemini/keys/${encodeURIComponent(args.alias)}/quota`,

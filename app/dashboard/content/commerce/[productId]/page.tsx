@@ -4,15 +4,10 @@
 // 2026-06-02 — 신규.
 //
 // 표시 정보: 사진, 상품명, 설명, 가격(KRW), 재고, 카테고리, 활성 상태,
-//   생성/수정 시각, 최근 주문 수(서버 추정).
+//   생성/수정 시각, 최근 주문 수(서버 산출).
 //
-// 데이터 출처: getAdminCommerceProductAction.
-// 현재 SERVER 에 GET /products/:id endpoint 가 없어 목록을 받아 client-side filter
-// 하는 임시 처리 (TODO: SERVER 라우트 추가 후 직접 호출로 교체).
-//
-// 최근 주문 수는 listOrdersAction 으로 최근 100건 주문을 받아 해당 product_id 가
-// 포함된 주문 수를 추정한다. 정확한 카운트가 필요할 경우 SERVER 측에
-// `?product_id=` 필터 라우트 추가 필요 (TODO).
+// 데이터 출처: getAdminCommerceProductAction → SERVER GET /api/v1/admin/commerce/products/:id.
+// 응답에 `recent_orders_count` 가 포함되어 별도 N+1 주문 detail fetch 불필요.
 
 import Link from "next/link";
 import { useEffect, useState, useTransition } from "react";
@@ -22,8 +17,6 @@ import {
   getAdminCommerceProductAction,
   type ProductDetailResult,
 } from "@/lib/actions/adminCommerce";
-import { listOrdersAction } from "@/lib/actions/commerceOrders";
-import { getOrderDetailAction } from "@/lib/actions/commerceOrders";
 import type { AdminCommerceProductRow } from "@/lib/adminApi";
 import { messageForCode } from "@/lib/errorMessages";
 
@@ -72,8 +65,6 @@ export default function CommerceProductDetailPage({ params }: Params) {
   const productId = decodeURIComponent(params.productId);
   const [state, setState] = useState<ProductDetailResult | null>(null);
   const [loading, startLoad] = useTransition();
-  const [recentOrders, setRecentOrders] = useState<number | null>(null);
-  const [orderCountLoading, setOrderCountLoading] = useState(false);
 
   function reload() {
     startLoad(async () => {
@@ -87,43 +78,11 @@ export default function CommerceProductDetailPage({ params }: Params) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [productId]);
 
-  // 최근 주문 수 추정 — 최근 100건 주문을 fetch 하고 각 주문 detail 의 items
-  // 에서 product_id 가 일치하는 주문 수를 센다. SERVER 가 직접 카운트 API 를
-  // 노출하면 본 블록을 단일 fetch 로 교체.
-  // TODO(server): GET /api/v1/admin/commerce/orders/list?product_id= 추가 후 단순화.
-  useEffect(() => {
-    let cancelled = false;
-    async function compute() {
-      setOrderCountLoading(true);
-      try {
-        const list = await listOrdersAction({ limit: 50 });
-        if (!list.ok) {
-          if (!cancelled) setRecentOrders(null);
-          return;
-        }
-        // detail fetch 는 N 번이라 50건으로 cap. 더 큰 데이터셋은 서버에
-        // 필터 라우트가 생기기 전까지 정확하지 않음을 UI 에서 명시.
-        let count = 0;
-        for (const o of list.items) {
-          if (cancelled) return;
-          const d = await getOrderDetailAction({ id: o.id });
-          if (!d.ok) continue;
-          const items = d.order.items ?? [];
-          if (items.some((it) => it.product_id === productId)) count += 1;
-        }
-        if (!cancelled) setRecentOrders(count);
-      } finally {
-        if (!cancelled) setOrderCountLoading(false);
-      }
-    }
-    compute();
-    return () => {
-      cancelled = true;
-    };
-  }, [productId]);
-
   const product: AdminCommerceProductRow | null =
     state && state.ok ? state.product : null;
+  // 2026-06-02 — server 응답의 `recent_orders_count` 직접 사용 (N+1 detail fetch 제거).
+  const recentOrders: number | null =
+    state && state.ok ? state.recent_orders_count : null;
 
   return (
     <div className="space-y-6">
@@ -217,11 +176,9 @@ export default function CommerceProductDetailPage({ params }: Params) {
 
           <PanelCard
             title="최근 주문 수"
-            description="최근 주문 50건을 스캔해 본 상품이 포함된 주문 수를 추정한 값입니다. 정확한 집계는 서버 필터 API 추가 후 제공됩니다."
+            description="서버가 본 상품을 포함한 최근 주문 수를 직접 산출한 값입니다."
           >
-            {orderCountLoading ? (
-              <LoadingState label="주문 데이터 스캔 중..." />
-            ) : recentOrders === null ? (
+            {recentOrders === null ? (
               <div className="text-sm text-muted">집계 불가</div>
             ) : (
               <div className="text-2xl font-semibold text-slate-800 tabular-nums">

@@ -19,7 +19,11 @@
 
 import { readSession } from "@/lib/authCookie";
 import { authedRequest } from "@/lib/httpClient";
-import { updateGeminiKeyQuota, type GeminiTier } from "@/lib/adminApi";
+import {
+  updateGeminiKeyQuota,
+  type GeminiKeyModels,
+  type GeminiTier,
+} from "@/lib/adminApi";
 import type {
   AdminResult,
   GeminiKeyRow,
@@ -54,6 +58,8 @@ type ServerKeyRow = {
   valid_from: string;
   valid_to: string | null;
   note: string | null;
+  /** 2026-06-02 — 정식 모델 컬럼 (server 배포 이전엔 undefined). */
+  models?: GeminiKeyModels | null;
 };
 type ServerKeysResponse = { count: number; items: ServerKeyRow[] };
 
@@ -225,8 +231,11 @@ export async function fetchGeminiKeysAction(): Promise<
       tokens_daily_limit: tokensDaily,
       usage_ratio_24h,
       last_used_at: null,
-      // 2026-06-02 — note 그대로 노출 (ADMIN UI 가 __models__= prefix 디코딩).
+      // 2026-06-02 — note 그대로 노출. 구 데이터 호환을 위해 `__models__=` prefix
+      // 가 남아있으면 UI 가 폴백 디코딩한다.
       note: quota?.note ?? null,
+      // 2026-06-02 — server 정식 컬럼. 미배포 환경에서는 undefined → UI 폴백.
+      models: quota?.models ?? null,
     };
   });
 
@@ -404,6 +413,8 @@ export async function upsertGeminiKeyQuotaAction(args: {
   rpd?: number | null;
   monthly_token_cap?: number | null;
   note?: string | null;
+  /** 2026-06-02 — 카테고리별 모델 매핑 정식 컬럼. server 가 body.models 로 수용. */
+  models?: GeminiKeyModels | null;
 }): Promise<GeminiQuotaUpdateResult> {
   const jwt = readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
@@ -419,6 +430,7 @@ export async function upsertGeminiKeyQuotaAction(args: {
     rpd: args.rpd ?? null,
     monthly_token_cap: args.monthly_token_cap ?? null,
     note: args.note ?? null,
+    models: args.models ?? null,
   });
   if (!res.ok) return { ok: false, message: res.message, code: res.code };
   return { ok: true, alias: res.data.key_alias, tier: res.data.tier };
