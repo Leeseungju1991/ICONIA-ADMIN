@@ -83,7 +83,9 @@ describe("FeedPage — render states", () => {
     await waitFor(() => {
       expect(screen.getByText("p_1")).toBeInTheDocument();
     });
-    expect(screen.getByText("alice")).toBeInTheDocument();
+    // 2026-06-02 — 작성자 셀은 author_id 만 노출 (handle 제거).
+    expect(screen.getByText("u_1")).toBeInTheDocument();
+    expect(screen.queryByText("alice")).toBeNull();
   });
 
   it("renders auto-refresh toggle defaulting to OFF", async () => {

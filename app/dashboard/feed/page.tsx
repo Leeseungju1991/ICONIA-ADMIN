@@ -197,11 +197,15 @@ export default function FeedPage() {
     {
       key: "author",
       header: "작성자",
+      // 2026-06-02 — 작성자 표시는 ID만 (이름/이메일 표시 제거). 클릭 시 사용자 상세로 이동.
       render: (r) => (
-        <span className="text-xs">
-          <span className="text-slate-800">{r.author_handle ?? "이름 없음"}</span>
-          <span className="ml-1.5 font-mono text-[10px] text-slate-400">{r.author_id}</span>
-        </span>
+        <Link
+          href={`/dashboard/users/${r.author_id}`}
+          className="font-mono text-[11px] text-slate-700 hover:text-accent hover:underline"
+          title="사용자 상세 보기"
+        >
+          {r.author_id}
+        </Link>
       ),
     },
     {
@@ -485,9 +489,14 @@ function FeedDetailDrawer({
           </div>
           <FeedMediaGrid media={detail?.post.media ?? post.media ?? []} />
           <div className="grid grid-cols-2 gap-2 text-xs">
-            <Field label="작성자">
-              <span>{post.author_handle ?? "이름 없음"}</span>
-              <span className="ml-1.5 font-mono text-[10px] text-slate-400">{post.author_id}</span>
+            <Field label="작성자 ID">
+              {/* 2026-06-02 — 이름/이메일 제거, ID만 노출. 클릭 → 사용자 상세. */}
+              <Link
+                href={`/dashboard/users/${post.author_id}`}
+                className="font-mono text-[11px] text-slate-700 hover:text-accent hover:underline break-all"
+              >
+                {post.author_id}
+              </Link>
             </Field>
             <Field label="작성일">{post.created_at}</Field>
             <Field label="댓글">{detail?.comments.length ?? post.comments_count}</Field>
@@ -511,7 +520,8 @@ function FeedDetailDrawer({
                 {detail?.comments.map((c) => (
                   <li key={c.id} className="rounded-lg bg-white/55 border border-white/50 p-2">
                     <div className="flex items-center justify-between text-[11px] text-muted">
-                      <span className="font-mono">{c.author_handle ?? c.author_id}</span>
+                      {/* 2026-06-02 — 작성자 표시 ID만. */}
+                      <span className="font-mono">{c.author_id}</span>
                       <span>{c.created_at}</span>
                     </div>
                     <p className="mt-1 text-xs text-slate-700">{c.body}</p>

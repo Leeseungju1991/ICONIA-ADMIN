@@ -2,6 +2,8 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { PanelCard } from "../_components/PanelCard";
+import { ExpandableRow } from "../_components/ExpandableRow";
+import { DangerConfirmDialog } from "../_components/DangerConfirmDialog";
 import {
   listNoticesAction,
   createNoticeAction,
@@ -13,6 +15,10 @@ import type { NoticeRow } from "@/lib/adminApi";
 
 // Phase 15 — notices CRUD wiring.
 // Server `GET/POST/PATCH/DELETE /api/v1/admin/notices` (Notice prisma model + migration 20260521100000).
+//
+// 2026-06-02 UX 통합:
+// - 행 클릭(펼침 버튼)으로 본문/스케줄/대상자 펼침 (error-tracking 패턴, ExpandableRow 공통화).
+// - 강력액션(삭제) 라벨 통일 + DangerConfirmDialog 색상 강조 모달.
 
 const AUDIENCES = ["all", "owner", "operator", "beta"] as const;
 
@@ -21,6 +27,9 @@ export default function NoticesPage() {
   const [loading, startLoad] = useTransition();
   const [creating, startCreate] = useTransition();
   const [toast, setToast] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<NoticeRow | null>(null);
+  const [deletingBusy, setDeletingBusy] = useState(false);
 
   function reload() {
     startLoad(async () => {
@@ -51,14 +60,17 @@ export default function NoticesPage() {
     });
   }
 
-  async function handleDelete(id: string) {
-    if (typeof window !== "undefined" && !window.confirm("이 공지를 삭제하시겠습니까?")) return;
-    const r = await deleteNoticeAction({ id });
+  async function confirmDelete() {
+    if (!deleting) return;
+    setDeletingBusy(true);
+    const r = await deleteNoticeAction({ id: deleting.id });
+    setDeletingBusy(false);
     if (!r.ok) {
       setToast(`삭제 실패: ${r.message}`);
       return;
     }
     setToast("삭제됨");
+    setDeleting(null);
     reload();
   }
 
@@ -106,6 +118,7 @@ export default function NoticesPage() {
 
       <PanelCard
         title="공지·배너 목록"
+        description="행을 펼침으로 본문·발송 일정·대상자를 확인합니다."
         actions={
           <button
             type="button"
@@ -125,33 +138,92 @@ export default function NoticesPage() {
           <div className="text-sm text-muted">공지가 없습니다.</div>
         ) : (
           <ul className="space-y-2 text-sm">
-            {items.map((n) => (
-              <li
-                key={n.id}
-                className="rounded-xl border border-white/60 bg-white/55 px-3 py-2 flex items-start justify-between gap-3"
-              >
-                <div className="min-w-0">
-                  <div className="font-medium text-slate-800">{n.title}</div>
-                  <div className="text-xs text-muted line-clamp-2">{n.body}</div>
-                  <div className="mt-1 text-[11px] text-muted">
-                    <span className="chip chip-muted">{n.audience}</span>
-                    {" · "}created {n.created_at}
-                    {n.scheduled_at ? ` · scheduled ${n.scheduled_at}` : ""}
-                    {n.expires_at ? ` · expires ${n.expires_at}` : ""}
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => handleDelete(n.id)}
-                  className="rounded-lg bg-red-50 border border-red-200 px-2 py-1 text-xs text-red-700 shrink-0"
-                >
-                  삭제
-                </button>
-              </li>
-            ))}
+            {items.map((n) => {
+              const isOpen = expandedId === n.id;
+              return (
+                <ExpandableRow
+                  key={n.id}
+                  expanded={isOpen}
+                  onToggle={() => setExpandedId(isOpen ? null : n.id)}
+                  summary={
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-medium text-slate-800 truncate">{n.title}</span>
+                        <span className="chip chip-muted">{n.audience}</span>
+                      </div>
+                      <div className="mt-1 text-[11px] text-muted">
+                        created {n.created_at}
+                        {n.scheduled_at ? ` · scheduled ${n.scheduled_at}` : ""}
+                        {n.expires_at ? ` · expires ${n.expires_at}` : ""}
+                      </div>
+                    </div>
+                  }
+                  detail={
+                    <div className="space-y-2">
+                      <div>
+                        <div className="text-[11px] text-muted mb-1">본문</div>
+                        <p className="text-sm text-slate-800 whitespace-pre-wrap">{n.body}</p>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-600">
+                        <div>
+                          <span className="text-muted">대상자: </span>
+                          <span className="font-medium">{n.audience}</span>
+                        </div>
+                        <div>
+                          <span className="text-muted">ID: </span>
+                          <span className="font-mono text-[10px]">{n.id}</span>
+                        </div>
+                        <div>
+                          <span className="text-muted">발송 예약: </span>
+                          <span>{n.scheduled_at ?? "—"}</span>
+                        </div>
+                        <div>
+                          <span className="text-muted">만료: </span>
+                          <span>{n.expires_at ?? "—"}</span>
+                        </div>
+                      </div>
+                    </div>
+                  }
+                  trailing={
+                    <button
+                      type="button"
+                      onClick={() => setDeleting(n)}
+                      title="공지 영구 삭제"
+                      className="rounded-lg bg-red-50 border border-red-300 px-2.5 py-1 text-xs font-semibold text-red-700 hover:bg-red-100"
+                    >
+                      삭제
+                    </button>
+                  }
+                />
+              );
+            })}
           </ul>
         )}
       </PanelCard>
+
+      <DangerConfirmDialog
+        open={!!deleting}
+        title="공지·배너 삭제"
+        description={
+          deleting
+            ? `"${deleting.title}" 공지를 영구 삭제합니다.`
+            : "공지를 영구 삭제합니다."
+        }
+        detail={
+          deleting ? (
+            <span>
+              대상자 <b>{deleting.audience}</b> · 작성일 {deleting.created_at}
+            </span>
+          ) : null
+        }
+        confirmLabel="삭제"
+        busy={deletingBusy}
+        onConfirm={confirmDelete}
+        onCancel={() => {
+          if (deletingBusy) return;
+          setDeleting(null);
+        }}
+      />
 
       {toast ? (
         <div className="fixed bottom-6 right-6 z-50 rounded-2xl bg-slate-900/85 text-white text-sm px-4 py-3 shadow-card">
