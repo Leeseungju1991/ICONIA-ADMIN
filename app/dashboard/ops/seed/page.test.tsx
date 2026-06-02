@@ -30,7 +30,8 @@ describe("OpsSeedPage — render states", () => {
         screen.getByText(/아직 Seed 가 한 번도 실행되지 않았거나/),
       ).toBeInTheDocument();
     });
-    expect(screen.getByText("Seed 카테고리별 카운트 (Server)")).toBeInTheDocument();
+    // 2026-06-02 R-J: 라운드 14 단순화로 패널 제목이 "시드 데이터 카테고리별 개수" 로 변경됨.
+    expect(screen.getByText("시드 데이터 카테고리별 개수")).toBeInTheDocument();
   });
 
   it("shows preparing banner on ERR_NETWORK", async () => {

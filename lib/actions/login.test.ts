@@ -1,6 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { makeRedirect, expectRedirect, RedirectError } from "../../test/helpers/captureRedirect";
 
+// 2026-06-02 — 본 테스트는 출시 정합 라운드 J 에서 갱신됨.
+// 과거에는 dev/demo 전용 "soom/soom" 로컬 분기를 검증했으나, 현재 loginAction 은
+//   1) zod validation → 2) operatorLoginStep1 (Server /api/v1/operator/login) 호출
+//   3) mfa_required=false 면 writeSession + redirect(/dashboard)
+//   4) mfa_required=true 면 ERR_OPERATOR_MFA_REQUIRED 반환
+// 의 정식 플로우만 가진다. 본 테스트는 그 정식 플로우를 검증한다.
+
 const cookieStore = { set: vi.fn(), delete: vi.fn(), get: vi.fn() };
 
 vi.mock("next/headers", () => ({ cookies: () => cookieStore }));
@@ -27,7 +34,7 @@ beforeEach(() => {
   cookieStore.get.mockReset();
   mockedStep1.mockReset();
   vi.useFakeTimers();
-  vi.setSystemTime(new Date("2026-05-08T10:00:00.000Z"));
+  vi.setSystemTime(new Date("2026-06-02T10:00:00.000Z"));
 });
 
 afterEach(() => {
@@ -40,7 +47,7 @@ function fd(input: Record<string, string>): FormData {
   return f;
 }
 
-describe("loginAction (dev/demo soom/soom only)", () => {
+describe("loginAction (server-backed operator login)", () => {
   it("returns ERR_VALIDATION_LOCAL when username missing", async () => {
     const result = await loginAction(undefined, fd({ password: "p" }));
     expect(result.status).toBe("error");
@@ -55,7 +62,44 @@ describe("loginAction (dev/demo soom/soom only)", () => {
     expect(mockedStep1).not.toHaveBeenCalled();
   });
 
-  it("writes session cookie + redirects /dashboard on soom/soom", async () => {
+  it("suffixes bare username with default email domain (soomkorea.com)", async () => {
+    mockedStep1.mockResolvedValue({
+      ok: false,
+      code: "ERR_OPERATOR_INVALID_CREDENTIALS",
+      message: "invalid",
+    });
+    await loginAction(undefined, fd({ username: "operator", password: "pw" }));
+    expect(mockedStep1).toHaveBeenCalledTimes(1);
+    expect(mockedStep1).toHaveBeenCalledWith({
+      email: "operator@soomkorea.com",
+      password: "pw",
+    });
+  });
+
+  it("passes through email when username already contains @", async () => {
+    mockedStep1.mockResolvedValue({
+      ok: false,
+      code: "ERR_OPERATOR_INVALID_CREDENTIALS",
+      message: "invalid",
+    });
+    await loginAction(undefined, fd({ username: "alice@example.com", password: "pw" }));
+    expect(mockedStep1).toHaveBeenCalledWith({
+      email: "alice@example.com",
+      password: "pw",
+    });
+  });
+
+  it("writes session cookie + redirects /dashboard when server issues access_token", async () => {
+    mockedStep1.mockResolvedValue({
+      ok: true,
+      data: {
+        mfa_required: false,
+        access_token: "jwt-xyz",
+        access_token_expires_in_sec: 3600,
+        session_id: "sid",
+        operator: { id: "op-1", email: "soom@soomkorea.com", role: "superadmin" },
+      },
+    });
     const url = await expectRedirect(() =>
       loginAction(undefined, fd({ username: "soom", password: "soom" })),
     );
@@ -64,54 +108,36 @@ describe("loginAction (dev/demo soom/soom only)", () => {
     const cookieArg = cookieStore.set.mock.calls[0][0];
     expect(cookieArg.name).toBe("iconia_admin_session");
     expect(cookieArg.httpOnly).toBe(true);
-    // alg:none JWT — header.payload. (signature 비어있음)
     expect(typeof cookieArg.value).toBe("string");
-    const parts = (cookieArg.value as string).split(".");
-    expect(parts).toHaveLength(3);
-    const payload = JSON.parse(
-      Buffer.from(
-        parts[1].replace(/-/g, "+").replace(/_/g, "/") +
-          "===".slice((parts[1].length + 3) % 4),
-        "base64",
-      ).toString("utf8"),
-    );
-    expect(payload.role).toBe("superadmin");
-    expect(payload.sub).toBe("soom");
-    expect(typeof payload.exp).toBe("number");
-    expect(payload.exp).toBeGreaterThan(Math.floor(Date.now() / 1000));
-    expect(mockedStep1).not.toHaveBeenCalled();
   });
 
-  it("rejects any non-soom username with ERR_OPERATOR_INVALID_CREDENTIALS", async () => {
+  it("surfaces ERR_OPERATOR_INVALID_CREDENTIALS from server", async () => {
+    mockedStep1.mockResolvedValue({
+      ok: false,
+      code: "ERR_OPERATOR_INVALID_CREDENTIALS",
+      message: "invalid_credentials",
+    });
     const result = await loginAction(
       undefined,
-      fd({ username: "admin", password: "soom" }),
+      fd({ username: "admin", password: "wrong" }),
     );
     expect(result.status).toBe("error");
     expect(result.code).toBe("ERR_OPERATOR_INVALID_CREDENTIALS");
     expect(cookieStore.set).not.toHaveBeenCalled();
-    expect(mockedStep1).not.toHaveBeenCalled();
   });
 
-  it("rejects any non-soom password with ERR_OPERATOR_INVALID_CREDENTIALS", async () => {
+  it("returns ERR_OPERATOR_MFA_REQUIRED when server response lacks access_token (mfa flow)", async () => {
+    mockedStep1.mockResolvedValue({
+      ok: true,
+      data: { mfa_required: true, mfa_challenge_id: "ch1" },
+    });
     const result = await loginAction(
       undefined,
-      fd({ username: "soom", password: "wrong" }),
+      fd({ username: "mfauser", password: "pw" }),
     );
     expect(result.status).toBe("error");
-    expect(result.code).toBe("ERR_OPERATOR_INVALID_CREDENTIALS");
+    expect(result.code).toBe("ERR_OPERATOR_MFA_REQUIRED");
     expect(cookieStore.set).not.toHaveBeenCalled();
-    expect(mockedStep1).not.toHaveBeenCalled();
-  });
-
-  it("never calls the server API — dev/demo is purely local", async () => {
-    await loginAction(undefined, fd({ username: "a@b.com", password: "x" }));
-    await loginAction(undefined, fd({ username: "soom", password: "soom" })).catch(
-      () => {
-        /* redirect throws — expected */
-      },
-    );
-    expect(mockedStep1).not.toHaveBeenCalled();
   });
 });
 

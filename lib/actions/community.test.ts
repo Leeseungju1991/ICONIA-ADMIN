@@ -64,23 +64,21 @@ describe("listFeedAction", () => {
     }
   });
 
-  it("falls back to mock on ERR_NETWORK", async () => {
+  // 2026-06-02 R-J: mock 폴백 제거됨 (AWS RDS 정본 전환). network/503 은 그대로 ok=false 전달.
+  it("returns ok=false ERR_NETWORK when fetch fails", async () => {
     globalThis.fetch = vi.fn(async () => {
       throw new Error("boom");
     });
     const r = await listFeedAction("popular");
-    expect(r.ok).toBe(true);
-    if (r.ok) {
-      expect(r.source).toBe("mock");
-      expect(r.items.length).toBeGreaterThan(0);
-    }
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.code).toBe("ERR_NETWORK");
   });
 
-  it("falls back to mock on ERR_SERVER_UNAVAILABLE (503)", async () => {
+  it("returns ok=false ERR_SERVER_UNAVAILABLE on 503", async () => {
     globalThis.fetch = vi.fn(async () => new Response("err", { status: 503 }));
     const r = await listFeedAction("reported");
-    expect(r.ok).toBe(true);
-    if (r.ok) expect(r.source).toBe("mock");
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.code).toBe("ERR_SERVER_UNAVAILABLE");
   });
 
   it("returns ok=false on envelope error", async () => {
@@ -136,20 +134,20 @@ describe("getPostDetailAction", () => {
     }
   });
 
-  it("falls back to mock on ERR_NETWORK", async () => {
+  it("returns ok=false ERR_NETWORK when fetch fails", async () => {
     globalThis.fetch = vi.fn(async () => {
       throw new Error("boom");
     });
     const r = await getPostDetailAction("post_0000");
-    expect(r.ok).toBe(true);
-    if (r.ok) expect(r.source).toBe("mock");
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.code).toBe("ERR_NETWORK");
   });
 
-  it("falls back to mock on 503", async () => {
+  it("returns ok=false ERR_SERVER_UNAVAILABLE on 503", async () => {
     globalThis.fetch = vi.fn(async () => new Response("err", { status: 503 }));
     const r = await getPostDetailAction("post_0000");
-    expect(r.ok).toBe(true);
-    if (r.ok) expect(r.source).toBe("mock");
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.code).toBe("ERR_SERVER_UNAVAILABLE");
   });
 
   it("returns ok=false on envelope error", async () => {
@@ -195,20 +193,20 @@ describe("getCommunityHealthAction", () => {
     }
   });
 
-  it("falls back to mock on ERR_NETWORK", async () => {
+  it("returns ok=false ERR_NETWORK when fetch fails", async () => {
     globalThis.fetch = vi.fn(async () => {
       throw new Error("boom");
     });
     const r = await getCommunityHealthAction();
-    expect(r.ok).toBe(true);
-    if (r.ok) expect(r.source).toBe("mock");
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.code).toBe("ERR_NETWORK");
   });
 
-  it("falls back to mock on 503", async () => {
+  it("returns ok=false ERR_SERVER_UNAVAILABLE on 503", async () => {
     globalThis.fetch = vi.fn(async () => new Response("err", { status: 503 }));
     const r = await getCommunityHealthAction();
-    expect(r.ok).toBe(true);
-    if (r.ok) expect(r.source).toBe("mock");
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.code).toBe("ERR_SERVER_UNAVAILABLE");
   });
 
   it("returns ok=false on envelope error", async () => {
