@@ -83,7 +83,7 @@ export function DangerConfirmDialog({
             </div>
           ) : null}
           <p className="mt-3 text-xs text-slate-500">
-            이 동작은 되돌릴 수 없습니다. 정말 진행하시려면 아래 "{confirmLabel}" 버튼을 누르세요.
+            이 동작은 되돌릴 수 없습니다. 정말 진행하시려면 아래 &ldquo;{confirmLabel}&rdquo; 버튼을 누르세요.
           </p>
         </div>
         <footer className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 px-4 py-3 bg-slate-50 border-t border-slate-200">
