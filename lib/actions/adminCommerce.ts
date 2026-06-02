@@ -115,3 +115,31 @@ export async function deleteAdminCommerceProductAction(args: {
   if (!res.ok) return { ok: false, message: res.message, code: res.code };
   return { ok: true };
 }
+
+// 2026-06-02 — 상품 상세 페이지(13) 용 단일 상품 조회.
+// SERVER 에 GET /api/v1/admin/commerce/products/:id endpoint 가 아직 없다 (목록/생성/
+// 수정/삭제만 존재 — adminFeedCommerceRoutes.js 참조). 임시 처리로 목록을 큰 page_size
+// 로 받아 client-side 에서 id 매칭하여 반환한다. 데이터가 수천 건으로 늘어나면
+// SERVER 측에 단건 조회 라우트를 추가하고 본 action 을 직접 호출로 교체할 것.
+// TODO(server): GET /api/v1/admin/commerce/products/:id 라우트 추가 후 단순화.
+export type ProductDetailResult =
+  | { ok: true; product: AdminCommerceProductRow }
+  | { ok: false; message: string; code?: string };
+
+export async function getAdminCommerceProductAction(args: {
+  id: string;
+}): Promise<ProductDetailResult> {
+  const jwt = readSession();
+  if (!jwt) return { ok: false, message: "세션 만료" };
+  if (!args.id || args.id.trim().length === 0) {
+    return { ok: false, message: "상품 id 누락" };
+  }
+  const res = await listAdminCommerceProducts({ jwt, page_size: 200 });
+  if (!res.ok) return { ok: false, message: res.message, code: res.code };
+  const raw = (res.data as { items: ServerProductRaw[] }).items ?? [];
+  const found = raw.find((p) => p.id === args.id);
+  if (!found) {
+    return { ok: false, message: "상품을 찾을 수 없습니다.", code: "ERR_NOT_FOUND" };
+  }
+  return { ok: true, product: normalizeProduct(found) };
+}

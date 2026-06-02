@@ -3,7 +3,12 @@
 // 커머스 상품 가격 정보 (Server `/api/v1/admin/commerce/products` 정본).
 // 2026-05-28 — localStorage mock 폐기. server CRUD 연동.
 // 2026-05-28 — 자동 새로고침 토글 (visibility-aware 10s polling + 신규 상품 highlight).
+// 2026-06-02 — 사진 표시 버그 fix(2): onError 시 absolute placeholder 의 부모가
+//   collapse 하던 문제 해결 — img 를 hidden 으로 두지 않고 placeholder 와 같은
+//   영역에 자연스럽게 노출되도록 단순화. 상품명 overflow fix(3): 잘림(line-clamp)
+//   제거 + title tooltip. 상품 상세 페이지(13) 진입 링크 추가.
 
+import Link from "next/link";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { PanelCard } from "../../_components/PanelCard";
 import { AutoRefreshToggle } from "../../_components/AutoRefreshToggle";
@@ -236,45 +241,50 @@ export default function CommercePage() {
                     data-testid={newIds.has(p.id) ? "product-row-new" : "product-row"}
                   >
                     <td className="px-2 py-2">
-                      {p.image_url ? (
-                        <span className="relative inline-block w-12 h-12">
-                          {/* 2026-06-01 P0 fix — 시드 데이터의 awscdn.dollsoom.com URL 다수가
-                              dead-link. onError 발생 시 placeholder 로 교체하여 깨진 이미지
-                              아이콘이 노출되지 않도록 한다. */}
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                      {/* 2026-06-02 P0 fix(2) — 기존 구현은 onError 시 img 를
+                          display:none 처리 후 absolute sibling 을 flex 로 띄웠는데,
+                          부모 inline-block 이 collapse 하면서 placeholder 영역이
+                          0×0 으로 사라지는 케이스가 있었다. block-level wrapper +
+                          항상 보이는 회색 placeholder 위에 img 를 얹는 구조로 단순화. */}
+                      <div className="relative w-12 h-12 rounded-lg bg-slate-100 overflow-hidden flex items-center justify-center text-[9px] text-slate-400">
+                        <span aria-hidden>n/a</span>
+                        {p.image_url ? (
+                          /* eslint-disable-next-line @next/next/no-img-element */
                           <img
                             src={p.image_url}
                             alt=""
-                            className="w-12 h-12 rounded-lg object-cover bg-slate-100"
+                            className="absolute inset-0 w-12 h-12 object-cover"
                             loading="lazy"
                             onError={(e) => {
+                              // 로드 실패 시 img 를 숨겨 아래 placeholder 가 그대로 보이게 함.
                               const t = e.currentTarget;
-                              t.style.display = "none";
-                              const sib = t.nextElementSibling as HTMLElement | null;
-                              if (sib) sib.style.display = "flex";
+                              t.style.visibility = "hidden";
                             }}
                           />
-                          <span
-                            className="absolute inset-0 rounded-lg bg-slate-100 items-center justify-center text-[9px] text-slate-400"
-                            style={{ display: "none" }}
-                            aria-label="이미지 로드 실패"
-                          >
-                            n/a
-                          </span>
-                        </span>
-                      ) : (
-                        <div className="w-12 h-12 rounded-lg bg-slate-100" />
-                      )}
+                        ) : null}
+                      </div>
                     </td>
-                    <td className="px-2 py-2">
-                      <div className="font-medium text-slate-800 inline-flex items-center gap-2">
+                    <td className="px-2 py-2 align-top">
+                      {/* 2026-06-02 fix(3) — inline-flex 한 줄 강제로 긴 상품명이 컬럼을
+                          밀어내던 문제 해결. flex-wrap + break-words 로 자연 줄바꿈,
+                          title attr 로 hover tooltip 제공. 상품 상세(13) 링크 진입점. */}
+                      <Link
+                        href={`/dashboard/content/commerce/${encodeURIComponent(p.id)}`}
+                        className="font-medium text-slate-800 hover:text-accent inline-flex flex-wrap items-center gap-2 break-words"
+                        title={p.name}
+                      >
                         {newIds.has(p.id) ? (
                           <span className="chip chip-success" aria-label="신규 상품">NEW</span>
                         ) : null}
-                        {p.name}
-                      </div>
+                        <span className="whitespace-normal break-words">{p.name}</span>
+                      </Link>
                       {p.description ? (
-                        <div className="text-xs text-muted line-clamp-1">{p.description}</div>
+                        <div
+                          className="text-xs text-muted whitespace-normal break-words"
+                          title={p.description}
+                        >
+                          {p.description}
+                        </div>
                       ) : null}
                     </td>
                     <td className="px-2 py-2 text-xs text-slate-600">{p.category ?? "—"}</td>
@@ -282,7 +292,13 @@ export default function CommercePage() {
                       {p.price.toLocaleString()}{p.currency === "USD" ? "$" : "원"}
                     </td>
                     <td className="px-2 py-2 text-right tabular-nums">{p.stock}</td>
-                    <td className="px-2 py-2 text-right">
+                    <td className="px-2 py-2 text-right whitespace-nowrap">
+                      <Link
+                        href={`/dashboard/content/commerce/${encodeURIComponent(p.id)}`}
+                        className="inline-block rounded-lg bg-white border border-slate-300 px-2 py-1 text-xs text-slate-700 hover:bg-slate-50 mr-1"
+                      >
+                        상세
+                      </Link>
                       <button
                         type="button"
                         onClick={() => handleRemove(p)}
