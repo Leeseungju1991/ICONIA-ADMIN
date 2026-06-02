@@ -225,6 +225,8 @@ export async function fetchGeminiKeysAction(): Promise<
       tokens_daily_limit: tokensDaily,
       usage_ratio_24h,
       last_used_at: null,
+      // 2026-06-02 — note 그대로 노출 (ADMIN UI 가 __models__= prefix 디코딩).
+      note: quota?.note ?? null,
     };
   });
 

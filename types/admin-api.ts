@@ -53,6 +53,13 @@ export type GeminiKeyRow = {
   usage_ratio_24h: number;
   /** 마지막 호출 시각. */
   last_used_at: string | null;
+  /**
+   * 운영자 메모 (note). server 의 PUT /keys/:alias/quota 가 받은 raw 문자열을
+   * 그대로 노출 — ADMIN UI 는 이 안에 `__models__={...}` prefix 가 있으면
+   * 모델 카테고리(text/image/diary/tts/stt) 별 선택 모델을 디코딩해 표시한다.
+   * 후속 SERVER 라운드에서 별도 컬럼화 예정.
+   */
+  note?: string | null;
 };
 
 export type GeminiKeysResponse = {
