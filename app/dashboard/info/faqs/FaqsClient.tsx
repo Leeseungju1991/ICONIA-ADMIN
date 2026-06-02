@@ -3,6 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import { PanelCard } from "../../_components/PanelCard";
 import { LoadingState, EmptyState } from "../../_components/CardStates";
+import { DangerConfirmDialog } from "../../_components/DangerConfirmDialog";
 import {
   listFaqsAction,
   createFaqAction,
@@ -24,6 +25,8 @@ export default function FaqsClient() {
   const [editAnswer, setEditAnswer] = useState("");
   const [editCategory, setEditCategory] = useState("general");
   const [toast, setToast] = useState<string | null>(null);
+  // V1.0 라운드 — window.confirm → DangerConfirmDialog 정합.
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
   function reload() {
     startLoad(async () => {
@@ -91,7 +94,14 @@ export default function FaqsClient() {
   }
 
   function handleDelete(id: string) {
-    if (typeof window !== "undefined" && !window.confirm("이 FAQ 를 비공개 처리(삭제) 하시겠습니까?")) return;
+    // 강력액션 정합 — 모달 트리거. 실제 삭제는 confirmDelete.
+    setPendingDeleteId(id);
+  }
+
+  function confirmDelete() {
+    const id = pendingDeleteId;
+    if (!id) return;
+    setPendingDeleteId(null);
     startMutate(async () => {
       const r = await deleteFaqAction({ id });
       if (!r.ok) {
@@ -272,6 +282,21 @@ export default function FaqsClient() {
           </button>
         </div>
       ) : null}
+
+      <DangerConfirmDialog
+        open={pendingDeleteId !== null}
+        title="FAQ 삭제"
+        description="FAQ 를 비공개(삭제) 처리합니다. 사용자 화면에서 즉시 사라집니다."
+        detail={
+          pendingDeleteId ? (
+            <span>대상 id: <code className="font-mono">{pendingDeleteId}</code></span>
+          ) : null
+        }
+        confirmLabel="삭제"
+        busy={mutating}
+        onConfirm={confirmDelete}
+        onCancel={() => setPendingDeleteId(null)}
+      />
     </div>
   );
 }

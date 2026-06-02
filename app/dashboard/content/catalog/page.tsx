@@ -5,6 +5,7 @@
 
 import { useEffect, useState } from "react";
 import { PanelCard } from "../../_components/PanelCard";
+import { DangerConfirmDialog } from "../../_components/DangerConfirmDialog";
 
 type CatalogItem = {
   id: string;
@@ -37,6 +38,11 @@ export default function CatalogPage() {
   const [name, setName] = useState("");
   const [series, setSeries] = useState("");
   const [description, setDescription] = useState("");
+  // V1.0 라운드 — window.confirm → DangerConfirmDialog 정합.
+  const [pendingRemoveId, setPendingRemoveId] = useState<string | null>(null);
+  const pendingRemoveName = pendingRemoveId
+    ? items.find((it) => it.id === pendingRemoveId)?.name ?? null
+    : null;
 
   useEffect(() => {
     setItems(loadItems());
@@ -61,7 +67,14 @@ export default function CatalogPage() {
   }
 
   function handleRemove(id: string) {
-    if (typeof window !== "undefined" && !window.confirm("이 도감 항목을 제거하시겠습니까?")) return;
+    // 강력액션 정합 — 모달 트리거. 실제 제거는 confirmRemove.
+    setPendingRemoveId(id);
+  }
+
+  function confirmRemove() {
+    const id = pendingRemoveId;
+    if (!id) return;
+    setPendingRemoveId(null);
     const updated = items.filter((it) => it.id !== id);
     setItems(updated);
     saveItems(updated);
@@ -133,6 +146,22 @@ export default function CatalogPage() {
           </ul>
         )}
       </PanelCard>
+
+      <DangerConfirmDialog
+        open={pendingRemoveId !== null}
+        title="도감 항목 제거"
+        description="도감 항목을 목록에서 제거합니다."
+        detail={
+          pendingRemoveName ? (
+            <span>대상: <b>{pendingRemoveName}</b></span>
+          ) : (
+            <span>대상 id: <code className="font-mono">{pendingRemoveId}</code></span>
+          )
+        }
+        confirmLabel="제거"
+        onConfirm={confirmRemove}
+        onCancel={() => setPendingRemoveId(null)}
+      />
     </div>
   );
 }

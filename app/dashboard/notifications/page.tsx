@@ -5,6 +5,7 @@
 
 import { useState, useTransition } from "react";
 import { PanelCard } from "../_components/PanelCard";
+import { DangerConfirmDialog } from "../_components/DangerConfirmDialog";
 import { broadcastNotificationAction } from "@/lib/actions/notificationsBroadcast";
 import type {
   NotificationAudienceKind,
@@ -31,6 +32,11 @@ export default function NotificationsBroadcastPage() {
   const [scheduledAt, setScheduledAt] = useState("");
   const [result, setResult] = useState<string | null>(null);
   const [submitting, startSubmit] = useTransition();
+  // V1.0 라운드 — window.confirm → DangerConfirmDialog 정합.
+  // pendingBroadcast 가 null 아니면 모달 표시. 사용자 동의 시 doBroadcast 호출.
+  const [pendingBroadcast, setPendingBroadcast] = useState<{
+    audience_ids: string[];
+  } | null>(null);
 
   function toggleChannel(c: NotificationChannel) {
     setChannels((cur) =>
@@ -38,7 +44,7 @@ export default function NotificationsBroadcastPage() {
     );
   }
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setResult(null);
     const audience_ids =
@@ -52,25 +58,21 @@ export default function NotificationsBroadcastPage() {
       setResult(`대상 ${audienceKind === "user_segment" ? "사용자" : "디바이스"} ID 를 1개 이상 입력하세요.`);
       return;
     }
-    if (
-      audienceKind !== "all" &&
-      !window.confirm(`${audience_ids.length}개 대상으로 발송합니다. 계속할까요?`)
-    ) {
-      return;
-    }
-    if (
-      audienceKind === "all" &&
-      !window.confirm("⚠ 전체 사용자에게 발송합니다. 정말 계속할까요?")
-    ) {
-      return;
-    }
+    // 강력액션 정합 — DangerConfirmDialog 트리거. 실제 발송은 doBroadcast.
+    setPendingBroadcast({ audience_ids });
+  }
+
+  function doBroadcast() {
+    const pending = pendingBroadcast;
+    if (!pending) return;
+    setPendingBroadcast(null);
     startSubmit(async () => {
       const r = await broadcastNotificationAction({
         title,
         body,
         channels,
         audience_kind: audienceKind,
-        audience_ids,
+        audience_ids: pending.audience_ids,
         scheduled_at: scheduledAt || null,
       });
       if (!r.ok) {
@@ -252,6 +254,27 @@ export default function NotificationsBroadcastPage() {
           </div>
         </form>
       </PanelCard>
+
+      <DangerConfirmDialog
+        open={pendingBroadcast !== null}
+        title={audienceKind === "all" ? "전체 사용자 발송" : "푸시/배너 발송"}
+        description={
+          audienceKind === "all"
+            ? "전체 활성 사용자에게 발송합니다. 이 결정은 되돌릴 수 없습니다."
+            : `${pendingBroadcast?.audience_ids.length ?? 0}개 대상에 발송합니다.`
+        }
+        detail={
+          <div className="space-y-1">
+            <div>제목: <b>{title || "(제목 없음)"}</b></div>
+            <div>채널: {channels.length === 0 ? "—" : channels.join(", ")}</div>
+            {scheduledAt ? <div>예약: {scheduledAt}</div> : <div>발송 시점: 즉시</div>}
+          </div>
+        }
+        confirmLabel="발송"
+        busy={submitting}
+        onConfirm={doBroadcast}
+        onCancel={() => setPendingBroadcast(null)}
+      />
     </div>
   );
 }

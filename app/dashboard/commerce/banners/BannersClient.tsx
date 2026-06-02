@@ -3,6 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import { PanelCard } from "../../_components/PanelCard";
 import { LoadingState, EmptyState } from "../../_components/CardStates";
+import { DangerConfirmDialog } from "../../_components/DangerConfirmDialog";
 import {
   listBannersAction,
   createBannerAction,
@@ -57,6 +58,14 @@ export default function BannersClient() {
   // 업로드 진행률.
   const [uploadState, setUploadState] = useState<UploadState>("idle");
   const [uploadRatio, setUploadRatio] = useState(0);
+
+  // V1.0 라운드 — window.confirm → DangerConfirmDialog 정합.
+  // 모달은 단일 인스턴스. pendingDeleteId 가 곧 표시 트리거 + 확정 시 사용할 인자.
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const pendingDeleteTitle =
+    pendingDeleteId && state && state.ok
+      ? state.items.find((it) => it.id === pendingDeleteId)?.title ?? null
+      : null;
 
   function reload() {
     startLoad(async () => {
@@ -172,7 +181,14 @@ export default function BannersClient() {
   }
 
   function handleDelete(id: string) {
-    if (typeof window !== "undefined" && !window.confirm("이 배너를 비공개(삭제) 처리하시겠습니까?")) return;
+    // 강력액션 정합 라운드 — window.confirm 대신 DangerConfirmDialog 트리거.
+    setPendingDeleteId(id);
+  }
+
+  function confirmDelete() {
+    const id = pendingDeleteId;
+    if (!id) return;
+    setPendingDeleteId(null);
     startMutate(async () => {
       const r = await deleteBannerAction({ id });
       if (!r.ok) {
@@ -411,6 +427,23 @@ export default function BannersClient() {
           </button>
         </div>
       ) : null}
+
+      <DangerConfirmDialog
+        open={pendingDeleteId !== null}
+        title="배너 삭제"
+        description="배너를 비공개(삭제) 처리합니다. 노출 중이라면 즉시 사라집니다."
+        detail={
+          pendingDeleteTitle ? (
+            <span>대상: <b>{pendingDeleteTitle}</b></span>
+          ) : (
+            <span>대상 id: <code className="font-mono">{pendingDeleteId}</code></span>
+          )
+        }
+        confirmLabel="삭제"
+        busy={mutating}
+        onConfirm={confirmDelete}
+        onCancel={() => setPendingDeleteId(null)}
+      />
     </div>
   );
 }

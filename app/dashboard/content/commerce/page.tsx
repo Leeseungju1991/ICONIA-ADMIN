@@ -12,6 +12,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { PanelCard } from "../../_components/PanelCard";
 import { AutoRefreshToggle } from "../../_components/AutoRefreshToggle";
+import { DangerConfirmDialog } from "../../_components/DangerConfirmDialog";
 import { useAutoRefresh } from "@/lib/hooks/useAutoRefresh";
 import {
   listAdminCommerceProductsAction,
@@ -30,6 +31,8 @@ export default function CommercePage() {
   const [newIds, setNewIds] = useState<Set<string>>(new Set());
   const knownIdsRef = useRef<Set<string>>(new Set());
   const firstLoadRef = useRef(true);
+  // V1.0 라운드 — window.confirm → DangerConfirmDialog 정합.
+  const [pendingRemove, setPendingRemove] = useState<AdminCommerceProductRow | null>(null);
 
   function diffAndMarkNew(items: AdminCommerceProductRow[]) {
     const incoming = new Set(items.map((p) => p.id));
@@ -128,12 +131,14 @@ export default function CommercePage() {
   }
 
   function handleRemove(p: AdminCommerceProductRow) {
-    if (
-      typeof window !== "undefined" &&
-      !window.confirm(`이 상품을 제거하시겠습니까?\n\n${p.name}`)
-    ) {
-      return;
-    }
+    // 강력액션 정합 — 모달 트리거. 실제 제거는 confirmRemove.
+    setPendingRemove(p);
+  }
+
+  function confirmRemove() {
+    const p = pendingRemove;
+    if (!p) return;
+    setPendingRemove(null);
     startCreate(async () => {
       const r = await deleteAdminCommerceProductAction({ id: p.id });
       if (!r.ok) {
@@ -327,6 +332,21 @@ export default function CommercePage() {
           </button>
         </div>
       ) : null}
+
+      <DangerConfirmDialog
+        open={pendingRemove !== null}
+        title="상품 제거"
+        description="커머스 카탈로그에서 상품을 제거합니다. 이미 노출 중인 화면에서 즉시 사라집니다."
+        detail={
+          pendingRemove ? (
+            <span>대상: <b>{pendingRemove.name}</b></span>
+          ) : null
+        }
+        confirmLabel="제거"
+        busy={creating}
+        onConfirm={confirmRemove}
+        onCancel={() => setPendingRemove(null)}
+      />
     </div>
   );
 }
