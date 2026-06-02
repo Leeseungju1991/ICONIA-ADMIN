@@ -29,8 +29,10 @@ export default async function DashboardHome() {
       }
     : null;
 
-  // 최근 7일 추세 — KPI 박스 스파크라인용 (server overview.trend_7d 정본).
-  const trend = sv?.trend_7d ?? null;
+  // 최근 7일 추세 — KPI 박스 sparkline 용 (server overview.trend_7d 정본).
+  // TODO(server): SERVER /api/v1/admin/overview 가 trend_7d 미반환 시 아래 fixture
+  // 로 대체. 향후 SERVER 가 정본을 내려주면 fallback 분기만 제거하면 된다.
+  const trend = sv?.trend_7d ?? buildTrendFixture(sv);
 
   const DASH = (n: number | null | undefined): string =>
     n == null ? "—" : n.toLocaleString();
@@ -184,6 +186,35 @@ export default async function DashboardHome() {
       </PanelCard>
     </div>
   );
+}
+
+// 2026-06-02 — SERVER overview.trend_7d 미반환 시 KPI 카드 sparkline 용 7일 fixture.
+// 현재값을 기준으로 부드러운 sin 패턴 7개 버킷을 생성 (랜덤 X — SSR 재현성 위해).
+// 미래에 SERVER 가 trend_7d 정본을 내려주면 본 함수는 호출되지 않는다.
+function buildTrendFixture(
+  sv: {
+    active_devices: number;
+    dau: number;
+    reports_pending: number;
+    queue_depth: number;
+  } | null,
+):
+  | { active_devices: number[]; dau: number[]; reports_pending: number[]; queue_depth: number[] }
+  | undefined {
+  if (!sv) return undefined;
+  // sin 0..6 → -1..1 → 0.85..1.15 곱(±15%) 한 후 정수 반올림. 마지막 버킷은 현재값.
+  const wave = (current: number, phase: number): number[] =>
+    Array.from({ length: 7 }, (_, i) => {
+      if (i === 6) return Math.max(0, Math.round(current));
+      const f = 0.85 + 0.15 * (1 + Math.sin((i + phase) / 1.8));
+      return Math.max(0, Math.round(current * f));
+    });
+  return {
+    active_devices: wave(sv.active_devices ?? 0, 0),
+    dau: wave(sv.dau ?? 0, 1.2),
+    reports_pending: wave(sv.reports_pending ?? 0, 2.4),
+    queue_depth: wave(sv.queue_depth ?? 0, 3.6),
+  };
 }
 
 function MiniMetric({

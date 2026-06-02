@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Sparkline } from "./SimpleChart";
+import { KpiSparkline } from "./KpiSparkline";
 
 type Tone = "indigo" | "pink" | "teal" | "orange";
 type IconName = "device" | "chat" | "alert" | "queue";
@@ -17,25 +17,28 @@ export function KpiChip({ label, value, sub, tone = "indigo", icon = "device", t
   sub?: string;
   tone?: Tone;
   icon?: IconName;
-  /** 최근 7일 추세 — 있으면 우측에 스파크라인 표시. */
+  /** 최근 7일 추세 — 있으면 카드 하단에 선+영역 sparkline 으로 표시. */
   trend?: number[];
 }) {
   const t = TONE[tone];
   const hasTrend = Array.isArray(trend) && trend.length > 0;
   return (
-    <div className="flex items-center gap-3 rounded-2xl bg-white border border-slate-200 px-4 py-3 shadow-sm">
-      <div className={`h-12 w-12 shrink-0 rounded-full flex items-center justify-center ring-1 ${t.bg} ${t.ring} ${t.text}`}>
-        <Glyph name={icon} className="w-5 h-5" />
+    <div className="flex flex-col gap-2 rounded-2xl bg-white border border-slate-200 px-4 py-3 shadow-sm">
+      <div className="flex items-center gap-3">
+        <div className={`h-12 w-12 shrink-0 rounded-full flex items-center justify-center ring-1 ${t.bg} ${t.ring} ${t.text}`}>
+          <Glyph name={icon} className="w-5 h-5" />
+        </div>
+        <div className="min-w-0">
+          <div className="text-[11px] text-muted truncate">{sub ?? label}</div>
+          <div className="font-semibold text-slate-900 truncate text-sm">{label}</div>
+          <div className="text-lg font-bold tracking-tight text-slate-900">{value}</div>
+        </div>
       </div>
-      <div className="min-w-0">
-        <div className="text-[11px] text-muted truncate">{sub ?? label}</div>
-        <div className="font-semibold text-slate-900 truncate text-sm">{label}</div>
-        <div className="text-lg font-bold tracking-tight text-slate-900">{value}</div>
-      </div>
+      {/* 카드 하단 7일 변화량 (선 + area fill). 데이터 없으면 영역 미표시. */}
       {hasTrend ? (
-        <div className="ml-auto flex flex-col items-end gap-0.5 shrink-0">
-          <Sparkline values={trend} accent={t.accent} width={72} height={26} />
-          <span className="text-[9px] text-slate-400">최근 7일</span>
+        <div className="mt-1 -mx-1">
+          <KpiSparkline values={trend} accent={t.accent} width={240} height={44} />
+          <div className="px-1 text-[9px] text-slate-400 leading-none">최근 7일</div>
         </div>
       ) : null}
     </div>
