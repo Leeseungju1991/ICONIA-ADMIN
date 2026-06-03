@@ -4,7 +4,6 @@
 // /dashboard/ai-usage — 시계열 (24h / 7d / 30d) + 모델 분포 + 비용 추정 + 키별 사용량.
 
 import { useEffect, useMemo, useState, useTransition } from "react";
-import Link from "next/link";
 import { PanelCard } from "../_components/PanelCard";
 import { StatCard } from "../_components/StatCard";
 import { LineChart, Donut, ProgressBar } from "../_components/SimpleChart";
@@ -85,28 +84,8 @@ export default function AiUsagePage() {
 
   return (
     <div className="space-y-6">
-      {/* 2026-06-01 — 사용자 요청: AI 사용량 페이지에 Gemini Key 등록 진입점.
-          KeyRegisterForm 자체는 /dashboard/gemini 의 GeminiClient 안에 inline 정의되어 있어
-          중복 추출을 피하기 위해 link 로 안내. */}
-      <PanelCard
-        title="Gemini Key 등록 · 한도 설정"
-        description="키의 등급과 사용 한도를 등록·수정합니다."
-        actions={
-          <Link
-            href="/dashboard/gemini"
-            className="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium px-3 py-1.5"
-          >
-            키 등록 폼 열기 →
-          </Link>
-        }
-      >
-        <p className="text-xs text-slate-600">
-          본 페이지는 사용량·알림 모니터링 전용입니다. 키 등록·tier 변경은
-          {" "}<Link href="/dashboard/gemini" className="text-indigo-700 underline">Gemini Key 관리</Link>{" "}
-          페이지의 등록 폼에서 수행합니다. 키 평문(secret)은 환경변수 GEMINI_API_KEYS 운영 절차로 추가 후,
-          본 등록 폼에서 alias 의 tier·한도만 설정합니다.
-        </p>
-      </PanelCard>
+      {/* 2026-06-04 — 사용자 요청: AI 사용량 페이지의 버튼·진입 패널 제거.
+          모니터링 전용으로 축소 (등록·tier 변경은 /dashboard/gemini 에서 직접). */}
 
       {/* 상단 요약 */}
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -170,14 +149,6 @@ export default function AiUsagePage() {
                 </button>
               ))}
             </div>
-            <button
-              type="button"
-              onClick={reload}
-              disabled={loading}
-              className="rounded-lg bg-white border border-slate-300 px-3 py-1 text-xs hover:bg-slate-50 disabled:opacity-60"
-            >
-              {loading ? "조회 중..." : "새로고침"}
-            </button>
           </div>
         }
       >

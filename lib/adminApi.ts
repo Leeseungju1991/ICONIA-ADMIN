@@ -2094,6 +2094,9 @@ export type AdminFeedPostRow = {
   id: string;
   author_id: string;
   author_handle: string | null;
+  /** 2026-06-04 — ADMIN UI 가 작성자 이메일·표시이름을 직접 노출. 서버 미반영 시 null. */
+  author_email?: string | null;
+  author_display_name?: string | null;
   body: string;
   body_excerpt: string;
   comments_count: number;

@@ -6,7 +6,6 @@ import { DataTable, type Column } from "../_components/DataTable";
 import { StatCard } from "../_components/StatCard";
 import { OpsAuditTrailPanel } from "../_components/OpsAuditTrailPanel";
 import { formatDate } from "@/lib/mockData";
-import { maskEmail } from "@/lib/maskPii";
 import { recordOpsAuditWithSilentRetry } from "@/lib/opsAuditTrail";
 import {
   ALL_ROLES,
@@ -132,7 +131,7 @@ export default function OperatorsClient({
       header: "이메일",
       render: (o) => (
         <span className="font-medium text-slate-800" title={o.email}>
-          {maskEmail(o.email)}
+          {o.email}
           {o.id === currentOperatorId ? (
             <span className="chip chip-muted ml-2">본인</span>
           ) : null}

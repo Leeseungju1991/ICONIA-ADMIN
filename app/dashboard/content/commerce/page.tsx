@@ -246,13 +246,21 @@ export default function CommercePage() {
                     data-testid={newIds.has(p.id) ? "product-row-new" : "product-row"}
                   >
                     <td className="px-2 py-2">
-                      {/* 2026-06-02 P0 fix(2) — 기존 구현은 onError 시 img 를
-                          display:none 처리 후 absolute sibling 을 flex 로 띄웠는데,
-                          부모 inline-block 이 collapse 하면서 placeholder 영역이
-                          0×0 으로 사라지는 케이스가 있었다. block-level wrapper +
-                          항상 보이는 회색 placeholder 위에 img 를 얹는 구조로 단순화. */}
-                      <div className="relative w-12 h-12 rounded-lg bg-slate-100 overflow-hidden flex items-center justify-center text-[9px] text-slate-400">
-                        <span aria-hidden>n/a</span>
+                      {/* 2026-06-04 — 사용자 요청: "n/a" 텍스트 placeholder 제거.
+                          이미지가 없거나 로드 실패 시 부드러운 SVG 박스 아이콘 표시. */}
+                      <div className="relative w-12 h-12 rounded-lg bg-slate-100 overflow-hidden flex items-center justify-center text-slate-300">
+                        <svg
+                          aria-hidden
+                          viewBox="0 0 24 24"
+                          className="w-6 h-6"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.5"
+                        >
+                          <rect x="3" y="5" width="18" height="14" rx="2" />
+                          <circle cx="9" cy="11" r="1.5" />
+                          <path d="M21 17l-5-5-4 4-3-3-6 6" />
+                        </svg>
                         {p.image_url ? (
                           /* eslint-disable-next-line @next/next/no-img-element */
                           <img
@@ -261,7 +269,6 @@ export default function CommercePage() {
                             className="absolute inset-0 w-12 h-12 object-cover"
                             loading="lazy"
                             onError={(e) => {
-                              // 로드 실패 시 img 를 숨겨 아래 placeholder 가 그대로 보이게 함.
                               const t = e.currentTarget;
                               t.style.visibility = "hidden";
                             }}

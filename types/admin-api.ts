@@ -165,22 +165,26 @@ export type ErrorDomain = "firmware" | "server" | "ai" | "app";
 
 export type ErrorRow = {
   id: string;
-  domain: ErrorDomain;
+  domain?: ErrorDomain;
   /** 정규화된 그룹 키 (스택 fingerprint). */
   fingerprint: string;
   /** 사람 친화적 메시지 — 한 줄 요약. */
   message: string;
-  /** 전체 스택 (있으면). */
-  stack: string | null;
-  /** 24h 내 발생 빈도. */
-  count_24h: number;
-  /** 영향 받은 고유 사용자 수. */
-  affected_users: number;
+  /** 전체 스택 (legacy). server 정본은 stack_excerpt. */
+  stack?: string | null;
+  /** server 정본 — 스택 일부 (PII 마스킹 후). */
+  stack_excerpt?: string | null;
+  /** 24h 내 발생 빈도 (legacy). server 정본은 sample_count. */
+  count_24h?: number;
+  /** server 정본 — 누적 샘플 수. */
+  sample_count?: number;
+  /** 영향 받은 고유 사용자 수 (서버 미반환 가능 — optional). */
+  affected_users?: number;
   first_seen_at: string;
   last_seen_at: string;
   /** server / fw / ai 도메인의 기여 컴포넌트 (e.g. "auth-service", "v1.4.2"). */
   source: string | null;
-  severity: "low" | "medium" | "high" | "critical";
+  severity: "low" | "medium" | "high" | "critical" | "info" | "warn" | "error" | "fatal";
 };
 
 export type ErrorsResponse = {

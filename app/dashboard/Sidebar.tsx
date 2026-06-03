@@ -45,8 +45,8 @@ const nav: NavItem[] = [
       { to: "/dashboard/content/catalog", label: "도감" },
     ],
   },
-  // 2026-06-01 — 사용자 요청: 아코디언 하위 진입 제거. "커머스 (배너)" 클릭 시 곧장 배너 페이지.
-  { to: "/dashboard/commerce/banners", label: "커머스 (배너)", icon: ReceiptIcon },
+  // 2026-06-04 — 사용자 요청: "배너목록은 일단 모두 제거" — 사이드바 진입 제거.
+  // 라우트(/dashboard/commerce/banners) 는 보존되지만 메뉴에서 숨김 + 페이지 단락 처리.
   { to: "/dashboard/info/faqs", label: "FAQ 관리", icon: LifebuoyIcon },
   { to: "/dashboard/reports", label: "신고된 피드", icon: MegaphoneIcon },
   { to: "/dashboard/notice-push", label: "공지·푸시 관리", icon: BellIcon },

@@ -329,7 +329,7 @@ export default function UsersPage() {
 
       <PanelCard
         title="회원 검색"
-        description="이메일·이름·ID 로 회원을 찾고 상세 정보를 관리합니다. 개인정보는 마스킹되며 해제 시 감사 로그에 기록됩니다."
+        description="이메일·이름·ID 로 회원을 찾고 상세 정보를 관리합니다. 모든 PII 접근은 감사 로그에 자동 기록됩니다."
         actions={
           <>
             <input
@@ -973,7 +973,7 @@ function LiveUsersPanel() {
   return (
     <PanelCard
       title={loading ? "실시간 사용자 (Server) 로딩 중" : `실시간 사용자 (Server) — 총 ${total.toLocaleString()}명`}
-      description="현재 활성 세션을 포함한 사용자 정보를 실시간으로 표시합니다. 개인정보는 자동 마스킹됩니다."
+      description="현재 활성 세션을 포함한 사용자 정보를 실시간으로 표시합니다. 모든 PII 접근은 감사 로그에 자동 기록됩니다."
       actions={
         <AutoRefreshToggle
           enabled={autoOn}

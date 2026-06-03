@@ -23,18 +23,28 @@ const DOMAIN_ACCENT: Record<ErrorDomain, "blue" | "pink" | "orange" | "teal"> = 
   app: "pink",
 };
 
-const SEVERITY_CHIP: Record<ErrorRow["severity"], string> = {
+// 2026-06-04 — server 정본 severity (info|warn|error|fatal) 와 legacy admin 어휘
+// (low|medium|high|critical) 둘 다 매핑. 미상 값은 muted.
+const SEVERITY_CHIP: Record<string, string> = {
   critical: "chip chip-error",
+  fatal: "chip chip-error",
   high: "chip chip-error",
+  error: "chip chip-error",
   medium: "chip chip-warn",
+  warn: "chip chip-warn",
   low: "chip chip-muted",
+  info: "chip chip-info",
 };
 
-const SEVERITY_LABEL: Record<ErrorRow["severity"], string> = {
+const SEVERITY_LABEL: Record<string, string> = {
   critical: "긴급",
+  fatal: "치명",
   high: "높음",
+  error: "에러",
   medium: "보통",
+  warn: "경고",
   low: "낮음",
+  info: "정보",
 };
 
 export default function ErrorTrackingPage() {
@@ -66,10 +76,16 @@ export default function ErrorTrackingPage() {
   }, [domain]);
 
   const stats = useMemo(() => {
-    const total = items.reduce((s, e) => s + e.count_24h, 0);
-    const affected = items.reduce((s, e) => s + e.affected_users, 0);
-    const critical = items.filter((e) => e.severity === "critical").length;
-    const high = items.filter((e) => e.severity === "high").length;
+    // 2026-06-04 — server 응답이 count_24h/affected_users 를 항상 채우지 않는다 (정본은
+    // sample_count). undefined 대비 ?? 0 으로 방어 — 과거 .toLocaleString() 크래시 원인.
+    const total = items.reduce((s, e) => s + (e.count_24h ?? e.sample_count ?? 0), 0);
+    const affected = items.reduce((s, e) => s + (e.affected_users ?? 0), 0);
+    const critical = items.filter(
+      (e) => e.severity === "critical" || e.severity === "fatal",
+    ).length;
+    const high = items.filter(
+      (e) => e.severity === "high" || e.severity === "error",
+    ).length;
     return { total, affected, critical, high };
   }, [items]);
 
@@ -158,7 +174,9 @@ export default function ErrorTrackingPage() {
                 <div className="flex items-center justify-between gap-2 flex-wrap">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className={SEVERITY_CHIP[e.severity]}>{SEVERITY_LABEL[e.severity]}</span>
+                      <span className={SEVERITY_CHIP[e.severity] ?? "chip chip-muted"}>
+                        {SEVERITY_LABEL[e.severity] ?? e.severity}
+                      </span>
                       <span className="font-mono text-[11px] text-slate-500">
                         {e.fingerprint}
                       </span>
@@ -167,14 +185,15 @@ export default function ErrorTrackingPage() {
                       ) : null}
                     </div>
                     <p className="mt-1 text-sm font-medium text-slate-800 truncate">
-                      {e.message}
+                      {e.message ?? "(메시지 없음)"}
                     </p>
                     <div className="mt-1 text-[11px] text-slate-500">
-                      24h {e.count_24h.toLocaleString()}회 · 영향 사용자 {e.affected_users.toLocaleString()}명
-                      · 마지막 {new Date(e.last_seen_at).toLocaleString("ko-KR")}
+                      24h {(e.count_24h ?? e.sample_count ?? 0).toLocaleString()}회 · 영향 사용자 {(e.affected_users ?? 0).toLocaleString()}명
+                      · 마지막 {e.last_seen_at ? new Date(e.last_seen_at).toLocaleString("ko-KR") : "—"}
                     </div>
                   </div>
-                  {e.stack ? (
+                  {/* server 정본은 stack_excerpt — 둘 다 허용. */}
+                  {(e.stack || (e as unknown as { stack_excerpt?: string }).stack_excerpt) ? (
                     <button
                       type="button"
                       onClick={() => setExpanded(expanded === e.id ? null : e.id)}
@@ -184,9 +203,9 @@ export default function ErrorTrackingPage() {
                     </button>
                   ) : null}
                 </div>
-                {expanded === e.id && e.stack ? (
+                {expanded === e.id ? (
                   <pre className="mt-2 rounded-lg bg-slate-900 text-slate-100 text-[11px] p-3 overflow-x-auto whitespace-pre-wrap">
-                    {e.stack}
+                    {e.stack ?? (e as unknown as { stack_excerpt?: string }).stack_excerpt ?? ""}
                   </pre>
                 ) : null}
               </li>

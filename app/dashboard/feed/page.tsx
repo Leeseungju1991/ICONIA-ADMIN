@@ -171,9 +171,11 @@ export default function FeedPage() {
   const columns: Column<Row>[] = [
     {
       key: "id",
-      header: "ID",
+      header: "이메일",
+      // 2026-06-04 — 사용자 요청: ID 컬럼을 작성자 이메일로 표시.
+      // 서버가 author_email 을 채워 보내면 그것을, 미반영시 fallback 으로 author_id.
       render: (r) => (
-        <span className="font-mono text-[11px] inline-flex items-center gap-1.5">
+        <span className="text-[12px] text-slate-800 inline-flex items-center gap-1.5">
           {newIds.has(r.id) ? (
             <span
               className="chip chip-success"
@@ -183,8 +185,11 @@ export default function FeedPage() {
               NEW
             </span>
           ) : null}
-          <span className={newIds.has(r.id) ? "row-new-highlight inline-block px-1 rounded" : ""}>
-            {r.id}
+          <span
+            className={newIds.has(r.id) ? "row-new-highlight inline-block px-1 rounded" : ""}
+            title={r.id}
+          >
+            {r.author_email ?? r.author_id}
           </span>
         </span>
       ),
@@ -197,14 +202,14 @@ export default function FeedPage() {
     {
       key: "author",
       header: "작성자",
-      // 2026-06-02 — 작성자 표시는 ID만 (이름/이메일 표시 제거). 클릭 시 사용자 상세로 이동.
+      // 2026-06-04 — 사용자 요청: 작성자 컬럼은 표시이름. 클릭 시 사용자 상세로 이동.
       render: (r) => (
         <Link
           href={`/dashboard/users/${r.author_id}`}
-          className="font-mono text-[11px] text-slate-700 hover:text-accent hover:underline"
-          title="사용자 상세 보기"
+          className="text-[12px] text-slate-800 hover:text-accent hover:underline"
+          title={r.author_id}
         >
-          {r.author_id}
+          {r.author_display_name ?? r.author_handle ?? r.author_id}
         </Link>
       ),
     },
@@ -489,13 +494,19 @@ function FeedDetailDrawer({
           </div>
           <FeedMediaGrid media={detail?.post.media ?? post.media ?? []} />
           <div className="grid grid-cols-2 gap-2 text-xs">
-            <Field label="작성자 ID">
-              {/* 2026-06-02 — 이름/이메일 제거, ID만 노출. 클릭 → 사용자 상세. */}
+            <Field label="작성자">
+              {/* 2026-06-04 — 사용자 요청: 이메일·표시이름 노출. 클릭 → 사용자 상세. */}
               <Link
                 href={`/dashboard/users/${post.author_id}`}
-                className="font-mono text-[11px] text-slate-700 hover:text-accent hover:underline break-all"
+                className="text-[12px] text-slate-800 hover:text-accent hover:underline break-all flex flex-col"
+                title={post.author_id}
               >
-                {post.author_id}
+                <span className="font-medium">
+                  {post.author_display_name ?? post.author_handle ?? "(이름 없음)"}
+                </span>
+                <span className="text-[11px] text-muted">
+                  {post.author_email ?? post.author_id}
+                </span>
               </Link>
             </Field>
             <Field label="작성일">{post.created_at}</Field>
