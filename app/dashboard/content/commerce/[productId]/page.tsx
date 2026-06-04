@@ -115,7 +115,9 @@ export default function CommerceProductDetailPage({ params }: Params) {
           <PanelCard title={product.name} description={`상품 ID: ${product.id}`}>
             <div className="grid grid-cols-1 sm:grid-cols-[160px_1fr] gap-6">
               <div>
-                {/* 사진 — 목록과 동일한 placeholder-under-img 전략(2026-06-02 fix(2)). */}
+                {/* 사진 — 목록과 동일한 placeholder-under-img 전략(2026-06-02 fix(2)).
+                    2026-06-04 fix(4): onError 시 자체 placeholder 로 src 교체 (목록과 정합).
+                    adminCommerce.ts normalize 가 null 일 때도 placeholder 주입. */}
                 <div className="relative w-40 h-40 rounded-2xl bg-slate-100 overflow-hidden flex items-center justify-center text-xs text-slate-400">
                   <span aria-hidden>이미지 없음</span>
                   {product.image_url ? (
@@ -126,7 +128,11 @@ export default function CommerceProductDetailPage({ params }: Params) {
                       className="absolute inset-0 w-40 h-40 object-cover"
                       loading="lazy"
                       onError={(e) => {
-                        e.currentTarget.style.visibility = "hidden";
+                        // fix(4): 외부 URL 깨질 때 자체 placeholder 로 교체.
+                        const t = e.currentTarget;
+                        if (t.dataset.fallback === "1") return;
+                        t.dataset.fallback = "1";
+                        t.src = "/placeholder-product.svg";
                       }}
                     />
                   ) : null}

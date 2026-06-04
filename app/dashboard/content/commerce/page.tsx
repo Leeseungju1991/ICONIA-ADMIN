@@ -7,6 +7,10 @@
 //   collapse 하던 문제 해결 — img 를 hidden 으로 두지 않고 placeholder 와 같은
 //   영역에 자연스럽게 노출되도록 단순화. 상품명 overflow fix(3): 잘림(line-clamp)
 //   제거 + title tooltip. 상품 상세 페이지(13) 진입 링크 추가.
+// 2026-06-04 — 사진 표시 fix(4): 외부 URL(picsum.photos / WP) 깨질 때 visibility:hidden 만
+//   해서 사용자가 "왜 안 보이지" 혼란. onError 시 자체 호스팅 placeholder 로 src 교체 →
+//   항상 가시적 이미지 보장. adminCommerce.ts 의 normalize 도 null 일 때 같은 placeholder
+//   주입하므로 서버 응답이 null 이어도 빈 칸이 안 됨.
 
 import Link from "next/link";
 import { useEffect, useRef, useState, useTransition } from "react";
@@ -307,8 +311,12 @@ export default function CommercePage() {
                             className="absolute inset-0 w-12 h-12 object-cover"
                             loading="lazy"
                             onError={(e) => {
+                              // fix(4): 외부 URL 깨질 때 자체 placeholder 로 교체
+                              // (visibility:hidden 폐기 — 빈 칸 대신 placeholder 가 보이도록).
                               const t = e.currentTarget;
-                              t.style.visibility = "hidden";
+                              if (t.dataset.fallback === "1") return;
+                              t.dataset.fallback = "1";
+                              t.src = "/placeholder-product.svg";
                             }}
                           />
                         ) : null}

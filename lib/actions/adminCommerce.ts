@@ -9,6 +9,12 @@
 //   stock_quantity : server          → client=stock
 //   카테고리         : server=ProductCategoryLink (별도 join) → client=category (string)
 // 본 action 이 normalize 해서 일관된 row 를 반환.
+//
+// 2026-06-04 — 사진 표시 fix(4): 외부 URL(picsum.photos / WP) 의존 제거.
+//   primary_image 가 null 이거나 빈 문자열이면 자체 호스팅 placeholder 로 fallback.
+//   외부 URL 이 살아있어도 onError 시 같은 placeholder 로 교체 (commerce/page.tsx, [productId]/page.tsx).
+//   이로써 외부 의존이 깨져도 어드민 화면이 빈 칸으로 보이지 않음.
+export const PRODUCT_IMAGE_PLACEHOLDER = "/placeholder-product.svg";
 
 import { readSession } from "@/lib/authCookie";
 import {
@@ -50,7 +56,11 @@ function normalizeProduct(p: ServerProductRaw): AdminCommerceProductRow {
     price: priceNum,
     currency: p.currency ?? "KRW",
     category: null,
-    image_url: p.primary_image ?? null,
+    // fix(4): null/빈 문자열이어도 자체 placeholder URL 매핑 — UI 에서 img 가 항상 렌더링되도록.
+    image_url:
+      p.primary_image && p.primary_image.trim().length > 0
+        ? p.primary_image
+        : PRODUCT_IMAGE_PLACEHOLDER,
     stock: p.stock_quantity ?? 0,
     is_deleted: p.status === "archived",
     stock_status: (p.stock_status as AdminCommerceProductRow["stock_status"]) ?? undefined,
