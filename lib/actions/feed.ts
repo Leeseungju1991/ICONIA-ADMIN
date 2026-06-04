@@ -91,6 +91,35 @@ export async function patchFeedPostAction(input: {
   return { ok: true, post: res.data };
 }
 
+// 2026-06-04 — 운영자 일괄 미디어 주입 (피드).
+//   server POST /api/v1/admin/feed/posts/bulk-attach-media { kind } 호출.
+//   기존 FeedMedia 가 0건인 게시물에만 placeholder 미디어 주입.
+export type BulkAttachFeedMediaResult =
+  | { ok: true; scanned: number; attached_posts: number; attached_media: number; kind: string }
+  | { ok: false; message: string; code?: string };
+
+export async function bulkAttachFeedMediaAction(input: {
+  kind: "image" | "images" | "video";
+}): Promise<BulkAttachFeedMediaResult> {
+  const jwt = readSession();
+  if (!jwt) return { ok: false, message: "세션 만료" };
+  const { authedRequest } = await import("@/lib/httpClient");
+  const res = await authedRequest<{
+    scanned: number;
+    attached_posts: number;
+    attached_media: number;
+    kind: string;
+  }>({
+    jwt,
+    path: "/api/v1/admin/feed/posts/bulk-attach-media",
+    method: "POST",
+    body: { kind: input.kind },
+  });
+  if (!res.ok) return { ok: false, message: res.message, code: res.code };
+  revalidatePath("/dashboard/feed");
+  return { ok: true, ...res.data };
+}
+
 export async function deleteFeedPostAction(input: { id: string }): Promise<{ ok: boolean; message?: string; code?: string }> {
   const jwt = readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };

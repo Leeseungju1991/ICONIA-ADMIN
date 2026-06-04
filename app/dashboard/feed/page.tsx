@@ -14,6 +14,7 @@ import {
   getFeedPostAction,
   patchFeedPostAction,
   deleteFeedPostAction,
+  bulkAttachFeedMediaAction,
 } from "@/lib/actions/feed";
 
 // 피드 관리 (Feed).
@@ -270,6 +271,13 @@ export default function FeedPage() {
           + 새 게시물
         </Link>
       </div>
+
+      <BulkAttachMediaPanel
+        onDone={(msg) => {
+          setToast(msg);
+          void reload();
+        }}
+      />
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard label="현재 페이지 노출" value={String(summary.visible)} accent="teal" />
         <StatCard label="현재 페이지 숨김" value={String(summary.hidden)} accent="pink" />
@@ -700,5 +708,83 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       <div className="text-[10px] text-muted">{label}</div>
       <div className="text-sm text-slate-800 font-medium">{children}</div>
     </div>
+  );
+}
+
+// 2026-06-04 — 사용자 요청: 미디어가 없는 모든 게시물에 placeholder 미디어를
+// 일괄 주입. 이미지(1장) / 이미지 여러장(3장) / 동영상 중 선택. server
+// POST /api/v1/admin/feed/posts/bulk-attach-media 호출. 기존 미디어 있는 게시물
+// 은 건드리지 않음 (server 측 where: media: { none: {} } 필터).
+function BulkAttachMediaPanel({ onDone }: { onDone: (msg: string) => void }) {
+  const [kind, setKind] = useState<"image" | "images" | "video">("image");
+  const [pending, startTransition] = useTransition();
+
+  function submit() {
+    if (typeof window !== "undefined") {
+      const ok = window.confirm(
+        `미디어가 없는 모든 피드 게시물에 ${
+          kind === "image" ? "이미지 1장" : kind === "images" ? "이미지 3장" : "동영상"
+        } 을(를) 일괄 주입합니다.\n\n진행할까요?`,
+      );
+      if (!ok) return;
+    }
+    startTransition(async () => {
+      const r = await bulkAttachFeedMediaAction({ kind });
+      if (!r.ok) {
+        onDone(`일괄 주입 실패: ${r.message}`);
+        return;
+      }
+      onDone(
+        `일괄 주입 완료 — 대상 ${r.scanned}개 게시물, 미디어 ${r.attached_media}건 생성 (${kind}).`,
+      );
+    });
+  }
+
+  return (
+    <PanelCard
+      title="미디어 일괄 주입"
+      description="미디어가 없는 모든 피드 게시물에 placeholder 이미지/동영상을 일괄 주입합니다. 이미 미디어가 있는 게시물은 건드리지 않습니다."
+    >
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-wrap gap-3">
+          {(
+            [
+              { v: "image", label: "이미지 1장" },
+              { v: "images", label: "이미지 3장" },
+              { v: "video", label: "동영상 1개" },
+            ] as const
+          ).map((opt) => (
+            <label
+              key={opt.v}
+              className={
+                "inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm cursor-pointer transition " +
+                (kind === opt.v
+                  ? "border-accent bg-accent/5 text-accent font-medium"
+                  : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50")
+              }
+            >
+              <input
+                type="radio"
+                name="bulk-attach-kind"
+                value={opt.v}
+                checked={kind === opt.v}
+                onChange={() => setKind(opt.v)}
+                className="accent-indigo-600"
+              />
+              {opt.label}
+            </label>
+          ))}
+        </div>
+        <button
+          type="button"
+          onClick={submit}
+          disabled={pending}
+          className="rounded-xl bg-accent px-4 py-2 text-sm text-white font-medium hover:opacity-90 disabled:opacity-60"
+          data-testid="btn-bulk-attach-media"
+        >
+          {pending ? "주입 중..." : "모든 게시물에 일괄 주입"}
+        </button>
+      </div>
+    </PanelCard>
   );
 }

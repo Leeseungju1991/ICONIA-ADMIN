@@ -153,3 +153,24 @@ export async function getAdminCommerceProductAction(args: {
     recent_orders_count: recent,
   };
 }
+
+// 2026-06-04 — 운영자 일괄 이미지 주입 (커머스).
+//   server POST /api/v1/admin/commerce/products/bulk-attach-image 호출.
+//   primary_image 가 null/빈 문자열인 상품에만 placeholder URL 주입.
+export type BulkAttachProductImageResult =
+  | { ok: true; scanned: number; updated: number }
+  | { ok: false; message: string; code?: string };
+
+export async function bulkAttachProductImageAction(): Promise<BulkAttachProductImageResult> {
+  const jwt = readSession();
+  if (!jwt) return { ok: false, message: "세션 만료" };
+  const { authedRequest } = await import("@/lib/httpClient");
+  const res = await authedRequest<{ scanned: number; updated: number }>({
+    jwt,
+    path: "/api/v1/admin/commerce/products/bulk-attach-image",
+    method: "POST",
+    body: {},
+  });
+  if (!res.ok) return { ok: false, message: res.message, code: res.code };
+  return { ok: true, ...res.data };
+}
