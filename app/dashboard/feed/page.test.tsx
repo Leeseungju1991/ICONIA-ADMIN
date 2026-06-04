@@ -30,7 +30,10 @@ describe("FeedPage — render states", () => {
     await waitFor(() => {
       expect(screen.getByText(/해당 조건의 게시물이 없습니다/)).toBeInTheDocument();
     });
-    expect(screen.getByText(/피드 게시물/)).toBeInTheDocument();
+    // 2026-06-05 — 정합: "피드 게시물" 문구는 메인 PanelCard 제목 외에 신규 패널
+    // ("미디어 일괄 주입" description, BulkDeleteEmptyPanel 설명) 등에도 등장하므로
+    // 더 구체적인 heading 매칭을 사용한다. getAllByText 로 1개 이상이면 충분.
+    expect(screen.getAllByText(/피드 게시물/).length).toBeGreaterThan(0);
   });
 
   it('renders "준비 중" graceful banner on ERR_NETWORK', async () => {
@@ -80,12 +83,16 @@ describe("FeedPage — render states", () => {
       },
     });
     render(<FeedPage />);
+    // 2026-06-05 — 정합: ID 컬럼은 author_email ?? author_id 를 노출.
+    // 작성자 컬럼은 author_display_name ?? author_handle ?? author_id (handle 표시).
+    // body_excerpt 로 row 존재 검증.
     await waitFor(() => {
-      expect(screen.getByText("p_1")).toBeInTheDocument();
+      expect(screen.getByText("안녕하세요")).toBeInTheDocument();
     });
-    // 2026-06-02 — 작성자 셀은 author_id 만 노출 (handle 제거).
-    expect(screen.getByText("u_1")).toBeInTheDocument();
-    expect(screen.queryByText("alice")).toBeNull();
+    // mock 은 author_email 미설정 → ID 셀이 author_id "u_1" 노출.
+    expect(screen.getAllByText("u_1").length).toBeGreaterThan(0);
+    // mock 은 author_display_name 미설정 → 작성자 셀이 handle "alice" 노출.
+    expect(screen.getByText("alice")).toBeInTheDocument();
   });
 
   it("renders auto-refresh toggle defaulting to OFF", async () => {
