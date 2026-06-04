@@ -33,7 +33,7 @@ type NavItem = {
 const nav: NavItem[] = [
   { to: "/dashboard", label: "대시보드", icon: DashboardIcon },
   { to: "/dashboard/user-360", label: "사용자 정보", icon: UsersIcon },
-  { to: "/dashboard/ai-usage", label: "AI 사용량", icon: SparkleIcon },
+  // 2026-06-05 — 운영자 요청: AI 사용량 메뉴 제거 (Gemini Key 관리로 통합). 라우트는 보존.
   { to: "/dashboard/gemini", label: "Gemini Key 관리", icon: KeyIcon },
   {
     to: "/dashboard/content",
@@ -56,6 +56,7 @@ const nav: NavItem[] = [
 
 // 사이드바에서 빠졌지만 직접 URL 입력 시 노출되는 페이지들의 타이틀 (TopbarRich 용).
 const HIDDEN_TITLES: Record<string, string> = {
+  "/dashboard/ai-usage": "AI 사용량 (legacy)",
   "/dashboard/cs": "CS 통합 조회",
   "/dashboard/users": "회원 관리",
   "/dashboard/users/rights": "사용자 권리 큐",
@@ -87,6 +88,13 @@ const HIDDEN_TITLES: Record<string, string> = {
   "/dashboard/content/commerce": "커머스 상품",
   "/dashboard/content/catalog": "인형 도감",
   "/dashboard/notice-push": "공지·푸시 관리",
+  // 2026-06-05 — V1.0 정합. 라우트는 있지만 nav/HIDDEN_TITLES 둘 다 누락이었던 표면.
+  // 직접 URL 진입 시 톱바가 "대시보드" 로 fallback 되는 문제를 해결.
+  "/dashboard/commerce": "커머스 표면",
+  "/dashboard/commerce/banners": "메인 배너",
+  "/dashboard/commerce/orders": "주문 조회",
+  "/dashboard/users/new": "회원 추가",
+  "/dashboard/legal": "약관·법률 관리",
 };
 
 function pageTitle(pathname: string): { title: string; subtitle: string } {

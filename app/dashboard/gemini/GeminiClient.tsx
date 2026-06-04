@@ -1,13 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition, type FormEvent } from "react";
+import { useEffect, useState, useTransition, type FormEvent } from "react";
 import { PanelCard } from "../_components/PanelCard";
 import { LoadingState, EmptyState } from "../_components/CardStates";
 import {
   fetchGeminiKeysAction,
   fetchGeminiUsageAction,
   fetchGeminiQuotaAlertsAction,
-  updateGeminiKeyTierAction,
   upsertGeminiKeyQuotaAction,
 } from "@/lib/actions/gemini";
 import type {
@@ -19,15 +18,8 @@ import type {
 } from "@/types/admin-api";
 import type { GeminiTier as ServerGeminiTier } from "@/lib/adminApi";
 import { messageForCode } from "@/lib/errorMessages";
-import {
-  recommend,
-  toneClass,
-  progressBarColor,
-  TIER_LABEL,
-  TIER_GUIDE,
-  nextTier,
-  type RecommendResult,
-} from "./recommend";
+// 2026-06-05 — 사용자 요청: 한도 추천 제거, Text/Voice/Image 사용량 측정으로 교체.
+import { progressBarColor, TIER_LABEL } from "./recommend";
 import { ModelTabSelector } from "./_components/ModelTabSelector";
 import {
   MODEL_KIND_LABEL,
@@ -110,39 +102,16 @@ export default function GeminiClient() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [range]);
 
-  // 추천 카드 — 한 키라도 80% 도달이면 표시.
-  const recommendations: Array<{ key: GeminiKeyRow; rec: RecommendResult }> = useMemo(() => {
-    if (!keys) return [];
-    return keys.items
-      .map((k) => ({ key: k, rec: recommend(k.usage_ratio_24h, 1, k.tier) }))
-      // recommend 의 usage 인자는 ratio, quota 는 1 (이미 keys[].usage_ratio_24h 가 비율).
-      .filter((x) => x.rec.action !== "ok");
-  }, [keys]);
-
-  function handleUpgrade(alias: string, target: GeminiKeyTier) {
-    startMutate(async () => {
-      const r = await updateGeminiKeyTierAction({
-        alias,
-        tier: TIER_TO_SERVER[target],
-      });
-      if (!r.ok) {
-        setToast(`tier 변경 실패: ${messageForCode(r.code, r.message)}`);
-        return;
-      }
-      setToast(`tier 변경됨: ${alias} → ${r.tier}`);
-      reload();
-    });
-  }
-
   return (
     <div className="space-y-6">
       {/* 2026-06-01 — 사용자 요청으로 간소화. 사용량 요약 / 알림 히스토리는 /dashboard/ai-usage 에 있어 중복 제거.
           본 페이지는 키별 진행률·tier 추천 + 키 등록·한도 설정 두 패널만 유지. */}
 
-      {/* ───────────────── 키별 사용량 + tier 추천 ───────────────── */}
+      {/* ───────────────── 키별 사용량 — 텍스트 / 음성 / 이미지 ─────────────────
+          2026-06-05 — 사용자 요청: 한도 추천 제거, Text/Voice/Image 사용량 측정으로 교체. */}
       <PanelCard
-        title="키별 사용량 · 한도 추천"
-        description="일일 한도 대비 사용량입니다. 80%·95% 도달 시 등급 상승 또는 키 추가가 권장됩니다."
+        title="키별 사용량 — 텍스트 / 음성 / 이미지"
+        description="키별로 텍스트·음성·이미지 미디어 사용량을 분류해 표시합니다. (할당 모델 기준 비례 분할 — 추후 서버 categorical_usage 직제공 예정)"
         actions={
           <button
             type="button"
@@ -165,11 +134,82 @@ export default function GeminiClient() {
           <ul className="space-y-3">
             {keys.items.map((k) => {
               const pct = Math.min(1, k.usage_ratio_24h);
-              const rec = recommend(k.usage_ratio_24h, 1, k.tier);
-              // 2026-06-02 — server 정식 `models` 컬럼 사용 + 구 note prefix 폴백.
+              // 2026-06-05 — server 정식 `models` 컬럼 사용 + 구 note prefix 폴백.
               const assignedModels = modelsFromRow(k);
               const assignedCount =
                 MODEL_KIND_ORDER.filter((kind) => !!assignedModels[kind]).length;
+
+              // 카테고리 → 3종 미디어 묶음.
+              //   Text  = text + diary
+              //   Voice = tts + stt
+              //   Image = image
+              // 서버가 categorical_usage 를 내려주기 전까지, 키 전체 requests_24h /
+              // tokens_24h 를 "할당된 모델 수" 가중치로 비례 분할한다.
+              const textKinds: AiModelKind[] = ["text", "diary"];
+              const voiceKinds: AiModelKind[] = ["tts", "stt"];
+              const imageKinds: AiModelKind[] = ["image"];
+              const countKinds = (kinds: AiModelKind[]) =>
+                kinds.reduce(
+                  (acc, kind) => acc + (assignedModels[kind] ? 1 : 0),
+                  0,
+                );
+              const textCnt = countKinds(textKinds);
+              const voiceCnt = countKinds(voiceKinds);
+              const imageCnt = countKinds(imageKinds);
+              const totalCnt = textCnt + voiceCnt + imageCnt;
+
+              const splitReq = (cnt: number) =>
+                totalCnt > 0
+                  ? Math.round((k.requests_24h * cnt) / totalCnt)
+                  : 0;
+              const splitTok = (cnt: number) =>
+                totalCnt > 0
+                  ? Math.round((k.tokens_24h * cnt) / totalCnt)
+                  : 0;
+
+              const textReq = splitReq(textCnt);
+              const textTok = splitTok(textCnt);
+              const voiceReq = splitReq(voiceCnt);
+              const imageReq = splitReq(imageCnt);
+
+              // 비율 — 전체 키 usage_ratio_24h 를 각 그룹에 동일하게 적용 (가중치 비례 후 정규화).
+              const groupPct = (cnt: number) =>
+                totalCnt > 0 && cnt > 0 ? pct : 0;
+              const textPct = groupPct(textCnt);
+              const voicePct = groupPct(voiceCnt);
+              const imagePct = groupPct(imageCnt);
+
+              type MediaCell = {
+                label: string;
+                count: number;
+                pct: number;
+                primary: string;
+                secondary: string;
+              };
+              const cells: MediaCell[] = [
+                {
+                  label: "텍스트",
+                  count: textCnt,
+                  pct: textPct,
+                  primary: `${fmtNumber(textReq)} req`,
+                  secondary: `${fmtNumber(textTok)} tok`,
+                },
+                {
+                  label: "음성",
+                  count: voiceCnt,
+                  pct: voicePct,
+                  primary: `${fmtNumber(voiceReq)} req`,
+                  secondary: voiceCnt > 0 ? "TTS+STT" : "미할당",
+                },
+                {
+                  label: "이미지",
+                  count: imageCnt,
+                  pct: imagePct,
+                  primary: `${fmtNumber(imageReq)} req`,
+                  secondary: imageCnt > 0 ? "vision" : "미할당",
+                },
+              ];
+
               return (
                 <li
                   key={k.id}
@@ -185,20 +225,63 @@ export default function GeminiClient() {
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="text-sm font-mono text-slate-700">
-                        {Math.round(pct * 100)}%
+                      <div className="text-[10px] text-muted">
+                        텍스트 {textCnt} / 음성 {voiceCnt} / 이미지 {imageCnt}
                       </div>
                       <div className="text-[10px] text-muted">
-                        {fmtNumber(k.requests_24h)} req · {fmtNumber(k.tokens_24h)} tok
+                        합계 {fmtNumber(k.requests_24h)} req · {fmtNumber(k.tokens_24h)} tok
                       </div>
                     </div>
                   </div>
-                  <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
-                    <div
-                      className={`h-full transition-all ${progressBarColor(pct)}`}
-                      style={{ width: `${Math.round(pct * 100)}%` }}
-                    />
-                  </div>
+
+                  {assignedCount === 0 ? (
+                    <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-3 py-3 text-center text-xs text-slate-500">
+                      측정 데이터 없음 — 이 키에 할당된 모델 카테고리가 없습니다. 아래 「키 등록 · 한도 설정」 폼에서 모델을 지정하세요.
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-3 gap-2">
+                      {cells.map((cell) => {
+                        const disabled = cell.count === 0;
+                        const widthPct = Math.round(cell.pct * 100);
+                        return (
+                          <div
+                            key={cell.label}
+                            className={`rounded-lg border px-2 py-2 ${
+                              disabled
+                                ? "border-slate-200 bg-slate-50 opacity-70"
+                                : "border-slate-200 bg-white"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-[11px] font-semibold text-slate-800">
+                                {cell.label}
+                              </span>
+                              <span className="text-[10px] font-mono text-slate-600">
+                                {disabled ? "—" : `${widthPct}%`}
+                              </span>
+                            </div>
+                            <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden mb-1">
+                              <div
+                                className={`h-full transition-all ${
+                                  disabled
+                                    ? "bg-slate-300"
+                                    : progressBarColor(cell.pct)
+                                }`}
+                                style={{ width: `${widthPct}%` }}
+                              />
+                            </div>
+                            <div className="text-[10px] font-mono text-slate-700 leading-tight">
+                              {disabled ? "미할당" : cell.primary}
+                            </div>
+                            <div className="text-[10px] text-muted leading-tight">
+                              {cell.secondary}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
                   {assignedCount > 0 ? (
                     <div className="mt-2 flex flex-wrap gap-1.5">
                       {MODEL_KIND_ORDER.map((kind) => {
@@ -219,30 +302,6 @@ export default function GeminiClient() {
                       })}
                     </div>
                   ) : null}
-                  <div
-                    className={`mt-2 rounded-lg border px-3 py-2 text-xs ${toneClass(rec.tone)}`}
-                  >
-                    <div className="font-medium">{rec.message}</div>
-                    {rec.next_tier && rec.action !== "ok" && rec.action !== "monitor" ? (
-                      <div className="mt-2 flex items-center gap-2">
-                        <button
-                          type="button"
-                          disabled={mutating}
-                          onClick={() => handleUpgrade(k.id, rec.next_tier!)}
-                          className="rounded-md bg-white px-3 py-1 text-xs border border-current disabled:opacity-60"
-                        >
-                          {TIER_LABEL[rec.next_tier]} 로 상승
-                        </button>
-                        <span className="opacity-70">
-                          ({TIER_GUIDE[rec.next_tier].notes})
-                        </span>
-                      </div>
-                    ) : rec.action === "suggest_add_key" ? (
-                      <div className="mt-1 opacity-80">
-                        키 추가가 필요합니다 — 아래 「키 추가」 섹션 참조.
-                      </div>
-                    ) : null}
-                  </div>
                 </li>
               );
             })}
@@ -337,11 +396,6 @@ export default function GeminiClient() {
             <br />* 본 폼의 KEY 입력란은 운영자가 EC2 <code>.env</code> 반영 직전 KEY 를 1회 확인용으로 보는 용도 — 서버 응답에 평문 포함 안 함.
           </div>
         </div>
-        {recommendations.some((r) => r.rec.action === "suggest_add_key") ? (
-          <div className="mt-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
-            <span className="font-semibold">권장:</span> 엔터프라이즈 한도에 근접한 키가 있습니다. 신규 키 추가를 우선 검토하세요.
-          </div>
-        ) : null}
       </PanelCard>
 
       {toast ? (
@@ -383,10 +437,6 @@ function UsageStat({
     </div>
   );
 }
-
-// `nextTier` 가 GeminiClient 직접 호출되진 않지만, recommend 가 반환한 next_tier 가
-// null 일 수도 있어 lint 경고 차단용으로 import 표면을 유지. 호출되진 않음.
-void nextTier;
 
 // ───────────────────────────────────────────────────────────────────────
 // KeyRegisterForm — alias + tier + quota 등록 폼.

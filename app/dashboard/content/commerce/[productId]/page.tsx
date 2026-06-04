@@ -19,6 +19,9 @@ import {
 } from "@/lib/actions/adminCommerce";
 import type { AdminCommerceProductRow } from "@/lib/adminApi";
 import { messageForCode } from "@/lib/errorMessages";
+// 2026-06-05 — 사용자 요청: 카테고리는 APP Shop(dollsoomSeries) 라벨 풀에서 결정론적 랜덤.
+//   목록 페이지와 동일한 fallback 정책 적용 (server category 우선, 비면 id seed).
+import { pickShopCategoryLabel } from "@/lib/shopCategoryLabels";
 
 type Params = { params: { productId: string } };
 
@@ -158,7 +161,11 @@ export default function CommerceProductDetailPage({ params }: Params) {
                   <span className={stockChip(product)}>{stockLabel(product)}</span>
                 </Field>
                 <Field label="카테고리">
-                  <span className="text-slate-700">{product.category ?? "—"}</span>
+                  <span className="text-slate-700">
+                    {product.category && product.category.trim() !== ""
+                      ? product.category
+                      : pickShopCategoryLabel(product.id)}
+                  </span>
                 </Field>
                 <Field label="생성일">
                   <span className="text-slate-700">{fmtDate(product.created_at)}</span>

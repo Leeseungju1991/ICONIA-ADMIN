@@ -185,6 +185,7 @@ export default function AuditClient() {
             type="button"
             className="text-xs text-accent hover:underline"
             onClick={() => setSelected(r)}
+            aria-label={`감사 로그 ${r.action} 상세 보기`}
           >
             보기 →
           </button>

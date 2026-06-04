@@ -41,9 +41,11 @@ async function runHide(postId: string, reason: string) {
   return hidePostAction(fd);
 }
 
-async function runUnhide(postId: string) {
+async function runUnhide(postId: string, reason: string) {
+  // 2026-06-05 — 복귀에도 사유 강제. server action 이 reason 을 무시해도 안전 (FormData 키 추가만).
   const fd = new FormData();
   fd.append("post_id", postId);
+  fd.append("reason", reason);
   return unhidePostAction(fd);
 }
 
@@ -134,7 +136,18 @@ export default function ReportsPage() {
   }
 
   async function handleUnhide(p: PostRow) {
-    const r = await runUnhide(p.post_id);
+    // 2026-06-05 — 복귀에도 사유 5자+ 강제 (audit_log 가시성).
+    if (p.status === "taken_down") {
+      setToast("영구 차단(taken_down) 게시물은 복구할 수 없습니다. superadmin 문의 필요.");
+      return;
+    }
+    if (typeof window === "undefined") return;
+    const reason = window.prompt("게시물 복귀 사유 (감사 로그에 기록, 5자 이상):");
+    if (!reason || reason.trim().length < 5) {
+      setToast("복귀 사유가 5자 이상 필요합니다.");
+      return;
+    }
+    const r = await runUnhide(p.post_id, reason.trim());
     if (!r.ok) {
       setToast(`복구 실패: ${r.message}`);
       return;
@@ -143,7 +156,7 @@ export default function ReportsPage() {
       action: "report.unhide_post",
       target_label: `게시물 · ${p.post_id}`,
       target_id: p.post_id,
-      reason: "운영자 검토 후 복구",
+      reason: reason.trim(),
       operator: "(현재 운영자 세션)",
       outcome: "succeeded",
     });
@@ -279,7 +292,10 @@ function ReportDrawer({
   onHide: () => void;
   onUnhide: () => void;
 }) {
+  // 2026-06-05 — 숨김/복귀 버튼 동시 노출 + 복귀에도 사유 강제.
+  // isHidden: 현재 숨김/차단 상태인지. isTakenDown: 영구 차단 (복귀 불가).
   const isHidden = post.status === "hidden" || post.status === "taken_down";
+  const isTakenDown = post.status === "taken_down";
   return (
     <div className="fixed inset-0 z-40 flex items-end sm:items-center justify-center sm:justify-end p-3 sm:p-6 bg-black/30">
       <div className="w-full max-w-md glass-panel rounded-3xl p-6 relative">
@@ -305,20 +321,37 @@ function ReportDrawer({
           </div>
         </dl>
 
-        <div className="mt-6 grid grid-cols-2 gap-2">
-          {isHidden ? (
-            <button className="btn-primary text-sm col-span-2" type="button" onClick={onUnhide}>
-              복구 (unhide)
-            </button>
-          ) : (
-            <button className="btn-danger text-sm col-span-2" type="button" onClick={onHide}>
-              숨김 처리 (hide)
-            </button>
-          )}
+        <div className="mt-6 grid grid-cols-1 gap-2">
+          {/* 2026-06-05 — 숨김/복귀 버튼 동시 노출 (세로 배치, 숨김 위 / 복귀 아래). */}
+          <button
+            className="btn-danger text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            type="button"
+            onClick={onHide}
+            disabled={isHidden}
+            title={isHidden ? "이미 숨김 처리된 게시물입니다." : "신고 게시물을 숨김 처리합니다."}
+          >
+            숨김 처리 (hide)
+          </button>
+          <button
+            className="btn-primary text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            type="button"
+            onClick={onUnhide}
+            disabled={!isHidden || isTakenDown}
+            title={
+              isTakenDown
+                ? "영구 차단(taken_down) 게시물은 복구할 수 없습니다."
+                : !isHidden
+                  ? "현재 노출 중인 게시물은 복귀할 필요가 없습니다."
+                  : "숨김 해제 후 다시 노출합니다."
+            }
+          >
+            게시물 복귀 (unhide)
+          </button>
         </div>
         <p className="text-[11px] text-muted mt-3">
-          ※ 숨김은 EXECUTE 2단계 확인 + 5자 사유 prompt 필수. 모든 조치는 Server audit_log + 세션
-          audit trail 양쪽에 기록됩니다.
+          ※ 숨김은 EXECUTE 2단계 확인 + 5자 사유 prompt 필수. 복귀도 5자 사유 prompt 필수. 영구
+          차단(taken_down)은 복구 불가 — superadmin 문의. 모든 조치는 Server audit_log + 세션 audit
+          trail 양쪽에 기록됩니다.
         </p>
       </div>
     </div>

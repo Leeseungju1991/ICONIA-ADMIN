@@ -200,39 +200,99 @@ export default function UsersPage() {
       key: "actions",
       header: "",
       align: "right",
-      render: (r) => (
-        <div className="flex gap-1.5 justify-end">
-          <button
-            className="rounded-lg bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-xs px-3 py-1.5"
-            type="button"
-            disabled={r.account_status === "deleted"}
-            onClick={async () => {
-              // 2026-06-01 — 사용자 요청: 상세 버튼 제거 + 삭제만 남김.
-              // 삭제 확인 단계는 EXECUTE 문구 + 사유 5자 이상으로 사고 방지 (audit 기록).
-              if (!twoStepConfirm(`사용자 "${r.email}" 삭제`)) {
-                setToast("삭제 취소 — 확인 문구 불일치.");
-                return;
-              }
-              const reason = window.prompt(
-                "삭제 사유를 입력하세요 (감사 로그 기록, 5자 이상).",
-              );
-              if (!reason || reason.trim().length < 5) {
-                setToast("사유가 5자 이상 필요합니다. 삭제를 취소했습니다.");
-                return;
-              }
-              const res = await deleteUserAction({ userId: r.id, reason: reason.trim() });
-              if (!res.ok) {
-                setToast(`삭제 실패: ${res.message}`);
-                return;
-              }
-              setToast(res.note ?? "사용자가 삭제되었습니다. (감사 로그 기록됨)");
-              void reloadUsers();
-            }}
-          >
-            삭제
-          </button>
-        </div>
-      ),
+      render: (r) => {
+        // 2026-06-05 — 사용자 요청: 목록에서 즉시 비활성/활성 토글
+        // account_status="paused" 면 "활성화", "active" 면 "비활성화" 라벨로 토글.
+        // deleted/pending_deletion 은 토글 자체가 의미 없으므로 disabled.
+        const isPaused = r.account_status === "paused";
+        const toggleDisabled =
+          r.account_status === "deleted" || r.account_status === "pending_deletion";
+        const toggleLabel = isPaused ? "활성화" : "비활성화";
+        return (
+          <div className="flex gap-1.5 justify-end">
+            <button
+              className="rounded-lg bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white text-xs px-3 py-1.5"
+              type="button"
+              disabled={toggleDisabled}
+              onClick={async () => {
+                if (isPaused) {
+                  // 활성화(정지 해제) — 덜 파괴적이므로 EXECUTE 2단계 생략, 사유만 5자+.
+                  const reason = window.prompt(
+                    `사용자 "${r.email}" 활성화 (일시정지 해제) 사유를 입력하세요 (감사 로그 기록, 5자 이상).`,
+                  );
+                  if (!reason || reason.trim().length < 5) {
+                    setToast("사유가 5자 이상 필요합니다. 활성화를 취소했습니다.");
+                    return;
+                  }
+                  const res = await resumeUserAction({ userId: r.id, reason: reason.trim() });
+                  if (!res.ok) {
+                    setToast(`활성화 실패 (${res.code ?? "ERR"}): ${res.message}`);
+                    return;
+                  }
+                  setToast(res.note ?? "사용자가 활성화되었습니다 (일시정지 해제). 감사 로그 기록됨.");
+                  void reloadUsers();
+                  return;
+                }
+                // 비활성화(일시정지) — 운영 안전상 EXECUTE 2단계 + 사유 5자+.
+                if (!twoStepConfirm(`사용자 "${r.email}" 비활성화 (일시정지)`)) {
+                  setToast("비활성화 취소 — 확인 문구 불일치.");
+                  return;
+                }
+                const reason = window.prompt(
+                  "비활성화(일시정지) 사유를 입력하세요 (감사 로그 기록, 5자 이상).",
+                );
+                if (!reason || reason.trim().length < 5) {
+                  setToast("사유가 5자 이상 필요합니다. 비활성화를 취소했습니다.");
+                  return;
+                }
+                const res = await pauseUserAction({ userId: r.id, reason: reason.trim() });
+                if (!res.ok) {
+                  setToast(`비활성화 실패 (${res.code ?? "ERR"}): ${res.message}`);
+                  return;
+                }
+                // Server pauseUser 는 account_status 만 paused 로 바꾸고 활성 세션은 끊지 않는다.
+                // 운영자가 즉시 세션을 끊고 싶다면 drawer 의 "강제 로그아웃" 을 별도로 실행해야 함.
+                setToast(
+                  (res.note ?? "사용자가 비활성화되었습니다 (일시정지). 감사 로그 기록됨.") +
+                    " 활성 세션 차단이 필요하면 상세 → 강제 로그아웃을 실행하세요.",
+                );
+                void reloadUsers();
+              }}
+            >
+              {toggleLabel}
+            </button>
+            <button
+              className="rounded-lg bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-xs px-3 py-1.5"
+              type="button"
+              disabled={r.account_status === "deleted"}
+              onClick={async () => {
+                // 2026-06-01 — 사용자 요청: 상세 버튼 제거 + 삭제만 남김.
+                // 삭제 확인 단계는 EXECUTE 문구 + 사유 5자 이상으로 사고 방지 (audit 기록).
+                if (!twoStepConfirm(`사용자 "${r.email}" 삭제`)) {
+                  setToast("삭제 취소 — 확인 문구 불일치.");
+                  return;
+                }
+                const reason = window.prompt(
+                  "삭제 사유를 입력하세요 (감사 로그 기록, 5자 이상).",
+                );
+                if (!reason || reason.trim().length < 5) {
+                  setToast("사유가 5자 이상 필요합니다. 삭제를 취소했습니다.");
+                  return;
+                }
+                const res = await deleteUserAction({ userId: r.id, reason: reason.trim() });
+                if (!res.ok) {
+                  setToast(`삭제 실패: ${res.message}`);
+                  return;
+                }
+                setToast(res.note ?? "사용자가 삭제되었습니다. (감사 로그 기록됨)");
+                void reloadUsers();
+              }}
+            >
+              삭제
+            </button>
+          </div>
+        );
+      },
     },
   ];
 

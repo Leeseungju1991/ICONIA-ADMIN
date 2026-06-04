@@ -5,15 +5,18 @@ import { KpiChip } from "./_components/KpiChip";
 import { ProgressBar } from "./_components/SimpleChart";
 import { fetchGeminiKeysAction } from "@/lib/actions/gemini";
 import { listReportsAction } from "@/lib/actions/reportsAdmin";
+import { listErrorsAction } from "@/lib/actions/errorsTracking";
 import { geminiRatioTone, summarizeKeys } from "@/fixtures/gemini";
 import { fetchAdminOverviewAction } from "@/lib/actions/overview";
+import type { ErrorDomain } from "@/types/admin-api";
 
 export const dynamic = "force-dynamic";
 
 // 2026-06-01 정본화: 운영자 요청으로 대시보드 home 을 핵심 KPI + Gemini 사용량 두 섹션으로 압축.
 // - 제거: HeroBanner, SummaryCardCarousel(4-카드), ProfileRail(우측 레일), 모더레이션 강조 카드.
 //   사이드바 footer "로그아웃" 버튼이 본문 "Gemini API 사용량" 섹션과 같은 높이로 끝나도록 단축.
-// - 남김: 4-KPI chip(활성 디바이스/DAU/신고 대기/큐 적체) + Gemini API 사용량 패널.
+// - 남김: 4-KPI chip(활성 디바이스/DAU/신고 대기/오류 추적) + Gemini API 사용량 패널.
+//   2026-06-05 — 큐 적체 → 오류 추적(4-도메인 24h 합계) 으로 교체.
 //   모든 값은 Server `/api/v1/admin/overview` 정본만 표시. 미응답 시 "—" 무음 표시.
 
 export default async function DashboardHome() {
@@ -37,10 +40,17 @@ export default async function DashboardHome() {
   const DASH = (n: number | null | undefined): string =>
     n == null ? "—" : n.toLocaleString();
 
-  // Gemini 키 사용량 + 모더레이션 미해결 신고 카운트 (KPI chip 용).
-  const [geminiRes, modRes] = await Promise.all([
+  // 2026-06-05 — 큐 적체 KPI 를 "오류 추적" 으로 교체. 4개 도메인 24h 이벤트 수 합계.
+  //   각 도메인의 listErrorsAction 을 병렬 호출 후 e.count_24h ?? e.sample_count 누적.
+  //   error-tracking 페이지의 stats.total 계산과 동일 로직.
+  const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const ERROR_DOMAINS: ErrorDomain[] = ["firmware", "server", "ai", "app"];
+
+  // Gemini 키 사용량 + 모더레이션 미해결 신고 카운트 + 4-도메인 24h 오류 합계 (KPI chip 용).
+  const [geminiRes, modRes, errorResults] = await Promise.all([
     fetchGeminiKeysAction(),
     listReportsAction({ status: "open" }),
+    Promise.all(ERROR_DOMAINS.map((d) => listErrorsAction({ domain: d, since: since24h }))),
   ]);
   const geminiKeys = geminiRes.ok ? geminiRes.data.items : [];
   const geminiSummary = summarizeKeys(geminiKeys);
@@ -48,6 +58,22 @@ export default async function DashboardHome() {
   // listReportsAction 의 total_open 으로 fallback.
   const reportsPendingDisplay =
     dash?.reportsPendingCount ?? (modRes.ok ? modRes.data.total_open : null);
+
+  // 2026-06-05 — 오류 추적 KPI: 4개 도메인 중 하나라도 ok 면 합계 산출, 전부 실패면 null → "—".
+  let errorTrackingCount: number | null = null;
+  let anyErrorOk = false;
+  for (const r of errorResults) {
+    if (r.ok) {
+      anyErrorOk = true;
+      errorTrackingCount =
+        (errorTrackingCount ?? 0) +
+        r.data.items.reduce(
+          (s, e) => s + (e.count_24h ?? e.sample_count ?? 0),
+          0,
+        );
+    }
+  }
+  if (!anyErrorOk) errorTrackingCount = null;
 
   return (
     <div className="space-y-5">
@@ -113,20 +139,22 @@ export default async function DashboardHome() {
           }
           trend={trend?.reports_pending}
         />
-        <KpiChip
-          tone="pink"
-          icon="queue"
-          label="큐 적체"
-          value={DASH(dash?.queueBacklog)}
-          sub={
-            dash == null
-              ? ""
-              : dash.queueBacklog > 0
-                ? "재투입 필요"
-                : "정상"
-          }
-          trend={trend?.queue_depth}
-        />
+        {/* 2026-06-05 — 큐 적체 → 오류 추적. 클릭 시 /dashboard/error-tracking 진입. */}
+        <Link href="/dashboard/error-tracking" className="block">
+          <KpiChip
+            tone="pink"
+            icon="alert"
+            label="오류 추적"
+            value={DASH(errorTrackingCount)}
+            sub={
+              errorTrackingCount == null
+                ? ""
+                : errorTrackingCount > 0
+                  ? "확인 필요"
+                  : "정상"
+            }
+          />
+        </Link>
       </section>
 
       {/* Gemini API Key 사용량 카드 — 본문 마지막 섹션. 사이드바 footer(로그아웃)와 정렬. */}
@@ -134,8 +162,9 @@ export default async function DashboardHome() {
         title="Gemini API 사용량"
         description="키별 일일 한도 대비 사용량입니다. 80% 도달 시 주의, 95% 이상은 키 추가가 권장됩니다."
         actions={
-          <Link href="/dashboard/ai-usage" className="btn-outline text-xs">
-            자세히 →
+          // 2026-06-05 — AI 사용량 메뉴 제거에 따라 Gemini Key 관리로 진입.
+          <Link href="/dashboard/gemini" className="btn-outline text-xs">
+            Gemini Key →
           </Link>
         }
       >

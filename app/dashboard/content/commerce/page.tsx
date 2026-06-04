@@ -11,6 +11,9 @@
 //   해서 사용자가 "왜 안 보이지" 혼란. onError 시 자체 호스팅 placeholder 로 src 교체 →
 //   항상 가시적 이미지 보장. adminCommerce.ts 의 normalize 도 null 일 때 같은 placeholder
 //   주입하므로 서버 응답이 null 이어도 빈 칸이 안 됨.
+// 2026-06-05 — 사용자 요청: 카테고리는 APP Shop(dollsoomSeries) 라벨 풀에서 결정론적 랜덤.
+//   서버 category 값이 있으면 그대로 표시하고, 비어 있을 때만 상품 id seed 기반
+//   결정론적 hash 로 APP Shop 라벨 풀에서 하나를 골라 fallback 표기.
 
 import Link from "next/link";
 import { useEffect, useRef, useState, useTransition } from "react";
@@ -26,6 +29,7 @@ import {
   type ListProductsResult,
 } from "@/lib/actions/adminCommerce";
 import type { AdminCommerceProductRow } from "@/lib/adminApi";
+import { pickShopCategoryLabel } from "@/lib/shopCategoryLabels";
 
 export default function CommercePage() {
   const [state, setState] = useState<ListProductsResult | null>(null);
@@ -345,7 +349,13 @@ export default function CommercePage() {
                         </div>
                       ) : null}
                     </td>
-                    <td className="px-2 py-2 text-xs text-slate-600">{p.category ?? "—"}</td>
+                    <td className="px-2 py-2 text-xs text-slate-600">
+                      {/* 2026-06-05 — server category 가 있으면 우선, 없을 때만
+                          APP Shop(dollsoomSeries) 라벨 풀에서 결정론적 랜덤(id seed). */}
+                      {p.category && p.category.trim() !== ""
+                        ? p.category
+                        : pickShopCategoryLabel(p.id)}
+                    </td>
                     <td className="px-2 py-2 text-right tabular-nums">
                       {p.price.toLocaleString()}{p.currency === "USD" ? "$" : "원"}
                     </td>

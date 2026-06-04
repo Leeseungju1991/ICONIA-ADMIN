@@ -15,6 +15,7 @@ import {
   patchFeedPostAction,
   deleteFeedPostAction,
   bulkAttachFeedMediaAction,
+  bulkDeleteEmptyFeedPostsAction,
 } from "@/lib/actions/feed";
 
 // 피드 관리 (Feed).
@@ -273,6 +274,13 @@ export default function FeedPage() {
       </div>
 
       <BulkAttachMediaPanel
+        onDone={(msg) => {
+          setToast(msg);
+          void reload();
+        }}
+      />
+      {/* 2026-06-05 — 사용자 요청: 미디어 없는 글 일괄 삭제 + 동영상 1/3 혼합. */}
+      <BulkDeleteEmptyPanel
         onDone={(msg) => {
           setToast(msg);
           void reload();
@@ -715,21 +723,31 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 // 일괄 주입. 이미지(1장) / 이미지 여러장(3장) / 동영상 중 선택. server
 // POST /api/v1/admin/feed/posts/bulk-attach-media 호출. 기존 미디어 있는 게시물
 // 은 건드리지 않음 (server 측 where: media: { none: {} } 필터).
+// 2026-06-05 — 사용자 요청: 미디어 없는 글 일괄 삭제 + 동영상 1/3 혼합.
+//   "혼합 (1/3 동영상 + 2/3 이미지)" 라디오 옵션 추가. server 가 videoRatio 인식
+//   미배포 시 graceful 안내 메시지(액션 측 처리).
 function BulkAttachMediaPanel({ onDone }: { onDone: (msg: string) => void }) {
-  const [kind, setKind] = useState<"image" | "images" | "video">("image");
+  const [kind, setKind] = useState<"image" | "images" | "video" | "mixed">("image");
   const [pending, startTransition] = useTransition();
+
+  const KIND_LABEL: Record<typeof kind, string> = {
+    image: "이미지 1장",
+    images: "이미지 3장",
+    video: "동영상 1개",
+    mixed: "혼합 (1/3 동영상 + 2/3 이미지)",
+  };
 
   function submit() {
     if (typeof window !== "undefined") {
       const ok = window.confirm(
-        `미디어가 없는 모든 피드 게시물에 ${
-          kind === "image" ? "이미지 1장" : kind === "images" ? "이미지 3장" : "동영상"
-        } 을(를) 일괄 주입합니다.\n\n진행할까요?`,
+        `미디어가 없는 모든 피드 게시물에 ${KIND_LABEL[kind]} 을(를) 일괄 주입합니다.\n\n진행할까요?`,
       );
       if (!ok) return;
     }
     startTransition(async () => {
-      const r = await bulkAttachFeedMediaAction({ kind });
+      const r = await bulkAttachFeedMediaAction(
+        kind === "mixed" ? { kind, videoRatio: 0.33 } : { kind },
+      );
       if (!r.ok) {
         onDone(`일괄 주입 실패: ${r.message}`);
         return;
@@ -752,6 +770,7 @@ function BulkAttachMediaPanel({ onDone }: { onDone: (msg: string) => void }) {
               { v: "image", label: "이미지 1장" },
               { v: "images", label: "이미지 3장" },
               { v: "video", label: "동영상 1개" },
+              { v: "mixed", label: "혼합 (1/3 동영상 + 2/3 이미지)" },
             ] as const
           ).map((opt) => (
             <label
@@ -783,6 +802,75 @@ function BulkAttachMediaPanel({ onDone }: { onDone: (msg: string) => void }) {
           data-testid="btn-bulk-attach-media"
         >
           {pending ? "주입 중..." : "모든 게시물에 일괄 주입"}
+        </button>
+      </div>
+      {kind === "mixed" ? (
+        <p className="mt-3 text-[11px] text-amber-700">
+          ※ 혼합 모드는 SERVER 가 videoRatio 옵션을 인식해야 동작합니다. 미배포 시
+          graceful 안내 메시지가 표시됩니다.
+        </p>
+      ) : null}
+    </PanelCard>
+  );
+}
+
+// 2026-06-05 — 사용자 요청: 미디어 없는 글 일괄 삭제 + 동영상 1/3 혼합.
+//   미디어 없는 모든 게시물(media_count === 0) 을 영구 삭제합니다. server
+//   /bulk-delete-empty endpoint 미배포 — 액션 내부에서 listAdminFeedPosts 페이지
+//   스캔 → deleteAdminFeedPost 5개 chunk Promise.all. audit_log 는 server 책임.
+function BulkDeleteEmptyPanel({ onDone }: { onDone: (msg: string) => void }) {
+  const [pending, startTransition] = useTransition();
+
+  function submit() {
+    if (typeof window === "undefined") return;
+    const confirmed = window.confirm(
+      "미디어가 없는 모든 게시물을 영구 삭제합니다. 진행할까요?",
+    );
+    if (!confirmed) return;
+    const phrase = window.prompt(
+      `미디어 없는 글 일괄 삭제\n\n실행하려면 정확히 "EXECUTE" 를 입력하세요.`,
+    );
+    if (phrase !== "EXECUTE") {
+      onDone("실행 취소 — 확인 문구 불일치.");
+      return;
+    }
+    const reason = window.prompt("사유를 5자 이상 입력하세요 (감사 로그용)");
+    if (!reason || reason.trim().length < 5) {
+      onDone("실행 취소 — 사유는 5자 이상이어야 합니다.");
+      return;
+    }
+    startTransition(async () => {
+      const r = await bulkDeleteEmptyFeedPostsAction({ reason: reason.trim() });
+      if (!r.ok) {
+        onDone(`일괄 삭제 실패: ${r.message}`);
+        return;
+      }
+      onDone(
+        `일괄 삭제 완료 — 스캔 ${r.scanned}건, 삭제 ${r.deleted}건${
+          r.failed > 0 ? ` (실패 ${r.failed}건)` : ""
+        }.`,
+      );
+    });
+  }
+
+  return (
+    <PanelCard
+      title="미디어 없는 글 일괄 삭제"
+      description="첨부 미디어가 없는 모든 게시물을 영구 삭제합니다. (server bulk-delete-empty endpoint 미배포 — 클라이언트 우회: 페이지 스캔 + 5개 chunk 순차 삭제.) audit_log 는 deleteFeedPost server 측에서 자동 기록됩니다."
+    >
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-[12px] text-slate-600">
+          확인 문구 <span className="font-mono font-semibold">EXECUTE</span> + 사유 5자
+          이상이 필요합니다.
+        </p>
+        <button
+          type="button"
+          onClick={submit}
+          disabled={pending}
+          className="rounded-xl bg-rose-600 hover:bg-rose-700 px-4 py-2 text-sm text-white font-medium disabled:opacity-60"
+          data-testid="btn-bulk-delete-empty"
+        >
+          {pending ? "삭제 중..." : "미디어 없는 글 모두 삭제"}
         </button>
       </div>
     </PanelCard>
