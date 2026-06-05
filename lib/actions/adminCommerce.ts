@@ -14,7 +14,9 @@
 //   primary_image 가 null 이거나 빈 문자열이면 자체 호스팅 placeholder 로 fallback.
 //   외부 URL 이 살아있어도 onError 시 같은 placeholder 로 교체 (commerce/page.tsx, [productId]/page.tsx).
 //   이로써 외부 의존이 깨져도 어드민 화면이 빈 칸으로 보이지 않음.
-export const PRODUCT_IMAGE_PLACEHOLDER = "/placeholder-product.svg";
+// 2026-06-05 — "use server" 파일은 비-async export 금지 (Next.js Server Actions
+// 정합). 본 상수는 본 파일 내부에서만 사용되므로 export 제거 — 빌드 에러 해소.
+const PRODUCT_IMAGE_PLACEHOLDER = "/placeholder-product.svg";
 
 import { readSession } from "@/lib/authCookie";
 import {
