@@ -59,9 +59,8 @@ export default async function DashboardHome() {
   const reportsPendingDisplay =
     dash?.reportsPendingCount ?? (modRes.ok ? modRes.data.total_open : null);
 
-  // 2026-06-05 — 오류 추적 KPI: 4개 도메인 중 하나라도 ok 면 합계 산출, 전부 실패면 null → "—".
-  // 동시에 도메인별 카운트 + 심각도 집계 → 아래 차트 패널에 사용.
-  let errorTrackingCount: number | null = null;
+  // 2026-06-05 — 오류 추적 차트(도메인별 + 심각도) 데이터 집계.
+  //   KPI 칩(2차 라운드에서 제거됨)을 대체해 본 차트가 정본.
   let anyErrorOk = false;
   const errorDomainCounts: Record<ErrorDomain, number> = {
     firmware: 0,
@@ -96,9 +95,7 @@ export default async function DashboardHome() {
       }
     }
     errorDomainCounts[domain] = domainSum;
-    errorTrackingCount = (errorTrackingCount ?? 0) + domainSum;
   });
-  if (!anyErrorOk) errorTrackingCount = null;
   const errorChartHasData =
     anyErrorOk &&
     Object.values(errorDomainCounts).some((v) => v > 0);
@@ -136,7 +133,10 @@ export default async function DashboardHome() {
         </div>
       </Link>
 
-      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+      {/* 2026-06-05 (2차) — 사용자 요청: "오류추적 KPI 칩 삭제, 나머지 3개를 가로로 여백없이 채워라".
+          4-칼럼 → 3-칼럼 grid + gap-0. 오류 추적 합계는 아래 "오류 추적 — 24h 분포" 차트
+          패널이 정본으로 노출하므로 KPI 칩에서는 제거 (정보 중복 해소). */}
+      <section className="grid grid-cols-3 gap-0">
         <KpiChip
           tone="indigo"
           icon="device"
@@ -167,22 +167,6 @@ export default async function DashboardHome() {
           }
           trend={trend?.reports_pending}
         />
-        {/* 2026-06-05 — 큐 적체 → 오류 추적. 클릭 시 /dashboard/error-tracking 진입. */}
-        <Link href="/dashboard/error-tracking" className="block">
-          <KpiChip
-            tone="pink"
-            icon="alert"
-            label="오류 추적"
-            value={DASH(errorTrackingCount)}
-            sub={
-              errorTrackingCount == null
-                ? ""
-                : errorTrackingCount > 0
-                  ? "확인 필요"
-                  : "정상"
-            }
-          />
-        </Link>
       </section>
 
       {/* 2026-06-05 — 오류 추적 차트 패널. KPI 칩(합계)과 error-tracking 페이지 사이의
