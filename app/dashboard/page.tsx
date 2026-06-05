@@ -2,7 +2,7 @@ import Link from "next/link";
 import { PanelCard } from "./_components/PanelCard";
 import { ForbiddenNotice } from "./_components/ForbiddenNotice";
 import { KpiChip } from "./_components/KpiChip";
-import { ProgressBar } from "./_components/SimpleChart";
+import { BarChart, Donut, ProgressBar } from "./_components/SimpleChart";
 import { fetchGeminiKeysAction } from "@/lib/actions/gemini";
 import { listReportsAction } from "@/lib/actions/reportsAdmin";
 import { listErrorsAction } from "@/lib/actions/errorsTracking";
@@ -60,20 +60,48 @@ export default async function DashboardHome() {
     dash?.reportsPendingCount ?? (modRes.ok ? modRes.data.total_open : null);
 
   // 2026-06-05 — 오류 추적 KPI: 4개 도메인 중 하나라도 ok 면 합계 산출, 전부 실패면 null → "—".
+  // 동시에 도메인별 카운트 + 심각도 집계 → 아래 차트 패널에 사용.
   let errorTrackingCount: number | null = null;
   let anyErrorOk = false;
-  for (const r of errorResults) {
-    if (r.ok) {
-      anyErrorOk = true;
-      errorTrackingCount =
-        (errorTrackingCount ?? 0) +
-        r.data.items.reduce(
-          (s, e) => s + (e.count_24h ?? e.sample_count ?? 0),
-          0,
-        );
+  const errorDomainCounts: Record<ErrorDomain, number> = {
+    firmware: 0,
+    server: 0,
+    ai: 0,
+    app: 0,
+  };
+  const errorSeverityCounts: Record<string, number> = {
+    critical: 0,
+    error: 0,
+    warn: 0,
+    info: 0,
+  };
+  errorResults.forEach((r, idx) => {
+    if (!r.ok) return;
+    anyErrorOk = true;
+    const domain = ERROR_DOMAINS[idx];
+    let domainSum = 0;
+    for (const e of r.data.items) {
+      const ev = e.count_24h ?? e.sample_count ?? 0;
+      domainSum += ev;
+      // server 정본 severity (info|warn|error|fatal) + legacy (low|medium|high|critical) 매핑.
+      const sev = e.severity;
+      if (sev === "critical" || sev === "fatal" || sev === "high") {
+        errorSeverityCounts.critical += ev;
+      } else if (sev === "error") {
+        errorSeverityCounts.error += ev;
+      } else if (sev === "warn" || sev === "medium") {
+        errorSeverityCounts.warn += ev;
+      } else {
+        errorSeverityCounts.info += ev;
+      }
     }
-  }
+    errorDomainCounts[domain] = domainSum;
+    errorTrackingCount = (errorTrackingCount ?? 0) + domainSum;
+  });
   if (!anyErrorOk) errorTrackingCount = null;
+  const errorChartHasData =
+    anyErrorOk &&
+    Object.values(errorDomainCounts).some((v) => v > 0);
 
   return (
     <div className="space-y-5">
@@ -156,6 +184,58 @@ export default async function DashboardHome() {
           />
         </Link>
       </section>
+
+      {/* 2026-06-05 — 오류 추적 차트 패널. KPI 칩(합계)과 error-tracking 페이지 사이의
+          중간 가시화 — 도메인별 24h 막대 + 심각도 도넛 2분할. server `/api/v1/admin/errors/*`
+          정본의 listErrorsAction 4종 응답을 재사용 (KPI 와 동일 소스). */}
+      <PanelCard
+        title="오류 추적 — 24h 분포"
+        description="펌웨어 / 서버 / AI / 앱 도메인 24시간 이벤트 건수와 심각도 분포입니다."
+        actions={
+          <Link href="/dashboard/error-tracking" className="btn-outline text-xs">
+            자세히 →
+          </Link>
+        }
+      >
+        {!anyErrorOk ? (
+          <div className="text-sm text-slate-500">
+            오류 추적 데이터를 불러오지 못했습니다 (Server 미응답).
+          </div>
+        ) : !errorChartHasData ? (
+          <div className="text-sm text-slate-500">
+            최근 24시간 동안 기록된 오류 이벤트가 없습니다. (양호)
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div className="lg:col-span-2">
+              <div className="text-xs text-slate-500 mb-2">도메인별 이벤트 수</div>
+              <BarChart
+                data={[
+                  { label: "펌웨어", value: errorDomainCounts.firmware },
+                  { label: "서버", value: errorDomainCounts.server },
+                  { label: "AI", value: errorDomainCounts.ai },
+                  { label: "앱", value: errorDomainCounts.app },
+                ]}
+                accent="#EC4899"
+                height={160}
+              />
+            </div>
+            <div>
+              <div className="text-xs text-slate-500 mb-2">심각도 분포</div>
+              <Donut
+                segments={[
+                  { label: "긴급", value: errorSeverityCounts.critical, color: "#E11D48" },
+                  { label: "에러", value: errorSeverityCounts.error,    color: "#F97316" },
+                  { label: "경고", value: errorSeverityCounts.warn,     color: "#F59E0B" },
+                  { label: "정보", value: errorSeverityCounts.info,     color: "#64748B" },
+                ]}
+                size={120}
+                thickness={18}
+              />
+            </div>
+          </div>
+        )}
+      </PanelCard>
 
       {/* Gemini API Key 사용량 카드 — 본문 마지막 섹션. 사이드바 footer(로그아웃)와 정렬. */}
       <PanelCard
