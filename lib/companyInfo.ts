@@ -53,10 +53,12 @@ export const COMPANY_INFO_PLACEHOLDER: BusinessInfo = {
   ecommerce_registration_no: "출시 전 등록 예정",
   address_ko: "출시 전 등록 예정",
   address_en: "To be registered before launch",
-  phone: "출시 전 등록 예정",
+  // 대표 전화 — (주)숨코리아 정식 번호 (CI/docs/legal/business-info.md 와 정합).
+  phone: "02-2038-2935",
   // 이메일 도메인은 `6. CI/docs/legal/business-info.md` 정본과 일치 (dollsoom.com).
   support_email: "support@dollsoom.com",
-  privacy_officer: "출시 전 지정 예정",
+  // PIPA 제31조 지정 DPO. Server `/api/v1/legal/business-info` 도입 시 동기화.
+  privacy_officer: "이승주",
   privacy_officer_email: "privacy@dollsoom.com",
   placeholder: true,
 };

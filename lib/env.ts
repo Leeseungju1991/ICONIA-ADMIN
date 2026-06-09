@@ -85,3 +85,9 @@ export function loadIdleTimeoutMinutes(): number {
   if (n > MAX_IDLE_TIMEOUT_MIN) return MAX_IDLE_TIMEOUT_MIN;
   return n;
 }
+
+// 2026-06-09 ROLLBACK — loadGeminiKeyStorePath() 제거.
+// admin 이 평문 사용자 키를 다루는 키 스토어 경로 의존성 폐기.
+// per-user 키는 APP Settings 에서 입력 → 2. SERVER 가 KEK 로 암호화해
+// user_gemini_key Postgres 테이블에 보관한다. admin 콘솔은 env-pooled 키
+// 메타데이터만 관리.

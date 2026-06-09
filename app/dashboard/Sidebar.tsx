@@ -51,7 +51,6 @@ const nav: NavItem[] = [
   { to: "/dashboard/reports", label: "신고된 피드", icon: MegaphoneIcon },
   { to: "/dashboard/notice-push", label: "공지·푸시 관리", icon: BellIcon },
   { to: "/dashboard/error-tracking", label: "오류 추적", icon: ServerIcon },
-  { to: "/dashboard/audit", label: "감사 로그", icon: ShieldIcon },
 ];
 
 // 사이드바에서 빠졌지만 직접 URL 입력 시 노출되는 페이지들의 타이틀 (TopbarRich 용).
@@ -128,7 +127,6 @@ function subtitleFor(to: string): string {
     case "/dashboard/commerce": return "커머스 표면 운영 — 배너 / 주문 read-only.";
     case "/dashboard/commerce/banners": return "메인 배너 등록·정렬·노출 기간 관리.";
     case "/dashboard/commerce/orders": return "주문 조회 (display-only) — 결제·환불 액션 없음.";
-    case "/dashboard/audit": return "AuditLog 통합 뷰어 — secops+ 전용. action / outcome / 운영자 / 기간 필터.";
     case "/dashboard/moderation": return "미해결 신고 통합 — 욕설/혐오/스팸 게시물·댓글·사용자·리뷰를 한 화면에서 처리.";
     case "/dashboard/error-tracking": return "기능별 24시간 에러 — 스택, 빈도, 영향 사용자 수.";
     case "/dashboard/ota-deploy": return "펌웨어 업로드 + 디바이스 그룹 선택 + 단계 배포.";

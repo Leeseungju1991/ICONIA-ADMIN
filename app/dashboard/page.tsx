@@ -2,22 +2,27 @@ import Link from "next/link";
 import { PanelCard } from "./_components/PanelCard";
 import { ForbiddenNotice } from "./_components/ForbiddenNotice";
 import { KpiChip } from "./_components/KpiChip";
-import { BarChart, Donut, ProgressBar } from "./_components/SimpleChart";
+import { BarChart, Donut } from "./_components/SimpleChart";
 import { fetchGeminiKeysAction } from "@/lib/actions/gemini";
 import { listReportsAction } from "@/lib/actions/reportsAdmin";
 import { listErrorsAction } from "@/lib/actions/errorsTracking";
-import { geminiRatioTone, summarizeKeys } from "@/fixtures/gemini";
 import { fetchAdminOverviewAction } from "@/lib/actions/overview";
 import type { ErrorDomain } from "@/types/admin-api";
 
 export const dynamic = "force-dynamic";
 
 // 2026-06-01 정본화: 운영자 요청으로 대시보드 home 을 핵심 KPI + Gemini 사용량 두 섹션으로 압축.
-// - 제거: HeroBanner, SummaryCardCarousel(4-카드), ProfileRail(우측 레일), 모더레이션 강조 카드.
-//   사이드바 footer "로그아웃" 버튼이 본문 "Gemini API 사용량" 섹션과 같은 높이로 끝나도록 단축.
-// - 남김: 4-KPI chip(활성 디바이스/DAU/신고 대기/오류 추적) + Gemini API 사용량 패널.
-//   2026-06-05 — 큐 적체 → 오류 추적(4-도메인 24h 합계) 으로 교체.
-//   모든 값은 Server `/api/v1/admin/overview` 정본만 표시. 미응답 시 "—" 무음 표시.
+// - 신고 대기 강조 배너 + 3-KPI chip(활성 디바이스/DAU/오류 추적 이벤트) + 오류 추적
+//   24h 분포 패널 + API 사용량 패널 4개 섹션.
+// - 모든 값은 Server `/api/v1/admin/overview` + `/api/v1/admin/errors/*` 정본만 표시.
+//   미응답 시 "—" 무음 표시.
+// 2026-06-09 — 사용자 요청 3종:
+//   (1) 3-box KPI 마지막 칸: 신고 대기 → 오류 추적 이벤트 개수 (errorEventsTotal,
+//       /dashboard/error-tracking 으로 클릭 이동).
+//   (2) 오류 추적 차트: count_24h/sample_count 둘 다 null 일 때 row 당 1로 폴백
+//       (이벤트 row 가 있는데 sum=0 으로 그래프가 빈 화면 되던 회귀 fix).
+//   (3) API 사용량 패널: per-key bar 리스트 제거, 4-stat (등록/활성화/비활성화/사용량%)
+//       만 노출.
 
 export default async function DashboardHome() {
   const overviewResult = await fetchAdminOverviewAction();
@@ -53,9 +58,29 @@ export default async function DashboardHome() {
     Promise.all(ERROR_DOMAINS.map((d) => listErrorsAction({ domain: d, since: since24h }))),
   ]);
   const geminiKeys = geminiRes.ok ? geminiRes.data.items : [];
-  const geminiSummary = summarizeKeys(geminiKeys);
-  // 신고 대기 KPI 는 overview.reports_pending 가 정본이지만, overview 실패 시
-  // listReportsAction 의 total_open 으로 fallback.
+  // 2026-06-09 — API 사용량 패널 단순화: 등록/활성화/비활성화 키 수 + 총 사용량 %.
+  //   사용량 % = sum(tokens_24h) / sum(tokens_daily_limit) * 100 (token 한도 기준).
+  //   token 한도 정본이 없으면 키별 usage_ratio_24h 평균으로 폴백.
+  const geminiStats = (() => {
+    const total = geminiKeys.length;
+    const enabled = geminiKeys.filter((k) => k.status === "active").length;
+    const disabled = total - enabled;
+    let usagePct = 0;
+    const totalUsed = geminiKeys.reduce((s, k) => s + (k.tokens_24h ?? 0), 0);
+    const totalQuota = geminiKeys.reduce(
+      (s, k) => s + (k.tokens_daily_limit ?? 0),
+      0,
+    );
+    if (totalQuota > 0) {
+      usagePct = Math.round((totalUsed / totalQuota) * 100);
+    } else if (total > 0) {
+      const avg =
+        geminiKeys.reduce((s, k) => s + (k.usage_ratio_24h ?? 0), 0) / total;
+      usagePct = Math.round(avg * 100);
+    }
+    return { total, enabled, disabled, usagePct };
+  })();
+  // 신고 대기 강조 배너용 — overview.reports_pending 정본 + listReportsAction fallback.
   const reportsPendingDisplay =
     dash?.reportsPendingCount ?? (modRes.ok ? modRes.data.total_open : null);
 
@@ -80,7 +105,9 @@ export default async function DashboardHome() {
     const domain = ERROR_DOMAINS[idx];
     let domainSum = 0;
     for (const e of r.data.items) {
-      const ev = e.count_24h ?? e.sample_count ?? 0;
+      // 2026-06-09 — fix: 서버 응답이 count_24h/sample_count 둘 다 누락이어도 row 자체가
+      //   1건의 이벤트를 의미. 0으로 누적되어 그래프가 비어 보이던 회귀 해결.
+      const ev = e.count_24h ?? e.sample_count ?? 1;
       domainSum += ev;
       // server 정본 severity (info|warn|error|fatal) + legacy (low|medium|high|critical) 매핑.
       const sev = e.severity;
@@ -99,6 +126,10 @@ export default async function DashboardHome() {
   const errorChartHasData =
     anyErrorOk &&
     Object.values(errorDomainCounts).some((v) => v > 0);
+  // 2026-06-09 — 3-box KPI 마지막 칸 "오류 추적 이벤트" 용 24h 합계.
+  const errorEventsTotal = anyErrorOk
+    ? Object.values(errorDomainCounts).reduce((s, v) => s + v, 0)
+    : null;
 
   return (
     <div className="space-y-5">
@@ -133,9 +164,9 @@ export default async function DashboardHome() {
         </div>
       </Link>
 
-      {/* 2026-06-05 (2차) — 사용자 요청: "오류추적 KPI 칩 삭제, 나머지 3개를 가로로 여백없이 채워라".
-          4-칼럼 → 3-칼럼 grid + gap-0. 오류 추적 합계는 아래 "오류 추적 — 24h 분포" 차트
-          패널이 정본으로 노출하므로 KPI 칩에서는 제거 (정보 중복 해소). */}
+      {/* 2026-06-09 — 사용자 요청: 마지막 KPI 박스 "신고 대기" → "오류 추적 이벤트".
+          - 활성 디바이스 / DAU 두 칸 + 오류 추적 이벤트 (errorEventsTotal, 24h 합계).
+          - 클릭 시 /dashboard/error-tracking 으로 이동. */}
       <section className="grid grid-cols-3 gap-0">
         <KpiChip
           tone="indigo"
@@ -153,20 +184,25 @@ export default async function DashboardHome() {
           sub=""
           trend={trend?.dau}
         />
-        <KpiChip
-          tone="orange"
-          icon="alert"
-          label="신고 대기"
-          value={DASH(reportsPendingDisplay)}
-          sub={
-            reportsPendingDisplay == null
-              ? ""
-              : reportsPendingDisplay > 0
-                ? "검토 필요"
-                : "정상"
-          }
-          trend={trend?.reports_pending}
-        />
+        <Link
+          href="/dashboard/error-tracking"
+          className="block rounded-2xl hover:shadow-card transition"
+          aria-label="오류 추적 이벤트로 이동"
+        >
+          <KpiChip
+            tone="pink"
+            icon="alert"
+            label="오류 추적 이벤트"
+            value={DASH(errorEventsTotal)}
+            sub={
+              errorEventsTotal == null
+                ? "데이터 없음"
+                : errorEventsTotal > 0
+                  ? "24시간 합계"
+                  : "정상"
+            }
+          />
+        </Link>
       </section>
 
       {/* 2026-06-05 — 오류 추적 차트 패널. KPI 칩(합계)과 error-tracking 페이지 사이의
@@ -221,10 +257,11 @@ export default async function DashboardHome() {
         )}
       </PanelCard>
 
-      {/* Gemini API Key 사용량 카드 — 본문 마지막 섹션. 사이드바 footer(로그아웃)와 정렬. */}
+      {/* Gemini API Key 사용량 카드 — 본문 마지막 섹션. 사이드바 footer(로그아웃)와 정렬.
+          2026-06-09 — 사용자 요청: per-key bar 리스트 제거 + 4-stat (등록/활성화/비활성화/사용량%) 만. */}
       <PanelCard
-        title="Gemini API 사용량"
-        description="키별 일일 한도 대비 사용량입니다. 80% 도달 시 주의, 95% 이상은 키 추가가 권장됩니다."
+        title="API 사용량"
+        description="등록된 Gemini 키 요약 및 일일 한도 대비 총 사용량입니다."
         actions={
           // 2026-06-05 — AI 사용량 메뉴 제거에 따라 Gemini Key 관리로 진입.
           <Link href="/dashboard/gemini" className="btn-outline text-xs">
@@ -235,46 +272,26 @@ export default async function DashboardHome() {
         {geminiKeys.length === 0 ? (
           <div className="text-sm text-slate-500">등록된 Gemini 키가 없습니다.</div>
         ) : (
-          <>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
-              <MiniMetric label="등록 키" value={String(geminiSummary.total)} tone="muted" />
-              <MiniMetric label="활성" value={String(geminiSummary.active)} tone="ok" />
-              <MiniMetric label="80%+" value={String(geminiSummary.warn)} tone={geminiSummary.warn > 0 ? "warn" : "muted"} />
-              <MiniMetric label="95%+" value={String(geminiSummary.critical)} tone={geminiSummary.critical > 0 ? "critical" : "muted"} />
-            </div>
-            <ul className="grid grid-cols-1 lg:grid-cols-2 gap-2">
-              {geminiKeys.slice(0, 4).map((k) => {
-                const tone = geminiRatioTone(k.usage_ratio_24h);
-                return (
-                  <li
-                    key={k.id}
-                    className={[
-                      "rounded-xl border px-3 py-2",
-                      tone === "critical"
-                        ? "border-rose-300 bg-rose-50/50"
-                        : tone === "warn"
-                          ? "border-amber-300 bg-amber-50/50"
-                          : "border-slate-200 bg-white",
-                    ].join(" ")}
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="text-sm font-semibold text-slate-900 truncate">{k.label}</span>
-                        <span className="font-mono text-[10px] text-slate-500">…{k.last4}</span>
-                        {tone === "critical" ? <span className="chip chip-error">구매 권장</span> : null}
-                      </div>
-                      <span className="text-xs font-mono text-slate-700">
-                        {Math.round(k.usage_ratio_24h * 100)}%
-                      </span>
-                    </div>
-                    <div className="mt-1.5">
-                      <ProgressBar ratio={k.usage_ratio_24h} tone={tone} />
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          </>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <MiniMetric label="등록 키" value={String(geminiStats.total)} tone="muted" />
+            <MiniMetric label="활성화" value={String(geminiStats.enabled)} tone="ok" />
+            <MiniMetric
+              label="비활성화"
+              value={String(geminiStats.disabled)}
+              tone={geminiStats.disabled > 0 ? "warn" : "muted"}
+            />
+            <MiniMetric
+              label="사용량 %"
+              value={`${geminiStats.usagePct}%`}
+              tone={
+                geminiStats.usagePct >= 95
+                  ? "critical"
+                  : geminiStats.usagePct >= 80
+                    ? "warn"
+                    : "ok"
+              }
+            />
+          </div>
         )}
       </PanelCard>
     </div>

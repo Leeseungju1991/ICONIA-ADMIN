@@ -78,7 +78,9 @@ export default function ErrorTrackingPage() {
   const stats = useMemo(() => {
     // 2026-06-04 — server 응답이 count_24h/affected_users 를 항상 채우지 않는다 (정본은
     // sample_count). undefined 대비 ?? 0 으로 방어 — 과거 .toLocaleString() 크래시 원인.
-    const total = items.reduce((s, e) => s + (e.count_24h ?? e.sample_count ?? 0), 0);
+    // 2026-06-09 — 둘 다 null/undefined 이면 row 자체가 1건의 이벤트. 0 폴백 시
+    //   합계가 0으로 표기돼 "이벤트 없음" 처럼 보이던 회귀를 1 폴백으로 해결.
+    const total = items.reduce((s, e) => s + (e.count_24h ?? e.sample_count ?? 1), 0);
     const affected = items.reduce((s, e) => s + (e.affected_users ?? 0), 0);
     const critical = items.filter(
       (e) => e.severity === "critical" || e.severity === "fatal",

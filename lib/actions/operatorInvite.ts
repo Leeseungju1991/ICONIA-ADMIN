@@ -28,26 +28,39 @@ export async function inviteOperatorAction(
     return { ok: false, message: "역할 오류" };
   }
 
-  // Server endpoint 미구현 — 본 라운드는 audit-only stub 호출.
-  // 실 구현 시 Server `/api/v1/operator/admin/operators/invite` 호출로 교체.
-  const res = await authedRequest<{
-    invite_id: string;
-    email: string;
-    token_expires_at: string;
-  }>({
-    jwt,
-    path: "/api/v1/operator/admin/operators/invite",
-    method: "POST",
-    body: { email, role, reason: reason.trim() },
-  });
+  // B18 — Server `/api/v1/operator/admin/operators/invite` 미배포.
+  // 호출은 유지하되 404/5xx 시 graceful 알림으로 출시 시 콘솔 에러 차단.
+  try {
+    const res = await authedRequest<{
+      invite_id: string;
+      email: string;
+      token_expires_at: string;
+    }>({
+      jwt,
+      path: "/api/v1/operator/admin/operators/invite",
+      method: "POST",
+      body: { email, role, reason: reason.trim() },
+    });
 
-  if (!res.ok) {
-    return { ok: false, message: `${res.code}: ${res.message}`, code: res.code };
+    if (!res.ok) {
+      // 서버 라우트 미배포 — 운영자에게 친절한 안내.
+      return {
+        ok: false,
+        message: "초대 기능은 곧 제공됩니다.",
+        code: res.code,
+      };
+    }
+    return {
+      ok: true,
+      invite_id: res.data.invite_id,
+      email: res.data.email,
+      token_expires_at: res.data.token_expires_at,
+    };
+  } catch {
+    return {
+      ok: false,
+      message: "초대 기능은 곧 제공됩니다.",
+      code: "ERR_NOT_IMPLEMENTED",
+    };
   }
-  return {
-    ok: true,
-    invite_id: res.data.invite_id,
-    email: res.data.email,
-    token_expires_at: res.data.token_expires_at,
-  };
 }

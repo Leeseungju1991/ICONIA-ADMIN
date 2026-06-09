@@ -6,6 +6,16 @@
 //
 // 백엔드 미연동 — Server 측 `/api/v1/admin/ops/*` (미정) 엔드포인트 도입 후
 // 본 모듈은 `lib/adminApi.ts` 로 교체. UI 계약은 그대로 유지.
+//
+// Mock-17 — production NODE_ENV 게이트.
+// production 빌드에서는 mock 배열을 빈 배열로 노출하여 운영자가 데모 데이터로
+// 오인하지 않도록 한다 (UI 가 "운영 도구 준비 중" 라벨 표시).
+// dev/preview 환경에서는 기존 mock 동작 유지.
+const OPS_MOCK_DISABLED = process.env.NODE_ENV === "production";
+
+export const OPS_MOCK_NOTICE = OPS_MOCK_DISABLED
+  ? "운영 도구 준비 중"
+  : null;
 
 // ── 1) observability — 서비스 헬스 / SLO / 알람 대시보드 ─────────
 export type HealthProbeRow = {
@@ -21,7 +31,7 @@ export type HealthProbeRow = {
   checked_at: string;
 };
 
-export const mockHealthProbes: HealthProbeRow[] = [
+const _mockHealthProbes_raw: HealthProbeRow[] = [
   { id: "hp_001", service: "express-api", region: "KR", status: "ok", latency_p50_ms: 42, latency_p95_ms: 180, error_rate_pct: 0.4, checked_at: "2026-05-20T11:30:00Z" },
   { id: "hp_002", service: "ai-worker", region: "KR", status: "degraded", latency_p50_ms: 920, latency_p95_ms: 3100, error_rate_pct: 4.2, checked_at: "2026-05-20T11:30:00Z" },
   { id: "hp_003", service: "persona", region: "KR", status: "ok", latency_p50_ms: 380, latency_p95_ms: 1200, error_rate_pct: 1.1, checked_at: "2026-05-20T11:30:00Z" },
@@ -49,7 +59,7 @@ export type OpsAlertRow = {
   body: string;
 };
 
-export const mockOpsAlerts: OpsAlertRow[] = [
+const _mockOpsAlerts_raw: OpsAlertRow[] = [
   {
     id: "alr_001",
     severity: "critical",
@@ -126,7 +136,7 @@ export type TraceEvent = {
   payload_preview: string;
 };
 
-export const mockTraces: TraceEvent[] = [
+const _mockTraces_raw: TraceEvent[] = [
   {
     id: "tr_001",
     trace_id: "trc_5f7c2e",
@@ -225,7 +235,7 @@ export type DeadLetterRow = {
   payload_preview: string;
 };
 
-export const mockDeadLetters: DeadLetterRow[] = [
+const _mockDeadLetters_raw: DeadLetterRow[] = [
   {
     id: "dlq_001",
     queue: "billing-webhook",
@@ -349,7 +359,7 @@ export type KillSwitchState = {
   last_reason: string | null;
 };
 
-export const mockKillSwitches: KillSwitchState[] = [
+const _mockKillSwitches_raw: KillSwitchState[] = [
   {
     kind: "ai.calls",
     label: "AI 호출 차단",
@@ -417,7 +427,7 @@ export type FeatureFlagRow = {
   updated_by: string | null;
 };
 
-export const mockFeatureFlags: FeatureFlagRow[] = [
+const _mockFeatureFlags_raw: FeatureFlagRow[] = [
   {
     key: "social_feed.v2",
     label: "소셜 피드 v2",
@@ -469,6 +479,25 @@ export const mockFeatureFlags: FeatureFlagRow[] = [
     updated_by: "ops@iconia.example.com",
   },
 ];
+
+// Mock-17 — NODE_ENV 게이트 적용된 export.
+// production 빌드에서는 빈 배열 노출 → UI 가 "운영 도구 준비 중" 라벨 표시.
+export const mockHealthProbes: HealthProbeRow[] = OPS_MOCK_DISABLED
+  ? []
+  : _mockHealthProbes_raw;
+export const mockOpsAlerts: OpsAlertRow[] = OPS_MOCK_DISABLED
+  ? []
+  : _mockOpsAlerts_raw;
+export const mockTraces: TraceEvent[] = OPS_MOCK_DISABLED ? [] : _mockTraces_raw;
+export const mockDeadLetters: DeadLetterRow[] = OPS_MOCK_DISABLED
+  ? []
+  : _mockDeadLetters_raw;
+export const mockKillSwitches: KillSwitchState[] = OPS_MOCK_DISABLED
+  ? []
+  : _mockKillSwitches_raw;
+export const mockFeatureFlags: FeatureFlagRow[] = OPS_MOCK_DISABLED
+  ? []
+  : _mockFeatureFlags_raw;
 
 // ── 6) recovery action 라벨 헬퍼 ─────────────────────────────────
 export const RECOVERY_ACTION_KIND_LIST: RecoveryActionKind[] = [

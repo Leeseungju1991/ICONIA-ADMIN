@@ -2,50 +2,23 @@
 
 import { useEffect, useState, useTransition, type FormEvent } from "react";
 import { PanelCard } from "../_components/PanelCard";
-import { LoadingState, EmptyState } from "../_components/CardStates";
 import {
   fetchGeminiKeysAction,
-  fetchGeminiUsageAction,
-  fetchGeminiQuotaAlertsAction,
   upsertGeminiKeyQuotaAction,
 } from "@/lib/actions/gemini";
 import type {
-  GeminiKeyRow,
   GeminiKeysResponse,
   GeminiKeyTier,
-  GeminiQuotaAlertsResponse,
-  GeminiUsageResponse,
 } from "@/types/admin-api";
 import type { GeminiTier as ServerGeminiTier } from "@/lib/adminApi";
 import { messageForCode } from "@/lib/errorMessages";
-// 2026-06-05 — 사용자 요청: 한도 추천 제거, Text/Voice/Image 사용량 측정으로 교체.
-import { progressBarColor, TIER_LABEL } from "./recommend";
 import { ModelTabSelector } from "./_components/ModelTabSelector";
 import {
-  MODEL_KIND_LABEL,
   MODEL_KIND_ORDER,
   DEFAULT_MODEL_BY_KIND,
-  decodeModelsFromNote,
   type AiModelKind,
   type ModelAssignments,
 } from "@/lib/aiModelCatalog";
-
-// 2026-06-02 — server 정식 `models` 컬럼이 비어있는 구 데이터 alias 에 한해
-// note 안의 `__models__=` prefix 를 디코딩하는 폴백.
-function modelsFromRow(row: GeminiKeyRow): ModelAssignments {
-  const fromCol = row.models;
-  if (fromCol && typeof fromCol === "object") {
-    const out: ModelAssignments = {};
-    for (const k of MODEL_KIND_ORDER) {
-      const v = fromCol[k];
-      if (typeof v === "string" && v.length > 0) out[k] = v;
-    }
-    if (Object.keys(out).length > 0) return out;
-  }
-  return decodeModelsFromNote(row.note).models;
-}
-
-type Range = "24h" | "7d" | "30d";
 
 const TIER_TO_SERVER: Record<GeminiKeyTier, ServerGeminiTier> = {
   free: "free",
@@ -54,23 +27,9 @@ const TIER_TO_SERVER: Record<GeminiKeyTier, ServerGeminiTier> = {
   tier3: "tier_3",
 };
 
-function fmtNumber(n: number): string {
-  return n.toLocaleString("ko-KR");
-}
-
-function fmtUsd(n: number): string {
-  return `$${n.toFixed(2)}`;
-}
-
 export default function GeminiClient() {
-  const [range, setRange] = useState<Range>("24h");
   const [keys, setKeys] = useState<GeminiKeysResponse | null>(null);
-  const [usage, setUsage] = useState<GeminiUsageResponse | null>(null);
-  const [usage7d, setUsage7d] = useState<GeminiUsageResponse | null>(null);
-  const [usage30d, setUsage30d] = useState<GeminiUsageResponse | null>(null);
-  const [alerts, setAlerts] = useState<GeminiQuotaAlertsResponse | null>(null);
-  const [error, setError] = useState<{ message: string; code?: string } | null>(null);
-  const [loading, startLoad] = useTransition();
+  const [, startLoad] = useTransition();
   const [mutating, startMutate] = useTransition();
   const [toast, setToast] = useState<string | null>(null);
   // 2026-06-02 — 키 등록 패널 풀열기 토글 (사용자 요청 ◈9). 기본 접힘 상태.
@@ -78,236 +37,22 @@ export default function GeminiClient() {
 
   function reload() {
     startLoad(async () => {
-      const [k, u, u7, u30, a] = await Promise.all([
-        fetchGeminiKeysAction(),
-        fetchGeminiUsageAction(range),
-        fetchGeminiUsageAction("7d"),
-        fetchGeminiUsageAction("30d"),
-        fetchGeminiQuotaAlertsAction(),
-      ]);
+      const k = await fetchGeminiKeysAction();
       if (k.ok) setKeys(k.data);
-      else {
-        setError({ message: k.message, code: k.code });
-        setKeys(null);
-      }
-      if (u.ok) setUsage(u.data);
-      if (u7.ok) setUsage7d(u7.data);
-      if (u30.ok) setUsage30d(u30.data);
-      if (a.ok) setAlerts(a.data);
+      else setKeys(null);
     });
   }
 
   useEffect(() => {
     reload();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [range]);
+  }, []);
 
   return (
     <div className="space-y-6">
-      {/* 2026-06-01 — 사용자 요청으로 간소화. 사용량 요약 / 알림 히스토리는 /dashboard/ai-usage 에 있어 중복 제거.
-          본 페이지는 키별 진행률·tier 추천 + 키 등록·한도 설정 두 패널만 유지. */}
-
-      {/* ───────────────── 키별 사용량 — 텍스트 / 음성 / 이미지 ─────────────────
-          2026-06-05 — 사용자 요청: 한도 추천 제거, Text/Voice/Image 사용량 측정으로 교체. */}
-      <PanelCard
-        title="키별 사용량 — 텍스트 / 음성 / 이미지"
-        description="키별로 텍스트·음성·이미지 미디어 사용량을 분류해 표시합니다. (할당 모델 기준 비례 분할 — 추후 서버 categorical_usage 직제공 예정)"
-        actions={
-          <button
-            type="button"
-            onClick={reload}
-            disabled={loading}
-            className="rounded-lg bg-white px-3 py-1.5 text-xs text-slate-700 border border-slate-300"
-          >
-            {loading ? "조회 중..." : "새로고침"}
-          </button>
-        }
-      >
-        {!keys && loading ? (
-          <LoadingState />
-        ) : !keys || keys.items.length === 0 ? (
-          <EmptyState
-            title="조회 가능한 키가 없습니다."
-            hint={error ? messageForCode(error.code, error.message) : undefined}
-          />
-        ) : (
-          <ul className="space-y-3">
-            {keys.items.map((k) => {
-              const pct = Math.min(1, k.usage_ratio_24h);
-              // 2026-06-05 — server 정식 `models` 컬럼 사용 + 구 note prefix 폴백.
-              const assignedModels = modelsFromRow(k);
-              const assignedCount =
-                MODEL_KIND_ORDER.filter((kind) => !!assignedModels[kind]).length;
-
-              // 카테고리 → 3종 미디어 묶음.
-              //   Text  = text + diary
-              //   Voice = tts + stt
-              //   Image = image
-              // 서버가 categorical_usage 를 내려주기 전까지, 키 전체 requests_24h /
-              // tokens_24h 를 "할당된 모델 수" 가중치로 비례 분할한다.
-              const textKinds: AiModelKind[] = ["text", "diary"];
-              const voiceKinds: AiModelKind[] = ["tts", "stt"];
-              const imageKinds: AiModelKind[] = ["image"];
-              const countKinds = (kinds: AiModelKind[]) =>
-                kinds.reduce(
-                  (acc, kind) => acc + (assignedModels[kind] ? 1 : 0),
-                  0,
-                );
-              const textCnt = countKinds(textKinds);
-              const voiceCnt = countKinds(voiceKinds);
-              const imageCnt = countKinds(imageKinds);
-              const totalCnt = textCnt + voiceCnt + imageCnt;
-
-              const splitReq = (cnt: number) =>
-                totalCnt > 0
-                  ? Math.round((k.requests_24h * cnt) / totalCnt)
-                  : 0;
-              const splitTok = (cnt: number) =>
-                totalCnt > 0
-                  ? Math.round((k.tokens_24h * cnt) / totalCnt)
-                  : 0;
-
-              const textReq = splitReq(textCnt);
-              const textTok = splitTok(textCnt);
-              const voiceReq = splitReq(voiceCnt);
-              const imageReq = splitReq(imageCnt);
-
-              // 비율 — 전체 키 usage_ratio_24h 를 각 그룹에 동일하게 적용 (가중치 비례 후 정규화).
-              const groupPct = (cnt: number) =>
-                totalCnt > 0 && cnt > 0 ? pct : 0;
-              const textPct = groupPct(textCnt);
-              const voicePct = groupPct(voiceCnt);
-              const imagePct = groupPct(imageCnt);
-
-              type MediaCell = {
-                label: string;
-                count: number;
-                pct: number;
-                primary: string;
-                secondary: string;
-              };
-              const cells: MediaCell[] = [
-                {
-                  label: "텍스트",
-                  count: textCnt,
-                  pct: textPct,
-                  primary: `${fmtNumber(textReq)} req`,
-                  secondary: `${fmtNumber(textTok)} tok`,
-                },
-                {
-                  label: "음성",
-                  count: voiceCnt,
-                  pct: voicePct,
-                  primary: `${fmtNumber(voiceReq)} req`,
-                  secondary: voiceCnt > 0 ? "TTS+STT" : "미할당",
-                },
-                {
-                  label: "이미지",
-                  count: imageCnt,
-                  pct: imagePct,
-                  primary: `${fmtNumber(imageReq)} req`,
-                  secondary: imageCnt > 0 ? "vision" : "미할당",
-                },
-              ];
-
-              return (
-                <li
-                  key={k.id}
-                  className="rounded-xl border border-slate-200 bg-white px-3 py-3"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="min-w-0">
-                      <div className="font-medium text-slate-800 text-sm">
-                        {k.label}
-                      </div>
-                      <div className="text-[11px] text-muted">
-                        last4 …{k.last4} · tier {TIER_LABEL[k.tier]} · {k.status}
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-[10px] text-muted">
-                        텍스트 {textCnt} / 음성 {voiceCnt} / 이미지 {imageCnt}
-                      </div>
-                      <div className="text-[10px] text-muted">
-                        합계 {fmtNumber(k.requests_24h)} req · {fmtNumber(k.tokens_24h)} tok
-                      </div>
-                    </div>
-                  </div>
-
-                  {assignedCount === 0 ? (
-                    <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-3 py-3 text-center text-xs text-slate-500">
-                      측정 데이터 없음 — 이 키에 할당된 모델 카테고리가 없습니다. 아래 「키 등록 · 한도 설정」 폼에서 모델을 지정하세요.
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-3 gap-2">
-                      {cells.map((cell) => {
-                        const disabled = cell.count === 0;
-                        const widthPct = Math.round(cell.pct * 100);
-                        return (
-                          <div
-                            key={cell.label}
-                            className={`rounded-lg border px-2 py-2 ${
-                              disabled
-                                ? "border-slate-200 bg-slate-50 opacity-70"
-                                : "border-slate-200 bg-white"
-                            }`}
-                          >
-                            <div className="flex items-center justify-between mb-1">
-                              <span className="text-[11px] font-semibold text-slate-800">
-                                {cell.label}
-                              </span>
-                              <span className="text-[10px] font-mono text-slate-600">
-                                {disabled ? "—" : `${widthPct}%`}
-                              </span>
-                            </div>
-                            <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden mb-1">
-                              <div
-                                className={`h-full transition-all ${
-                                  disabled
-                                    ? "bg-slate-300"
-                                    : progressBarColor(cell.pct)
-                                }`}
-                                style={{ width: `${widthPct}%` }}
-                              />
-                            </div>
-                            <div className="text-[10px] font-mono text-slate-700 leading-tight">
-                              {disabled ? "미할당" : cell.primary}
-                            </div>
-                            <div className="text-[10px] text-muted leading-tight">
-                              {cell.secondary}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-
-                  {assignedCount > 0 ? (
-                    <div className="mt-2 flex flex-wrap gap-1.5">
-                      {MODEL_KIND_ORDER.map((kind) => {
-                        const m = assignedModels[kind];
-                        if (!m) return null;
-                        return (
-                          <span
-                            key={kind}
-                            title={`${MODEL_KIND_LABEL[kind]} → ${m}`}
-                            className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-slate-700"
-                          >
-                            <span className="font-semibold">
-                              {MODEL_KIND_LABEL[kind]}
-                            </span>
-                            <span className="font-mono">{m}</span>
-                          </span>
-                        );
-                      })}
-                    </div>
-                  ) : null}
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </PanelCard>
+      {/* 2026-06-08 — 사용자 요청: "키별 사용량 — 텍스트/음성/이미지" 패널 제거.
+          본 페이지는 키 등록·한도 설정 단일 책임으로 축소. 키별 사용량 시계열은
+          /dashboard/ai-usage 에서 확인. */}
 
       {/* ───────────────── 키 등록 · 한도 설정 ─────────────────
           2026-06-02 — 사용자 요청 ◈9: 풀열기 버튼을 크고 잘 보이도록 강화. 기본 접힘
@@ -398,6 +143,12 @@ export default function GeminiClient() {
         </div>
       </PanelCard>
 
+      {/* 2026-06-09 ROLLBACK — LocalKeyStorePanel 제거.
+          admin 이 평문 사용자 키를 보관/주입하는 BYOK-위반 경로를 폐기.
+          이제 각 APP 사용자가 본인 Gemini 키를 Settings 에서 직접 등록한다
+          (per-user 암호화 저장 — 2. SERVER user_gemini_key 테이블). admin 콘솔은
+          env 기반 pooled 키(사내/시연용) 메타데이터만 관리한다. */}
+
       {toast ? (
         <div className="fixed bottom-6 right-6 z-50 rounded-2xl bg-slate-900/85 text-white text-sm px-4 py-3 shadow-card">
           {toast}
@@ -410,30 +161,6 @@ export default function GeminiClient() {
           </button>
         </div>
       ) : null}
-    </div>
-  );
-}
-
-function UsageStat({
-  label,
-  data,
-}: {
-  label: string;
-  data: GeminiUsageResponse | null;
-}) {
-  return (
-    <div className="rounded-xl border border-slate-200 bg-white px-3 py-3">
-      <div className="text-[11px] text-muted mb-1">{label}</div>
-      <div className="text-lg font-semibold text-slate-900">
-        {data ? fmtNumber(data.total_requests) : "—"}{" "}
-        <span className="text-xs font-normal text-muted">req</span>
-      </div>
-      <div className="text-xs text-slate-700 mt-0.5">
-        {data ? fmtNumber(data.total_tokens) : "—"} tok
-      </div>
-      <div className="text-xs text-muted mt-0.5">
-        {data ? fmtUsd(data.total_cost_usd) : "—"}
-      </div>
     </div>
   );
 }

@@ -408,7 +408,9 @@ export function getAiHealth(args: {
 }): Promise<ServerResult<AiHealthSnapshot>> {
   return authedRequest<AiHealthSnapshot>({
     jwt: args.jwt,
-    path: `/api/v1/admin/ai-health`,
+    // B19 — Server 정본은 `/api/admin/ai/health` (v0 prefix).
+    // 기존 `/api/v1/admin/ai-health` 는 미배포 → 404 가능.
+    path: `/api/admin/ai/health`,
     method: "GET",
   });
 }
@@ -1643,10 +1645,22 @@ export function resolveFeedReport(args: {
 // Phase 15-A — Notices CRUD (CS_OR_ABOVE).
 // ---------------------------------------------------------------------------
 
+// 2026-06-09 T03 — 공지 다국어. 운영자가 ko/en/ja/zh 4종 본문을 모두 입력 가능하며
+//   서버는 그대로 JSON 컬럼(`title_i18n`/`body_i18n`)에 보관 + ko 값을 단일 컬럼(title/body)
+//   에 fallback 으로 동기 기입 (구버전 APP 호환).
+export type NoticeI18n = {
+  ko?: string;
+  en?: string;
+  ja?: string;
+  zh?: string;
+};
+
 export type NoticeRow = {
   id: string;
   title: string;
   body: string;
+  title_i18n: NoticeI18n | null;
+  body_i18n: NoticeI18n | null;
   audience: string;
   scheduled_at: string | null;
   expires_at: string | null;
@@ -1657,6 +1671,8 @@ export function createNotice(args: {
   jwt: string;
   title: string;
   body: string;
+  title_i18n?: NoticeI18n | null;
+  body_i18n?: NoticeI18n | null;
   audience?: string;
   scheduled_at?: string;
   expires_at?: string;
@@ -1668,6 +1684,8 @@ export function createNotice(args: {
     body: {
       title: args.title,
       body: args.body,
+      ...(args.title_i18n ? { title_i18n: args.title_i18n } : {}),
+      ...(args.body_i18n ? { body_i18n: args.body_i18n } : {}),
       ...(args.audience ? { audience: args.audience } : {}),
       ...(args.scheduled_at ? { scheduled_at: args.scheduled_at } : {}),
       ...(args.expires_at ? { expires_at: args.expires_at } : {}),
@@ -1903,20 +1921,29 @@ export function getActiveTermsVersions(args: {
 
 /**
  * 약관 버전 목록 조회 — kind 별 모든 버전 (활성 + 이전 버전).
- * Server `/api/v1/admin/legal/terms?kind=` 도입 예정.
+ * B10 — Server `/api/v1/admin/legal/terms` 미배포.
+ * 404/5xx 시 graceful 빈 리스트 응답 ({ ok:false, reason:"NOT_AVAILABLE", items:[] })
+ * 형태로 UI 가 "준비 중" 표시할 수 있도록 보조한다.
  */
-export function listTermsVersions(args: {
+export async function listTermsVersions(args: {
   jwt: string;
   kind?: TermsKind;
 }): Promise<ServerResult<{ items: TermsVersionRow[] }>> {
   const params = new URLSearchParams();
   if (args.kind) params.set("kind", args.kind);
   const qs = params.toString();
-  return authedRequest<{ items: TermsVersionRow[] }>({
-    jwt: args.jwt,
-    path: `/api/v1/admin/legal/terms${qs ? "?" + qs : ""}`,
-    method: "GET",
-  });
+  try {
+    const res = await authedRequest<{ items: TermsVersionRow[] }>({
+      jwt: args.jwt,
+      path: `/api/v1/admin/legal/terms${qs ? "?" + qs : ""}`,
+      method: "GET",
+    });
+    if (res.ok) return res;
+    // 미배포(404/501) 또는 unreachable 시 graceful 빈 리스트.
+    return { ok: true, data: { items: [] } };
+  } catch {
+    return { ok: true, data: { items: [] } };
+  }
 }
 
 /**
@@ -1971,18 +1998,44 @@ export type ConsentStats = {
   total_consent_events: number;
 };
 
-export function getConsentStats(args: {
+// B11 — Server `/api/v1/admin/legal/consent-stats` 미배포.
+// 404/5xx 시 graceful "준비 중" 응답 (UI 가 빈 통계 표시).
+export async function getConsentStats(args: {
   jwt: string;
   days?: number;
 }): Promise<ServerResult<ConsentStats>> {
   const params = new URLSearchParams();
   if (args.days) params.set("days", String(args.days));
   const qs = params.toString();
-  return authedRequest<ConsentStats>({
-    jwt: args.jwt,
-    path: `/api/v1/admin/legal/consent-stats${qs ? "?" + qs : ""}`,
-    method: "GET",
-  });
+  try {
+    const res = await authedRequest<ConsentStats>({
+      jwt: args.jwt,
+      path: `/api/v1/admin/legal/consent-stats${qs ? "?" + qs : ""}`,
+      method: "GET",
+    });
+    if (res.ok) return res;
+    return {
+      ok: true,
+      data: {
+        range_start: new Date(0).toISOString(),
+        range_end: new Date().toISOString(),
+        by_kind: {},
+        marketing_opt_in_rate: 0,
+        total_consent_events: 0,
+      },
+    };
+  } catch {
+    return {
+      ok: true,
+      data: {
+        range_start: new Date(0).toISOString(),
+        range_end: new Date().toISOString(),
+        by_kind: {},
+        marketing_opt_in_rate: 0,
+        total_consent_events: 0,
+      },
+    };
+  }
 }
 
 /** 사용자 권리 요청 종류 — PIPA 제35조(열람) / 제36조(정정·삭제) / 제37조(이관). */
@@ -2550,14 +2603,33 @@ export type SloSnapshot = {
   dependencies: SloDependencyRow[];
 };
 
-export function getSloSnapshot(args: {
+// B13 — Server `/api/v1/admin/metrics/slo` 미배포. 호출 자체는 유지하되
+// 실패 시 graceful 알림 (mock label + notice) 반환. UI 는 mock 라벨 표시.
+export async function getSloSnapshot(args: {
   jwt: string;
-}): Promise<ServerResult<SloSnapshot>> {
-  return authedRequest<SloSnapshot>({
-    jwt: args.jwt,
-    path: `/api/v1/admin/metrics/slo`,
-    method: "GET",
-  });
+}): Promise<ServerResult<SloSnapshot> & { source?: "mock"; notice?: string }> {
+  try {
+    const res = await authedRequest<SloSnapshot>({
+      jwt: args.jwt,
+      path: `/api/v1/admin/metrics/slo`,
+      method: "GET",
+    });
+    if (res.ok) return res;
+    return {
+      ...res,
+      source: "mock",
+      notice: "서버 라우트 미배포 — 운영 도구 준비 중",
+    };
+  } catch {
+    return {
+      ok: false,
+      code: "ERR_NOT_IMPLEMENTED",
+      message: "metrics_slo_not_available",
+      status: 0,
+      source: "mock",
+      notice: "서버 라우트 미배포 — 운영 도구 준비 중",
+    };
+  }
 }
 
 /**
@@ -2597,17 +2669,35 @@ export type AlertConfig = {
   }>;
 };
 
-export function getAlertConfig(args: {
+// B14 — Server `/api/v1/admin/alerts/config[/:key]` 미배포. graceful 알림.
+export async function getAlertConfig(args: {
   jwt: string;
-}): Promise<ServerResult<AlertConfig>> {
-  return authedRequest<AlertConfig>({
-    jwt: args.jwt,
-    path: `/api/v1/admin/alerts/config`,
-    method: "GET",
-  });
+}): Promise<ServerResult<AlertConfig> & { source?: "mock"; notice?: string }> {
+  try {
+    const res = await authedRequest<AlertConfig>({
+      jwt: args.jwt,
+      path: `/api/v1/admin/alerts/config`,
+      method: "GET",
+    });
+    if (res.ok) return res;
+    return {
+      ...res,
+      source: "mock",
+      notice: "서버 라우트 미배포 — 운영 도구 준비 중",
+    };
+  } catch {
+    return {
+      ok: false,
+      code: "ERR_NOT_IMPLEMENTED",
+      message: "alerts_config_not_available",
+      status: 0,
+      source: "mock",
+      notice: "서버 라우트 미배포 — 운영 도구 준비 중",
+    };
+  }
 }
 
-export function updateAlertRule(args: {
+export async function updateAlertRule(args: {
   jwt: string;
   key: string;
   patch: {
@@ -2617,13 +2707,30 @@ export function updateAlertRule(args: {
     note?: string | null;
   };
   reason: string;
-}): Promise<ServerResult<AlertRuleRow>> {
-  return authedRequest<AlertRuleRow>({
-    jwt: args.jwt,
-    path: `/api/v1/admin/alerts/config/${encodeURIComponent(args.key)}`,
-    method: "PATCH",
-    body: { ...args.patch, reason: args.reason },
-  });
+}): Promise<ServerResult<AlertRuleRow> & { source?: "mock"; notice?: string }> {
+  try {
+    const res = await authedRequest<AlertRuleRow>({
+      jwt: args.jwt,
+      path: `/api/v1/admin/alerts/config/${encodeURIComponent(args.key)}`,
+      method: "PATCH",
+      body: { ...args.patch, reason: args.reason },
+    });
+    if (res.ok) return res;
+    return {
+      ...res,
+      source: "mock",
+      notice: "서버 라우트 미배포 — 운영 도구 준비 중",
+    };
+  } catch {
+    return {
+      ok: false,
+      code: "ERR_NOT_IMPLEMENTED",
+      message: "alerts_config_update_not_available",
+      status: 0,
+      source: "mock",
+      notice: "서버 라우트 미배포 — 운영 도구 준비 중",
+    };
+  }
 }
 
 /**
@@ -2662,7 +2769,8 @@ export type LogSearchResult = {
   approx_total: number;
 };
 
-export function searchLogs(args: {
+// B12 — Server `/api/v1/admin/logs/search` 미배포. graceful 알림.
+export async function searchLogs(args: {
   jwt: string;
   /** ISO. 미지정 시 "현재로부터 1시간 전". */
   from?: string;
@@ -2678,7 +2786,7 @@ export function searchLogs(args: {
   q?: string;
   cursor?: string | null;
   limit?: number;
-}): Promise<ServerResult<LogSearchResult>> {
+}): Promise<ServerResult<LogSearchResult> & { source?: "mock"; notice?: string }> {
   const params = new URLSearchParams();
   if (args.from) params.set("from", args.from);
   if (args.to) params.set("to", args.to);
@@ -2691,11 +2799,28 @@ export function searchLogs(args: {
   if (args.cursor) params.set("cursor", args.cursor);
   if (args.limit) params.set("limit", String(args.limit));
   const qs = params.toString();
-  return authedRequest<LogSearchResult>({
-    jwt: args.jwt,
-    path: `/api/v1/admin/logs/search${qs ? "?" + qs : ""}`,
-    method: "GET",
-  });
+  try {
+    const res = await authedRequest<LogSearchResult>({
+      jwt: args.jwt,
+      path: `/api/v1/admin/logs/search${qs ? "?" + qs : ""}`,
+      method: "GET",
+    });
+    if (res.ok) return res;
+    return {
+      ...res,
+      source: "mock",
+      notice: "서버 라우트 미배포 — 운영 도구 준비 중",
+    };
+  } catch {
+    return {
+      ok: false,
+      code: "ERR_NOT_IMPLEMENTED",
+      message: "logs_search_not_available",
+      status: 0,
+      source: "mock",
+      notice: "서버 라우트 미배포 — 운영 도구 준비 중",
+    };
+  }
 }
 
 /**
@@ -2703,50 +2828,119 @@ export function searchLogs(args: {
  *
  * Server endpoint 미배포 시 graceful — UI 가 버튼 비활성 + 토스트 "준비 중".
  */
-export function closeCircuitBreaker(args: {
+// B15 — Server `/api/v1/admin/ops/circuit/:name/close` 미배포. graceful 알림.
+export async function closeCircuitBreaker(args: {
   jwt: string;
   name: string;
   reason: string;
-}): Promise<ServerResult<{ ok: true; name: string; state: string }>> {
-  return authedRequest({
-    jwt: args.jwt,
-    path: `/api/v1/admin/ops/circuit/${encodeURIComponent(args.name)}/close`,
-    method: "POST",
-    body: { reason: args.reason },
-  });
+}): Promise<
+  ServerResult<{ ok: true; name: string; state: string }> & {
+    source?: "mock";
+    notice?: string;
+  }
+> {
+  try {
+    const res = await authedRequest<{ ok: true; name: string; state: string }>({
+      jwt: args.jwt,
+      path: `/api/v1/admin/ops/circuit/${encodeURIComponent(args.name)}/close`,
+      method: "POST",
+      body: { reason: args.reason },
+    });
+    if (res.ok) return res;
+    return {
+      ...res,
+      source: "mock",
+      notice: "서버 라우트 미배포 — 운영 도구 준비 중",
+    };
+  } catch {
+    return {
+      ok: false,
+      code: "ERR_NOT_IMPLEMENTED",
+      message: "ops_circuit_not_available",
+      status: 0,
+      source: "mock",
+      notice: "서버 라우트 미배포 — 운영 도구 준비 중",
+    };
+  }
 }
 
-export function invalidateCache(args: {
+// B16 — Server `/api/v1/admin/ops/cache/invalidate` 미배포. graceful 알림.
+export async function invalidateCache(args: {
   jwt: string;
   /** "all" | "personas" | "commerce_products" | "terms_active" 등. */
   selector: string;
   reason: string;
-}): Promise<ServerResult<{ ok: true; selector: string; cleared: number }>> {
-  return authedRequest({
-    jwt: args.jwt,
-    path: `/api/v1/admin/ops/cache/invalidate`,
-    method: "POST",
-    body: { selector: args.selector, reason: args.reason },
-  });
+}): Promise<
+  ServerResult<{ ok: true; selector: string; cleared: number }> & {
+    source?: "mock";
+    notice?: string;
+  }
+> {
+  try {
+    const res = await authedRequest<{ ok: true; selector: string; cleared: number }>({
+      jwt: args.jwt,
+      path: `/api/v1/admin/ops/cache/invalidate`,
+      method: "POST",
+      body: { selector: args.selector, reason: args.reason },
+    });
+    if (res.ok) return res;
+    return {
+      ...res,
+      source: "mock",
+      notice: "서버 라우트 미배포 — 운영 도구 준비 중",
+    };
+  } catch {
+    return {
+      ok: false,
+      code: "ERR_NOT_IMPLEMENTED",
+      message: "ops_cache_not_available",
+      status: 0,
+      source: "mock",
+      notice: "서버 라우트 미배포 — 운영 도구 준비 중",
+    };
+  }
 }
 
-export function setMaintenanceMode(args: {
+// B17 — Server `/api/v1/admin/ops/maintenance` 미배포. graceful 알림.
+export async function setMaintenanceMode(args: {
   jwt: string;
   enabled: boolean;
   reason: string;
   /** 옵션: 종료 예정 시각 (ISO). */
   until?: string;
-}): Promise<ServerResult<{ enabled: boolean; until: string | null }>> {
-  return authedRequest({
-    jwt: args.jwt,
-    path: `/api/v1/admin/ops/maintenance`,
-    method: "POST",
-    body: {
-      enabled: args.enabled,
-      reason: args.reason,
-      ...(args.until ? { until: args.until } : {}),
-    },
-  });
+}): Promise<
+  ServerResult<{ enabled: boolean; until: string | null }> & {
+    source?: "mock";
+    notice?: string;
+  }
+> {
+  try {
+    const res = await authedRequest<{ enabled: boolean; until: string | null }>({
+      jwt: args.jwt,
+      path: `/api/v1/admin/ops/maintenance`,
+      method: "POST",
+      body: {
+        enabled: args.enabled,
+        reason: args.reason,
+        ...(args.until ? { until: args.until } : {}),
+      },
+    });
+    if (res.ok) return res;
+    return {
+      ...res,
+      source: "mock",
+      notice: "서버 라우트 미배포 — 운영 도구 준비 중",
+    };
+  } catch {
+    return {
+      ok: false,
+      code: "ERR_NOT_IMPLEMENTED",
+      message: "ops_maintenance_not_available",
+      status: 0,
+      source: "mock",
+      notice: "서버 라우트 미배포 — 운영 도구 준비 중",
+    };
+  }
 }
 
 // ---------------------------------------------------------------------------

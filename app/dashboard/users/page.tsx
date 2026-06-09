@@ -167,7 +167,10 @@ export default function UsersPage() {
     [users],
   );
 
-  const columns: Column<UserRow>[] = [
+  // 2026-06-09 perf — columns 배열은 매 render 마다 새 reference 였다 → DataTable 의
+  //   TableRow memo 가 무력화 (props.columns identity 가 매번 바뀜).
+  //   reloadUsers 콜백 deps 로 묶어 stable identity 유지.
+  const columns: Column<UserRow>[] = useMemo(() => [
     {
       key: "id",
       header: "ID",
@@ -294,7 +297,7 @@ export default function UsersPage() {
         );
       },
     },
-  ];
+  ], [reloadUsers]);
 
   return (
     <div className="space-y-6">

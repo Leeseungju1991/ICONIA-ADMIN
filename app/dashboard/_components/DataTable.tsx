@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { memo, useEffect, useMemo, useState, type ReactNode } from "react";
 
 export type Column<T> = {
   key: string;
@@ -98,27 +98,15 @@ export function DataTable<T extends object>({
           </thead>
           <tbody>
             {visibleRows.map((row, idx) => (
-              <tr
+              <TableRow
                 key={
                   rowKey
                     ? rowKey(row, idx)
                     : (row as { id?: string }).id ?? String(idx)
                 }
-                className="border-b border-white/40 last:border-0 hover:bg-white/40 transition"
-              >
-                {columns.map((c) => (
-                  <td
-                    key={c.key}
-                    className={[
-                      "px-3 py-2.5 text-slate-700",
-                      c.align === "right" ? "text-right" : c.align === "center" ? "text-center" : "text-left",
-                      c.className ?? "",
-                    ].join(" ")}
-                  >
-                    {c.render(row)}
-                  </td>
-                ))}
-              </tr>
+                row={row}
+                columns={columns}
+              />
             ))}
           </tbody>
         </table>
@@ -140,6 +128,34 @@ export function DataTable<T extends object>({
     </div>
   );
 }
+
+// 2026-06-09 perf — 행 단위 memo. columns reference 와 row reference 가 동일하면
+//   render 함수 호출 자체를 skip. UsersPage 처럼 selected/state 가 자주 바뀌는 페이지에서
+//   200 행 × N column 의 td 재렌더를 차단한다 (columns 가 stable 일 때).
+const TableRow = memo(function TableRow<T extends object>({
+  row,
+  columns,
+}: {
+  row: T;
+  columns: Column<T>[];
+}) {
+  return (
+    <tr className="border-b border-white/40 last:border-0 hover:bg-white/40 transition">
+      {columns.map((c) => (
+        <td
+          key={c.key}
+          className={[
+            "px-3 py-2.5 text-slate-700",
+            c.align === "right" ? "text-right" : c.align === "center" ? "text-center" : "text-left",
+            c.className ?? "",
+          ].join(" ")}
+        >
+          {c.render(row)}
+        </td>
+      ))}
+    </tr>
+  );
+}) as <T extends object>(props: { row: T; columns: Column<T>[] }) => JSX.Element;
 
 function CursorPaginationBar({
   pagination,

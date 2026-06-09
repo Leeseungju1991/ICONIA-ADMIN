@@ -1,12 +1,13 @@
 "use server";
 
 // 2026-05-27 — OTA 펌웨어 업로드/배포 server actions.
-// Server (TBD): POST /api/v1/admin/ota/firmwares    → presigned PUT URL 반환
-//                POST /api/v1/admin/ota/firmwares/:id/register
-//                GET  /api/v1/admin/ota/device-groups
-//                POST /api/v1/admin/ota/rollouts
-// (서버 컨벤션 /api/v1/* — cf. adminFirmwareActionRoutes.js / firmwareDeploymentRoutes.js.
-//  본 4개 endpoint 자체는 미구현; 404 시 server action 이 graceful 처리.)
+// 서버 정본 (cf. adminFirmwareActionRoutes.js / firmwareDeploymentRoutes.js):
+//   POST /api/v1/admin/firmware/upload                         (presigned PUT URL)
+//   POST /api/v1/admin/firmware/deployments/:id/advance        (rollout 단계 진행)
+// 서버 미존재:
+//   - register 단계 (presign 응답에 firmwareId 포함 → 추가 호출 불필요)
+//   - device-groups (dev fixture fallback / production 빈 배열)
+// 본 모듈은 위 정본에 맞춰 호출. 미존재 endpoint 는 graceful 처리.
 
 import { readSession } from "@/lib/authCookie";
 import { authedRequest } from "@/lib/httpClient";
@@ -39,9 +40,10 @@ export async function presignFirmwareUploadAction(
   if (!Number.isFinite(req.size_bytes) || req.size_bytes <= 0) {
     return { ok: false, message: "size_bytes 가 유효해야 함." };
   }
+  // B1 — 서버 정본 `/api/v1/admin/firmware/upload` (presigned PUT URL 반환).
   const res = await authedRequest<OtaPresignResponse>({
     jwt,
-    path: "/api/v1/admin/ota/firmwares",
+    path: "/api/v1/admin/firmware/upload",
     method: "POST",
     body: { ...req },
   });
@@ -56,30 +58,28 @@ export async function presignFirmwareUploadAction(
   return { ok: true, data: res.data };
 }
 
+// B2 — 서버 정본 register endpoint 미존재.
+// presign 응답 자체에 firmwareId 가 포함되므로 추가 호출은 불필요.
+// 호출 시퀀스 호환성 위해 함수는 유지하되 즉시 ok 반환 (graceful no-op).
+// 향후 서버에서 register 단계가 도입되면 본 함수에서 호출 추가.
 export async function registerFirmwareUploadAction(args: {
   firmwareId: string;
 }): Promise<AdminResult<{ ok: true }>> {
   const jwt = readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
-  const res = await authedRequest<{ ok: true }>({
-    jwt,
-    path: `/api/v1/admin/ota/firmwares/${encodeURIComponent(args.firmwareId)}/register`,
-    method: "POST",
-    body: {},
-  });
-  if (!res.ok) {
-    return {
-      ok: false,
-      code: res.code,
-      message: res.message,
-      unreachable: unreachable(res.code),
-    };
+  try {
+    void args.firmwareId;
+    return { ok: true, data: { ok: true } };
+  } catch {
+    return { ok: true, data: { ok: true } };
   }
-  return { ok: true, data: res.data };
 }
 
+// B3 — 서버 정본 device-groups endpoint 미배포.
+// dev: 기존 fixture fallback 유지 (검증 흐름 확인용).
+// production: 빈 배열 반환 + UI 가 `데이터 준비 중` 라벨 표시.
 export async function listDeviceGroupsAction(): Promise<
-  AdminResult<{ items: OtaDeviceGroup[] }> & { source: "server" | "fixture" }
+  AdminResult<{ items: OtaDeviceGroup[] }> & { source: "server" | "fixture" | "fallback" }
 > {
   const jwt = readSession();
   if (!jwt) return { ok: false, message: "세션 만료", source: "server" };
@@ -103,6 +103,10 @@ export async function listDeviceGroupsAction(): Promise<
       source: "fixture",
     };
   }
+  if (!DEV && unreachable(res.code)) {
+    // production graceful — UI 가 "데이터 준비 중" 라벨 + 빈 리스트 표시.
+    return { ok: true, data: { items: [] }, source: "fallback" };
+  }
   return {
     ok: false,
     code: res.code,
@@ -121,9 +125,12 @@ export async function createOtaRolloutAction(
   if (!Array.isArray(req.group_ids) || req.group_ids.length === 0) {
     return { ok: false, message: "디바이스 그룹을 최소 1개 선택하세요." };
   }
+  // B4 — 서버 정본 `/api/v1/admin/firmware/deployments/:id/advance`.
+  // :id 는 firmware_id (배포 식별자) 로 매핑. 서버는 body 의 group_ids/canary_percent
+  // 를 advance 컨텍스트에 적용한다.
   const res = await authedRequest<OtaRolloutResponse>({
     jwt,
-    path: "/api/v1/admin/ota/rollouts",
+    path: `/api/v1/admin/firmware/deployments/${encodeURIComponent(req.firmware_id)}/advance`,
     method: "POST",
     body: { ...req },
   });

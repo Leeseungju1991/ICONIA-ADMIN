@@ -12,6 +12,7 @@ import {
   mockDeadLetters,
   mockKillSwitches,
   mockFeatureFlags,
+  OPS_MOCK_NOTICE,
   RECOVERY_ACTIONS,
   RECOVERY_ACTION_KIND_LIST,
   severityChip,
@@ -88,6 +89,11 @@ export default function OpsPage() {
 
   return (
     <div className="space-y-6">
+      {OPS_MOCK_NOTICE ? (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50/80 px-4 py-3 text-sm text-amber-800">
+          {OPS_MOCK_NOTICE} — production 환경에서는 운영 도구 데이터가 비어있게 표시됩니다.
+        </div>
+      ) : null}
       <ObservabilityBlock />
       <AiTimeoutBlock />
       <AlertingBlock onToast={setToast} onRefreshAudit={refreshAudit} />

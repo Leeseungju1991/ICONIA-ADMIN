@@ -5,13 +5,18 @@ import { PanelCard } from "../_components/PanelCard";
 import { DataTable, type Column } from "../_components/DataTable";
 import { StatCard } from "../_components/StatCard";
 import {
-  mockFirmwareErrors,
-  mockOtaFirmwares,
   formatDate,
   type DeviceRow,
 } from "@/lib/mockData";
 import { fetchDeviceOwnershipHistoryAction } from "@/lib/actions/deviceOwnership";
-import { listDevicesAction, listDeviceEventsAction } from "@/lib/actions/devices";
+import {
+  listDevicesAction,
+  listDeviceEventsAction,
+  listFirmwareErrorEventsAction,
+  listFirmwareDeploymentsAction,
+  type FirmwareErrorEvent,
+  type FirmwareDeploymentRow,
+} from "@/lib/actions/devices";
 import { getDeviceBootInvariantsAction } from "@/lib/actions/bootInvariants";
 import { fetchDistributionAction } from "@/lib/actions/deviceDistribution";
 import type {
@@ -97,6 +102,43 @@ export default function DevicesPage() {
       cancelled = true;
     };
   }, []);
+
+  // Mock-15 — 기존 mockFirmwareErrors / mockOtaFirmwares 를 서버 정본으로 교체.
+  // 실패 시 graceful 빈 배열 + source:"fallback".
+  const [firmwareErrors, setFirmwareErrors] = useState<FirmwareErrorEvent[]>([]);
+  const [firmwareErrorsSource, setFirmwareErrorsSource] = useState<
+    "server" | "fallback"
+  >("server");
+  const [otaDeployments, setOtaDeployments] = useState<FirmwareDeploymentRow[]>([]);
+  const [otaDeploymentsSource, setOtaDeploymentsSource] = useState<
+    "server" | "fallback"
+  >("server");
+  useEffect(() => {
+    let cancelled = false;
+    listFirmwareErrorEventsAction().then((r) => {
+      if (cancelled) return;
+      if (r.ok) {
+        setFirmwareErrors(r.items);
+        setFirmwareErrorsSource(r.source);
+      } else {
+        setFirmwareErrors([]);
+        setFirmwareErrorsSource("fallback");
+      }
+    });
+    listFirmwareDeploymentsAction().then((r) => {
+      if (cancelled) return;
+      if (r.ok) {
+        setOtaDeployments(r.items);
+        setOtaDeploymentsSource(r.source);
+      } else {
+        setOtaDeployments([]);
+        setOtaDeploymentsSource("fallback");
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   const [toast, setToast] = useState<string | null>(null);
 
   const filtered = useMemo(
@@ -135,14 +177,14 @@ export default function DevicesPage() {
     const pairedRecent = devices.filter(
       (d) => d.owner_user_id && now - new Date(d.paired_at).getTime() <= windowMs,
     ).length;
-    const fwErrCount = mockFirmwareErrors.reduce((s, e) => s + e.count, 0);
-    const rolling = mockOtaFirmwares.filter((f) => f.state === "rolling_out");
-    const rolloutApplied = rolling.reduce((s, f) => s + f.applied_count, 0);
-    const rolloutTarget = rolling.reduce((s, f) => s + f.target_count, 0);
+    const fwErrCount = firmwareErrors.reduce((s, e) => s + (e.count ?? 0), 0);
+    const rolling = otaDeployments.filter((f) => f.state === "rolling_out");
+    const rolloutApplied = rolling.reduce((s, f) => s + (f.applied_count ?? 0), 0);
+    const rolloutTarget = rolling.reduce((s, f) => s + (f.target_count ?? 0), 0);
     const rolloutPct =
       rolloutTarget > 0 ? Math.round((rolloutApplied / rolloutTarget) * 100) : 0;
     return { pairedRecent, fwErrCount, rolling, rolloutPct };
-  }, [devices]);
+  }, [devices, firmwareErrors, otaDeployments]);
 
   // 출시준비 라운드 §8 — 배터리 분포 (high ≥60%, mid 25~59%, low 10~24%, critical <10%).
   const batteryDistribution = useMemo(() => {
@@ -165,9 +207,9 @@ export default function DevicesPage() {
   // 백엔드 연동 시 `/api/v1/admin/devices/pairings?since=24h` 의 (pair_attempt, pair_success)
   // 카운터로 정확한 실패율로 교체.
   const blePairingStability = useMemo(() => {
-    const bleTimeouts = mockFirmwareErrors
+    const bleTimeouts = firmwareErrors
       .filter((e) => e.error_code === "BLE_GATT_TIMEOUT")
-      .reduce((s, e) => s + e.count, 0);
+      .reduce((s, e) => s + (e.count ?? 0), 0);
     const now = Date.now();
     const windowMs = PAIRING_WINDOW_HOURS * 60 * 60 * 1000;
     const pairedRecent = devices.filter(
@@ -177,16 +219,16 @@ export default function DevicesPage() {
     const attempts = pairedRecent + bleTimeouts;
     const failureRate = attempts > 0 ? (bleTimeouts / attempts) * 100 : 0;
     return { bleTimeouts, attempts, failureRate };
-  }, [devices]);
+  }, [devices, firmwareErrors]);
 
   // 디바이스별 펌웨어 에러 카운트 — 같은 device_id 의 fw error 누적.
   const fwErrorsByDevice = useMemo(() => {
     const map = new Map<string, number>();
-    for (const e of mockFirmwareErrors) {
-      map.set(e.device_id, (map.get(e.device_id) ?? 0) + e.count);
+    for (const e of firmwareErrors) {
+      map.set(e.device_id, (map.get(e.device_id) ?? 0) + (e.count ?? 0));
     }
     return map;
-  }, []);
+  }, [firmwareErrors]);
 
   const columns: Column<DeviceRow>[] = [
     {
@@ -289,25 +331,37 @@ export default function DevicesPage() {
           accent="teal"
         />
         <StatCard
-          label="FW 에러 (24h) · 예시"
+          label="FW 에러 (24h)"
           value={lifecycle.fwErrCount.toLocaleString()}
-          delta={`${mockFirmwareErrors.length} 유형`}
+          delta={`${firmwareErrors.length} 유형`}
           deltaTone={lifecycle.fwErrCount > 100 ? "down" : "flat"}
-          hint="예시/데모 데이터 (실데이터 미연동)"
+          hint={
+            firmwareErrorsSource === "server"
+              ? "Server `/api/v1/admin/devices/events`"
+              : "Server 미도달 — 데이터 준비 중"
+          }
           accent="pink"
         />
         <StatCard
-          label="OTA 진행 중 · 예시"
+          label="OTA 진행 중"
           value={String(lifecycle.rolling.length)}
-          hint="예시/데모 데이터 (실데이터 미연동)"
+          hint={
+            otaDeploymentsSource === "server"
+              ? "Server `/api/v1/admin/firmware/deployments`"
+              : "Server 미도달 — 데이터 준비 중"
+          }
           accent="orange"
         />
         <StatCard
-          label="OTA 적용률 · 예시"
+          label="OTA 적용률"
           value={`${lifecycle.rolloutPct}%`}
           delta={lifecycle.rolling.length ? "활성 캠페인 합" : "—"}
           deltaTone="up"
-          hint="예시/데모 데이터 (실데이터 미연동)"
+          hint={
+            otaDeploymentsSource === "server"
+              ? "applied / target 합산"
+              : "Server 미도달 — 데이터 준비 중"
+          }
           accent="blue"
         />
       </section>

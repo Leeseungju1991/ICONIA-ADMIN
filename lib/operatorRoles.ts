@@ -56,9 +56,6 @@ export const PATH_REQUIRED_ROLES: { prefix: string; roles: OperatorRole[] }[] = 
   { prefix: "/dashboard/factory-test", roles: SRE_OR_ABOVE },
   // secops/sre/superadmin — Fleet 출하 잠금 invariant (V3.0 #27 Phase 12 #8).
   { prefix: "/dashboard/boot-invariants", roles: SECOPS_OR_ABOVE },
-  // secops/sre/superadmin — AuditLog top-level 뷰어 (/dashboard/audit, 신규).
-  // 기존 /dashboard/ops/audit 과 별도 path. 모든 audit 항목을 secops 가 한 화면에서 조회.
-  { prefix: "/dashboard/audit", roles: SECOPS_OR_ABOVE },
   // sre/secops/superadmin — Gemini Key 관리 대시보드 (◈5번 신규).
   // free → tier_1 → ... → enterprise 업그레이드 추천 + 키 추가 권장.
   { prefix: "/dashboard/gemini", roles: SRE_OR_ABOVE },

@@ -34,7 +34,7 @@ async function sha256Hex(buf: ArrayBuffer): Promise<string> {
 
 export default function OtaDeployPage() {
   const [groups, setGroups] = useState<OtaDeviceGroup[]>([]);
-  const [source, setSource] = useState<"server" | "fixture" | null>(null);
+  const [source, setSource] = useState<"server" | "fixture" | "fallback" | null>(null);
   const [loadingGroups, startGroups] = useTransition();
 
   // Upload state.

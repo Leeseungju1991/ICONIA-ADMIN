@@ -30,9 +30,7 @@ describe("FeedPage — render states", () => {
     await waitFor(() => {
       expect(screen.getByText(/해당 조건의 게시물이 없습니다/)).toBeInTheDocument();
     });
-    // 2026-06-05 — 정합: "피드 게시물" 문구는 메인 PanelCard 제목 외에 신규 패널
-    // ("미디어 일괄 주입" description, BulkDeleteEmptyPanel 설명) 등에도 등장하므로
-    // 더 구체적인 heading 매칭을 사용한다. getAllByText 로 1개 이상이면 충분.
+    // "피드 게시물" PanelCard heading 존재 확인.
     expect(screen.getAllByText(/피드 게시물/).length).toBeGreaterThan(0);
   });
 

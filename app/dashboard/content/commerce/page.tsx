@@ -25,7 +25,6 @@ import {
   listAdminCommerceProductsAction,
   createAdminCommerceProductAction,
   deleteAdminCommerceProductAction,
-  bulkAttachProductImageAction,
   type ListProductsResult,
 } from "@/lib/actions/adminCommerce";
 import type { AdminCommerceProductRow } from "@/lib/adminApi";
@@ -161,45 +160,8 @@ export default function CommercePage() {
 
   const items: AdminCommerceProductRow[] = state && state.ok ? state.items : [];
 
-  function handleBulkAttachImages() {
-    if (typeof window !== "undefined") {
-      const ok = window.confirm(
-        "사진이 없는 모든 상품에 placeholder 이미지를 일괄 주입합니다.\n\n진행할까요?",
-      );
-      if (!ok) return;
-    }
-    startCreate(async () => {
-      const r = await bulkAttachProductImageAction();
-      if (!r.ok) {
-        setToast(`일괄 주입 실패: ${r.message}`);
-        return;
-      }
-      setToast(
-        `일괄 주입 완료 — 대상 ${r.scanned}개 상품, ${r.updated}개 이미지 적용.`,
-      );
-      reload();
-    });
-  }
-
   return (
     <div className="space-y-6">
-      <PanelCard
-        title="상품 이미지 일괄 주입"
-        description="사진이 없는 모든 상품에 placeholder 이미지(picsum.photos)를 일괄 주입합니다. 이미 사진이 있는 상품은 건드리지 않습니다."
-      >
-        <div className="flex items-center justify-end">
-          <button
-            type="button"
-            onClick={handleBulkAttachImages}
-            disabled={creating}
-            className="rounded-xl bg-accent px-4 py-2 text-sm text-white font-medium hover:opacity-90 disabled:opacity-60"
-            data-testid="btn-bulk-attach-product-image"
-          >
-            {creating ? "처리 중..." : "사진 없는 상품에 일괄 주입"}
-          </button>
-        </div>
-      </PanelCard>
-
       <PanelCard title="커머스 상품 추가">
         <form onSubmit={handleAdd} className="grid grid-cols-1 sm:grid-cols-12 gap-2">
           <input
