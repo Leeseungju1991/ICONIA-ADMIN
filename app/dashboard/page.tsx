@@ -3,11 +3,20 @@ import { PanelCard } from "./_components/PanelCard";
 import { ForbiddenNotice } from "./_components/ForbiddenNotice";
 import { KpiChip } from "./_components/KpiChip";
 import { BarChart } from "./_components/SimpleChart";
-import { keysStoreUsageSummaryAction, listKeysStoreAction } from "@/lib/actions/geminiKeysStore";
+import { listKeysStoreAction } from "@/lib/actions/geminiKeysStore";
+import { fetchGeminiUsageAction } from "@/lib/actions/gemini";
 import { listReportsAction } from "@/lib/actions/reportsAdmin";
 import { listErrorsAction } from "@/lib/actions/errorsTracking";
 import { listLostReportsAction } from "@/lib/actions/lostReports";
 import { fetchAdminOverviewAction } from "@/lib/actions/overview";
+import {
+  FREE_TIER_CAPS_PER_KEY,
+  FREE_TIER_MODEL_LABEL,
+  freeTierTotalCap,
+  freeTierPercent,
+  freeTierTone,
+  type FreeTierTone,
+} from "@/lib/geminiFreeTier";
 import type { ErrorDomain } from "@/types/admin-api";
 import type { LostReportStatus } from "@/lib/adminApi";
 
@@ -27,6 +36,10 @@ export const dynamic = "force-dynamic";
 //   + 30일 사용량 strip). 클릭 시 /dashboard/gemini 로 이동.
 // 2026-06-10 — "오류 추적 — 7일 추세" 패널 제거 (since7d/trend7dBuckets dead code 정리).
 // 2026-06-10 — "오류 추적 — 24h 분포" 막대그래프 높이 220px + showValues 로 건수 가시화.
+// 2026-06-10 — Gemini 사용량 strip 을 Free Tier RPD 기반으로 교체. 사용자는 무료 키만
+//   등록하므로 토큰 캡(monthly_token_cap) 대신 Google 공식 Free Tier 한도(per key
+//   1500 RPD / 1M TPM / 15 RPM, gemini-2.0-flash 기준) × 활성 키 수로 측정.
+//   RPD 데이터는 fetchGeminiUsageAction("24h").total_requests (server 정본) 사용.
 
 export default async function DashboardHome() {
   const overviewResult = await fetchAdminOverviewAction();
@@ -62,15 +75,15 @@ export default async function DashboardHome() {
   const [
     modRes,
     errorResults,
-    keysUsageRes,
     keysListRes,
     lostRes,
+    geminiUsage24hRes,
   ] = await Promise.all([
     listReportsAction({ status: "open" }),
     Promise.all(ERROR_DOMAINS.map((d) => listErrorsAction({ domain: d, since: since24h }))),
-    keysStoreUsageSummaryAction("30d"),
     listKeysStoreAction(),
     listLostReportsAction({}),
+    fetchGeminiUsageAction("24h"),
   ]);
   // 신고 대기 강조 배너용 — overview.reports_pending 정본 + listReportsAction fallback.
   const reportsPendingDisplay =
@@ -120,27 +133,22 @@ export default async function DashboardHome() {
     anyErrorOk &&
     Object.values(errorDomainCounts).some((v) => v > 0);
 
-  // 2026-06-10 — 사용자 요청: "오류 추적 이벤트" 카드 푸터에 등록 KEY 30일 사용량 strip.
-  //   keysStoreUsageSummaryAction("30d") 의 totals.tokens / totals.cap 사용. cap 미설정 시
-  //   slate 톤으로 % 미표시.
-  const keysUsage = keysUsageRes.ok ? keysUsageRes.data : null;
-  const keysUsageTokens = keysUsage?.totals.tokens ?? 0;
-  const keysUsageCap = keysUsage?.totals.cap ?? null;
-  const keysUsagePctRaw = keysUsage?.totals.percentOfCap ?? null;
-  const keysUsagePct =
-    keysUsageCap != null && keysUsageCap > 0
-      ? Number(((keysUsageTokens / keysUsageCap) * 100).toFixed(1))
-      : keysUsagePctRaw != null
-        ? Number(keysUsagePctRaw.toFixed(1))
-        : null;
-  const keysUsageTone =
-    keysUsagePct == null
-      ? "slate"
-      : keysUsagePct >= 95
-        ? "rose"
-        : keysUsagePct >= 80
-          ? "amber"
-          : "emerald";
+  // 2026-06-10 — KpiChip 푸터의 Gemini 사용량 strip — Free Tier RPD 기반.
+  //   사용자는 무료 키만 등록 → cap = 1500 RPD * 활성 키 수.
+  //   today's requests = fetchGeminiUsageAction("24h").total_requests (server 정본).
+  //   server 미응답 시 keysStoreUsageSummary 의 30일 토큰을 폴백 표시.
+  const geminiActiveKeyCountRaw = keysListRes.ok
+    ? keysListRes.data.items.filter((k) => k.status === "active").length
+    : 0;
+  const geminiRequestsToday = geminiUsage24hRes.ok
+    ? geminiUsage24hRes.data.total_requests
+    : null;
+  const rpdCap = freeTierTotalCap("rpd", geminiActiveKeyCountRaw);
+  const rpdPct =
+    geminiRequestsToday != null && rpdCap > 0
+      ? Number((freeTierPercent(geminiRequestsToday, "rpd", geminiActiveKeyCountRaw) ?? 0).toFixed(1))
+      : null;
+  const rpdTone: FreeTierTone = freeTierTone(rpdPct);
 
   // 2026-06-10 — 사용자 요청: 마지막 "API 사용량" 패널 → "인형 잃어버린 신고 접수" 로 교체.
   //   listLostReportsAction({}) 결과를 status 별로 client-side group.
@@ -156,10 +164,9 @@ export default async function DashboardHome() {
   }
   const lostTotal = lostItems.length;
 
-  // 2026-06-10 — 등록된 Gemini API KEY 개수 (status=active 만 집계).
-  const geminiActiveKeyCount = keysListRes.ok
-    ? keysListRes.data.items.filter((k) => k.status === "active").length
-    : null;
+  // 2026-06-10 — 등록된 Gemini API KEY 개수 (status=active 만 집계). 위 strip 계산과
+  //   동일 데이터지만 keysListRes 미응답 시 null 표시를 위해 분기.
+  const geminiActiveKeyCount = keysListRes.ok ? geminiActiveKeyCountRaw : null;
 
   return (
     <div className="space-y-5">
@@ -227,11 +234,12 @@ export default async function DashboardHome() {
             sub="활성 키"
             footer={
               <GeminiUsageStrip
-                tokens={keysUsageTokens}
-                cap={keysUsageCap}
-                pct={keysUsagePct}
-                tone={keysUsageTone}
-                available={keysUsageRes.ok}
+                requestsToday={geminiRequestsToday}
+                cap={rpdCap}
+                pct={rpdPct}
+                tone={rpdTone}
+                activeKeys={geminiActiveKeyCountRaw}
+                available={geminiUsage24hRes.ok}
               />
             }
           />
@@ -402,19 +410,22 @@ function LifecycleTile({
   );
 }
 
-// 2026-06-10 — "오류 추적 이벤트" KpiChip 푸터에 들어가는 등록 KEY 30일 사용량 strip.
-//   토큰 합계 / cap (M 단위) + 가로 진행 막대. cap 미설정 시 "한도 미설정" 표시.
+// 2026-06-10 — KpiChip 푸터의 Gemini 사용량 strip — Free Tier RPD 게이지.
+//   today's requests / (FREE_TIER_RPD × active key count). cap=0 또는 데이터 미수신 시
+//   graceful 안내. 토큰 cap 기반 30d 게이지는 무료 키 사용자에게 부정확하므로 폐기.
 function GeminiUsageStrip({
-  tokens,
+  requestsToday,
   cap,
   pct,
   tone,
+  activeKeys,
   available,
 }: {
-  tokens: number;
-  cap: number | null;
+  requestsToday: number | null;
+  cap: number;
   pct: number | null;
-  tone: "emerald" | "amber" | "rose" | "slate";
+  tone: FreeTierTone;
+  activeKeys: number;
   available: boolean;
 }) {
   const TONE = {
@@ -423,25 +434,35 @@ function GeminiUsageStrip({
     rose:    { bar: "bg-rose-500",    text: "text-rose-700" },
     slate:   { bar: "bg-slate-400",   text: "text-slate-600" },
   }[tone];
-  const fmtM = (n: number): string => `${(n / 1_000_000).toFixed(1)}M`;
-  if (!available) {
+  if (!available || requestsToday == null) {
     return (
-      <div className="text-[10px] text-slate-400">Gemini 사용량 — 데이터 없음</div>
+      <div className="text-[10px] text-slate-400">
+        Gemini 사용량 — 데이터 없음 (Server 미응답)
+      </div>
+    );
+  }
+  if (cap <= 0 || activeKeys <= 0) {
+    return (
+      <div className="text-[10px] text-slate-400">
+        활성 키 없음 — Free Tier 한도 산출 불가
+      </div>
     );
   }
   const barPct = pct == null ? 0 : Math.max(0, Math.min(100, pct));
   return (
     <div className="rounded-md bg-slate-50 border border-slate-100 px-2 py-1.5">
       <div className="flex items-baseline justify-between gap-2">
-        <span className="text-[10px] text-slate-500">Gemini API 사용량 · 30일</span>
+        <span className="text-[10px] text-slate-500">Free Tier · 오늘 RPD</span>
         <span className={`text-[10px] font-mono ${TONE.text}`}>
-          {fmtM(tokens)}
-          {cap != null ? ` / ${fmtM(cap)}` : " / 한도 미설정"}
+          {requestsToday.toLocaleString()} / {cap.toLocaleString()}
           {pct != null ? ` (${pct.toFixed(1)}%)` : ""}
         </span>
       </div>
       <div className="mt-1 h-1.5 rounded-full bg-slate-200 overflow-hidden">
         <div className={`h-full ${TONE.bar}`} style={{ width: `${barPct}%` }} />
+      </div>
+      <div className="mt-1 text-[9px] text-slate-400">
+        {FREE_TIER_MODEL_LABEL} · {FREE_TIER_CAPS_PER_KEY.rpd}/일 × {activeKeys}키
       </div>
     </div>
   );
