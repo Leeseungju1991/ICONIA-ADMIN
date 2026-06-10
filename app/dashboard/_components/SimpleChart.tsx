@@ -187,11 +187,14 @@ export function BarChart({
   accent = "#6D5DFE",
   height = 160,
   format = (n) => n.toLocaleString(),
+  showValues = false,
 }: {
   data: Array<{ label: string; value: number }>;
   accent?: string;
   height?: number;
   format?: (n: number) => string;
+  /** 막대마다 값 라벨을 함께 표시. tall 막대는 안쪽, short 막대는 위쪽에. */
+  showValues?: boolean;
 }) {
   if (!data || data.length === 0) {
     return (
@@ -207,19 +210,34 @@ export function BarChart({
   return (
     <div className="w-full" style={{ height }}>
       <div className="flex items-end gap-2 h-[calc(100%-22px)]">
-        {data.map((d) => (
-          <div key={d.label} className="flex-1 flex flex-col items-center">
-            <div
-              className="w-full rounded-t-md"
-              style={{
-                height: `${(d.value / maxV) * 100}%`,
-                background: accent,
-                minHeight: 2,
-              }}
-              title={`${d.label}: ${format(d.value)}`}
-            />
-          </div>
-        ))}
+        {data.map((d) => {
+          const heightPct = (d.value / maxV) * 100;
+          const tall = heightPct >= 25;
+          return (
+            <div key={d.label} className="flex-1 flex flex-col items-center justify-end h-full">
+              {showValues && !tall ? (
+                <div className="text-[10px] font-mono text-slate-700 leading-none mb-0.5">
+                  {format(d.value)}
+                </div>
+              ) : null}
+              <div
+                className="w-full rounded-t-md flex items-start justify-center"
+                style={{
+                  height: `${heightPct}%`,
+                  background: accent,
+                  minHeight: 2,
+                }}
+                title={`${d.label}: ${format(d.value)}`}
+              >
+                {showValues && tall ? (
+                  <span className="text-[10px] font-mono text-white/95 pt-1 leading-none">
+                    {format(d.value)}
+                  </span>
+                ) : null}
+              </div>
+            </div>
+          );
+        })}
       </div>
       <div className="flex gap-2 mt-1">
         {data.map((d) => (

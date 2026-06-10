@@ -48,28 +48,11 @@ export default function NoticesPage() {
     const fd = new FormData(form);
     const title = String(fd.get("title") || "").trim();
     const body = String(fd.get("body") || "").trim();
-    // 2026-06-09 라운드 T03 — 4종 locale 입력. server `Notice.title_i18n`/`body_i18n` JSON 컬럼에
-    //   객체 그대로 저장. 운영자가 비워둔 locale 은 키 자체가 누락 → APP 폴백으로 ko 본문이 노출.
-    //   단일 컬럼(title/body) 은 ko 값을 동기 기입 (구버전 APP 호환).
-    const titleEn = String(fd.get("title_en") || "").trim();
-    const bodyEn = String(fd.get("body_en") || "").trim();
-    const titleJa = String(fd.get("title_ja") || "").trim();
-    const bodyJa = String(fd.get("body_ja") || "").trim();
-    const titleZh = String(fd.get("title_zh") || "").trim();
-    const bodyZh = String(fd.get("body_zh") || "").trim();
+    // 2026-06-10 — 다국어 4종 입력 제거(한국어 기본만). title_i18n.ko/body_i18n.ko 만 저장.
+    //   기존 data 의 en/ja/zh 키는 server 가 그대로 보관하므로 읽기는 가능 (편집 불가).
     const audience = String(fd.get("audience") || "all");
-    const title_i18n = {
-      ko: title,
-      ...(titleEn ? { en: titleEn } : {}),
-      ...(titleJa ? { ja: titleJa } : {}),
-      ...(titleZh ? { zh: titleZh } : {}),
-    };
-    const body_i18n = {
-      ko: body,
-      ...(bodyEn ? { en: bodyEn } : {}),
-      ...(bodyJa ? { ja: bodyJa } : {}),
-      ...(bodyZh ? { zh: bodyZh } : {}),
-    };
+    const title_i18n = { ko: title };
+    const body_i18n = { ko: body };
     startCreate(async () => {
       const r: NoticeMutationResult = await createNoticeAction({
         title,
@@ -122,46 +105,7 @@ export default function NoticesPage() {
             className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
             required
           />
-          {/* 2026-06-09 라운드 T03 — 다국어 4종(en/ja/zh) 옵션 입력.
-              · 비어 있는 locale 은 키가 누락된 채 저장 → APP 폴백 시 ko 본문이 표시.
-              · 서버 schema: Notice.title_i18n / body_i18n (JSONB).
-              · 단일 컬럼(title/body)에는 ko 값이 동기 기입되어 구버전 APP 도 즉시 호환. */}
-          <div className="text-[11px] uppercase tracking-wide text-slate-500 pt-1">English (optional)</div>
-          <input
-            name="title_en"
-            placeholder="Title (optional, English)"
-            className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
-          />
-          <textarea
-            name="body_en"
-            placeholder="Body (optional, English)"
-            rows={3}
-            className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
-          />
-          <div className="text-[11px] uppercase tracking-wide text-slate-500 pt-1">日本語 (optional)</div>
-          <input
-            name="title_ja"
-            placeholder="タイトル (任意)"
-            className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
-          />
-          <textarea
-            name="body_ja"
-            placeholder="本文 (任意)"
-            rows={3}
-            className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
-          />
-          <div className="text-[11px] uppercase tracking-wide text-slate-500 pt-1">中文 (optional)</div>
-          <input
-            name="title_zh"
-            placeholder="标题 (可选)"
-            className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
-          />
-          <textarea
-            name="body_zh"
-            placeholder="正文 (可选)"
-            rows={3}
-            className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
-          />
+          {/* 2026-06-10 — 다국어 4종 입력(en/ja/zh) 제거. 한국어(기본)만 작성. */}
           <div className="flex items-center gap-2">
             <select
               name="audience"

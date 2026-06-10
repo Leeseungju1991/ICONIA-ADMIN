@@ -3,7 +3,7 @@ import { PanelCard } from "./_components/PanelCard";
 import { ForbiddenNotice } from "./_components/ForbiddenNotice";
 import { KpiChip } from "./_components/KpiChip";
 import { BarChart } from "./_components/SimpleChart";
-import { keysStoreUsageSummaryAction } from "@/lib/actions/geminiKeysStore";
+import { keysStoreUsageSummaryAction, listKeysStoreAction } from "@/lib/actions/geminiKeysStore";
 import { listReportsAction } from "@/lib/actions/reportsAdmin";
 import { listErrorsAction } from "@/lib/actions/errorsTracking";
 import { listLostReportsAction } from "@/lib/actions/lostReports";
@@ -18,13 +18,15 @@ export const dynamic = "force-dynamic";
 //   24h 분포 패널 + API 사용량 패널 4개 섹션.
 // - 모든 값은 Server `/api/v1/admin/overview` + `/api/v1/admin/errors/*` 정본만 표시.
 //   미응답 시 "—" 무음 표시.
-// 2026-06-09 — 사용자 요청 3종:
-//   (1) 3-box KPI 마지막 칸: 신고 대기 → 오류 추적 이벤트 개수 (errorEventsTotal,
-//       /dashboard/error-tracking 으로 클릭 이동).
-//   (2) 오류 추적 차트: count_24h/sample_count 둘 다 null 일 때 row 당 1로 폴백
+// 2026-06-09 — 사용자 요청 2종:
+//   (1) 오류 추적 차트: count_24h/sample_count 둘 다 null 일 때 row 당 1로 폴백
 //       (이벤트 row 가 있는데 sum=0 으로 그래프가 빈 화면 되던 회귀 fix).
-//   (3) API 사용량 패널: per-key bar 리스트 제거, 4-stat (등록/활성화/비활성화/사용량%)
+//   (2) API 사용량 패널: per-key bar 리스트 제거, 4-stat (등록/활성화/비활성화/사용량%)
 //       만 노출.
+// 2026-06-10 — 3-box KPI 마지막 칸 "오류 추적 이벤트" → "Gemini API Key" (활성 키 개수
+//   + 30일 사용량 strip). 클릭 시 /dashboard/gemini 로 이동.
+// 2026-06-10 — "오류 추적 — 7일 추세" 패널 제거 (since7d/trend7dBuckets dead code 정리).
+// 2026-06-10 — "오류 추적 — 24h 분포" 막대그래프 높이 220px + showValues 로 건수 가시화.
 
 export default async function DashboardHome() {
   const overviewResult = await fetchAdminOverviewAction();
@@ -51,27 +53,23 @@ export default async function DashboardHome() {
   //   각 도메인의 listErrorsAction 을 병렬 호출 후 e.count_24h ?? e.sample_count 누적.
   //   error-tracking 페이지의 stats.total 계산과 동일 로직.
   const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-  // 2026-06-10 — 사용자 요청: 24h 분포 패널 하단에 7일 추세 그래프 추가.
-  //   listErrorsAction 을 since=7d 로 재호출 후 last_seen_at 의 날짜 버킷별 집계.
-  const since7d = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
   const ERROR_DOMAINS: ErrorDomain[] = ["firmware", "server", "ai", "app"];
 
-  // 모더레이션 미해결 신고 카운트 + 4-도메인 24h 오류 합계 (KPI chip 용)
-  //   + 4-도메인 7d 오류 row (트렌드 그래프용)
-  //   + 등록 KEY 30일 사용량 요약 (오류 추적 이벤트 카드 푸터)
+  // 모더레이션 미해결 신고 카운트 + 4-도메인 24h 오류 합계 (24h 분포 패널 용)
+  //   + 등록 KEY 30일 사용량 요약 (Gemini KEY KpiChip 푸터)
+  //   + 등록 KEY 목록 (Gemini KEY KpiChip 본문 — active 개수)
   //   + 분실/도난 신고 row (대시보드 하단 카드).
-  // 2026-06-10 — API 사용량 패널 제거로 fetchGeminiKeysAction 호출 삭제.
   const [
     modRes,
     errorResults,
-    errorResults7d,
     keysUsageRes,
+    keysListRes,
     lostRes,
   ] = await Promise.all([
     listReportsAction({ status: "open" }),
     Promise.all(ERROR_DOMAINS.map((d) => listErrorsAction({ domain: d, since: since24h }))),
-    Promise.all(ERROR_DOMAINS.map((d) => listErrorsAction({ domain: d, since: since7d }))),
     keysStoreUsageSummaryAction("30d"),
+    listKeysStoreAction(),
     listLostReportsAction({}),
   ]);
   // 신고 대기 강조 배너용 — overview.reports_pending 정본 + listReportsAction fallback.
@@ -121,10 +119,6 @@ export default async function DashboardHome() {
   const errorChartHasData =
     anyErrorOk &&
     Object.values(errorDomainCounts).some((v) => v > 0);
-  // 2026-06-09 — 3-box KPI 마지막 칸 "오류 추적 이벤트" 용 24h 합계.
-  const errorEventsTotal = anyErrorOk
-    ? Object.values(errorDomainCounts).reduce((s, v) => s + v, 0)
-    : null;
 
   // 2026-06-10 — 사용자 요청: "오류 추적 이벤트" 카드 푸터에 등록 KEY 30일 사용량 strip.
   //   keysStoreUsageSummaryAction("30d") 의 totals.tokens / totals.cap 사용. cap 미설정 시
@@ -162,35 +156,10 @@ export default async function DashboardHome() {
   }
   const lostTotal = lostItems.length;
 
-  // 2026-06-10 — 7일 추세 그래프 데이터. 4개 도메인 합산 후 last_seen_at 의 날짜
-  //   (UTC) 로 버킷. count_24h/sample_count 누락 시 row 당 1 폴백 (24h 차트와 동일).
-  //   오늘 포함 과거 7일 = 7 버킷. 가장 오래된 날짜가 왼쪽.
-  const trend7dBuckets = (() => {
-    const buckets: { date: string; label: string; value: number }[] = [];
-    const now = new Date();
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
-      const iso = d.toISOString().slice(0, 10); // YYYY-MM-DD
-      const label = `${d.getUTCMonth() + 1}/${d.getUTCDate()}`;
-      buckets.push({ date: iso, label, value: 0 });
-    }
-    const idxByDate = new Map(buckets.map((b, i) => [b.date, i]));
-    let any7dOk = false;
-    errorResults7d.forEach((r) => {
-      if (!r.ok) return;
-      any7dOk = true;
-      for (const e of r.data.items) {
-        const ev = e.count_24h ?? e.sample_count ?? 1;
-        const ls = e.last_seen_at;
-        if (!ls) continue;
-        const dayKey = ls.slice(0, 10);
-        const bi = idxByDate.get(dayKey);
-        if (bi != null) buckets[bi].value += ev;
-      }
-    });
-    return { buckets, any7dOk };
-  })();
-  const trend7dHasData = trend7dBuckets.any7dOk && trend7dBuckets.buckets.some((b) => b.value > 0);
+  // 2026-06-10 — 등록된 Gemini API KEY 개수 (status=active 만 집계).
+  const geminiActiveKeyCount = keysListRes.ok
+    ? keysListRes.data.items.filter((k) => k.status === "active").length
+    : null;
 
   return (
     <div className="space-y-5">
@@ -225,9 +194,9 @@ export default async function DashboardHome() {
         </div>
       </Link>
 
-      {/* 2026-06-09 — 사용자 요청: 마지막 KPI 박스 "신고 대기" → "오류 추적 이벤트".
-          - 활성 디바이스 / DAU 두 칸 + 오류 추적 이벤트 (errorEventsTotal, 24h 합계).
-          - 클릭 시 /dashboard/error-tracking 으로 이동. */}
+      {/* 2026-06-10 — 사용자 요청: 마지막 KPI 박스 "오류 추적 이벤트" → "Gemini API Key".
+          - 활성 디바이스 / DAU 두 칸 + Gemini 활성 키 개수 (listKeysStoreAction).
+          - 클릭 시 /dashboard/gemini 로 이동. 푸터에 30일 사용량 strip 유지. */}
       <section className="grid grid-cols-3 gap-0">
         <KpiChip
           tone="indigo"
@@ -246,22 +215,16 @@ export default async function DashboardHome() {
           trend={trend?.dau}
         />
         <Link
-          href="/dashboard/error-tracking"
+          href="/dashboard/gemini"
           className="block rounded-2xl hover:shadow-card transition"
-          aria-label="오류 추적 이벤트로 이동"
+          aria-label="Gemini API KEY 관리로 이동"
         >
           <KpiChip
             tone="pink"
             icon="alert"
-            label="오류 추적 이벤트"
-            value={DASH(errorEventsTotal)}
-            sub={
-              errorEventsTotal == null
-                ? "데이터 없음"
-                : errorEventsTotal > 0
-                  ? "24시간 합계"
-                  : "정상"
-            }
+            label="Gemini API Key"
+            value={DASH(geminiActiveKeyCount)}
+            sub="활성 키"
             footer={
               <GeminiUsageStrip
                 tokens={keysUsageTokens}
@@ -299,16 +262,17 @@ export default async function DashboardHome() {
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <div className="lg:col-span-2">
-              <div className="text-xs text-slate-500 mb-2">도메인별 이벤트 수</div>
+              <div className="text-xs text-slate-500 mb-2">도메인별 이벤트 수 (막대 높이 = 건수 비례)</div>
               <BarChart
                 data={[
-                  { label: `펌웨어 (${errorDomainCounts.firmware})`, value: errorDomainCounts.firmware },
-                  { label: `서버 (${errorDomainCounts.server})`,     value: errorDomainCounts.server },
-                  { label: `AI (${errorDomainCounts.ai})`,           value: errorDomainCounts.ai },
-                  { label: `앱 (${errorDomainCounts.app})`,          value: errorDomainCounts.app },
+                  { label: "펌웨어", value: errorDomainCounts.firmware },
+                  { label: "서버",   value: errorDomainCounts.server },
+                  { label: "AI",     value: errorDomainCounts.ai },
+                  { label: "앱",     value: errorDomainCounts.app },
                 ]}
                 accent="#EC4899"
-                height={160}
+                height={220}
+                showValues
               />
             </div>
             <div className="flex flex-col gap-2">
@@ -316,35 +280,6 @@ export default async function DashboardHome() {
               <LifecycleTile label="발생 건수" value={lifecycleOccurred} tone="critical" />
               <LifecycleTile label="조치 건수" value={lifecycleAcknowledged} tone="warn" />
               <LifecycleTile label="해결 건수" value={lifecycleResolved} tone="ok" />
-            </div>
-          </div>
-        )}
-      </PanelCard>
-
-      {/* 2026-06-10 — 사용자 요청: 오류 추적 이벤트 패널 하단에 7일 추세 그래프.
-          4개 도메인 합산 일별 카운트 (UTC). last_seen_at 기준 버킷.
-          데이터 부재 시 안내 문구만 표시 — 추세 그래프 자체는 항상 mount. */}
-      <PanelCard
-        title="오류 추적 — 7일 추세"
-        description="펌웨어 / 서버 / AI / 앱 도메인 이벤트 일별 합계 (UTC, 오늘 포함)."
-      >
-        {!trend7dBuckets.any7dOk ? (
-          <div className="text-sm text-slate-500">
-            7일 추세 데이터를 불러오지 못했습니다 (Server 미응답).
-          </div>
-        ) : !trend7dHasData ? (
-          <div className="text-sm text-slate-500">
-            최근 7일 동안 기록된 오류 이벤트가 없습니다. (양호)
-          </div>
-        ) : (
-          <div>
-            <BarChart
-              data={trend7dBuckets.buckets.map((b) => ({ label: b.label, value: b.value }))}
-              accent="#EC4899"
-              height={180}
-            />
-            <div className="mt-2 text-[11px] text-slate-500 text-right">
-              합계 {trend7dBuckets.buckets.reduce((s, b) => s + b.value, 0).toLocaleString()}건 · 일별
             </div>
           </div>
         )}

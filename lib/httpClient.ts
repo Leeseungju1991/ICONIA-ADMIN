@@ -104,7 +104,19 @@ export async function authedRequest<T>(
     };
   }
 
+  // 5xx 처리: envelope.ok === false + error.code 가 있으면 server 가 의도적으로 보낸
+  //   구조화된 실패 — 호출자가 분기할 수 있게 그대로 전달 (e.g. 503 ERR_DEPENDENCY_UNAVAILABLE).
+  //   없으면 일반 ERR_SERVER_UNAVAILABLE 폴백.
   if (response.status >= 500) {
+    if (envelope?.ok === false && envelope.error?.code) {
+      return {
+        ok: false,
+        code: envelope.error.code,
+        message: envelope.error.message,
+        status: response.status,
+        details: envelope.error.details,
+      };
+    }
     return {
       ok: false,
       code: "ERR_SERVER_UNAVAILABLE",
