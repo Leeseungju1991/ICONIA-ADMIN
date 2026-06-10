@@ -11,7 +11,7 @@ const TONE: Record<Tone, { bg: string; ring: string; text: string; accent: strin
   orange: { bg: "bg-orange-50", ring: "ring-orange-200", text: "text-orange-700", accent: "#f97316" },
 };
 
-export function KpiChip({ label, value, sub, tone = "indigo", icon = "device", trend }: {
+export function KpiChip({ label, value, sub, tone = "indigo", icon = "device", trend, footer }: {
   label: string;
   value: string;
   sub?: string;
@@ -19,6 +19,8 @@ export function KpiChip({ label, value, sub, tone = "indigo", icon = "device", t
   icon?: IconName;
   /** 최근 7일 추세 — 있으면 카드 하단에 선+영역 sparkline 으로 표시. */
   trend?: number[];
+  /** 추세 sparkline 아래 추가 보조 정보 슬롯 (e.g. 부가 메트릭 스트립). */
+  footer?: ReactNode;
 }) {
   const t = TONE[tone];
   const hasTrend = Array.isArray(trend) && trend.length > 0;
@@ -41,6 +43,7 @@ export function KpiChip({ label, value, sub, tone = "indigo", icon = "device", t
           <div className="px-1 text-[9px] text-slate-400 leading-none">최근 7일</div>
         </div>
       ) : null}
+      {footer ? <div className="mt-1">{footer}</div> : null}
     </div>
   );
 }

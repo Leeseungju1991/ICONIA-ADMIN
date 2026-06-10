@@ -3493,11 +3493,139 @@ export function updateGeminiKeyQuota(args: {
 }
 
 // ---------------------------------------------------------------------------
+// 2026-06-10 — Gemini API KEY 평문 저장소 (admin one-box 등록 + 마스킹 목록 + 총 사용량).
+//   SERVER: 2. SERVER/src/routes/adminGeminiKeysStoreRoutes.js
+//   평문은 등록 POST 본문에만 잠깐 존재. 응답/목록에는 prefix 4자 + alias 만 노출.
+// ---------------------------------------------------------------------------
+
+export type GeminiKeysStoreItem = {
+  id: string;
+  alias: string;
+  keyPrefix: string;
+  status: "active" | "disabled";
+  createdAt: string;
+};
+
+export type GeminiKeysStoreList = { count: number; items: GeminiKeysStoreItem[] };
+
+export type GeminiKeysStoreUsageSummary = {
+  range: "24h" | "7d" | "30d";
+  totals: {
+    tokens: number;
+    costUsd: number;
+    cap: number | null;
+    percentOfCap: number | null;
+  };
+  items: Array<{
+    id: string;
+    alias: string;
+    keyPrefix: string;
+    tokens: number;
+    costUsd: number;
+    percentOfTotal: number;
+  }>;
+};
+
+export function listGeminiKeysStore(args: { jwt: string }): Promise<ServerResult<GeminiKeysStoreList>> {
+  return authedRequest({
+    jwt: args.jwt,
+    path: "/api/v1/admin/gemini/keys-store",
+    method: "GET",
+  });
+}
+
+export function addGeminiKeysStore(args: {
+  jwt: string;
+  apiKey: string;
+}): Promise<ServerResult<{ item: GeminiKeysStoreItem; reactivated?: boolean }>> {
+  return authedRequest({
+    jwt: args.jwt,
+    path: "/api/v1/admin/gemini/keys-store",
+    method: "POST",
+    body: { apiKey: args.apiKey },
+  });
+}
+
+export function disableGeminiKeysStore(args: {
+  jwt: string;
+  id: string;
+}): Promise<ServerResult<{ item: GeminiKeysStoreItem; already_disabled?: boolean }>> {
+  return authedRequest({
+    jwt: args.jwt,
+    path: `/api/v1/admin/gemini/keys-store/${encodeURIComponent(args.id)}`,
+    method: "DELETE",
+  });
+}
+
+export function geminiKeysStoreUsageSummary(args: {
+  jwt: string;
+  range?: "24h" | "7d" | "30d";
+}): Promise<ServerResult<GeminiKeysStoreUsageSummary>> {
+  const range = args.range ?? "30d";
+  return authedRequest({
+    jwt: args.jwt,
+    path: `/api/v1/admin/gemini/keys-store/usage-summary?range=${encodeURIComponent(range)}`,
+    method: "GET",
+  });
+}
+
+// ---------------------------------------------------------------------------
 // 에러 코드 → 한글 메시지 매핑.
 //
 // SERVER 가 정의한 표준 에러 토큰 (ERR_USER_EMAIL_EXISTS 등) 을 운영자 화면에
 // 노출할 한 줄 한글 메시지로 변환한다. 미정의 코드는 그대로 반환.
 // ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// 2026-06-10 — 분실/도난 신고 (Lost Report)
+//   Server: GET   /api/v1/admin/lost-reports?status=&cursor=&limit=
+//           PATCH /api/v1/admin/lost-reports/:id  body={ status }
+// ---------------------------------------------------------------------------
+
+export type LostReportStatus = "pending" | "in_progress" | "resolved" | "rejected";
+
+export type LostReportRow = {
+  id: string;
+  user_id: string;
+  doll_identifier: string;
+  incident_at: string;
+  last_location: string;
+  description: string;
+  status: LostReportStatus;
+  created_at: string;
+  updated_at: string;
+};
+
+export function listLostReports(args: {
+  jwt: string;
+  status?: LostReportStatus;
+  cursor?: string | null;
+  limit?: number;
+}): Promise<ServerResult<{ items: LostReportRow[]; next_cursor: string | null }>> {
+  const params = new URLSearchParams();
+  if (args.status) params.set("status", args.status);
+  if (args.cursor) params.set("cursor", args.cursor);
+  if (args.limit) params.set("limit", String(args.limit));
+  const qs = params.toString();
+  return authedRequest({
+    jwt: args.jwt,
+    path: `/api/v1/admin/lost-reports${qs ? `?${qs}` : ""}`,
+    method: "GET",
+  });
+}
+
+export function updateLostReportStatus(args: {
+  jwt: string;
+  id: string;
+  status: LostReportStatus;
+}): Promise<ServerResult<{ report: LostReportRow }>> {
+  return authedRequest({
+    jwt: args.jwt,
+    path: `/api/v1/admin/lost-reports/${encodeURIComponent(args.id)}`,
+    method: "PATCH",
+    body: { status: args.status },
+  });
+}
 
 const ADMIN_ERROR_MESSAGES_KO: Record<string, string> = {
   ERR_USER_EMAIL_EXISTS: "이미 사용 중인 이메일입니다.",

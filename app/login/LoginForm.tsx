@@ -31,7 +31,13 @@ export default function LoginForm() {
     : null;
 
   return (
-    <div className="space-y-4">
+    <form
+      className="space-y-4"
+      onSubmit={(e) => {
+        e.preventDefault();
+        submit();
+      }}
+    >
       <div className="rounded-xl border border-slate-300 bg-white flex items-center gap-3 px-4 py-3">
         <div className="w-10 h-10 rounded-xl bg-white/60 flex items-center justify-center">
           <UserIcon className="w-5 h-5 text-slate-500" />
@@ -42,9 +48,7 @@ export default function LoginForm() {
           onChange={(e) => setId(e.target.value)}
           placeholder="ID"
           autoComplete="username"
-          onKeyDown={(e) => {
-            if (e.key === "Enter") submit();
-          }}
+          name="username"
         />
       </div>
 
@@ -60,9 +64,7 @@ export default function LoginForm() {
             onChange={(e) => setPw(e.target.value)}
             placeholder="Password"
             autoComplete="current-password"
-            onKeyDown={(e) => {
-              if (e.key === "Enter") submit();
-            }}
+            name="password"
           />
           <button
             type="button"
@@ -79,13 +81,12 @@ export default function LoginForm() {
 
       <button
         className="w-full btn-primary py-3 text-base disabled:opacity-60"
-        onClick={submit}
         disabled={isPending}
-        type="button"
+        type="submit"
       >
         {isPending ? "로그인 중..." : "Sign in"}
       </button>
-    </div>
+    </form>
   );
 }
 

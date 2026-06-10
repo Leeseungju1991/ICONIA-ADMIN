@@ -75,6 +75,8 @@ export const PATH_REQUIRED_ROLES: { prefix: string; roles: OperatorRole[] }[] = 
   // cs 이상 — 사용자 / 신고 처리.
   { prefix: "/dashboard/users", roles: CS_OR_ABOVE },
   { prefix: "/dashboard/reports", roles: CS_OR_ABOVE },
+  // 2026-06-10 — APP 분실/도난 신고 접수 (cs 이상). server `/api/v1/admin/lost-reports` 정합.
+  { prefix: "/dashboard/lost-reports", roles: CS_OR_ABOVE },
   // CS 통합 조회 — CS 가 한 화면에서 사용자/기기/오류/조치를 보는 surface (V1.0 #7).
   { prefix: "/dashboard/cs", roles: CS_OR_ABOVE },
   // RAG / 대화 품질 — secops/sre/superadmin (AI 운영) + cs (피드백 확인) 까지 허용.

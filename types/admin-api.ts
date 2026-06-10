@@ -185,6 +185,12 @@ export type ErrorRow = {
   /** server / fw / ai 도메인의 기여 컴포넌트 (e.g. "auth-service", "v1.4.2"). */
   source: string | null;
   severity: "low" | "medium" | "high" | "critical" | "info" | "warn" | "error" | "fatal";
+  /** server 정본 ErrorEvent.status — open|acknowledged|resolved. */
+  status?: "open" | "acknowledged" | "in_progress" | "resolved" | null;
+  /** acknowledged 전이 시각 (fallback 계산용). */
+  acknowledged_at?: string | null;
+  /** resolved 전이 시각 (fallback 계산용). */
+  resolved_at?: string | null;
 };
 
 export type ErrorsResponse = {

@@ -66,12 +66,14 @@ const statusLabel: Record<UserRow["account_status"], string> = {
 
 // Server `ServerUserRow` (lib/adminApi) → UI UserRow shape adapter.
 // Server 응답에 미존재한 필드(doll_count) 는 null 로 두고 UI 가 "—" 표시.
-// display_name 은 응답에 없으면 email local-part 로 surrogate.
+// 2026-06-10 — 사용자 요청: display_name 은 APP 가입 시 자동 부여되는 ID
+//   (영문 5자 + 숫자 2자 = `[A-Za-z]{5}[0-9]{2}`). 미반환 시 fallback 으로 email
+//   local-part 를 쓰면 ID 컬럼 의미가 흐려진다 → null 보존 + render 에서 "—" 표시.
 function adaptServerUser(s: ServerUserRow): UserRow {
   return {
     id: s.id,
     email: s.email,
-    display_name: s.display_name ?? s.email.split("@")[0] ?? "사용자",
+    display_name: s.display_name ?? "",
     account_status: (s.account_status ?? "active") as UserRow["account_status"],
     created_at: s.created_at ?? new Date().toISOString(),
     last_login_at: s.last_login_at ?? s.created_at ?? new Date().toISOString(),
@@ -79,6 +81,9 @@ function adaptServerUser(s: ServerUserRow): UserRow {
     doll_count: null,
   };
 }
+
+// APP 자동 생성 ID 형식: [A-Za-z]{5}[0-9]{2} (예: "abcde12", "Alice42").
+const APP_SIGNUP_ID_RE = /^[A-Za-z]{5}[0-9]{2}$/;
 
 export default function UsersPage() {
   const searchParams = useSearchParams();
@@ -179,11 +184,27 @@ export default function UsersPage() {
       ),
     },
     {
+      // 2026-06-10 — 사용자 요청: "이름" 컬럼을 APP 자동 생성 ID 로 정정.
+      //   가입 시 부여되는 display_name(=`[A-Za-z]{5}[0-9]{2}`) 만 표시.
+      //   형식 불일치(legacy 사용자 등) 또는 누락 시 "—" 로 보수적 표시.
       key: "name",
-      header: "이름",
-      render: (r) => (
-        <span className="font-medium text-slate-800">{r.display_name}</span>
-      ),
+      header: "ID (앱)",
+      render: (r) => {
+        const v = r.display_name?.trim() ?? "";
+        if (!v) return <span className="text-muted">—</span>;
+        const valid = APP_SIGNUP_ID_RE.test(v);
+        return (
+          <span
+            className={
+              "font-mono text-sm " +
+              (valid ? "text-slate-800" : "text-amber-700")
+            }
+            title={valid ? "APP 가입 자동 ID" : "legacy 또는 사용자 지정 표시이름"}
+          >
+            {v}
+          </span>
+        );
+      },
     },
     {
       key: "email",
@@ -397,7 +418,7 @@ export default function UsersPage() {
           <>
             <input
               className="input w-full sm:max-w-[260px]"
-              placeholder="이메일/이름/ID 검색"
+              placeholder="이메일 / APP ID / UUID 검색"
               value={q}
               onChange={(e) => setQ(e.target.value)}
             />
@@ -581,7 +602,7 @@ function UserDetailDrawer({
         <p className="text-xs text-muted mt-0.5">{user.id}</p>
 
         <dl className="mt-5 space-y-3 text-sm">
-          <Row k="이름" v={user.display_name} />
+          <Row k="ID (앱)" v={user.display_name || "—"} />
           <Row k="이메일" v={user.email} />
           <Row k="상태" v={<span className={statusChip[user.account_status]}>{statusLabel[user.account_status]}</span>} />
           <Row k="MFA" v={user.totp_enabled ? "활성화" : "비활성"} />
