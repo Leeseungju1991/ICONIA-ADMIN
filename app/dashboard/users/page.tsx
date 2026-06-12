@@ -70,6 +70,12 @@ const statusLabel: Record<UserRow["account_status"], string> = {
 //   (영문 5자 + 숫자 2자 = `[A-Za-z]{5}[0-9]{2}`). 미반환 시 fallback 으로 email
 //   local-part 를 쓰면 ID 컬럼 의미가 흐려진다 → null 보존 + render 에서 "—" 표시.
 function adaptServerUser(s: ServerUserRow): UserRow {
+  // 2026-06-12 — 서버가 linked_dolls + doll_count 를 첨부 (adminUserService.searchUsers).
+  //   미응답 시 (legacy server) null 폴백 — UI 는 "—" 표시.
+  const linked = Array.isArray(s.linked_dolls) ? s.linked_dolls : null;
+  const dollCount = typeof s.doll_count === "number" ? s.doll_count : (linked?.length ?? null);
+  // 2026-06-12 (사용자 요청 #29) — 마케팅 수신여부. 서버 미응답 시 null → UI 가 "—" 표시.
+  const marketing = typeof s.marketing_opt_in === "boolean" ? s.marketing_opt_in : null;
   return {
     id: s.id,
     email: s.email,
@@ -78,7 +84,9 @@ function adaptServerUser(s: ServerUserRow): UserRow {
     created_at: s.created_at ?? new Date().toISOString(),
     last_login_at: s.last_login_at ?? s.created_at ?? new Date().toISOString(),
     totp_enabled: Boolean(s.totp_enabled),
-    doll_count: null,
+    doll_count: dollCount,
+    linked_dolls: linked,
+    marketing_opt_in: marketing,
   };
 }
 
@@ -88,6 +96,7 @@ const APP_SIGNUP_ID_RE = /^[A-Za-z]{5}[0-9]{2}$/;
 export default function UsersPage() {
   const searchParams = useSearchParams();
   const [q, setQ] = useState("");
+  const [searchInput, setSearchInput] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | UserRow["account_status"]>("all");
   const [selected, setSelected] = useState<UserRow | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -101,24 +110,53 @@ export default function UsersPage() {
   }, [searchParams]);
 
   // Phase 13-A — Server `/api/v1/admin/users` fetch. 도달 실패 시 빈 list + 에러 안내.
+  // 2026-06-12 — 사용자 요청: email 정확 일치 검색. q 가 있으면 server 에 그대로 전달.
+  //   server adminUserService 가 email equals (insensitive) 로 단건/0건 반환.
   const [users, setUsers] = useState<UserRow[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const reloadUsers = useCallback(async () => {
+  const [searching, setSearching] = useState(false);
+  const reloadUsers = useCallback(async (emailQuery?: string) => {
     setLoading(true);
-    const r = await listUsersAction({ limit: 200 });
+    const r = await listUsersAction({
+      limit: 200,
+      ...(emailQuery ? { email: emailQuery } : {}),
+    });
     if (!r.ok) {
       setLoadError(r.message);
       setUsers([]);
-    } else {
-      setLoadError(null);
-      setUsers(r.users.map(adaptServerUser));
+      setLoading(false);
+      return { ok: false as const, count: 0 };
     }
+    setLoadError(null);
+    const adapted = r.users.map(adaptServerUser);
+    setUsers(adapted);
     setLoading(false);
+    return { ok: true as const, count: adapted.length };
   }, []);
   useEffect(() => {
     void reloadUsers();
   }, [reloadUsers]);
+
+  // 2026-06-12 — 검색 실행. Enter 또는 "검색" 버튼.
+  //   - 입력 비어있음: 전체 목록 reload + q 클리어.
+  //   - 입력 있음: server exact match. 0건이면 alert 표출 + 화면 비움.
+  async function handleSearch() {
+    const v = searchInput.trim();
+    setQ(v);
+    setSearching(true);
+    const r = await reloadUsers(v || undefined);
+    setSearching(false);
+    if (r.ok && v && r.count === 0) {
+      // 사용자 요청: alert 로 명시.
+      window.alert(`"${v}" 와 정확히 일치하는 이메일의 사용자가 없습니다.`);
+    }
+  }
+  function handleClearSearch() {
+    setSearchInput("");
+    setQ("");
+    void reloadUsers();
+  }
 
   // 2026-06-02 — 마스킹 제거에 따라 "해제" 버튼 흐름 폐기.
   //   대신 drawer 가 열릴 때마다 1회 user.pii_unmasked audit 를 자동 기록한다.
@@ -135,15 +173,15 @@ export default function UsersPage() {
   }
 
   const filtered = useMemo(() => {
+    // 2026-06-12 — 검색은 server exact match 로 일원화. 클라이언트 측은 status filter 와
+    //   pending_deletion 제거만 담당 (검색 contains 로직 폐기).
     return users.filter((u) => {
+      // 2026-06-11 — 사용자 요청: 탈퇴 대기(pending_deletion)는 회원 목록에서 숨김.
+      if (u.account_status === "pending_deletion") return false;
       if (statusFilter !== "all" && u.account_status !== statusFilter) return false;
-      if (q) {
-        const s = q.toLowerCase();
-        return u.email.toLowerCase().includes(s) || u.display_name.toLowerCase().includes(s) || u.id.includes(s);
-      }
       return true;
     });
-  }, [q, statusFilter, users]);
+  }, [statusFilter, users]);
 
   // 라이프사이클 가시화 stats — 라운드 4 (2026-05-20) E2E QC.
   const lifecycleStats = useMemo(() => {
@@ -172,54 +210,108 @@ export default function UsersPage() {
     [users],
   );
 
-  // 2026-06-09 perf — columns 배열은 매 render 마다 새 reference 였다 → DataTable 의
-  //   TableRow memo 가 무력화 (props.columns identity 가 매번 바뀜).
-  //   reloadUsers 콜백 deps 로 묶어 stable identity 유지.
+  // 2026-06-12 — 사용자 요청에 따라 컬럼 재구성:
+  //   이메일 · 표시 이름 · 인형 연동(Y/N+개수) · 인형 번호(handle 목록) · 가입일 · 최근 접속일 · 액션
+  //   기존 ID/MFA/상태/ID(앱) 컬럼은 제거. 상태/MFA 는 drawer 상세에서 계속 조회 가능.
   const columns: Column<UserRow>[] = useMemo(() => [
     {
-      key: "id",
-      header: "ID",
-      render: (r) => (
-        <span className="font-mono text-xs text-muted">{r.id}</span>
-      ),
+      key: "email",
+      header: "이메일",
+      render: (r) => <span className="text-sm text-slate-800">{r.email}</span>,
     },
     {
-      // 2026-06-10 — 사용자 요청: "이름" 컬럼을 APP 자동 생성 ID 로 정정.
-      //   가입 시 부여되는 display_name(=`[A-Za-z]{5}[0-9]{2}`) 만 표시.
-      //   형식 불일치(legacy 사용자 등) 또는 누락 시 "—" 로 보수적 표시.
-      key: "name",
-      header: "ID (앱)",
+      key: "display_name",
+      header: "표시 이름",
       render: (r) => {
         const v = r.display_name?.trim() ?? "";
-        if (!v) return <span className="text-muted">—</span>;
-        const valid = APP_SIGNUP_ID_RE.test(v);
+        const valid = v ? APP_SIGNUP_ID_RE.test(v) : false;
+        // 2026-06-12 (사용자 요청 #29) — 표시이름 아래에 마케팅 수신여부 라인 추가.
+        //   서버 `marketing_opt_in` 미응답이면 "—" (서버 응답 추가 필요).
+        const marketing = r.marketing_opt_in;
+        const marketingLabel =
+          marketing === true ? "동의" : marketing === false ? "거부" : "—";
+        const marketingClass =
+          marketing === true
+            ? "chip chip-success text-[10px]"
+            : marketing === false
+              ? "chip chip-muted text-[10px]"
+              : "text-[10px] text-muted";
         return (
-          <span
-            className={
-              "font-mono text-sm " +
-              (valid ? "text-slate-800" : "text-amber-700")
-            }
-            title={valid ? "APP 가입 자동 ID" : "legacy 또는 사용자 지정 표시이름"}
-          >
-            {v}
-          </span>
+          <div className="flex flex-col gap-1">
+            {v ? (
+              <span
+                className={
+                  "font-mono text-sm " + (valid ? "text-slate-800" : "text-amber-700")
+                }
+                title={valid ? "APP 가입 자동 ID" : "legacy 또는 사용자 지정 표시이름"}
+              >
+                {v}
+              </span>
+            ) : (
+              <span className="text-muted">—</span>
+            )}
+            <span className="flex items-center gap-1 text-[10px] text-muted">
+              <span>마케팅</span>
+              <span className={marketingClass}>{marketingLabel}</span>
+            </span>
+          </div>
         );
       },
     },
     {
-      key: "email",
-      header: "이메일",
-      render: (r) => r.email,
+      key: "doll_linked",
+      header: "인형 연동",
+      render: (r) => {
+        const count = r.doll_count ?? r.linked_dolls?.length ?? null;
+        if (count == null) return <span className="text-muted text-xs">—</span>;
+        if (count === 0) {
+          return <span className="chip chip-muted text-[11px]">미연동</span>;
+        }
+        return (
+          <span className="chip chip-success text-[11px]">연동 · {count}대</span>
+        );
+      },
     },
-    { key: "status", header: "상태", render: (r) => <span className={statusChip[r.account_status]}>{statusLabel[r.account_status]}</span> },
-    { key: "mfa", header: "MFA", render: (r) => r.totp_enabled ? <span className="chip chip-info">ON</span> : <span className="chip chip-muted">OFF</span> },
     {
-      key: "dolls",
-      header: "인형",
-      align: "right",
-      render: (r) => (r.doll_count == null ? <span className="text-muted">—</span> : r.doll_count),
+      key: "doll_handles",
+      header: "인형 번호",
+      render: (r) => {
+        const list = r.linked_dolls ?? [];
+        if (list.length === 0) return <span className="text-muted text-xs">—</span>;
+        return (
+          <div className="flex flex-wrap gap-1 max-w-[260px]">
+            {list.map((d) => (
+              <span
+                key={d.id}
+                className={
+                  "font-mono text-[11px] rounded-md px-1.5 py-0.5 " +
+                  (d.is_primary
+                    ? "bg-amber-100 text-amber-800 border border-amber-200"
+                    : "bg-slate-100 text-slate-700 border border-slate-200")
+                }
+                title={`${d.nickname} · ${d.status}${d.is_primary ? " · primary" : ""}`}
+              >
+                {d.handle}
+              </span>
+            ))}
+          </div>
+        );
+      },
     },
-    { key: "last", header: "최근 로그인", render: (r) => <span className="text-xs text-muted">{formatDate(r.last_login_at)}</span> },
+    {
+      key: "created_at",
+      header: "가입일",
+      render: (r) => (
+        <span className="text-xs text-muted">{formatDate(r.created_at)}</span>
+      ),
+    },
+    {
+      key: "last_login_at",
+      header: "최근 접속일",
+      render: (r) => (
+        <span className="text-xs text-muted">{formatDate(r.last_login_at)}</span>
+      ),
+    },
     {
       key: "actions",
       header: "",
@@ -413,15 +505,42 @@ export default function UsersPage() {
 
       <PanelCard
         title="회원 검색"
-        description="이메일·이름·ID 로 회원을 찾고 상세 정보를 관리합니다. 모든 PII 접근은 감사 로그에 자동 기록됩니다."
+        description="검색은 이메일 정확 일치만 가능합니다 (대소문자 무시). 비우고 검색하면 전체 목록을 표시합니다. 모든 PII 접근은 감사 로그에 자동 기록됩니다."
         actions={
           <>
             <input
-              className="input w-full sm:max-w-[260px]"
-              placeholder="이메일 / APP ID / UUID 검색"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
+              className="input w-full sm:max-w-[280px]"
+              placeholder="이메일 입력 후 Enter (예: user@example.com)"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  void handleSearch();
+                }
+              }}
+              type="email"
+              autoComplete="off"
+              data-testid="input-user-email-search"
             />
+            <button
+              type="button"
+              onClick={() => void handleSearch()}
+              disabled={searching}
+              className="rounded-xl bg-accent px-3 py-2 text-sm text-white shadow-card disabled:opacity-60"
+              data-testid="btn-user-email-search"
+            >
+              {searching ? "검색 중..." : "검색"}
+            </button>
+            {q ? (
+              <button
+                type="button"
+                onClick={handleClearSearch}
+                className="rounded-xl bg-white border border-slate-300 px-3 py-2 text-xs text-slate-700"
+              >
+                전체 보기
+              </button>
+            ) : null}
             <select
               className="select w-full sm:max-w-[160px]"
               value={statusFilter}
@@ -430,7 +549,6 @@ export default function UsersPage() {
               <option value="all">전체 상태</option>
               <option value="active">활성</option>
               <option value="paused">일시정지</option>
-              <option value="pending_deletion">탈퇴 대기</option>
               <option value="deleted">삭제됨</option>
             </select>
           </>

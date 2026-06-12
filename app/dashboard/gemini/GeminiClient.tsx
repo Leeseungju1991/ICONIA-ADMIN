@@ -47,7 +47,9 @@ export default function GeminiClient() {
         keysStoreUsageSummaryAction("30d"),
         fetchGeminiUsageAction("24h"),
       ]);
-      if (keysRes.ok) setItems(keysRes.data.items);
+      // 2026-06-11 — 해제(혹은 legacy disabled) 키는 화면에서 완전히 가린다.
+      //   서버가 active 만 반환하지만, 과거 데이터 호환을 위해 클라에서도 한 번 더 거른다.
+      if (keysRes.ok) setItems(keysRes.data.items.filter((k) => k.status === "active"));
       else setItems([]);
       if (sumRes.ok) setSummary(sumRes.data);
       else setSummary(null);
@@ -83,18 +85,23 @@ export default function GeminiClient() {
   function handleDisable(item: GeminiKeysStoreItem) {
     if (item.status !== "active") return;
     if (typeof window !== "undefined") {
+      // 2026-06-11 — soft disable → hard delete 정책 변경에 맞춰 문구 갱신.
       const ok = window.confirm(
-        `[${item.alias}] (${item.keyPrefix}***) 키를 해제(비활성)하시겠습니까?\n해제 후에는 AI 서비스가 본 키를 사용하지 않습니다.`,
+        `[${item.alias}] (${item.keyPrefix}***) 키를 삭제하시겠습니까?\n삭제 후에는 목록과 AI 서비스 polling 양쪽에서 즉시 사라지며, 복구할 수 없습니다.`,
       );
       if (!ok) return;
     }
+    // 낙관적 제거: 응답을 기다리지 않고 화면에서 먼저 행을 가린다.
+    //   reload() 가 곧 active 목록으로 덮어쓰지만, 사용자에게 즉시 피드백이 간다.
+    setItems((prev) => prev.filter((k) => k.id !== item.id));
     startMutate(async () => {
       const r = await disableKeyStoreAction(item.id);
       if (!r.ok) {
-        setToast(`해제 실패: ${r.message}`);
+        setToast(`삭제 실패: ${r.message}`);
+        reload(); // 실패 시 서버 상태로 되돌린다.
         return;
       }
-      setToast(`해제 완료: ${item.alias}`);
+      setToast(`삭제 완료: ${item.alias}`);
       reload();
     });
   }
@@ -150,6 +157,11 @@ export default function GeminiClient() {
                 </tr>
               </thead>
               <tbody>
+                {/*
+                  2026-06-11 — 해제(disabled) 행은 server·client 양쪽에서 가린다.
+                  status 컬럼은 legacy 호환을 위해 응답 타입에 남아 있지만,
+                  실제로 렌더되는 행은 전부 active 만 들어온다.
+                */}
                 {items.map((item) => (
                   <tr key={item.id} className="border-b border-slate-100 last:border-b-0">
                     <td className="py-2 pr-3 font-mono text-slate-900">
@@ -157,14 +169,8 @@ export default function GeminiClient() {
                     </td>
                     <td className="py-2 pr-3 text-slate-700">{item.alias}</td>
                     <td className="py-2 pr-3">
-                      <span
-                        className={
-                          item.status === "active"
-                            ? "inline-flex items-center rounded-full bg-emerald-100 text-emerald-800 px-2 py-0.5 text-xs"
-                            : "inline-flex items-center rounded-full bg-slate-200 text-slate-700 px-2 py-0.5 text-xs"
-                        }
-                      >
-                        {item.status === "active" ? "활성" : "해제됨"}
+                      <span className="inline-flex items-center rounded-full bg-emerald-100 text-emerald-800 px-2 py-0.5 text-xs">
+                        활성
                       </span>
                     </td>
                     <td className="py-2 pr-3 text-xs text-slate-600">
@@ -174,10 +180,10 @@ export default function GeminiClient() {
                       <button
                         type="button"
                         onClick={() => handleDisable(item)}
-                        disabled={item.status !== "active" || mutating}
-                        className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed min-h-[36px]"
+                        disabled={mutating}
+                        className="rounded-lg border border-rose-200 bg-white px-3 py-1.5 text-xs text-rose-700 hover:bg-rose-50 disabled:opacity-50 disabled:cursor-not-allowed min-h-[36px]"
                       >
-                        해제
+                        삭제
                       </button>
                     </td>
                   </tr>

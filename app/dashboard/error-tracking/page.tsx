@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 import { PanelCard } from "../_components/PanelCard";
 import { StatCard } from "../_components/StatCard";
 import { EmptyState, ErrorState, FixtureBadge, LoadingState } from "../_components/CardStates";
-import { listErrorsAction } from "@/lib/actions/errorsTracking";
+import { listErrorsAction, resolveErrorAction } from "@/lib/actions/errorsTracking";
 import type { ErrorDomain, ErrorRow } from "@/types/admin-api";
 
 const DOMAIN_LABEL: Record<ErrorDomain, string> = {
@@ -54,6 +54,8 @@ export default function ErrorTrackingPage() {
   const [source, setSource] = useState<"server" | "fixture" | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [loading, startLoad] = useTransition();
+  const [resolving, setResolving] = useState<Set<string>>(new Set());
+  const [toast, setToast] = useState<string | null>(null);
 
   function reload() {
     startLoad(async () => {
@@ -74,6 +76,30 @@ export default function ErrorTrackingPage() {
     reload();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [domain]);
+
+  // 2026-06-11 — 사용자 요청: 오류별 "처리 완료" 버튼.
+  //   server POST /errors/:id/resolve → status='resolved'. 성공 시 목록에서 즉시 제거 →
+  //   stats useMemo 가 자동으로 카운트를 줄여 "24h 합계 / 긴급 / 높음" 카드도 함께 감소.
+  async function handleResolve(id: string) {
+    if (resolving.has(id)) return;
+    setResolving((prev) => {
+      const next = new Set(prev);
+      next.add(id);
+      return next;
+    });
+    const r = await resolveErrorAction({ id });
+    setResolving((prev) => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+    if (!r.ok) {
+      setToast(`처리 실패: ${r.message ?? r.code ?? "알 수 없는 오류"}`);
+      return;
+    }
+    setItems((prev) => prev.filter((e) => e.id !== id));
+    setToast("처리 완료로 표시되어 목록에서 제거했습니다.");
+  }
 
   const stats = useMemo(() => {
     // 2026-06-04 — server 응답이 count_24h/affected_users 를 항상 채우지 않는다 (정본은
@@ -194,16 +220,26 @@ export default function ErrorTrackingPage() {
                       · 마지막 {e.last_seen_at ? new Date(e.last_seen_at).toLocaleString("ko-KR") : "—"}
                     </div>
                   </div>
-                  {/* server 정본은 stack_excerpt — 둘 다 허용. */}
-                  {(e.stack || (e as unknown as { stack_excerpt?: string }).stack_excerpt) ? (
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {/* server 정본은 stack_excerpt — 둘 다 허용. */}
+                    {(e.stack || (e as unknown as { stack_excerpt?: string }).stack_excerpt) ? (
+                      <button
+                        type="button"
+                        onClick={() => setExpanded(expanded === e.id ? null : e.id)}
+                        className="rounded-lg bg-white border border-slate-300 px-2.5 py-1 text-xs hover:bg-slate-50"
+                      >
+                        {expanded === e.id ? "접기" : "스택"}
+                      </button>
+                    ) : null}
                     <button
                       type="button"
-                      onClick={() => setExpanded(expanded === e.id ? null : e.id)}
-                      className="rounded-lg bg-white border border-slate-300 px-2.5 py-1 text-xs hover:bg-slate-50 shrink-0"
+                      onClick={() => handleResolve(e.id)}
+                      disabled={resolving.has(e.id)}
+                      className="rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-2.5 py-1 disabled:opacity-50"
                     >
-                      {expanded === e.id ? "접기" : "스택"}
+                      {resolving.has(e.id) ? "처리 중..." : "처리 완료"}
                     </button>
-                  ) : null}
+                  </div>
                 </div>
                 {expanded === e.id ? (
                   <pre className="mt-2 rounded-lg bg-slate-900 text-slate-100 text-[11px] p-3 overflow-x-auto whitespace-pre-wrap">
@@ -215,6 +251,19 @@ export default function ErrorTrackingPage() {
           </ul>
         )}
       </PanelCard>
+
+      {toast ? (
+        <div className="fixed bottom-6 right-6 z-50 rounded-2xl bg-slate-900/85 text-white text-sm px-4 py-3 shadow-card">
+          {toast}
+          <button
+            className="ml-3 underline opacity-80"
+            onClick={() => setToast(null)}
+            type="button"
+          >
+            닫기
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }

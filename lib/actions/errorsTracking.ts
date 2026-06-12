@@ -11,6 +11,7 @@ import { authedRequest } from "@/lib/httpClient";
 import type {
   AdminResult,
   ErrorDomain,
+  ErrorRow,
   ErrorsResponse,
 } from "@/types/admin-api";
 import { fixtureErrorsByDomain } from "@/fixtures/errors";
@@ -62,4 +63,23 @@ export async function listErrorsAction(args: {
     unreachable: unreachable(res.code),
     source: "server",
   };
+}
+
+// 2026-06-11 — 사용자 요청: 오류 추적 행마다 "처리 완료" 버튼.
+//   Server: POST /api/v1/admin/errors/:id/resolve (SRE_OR_ABOVE)
+//   성공 시 admin UI 가 목록에서 즉시 제거 → 카운트 자동 감소.
+export async function resolveErrorAction(args: {
+  id: string;
+}): Promise<AdminResult<{ event: ErrorRow }>> {
+  const jwt = readSession();
+  if (!jwt) return { ok: false, message: "세션 만료" };
+  const id = String(args.id || "").trim();
+  if (!id) return { ok: false, message: "id 누락" };
+  const res = await authedRequest<{ event: ErrorRow }>({
+    jwt,
+    path: `/api/v1/admin/errors/${encodeURIComponent(id)}/resolve`,
+    method: "POST",
+  });
+  if (res.ok) return { ok: true, data: res.data };
+  return { ok: false, code: res.code, message: res.message };
 }

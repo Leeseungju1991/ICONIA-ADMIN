@@ -20,17 +20,13 @@ describe("i18n", () => {
   it("respects cookie locale", () => {
     expect(resolveLocale("ko")).toBe("ko");
     expect(resolveLocale("en")).toBe("en");
-    expect(resolveLocale("zh-CN")).toBe("zh-CN");
+    // 2026-06-12 — zh-CN 제거. 알 수 없는 locale 은 ko 로 fallback.
+    expect(resolveLocale("zh-CN")).toBe("ko");
     expect(resolveLocale(undefined)).toBe("ko");
     expect(resolveLocale("garbage")).toBe("ko");
   });
 
   it("lists supported locales", () => {
-    expect(SUPPORTED_LOCALES).toEqual(["ko", "en", "zh-CN"]);
-  });
-
-  it("resolves a Simplified Chinese key", () => {
-    expect(t("common.save", "zh-CN")).toBe("保存");
-    expect(t("user_create.title", "zh-CN")).toBe("添加用户");
+    expect(SUPPORTED_LOCALES).toEqual(["ko", "en"]);
   });
 });

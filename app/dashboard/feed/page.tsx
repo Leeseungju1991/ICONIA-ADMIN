@@ -138,6 +138,17 @@ export default function FeedPage() {
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   async function handleToggleHide(p: AdminFeedPostRow) {
+    // 2026-06-12 audit — 숨김/복구 모두 사용자 가시성에 직접 영향. 우발 클릭 차단.
+    if (typeof window !== "undefined") {
+      const label = p.is_hidden ? "복구 (노출 재개)" : "숨김 처리";
+      const ok = window.confirm(
+        `게시물 ${p.id} ${label} 하시겠습니까?\n\n감사 로그에 기록됩니다.`,
+      );
+      if (!ok) {
+        setToast("취소되었습니다.");
+        return;
+      }
+    }
     const r = await patchFeedPostAction({ id: p.id, is_hidden: !p.is_hidden });
     if (!r.ok) {
       setToast(`상태 변경 실패: ${r.message}`);

@@ -214,8 +214,7 @@ ICONIA 운영자 콘솔 — Next.js 14 (App Router) · React 18 · Tailwind 3.
 - 모든 액션 감사 로그 (Server canonical hash chain + 세션 trail)
 
 ### 3.16 국제화
-- 한국어 / 영어 / 간체 중국어 메시지 분리 (`lib/i18n/messages-ko.ts`,
-  `messages-en.ts`, `messages-zh-CN.ts`)
+- 한국어 / 영어 메시지 분리 (`lib/i18n/messages-ko.ts`, `messages-en.ts`)
 - 운영자 환경설정에서 언어 토글 (`admin_locale` 쿠키 + `ADMIN_DEFAULT_LOCALE` env)
 
 ### 3.17 디자인 시스템

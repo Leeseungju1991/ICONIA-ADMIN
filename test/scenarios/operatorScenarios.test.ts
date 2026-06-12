@@ -176,7 +176,8 @@ describe("i18n — ko/en 카탈로그 (#35)", () => {
     expect(resolveLocale("zz")).toBe("ko");
   });
 
-  it("SUPPORTED_LOCALES 가 ko + en + zh-CN 노출", () => {
-    expect(new Set(SUPPORTED_LOCALES)).toEqual(new Set(["ko", "en", "zh-CN"]));
+  it("SUPPORTED_LOCALES 가 ko + en 노출", () => {
+    // 2026-06-12 — zh-CN 제거 (ADMIN UI 는 ko/en 만 지원).
+    expect(new Set(SUPPORTED_LOCALES)).toEqual(new Set(["ko", "en"]));
   });
 });

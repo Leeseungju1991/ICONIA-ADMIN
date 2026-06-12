@@ -5,6 +5,16 @@ import type { ServerEnvelope, ServerResult } from "./types";
 // Shared types
 // ---------------------------------------------------------------------------
 
+// 2026-06-12 — 사용자 요청: 어드민 사용자 목록에 인형 연동 정보 표시.
+//   server adminUserService.searchUsers 가 user.id 기준으로 doll list 첨부.
+export type LinkedDollRow = {
+  id: string;
+  handle: string;
+  nickname: string;
+  status: string;
+  is_primary: boolean;
+};
+
 export type UserRow = {
   id: string;
   email: string;
@@ -15,6 +25,11 @@ export type UserRow = {
   totp_enabled?: boolean;
   last_login_at?: string | null;
   created_at?: string;
+  // 2026-06-12 — 연동된 인형 목록 (handle = 인형 넘버, nickname = 사용자 지정명).
+  linked_dolls?: LinkedDollRow[];
+  doll_count?: number;
+  // 2026-06-12 (사용자 요청 #29) — 마케팅 수신 동의 여부 (User.marketing_opt_in).
+  marketing_opt_in?: boolean;
 };
 
 export type UsersList = { users: UserRow[]; total: number };
@@ -1645,14 +1660,14 @@ export function resolveFeedReport(args: {
 // Phase 15-A — Notices CRUD (CS_OR_ABOVE).
 // ---------------------------------------------------------------------------
 
-// 2026-06-09 T03 — 공지 다국어. 운영자가 ko/en/ja/zh 4종 본문을 모두 입력 가능하며
+// 2026-06-09 T03 — 공지 다국어. 운영자가 ko/en 2종 본문을 입력 가능하며
 //   서버는 그대로 JSON 컬럼(`title_i18n`/`body_i18n`)에 보관 + ko 값을 단일 컬럼(title/body)
 //   에 fallback 으로 동기 기입 (구버전 APP 호환).
+// 2026-06-12 — ja/zh 키 제거 (ADMIN 신규 작성은 ko/en 만). 기존 DB row 의 ja/zh 키는
+//   서버가 그대로 보관·반환하므로 읽기는 가능(잉여 키는 TS 타입 외 데이터로 무시됨).
 export type NoticeI18n = {
   ko?: string;
   en?: string;
-  ja?: string;
-  zh?: string;
 };
 
 export type NoticeRow = {
@@ -1664,6 +1679,8 @@ export type NoticeRow = {
   audience: string;
   scheduled_at: string | null;
   expires_at: string | null;
+  // 2026-06-12 — APP/어드민 표시 순서. 1=top, 20=bottom. 마이그레이션 이전 row 는 0.
+  order_idx: number;
   created_at: string;
 };
 
@@ -1676,6 +1693,7 @@ export function createNotice(args: {
   audience?: string;
   scheduled_at?: string;
   expires_at?: string;
+  order_idx?: number;
 }): Promise<ServerResult<NoticeRow>> {
   return authedRequest({
     jwt: args.jwt,
@@ -1689,6 +1707,7 @@ export function createNotice(args: {
       ...(args.audience ? { audience: args.audience } : {}),
       ...(args.scheduled_at ? { scheduled_at: args.scheduled_at } : {}),
       ...(args.expires_at ? { expires_at: args.expires_at } : {}),
+      ...(typeof args.order_idx === "number" ? { order_idx: args.order_idx } : {}),
     },
   });
 }
@@ -3546,10 +3565,12 @@ export function addGeminiKeysStore(args: {
   });
 }
 
+// 2026-06-11 — DELETE 는 hard-delete 로 변경됨. 서버 응답은 { item, deleted: true }.
+//   타입의 `already_disabled` 필드는 legacy 클라이언트 호환을 위해 optional 로 남겨둔다.
 export function disableGeminiKeysStore(args: {
   jwt: string;
   id: string;
-}): Promise<ServerResult<{ item: GeminiKeysStoreItem; already_disabled?: boolean }>> {
+}): Promise<ServerResult<{ item: GeminiKeysStoreItem; deleted?: boolean; already_disabled?: boolean }>> {
   return authedRequest({
     jwt: args.jwt,
     path: `/api/v1/admin/gemini/keys-store/${encodeURIComponent(args.id)}`,

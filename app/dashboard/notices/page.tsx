@@ -22,6 +22,9 @@ import type { NoticeRow } from "@/lib/adminApi";
 
 const AUDIENCES = ["all", "owner", "operator", "beta"] as const;
 
+// 2026-06-12 — 표시 순서 select 옵션. 작을수록 위 (1=top, 20=bottom).
+const ORDER_IDX_OPTIONS = Array.from({ length: 20 }, (_, i) => i + 1);
+
 export default function NoticesPage() {
   const [state, setState] = useState<NoticesListResult | null>(null);
   const [loading, startLoad] = useTransition();
@@ -51,6 +54,10 @@ export default function NoticesPage() {
     // 2026-06-10 — 다국어 4종 입력 제거(한국어 기본만). title_i18n.ko/body_i18n.ko 만 저장.
     //   기존 data 의 en/ja/zh 키는 server 가 그대로 보관하므로 읽기는 가능 (편집 불가).
     const audience = String(fd.get("audience") || "all");
+    const orderIdxRaw = Number(fd.get("order_idx"));
+    const order_idx = Number.isFinite(orderIdxRaw) && orderIdxRaw >= 1 && orderIdxRaw <= 20
+      ? orderIdxRaw
+      : 1;
     const title_i18n = { ko: title };
     const body_i18n = { ko: body };
     startCreate(async () => {
@@ -60,6 +67,7 @@ export default function NoticesPage() {
         title_i18n,
         body_i18n,
         audience,
+        order_idx,
       });
       if (!r.ok) {
         setToast(`작성 실패: ${r.message}`);
@@ -106,7 +114,7 @@ export default function NoticesPage() {
             required
           />
           {/* 2026-06-10 — 다국어 4종 입력(en/ja/zh) 제거. 한국어(기본)만 작성. */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <select
               name="audience"
               className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm"
@@ -118,6 +126,21 @@ export default function NoticesPage() {
                 </option>
               ))}
             </select>
+            {/* 2026-06-12 — 표시 순서 select (1=top, 20=bottom). APP/어드민 둘 다 ASC 정렬. */}
+            <label className="flex items-center gap-1 text-xs text-slate-600">
+              <span>표시 순서</span>
+              <select
+                name="order_idx"
+                defaultValue="1"
+                className="rounded-xl border border-slate-300 bg-white px-2 py-2 text-sm"
+              >
+                {ORDER_IDX_OPTIONS.map((n) => (
+                  <option key={n} value={n}>
+                    {n}
+                  </option>
+                ))}
+              </select>
+            </label>
             <button
               type="submit"
               disabled={creating}
@@ -163,6 +186,9 @@ export default function NoticesPage() {
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-medium text-slate-800 truncate">{n.title}</span>
                         <span className="chip chip-muted">{n.audience}</span>
+                        {n.order_idx > 0 ? (
+                          <span className="text-[10px] text-muted">idx {n.order_idx}</span>
+                        ) : null}
                       </div>
                       <div className="mt-1 text-[11px] text-muted">
                         created {n.created_at}

@@ -35,7 +35,8 @@ export type NoticeMutationResult =
 function cleanI18n(v: NoticeI18n | undefined): NoticeI18n | null {
   if (!v) return null;
   const out: NoticeI18n = {};
-  for (const k of ["ko", "en", "ja", "zh"] as const) {
+  // 2026-06-12 — ADMIN 신규 작성은 ko/en 만 (ja/zh 제거).
+  for (const k of ["ko", "en"] as const) {
     const s = v[k];
     if (typeof s === "string" && s.trim().length > 0) out[k] = s.trim();
   }
@@ -48,6 +49,7 @@ export async function createNoticeAction(args: {
   title_i18n?: NoticeI18n;
   body_i18n?: NoticeI18n;
   audience?: string;
+  order_idx?: number;
 }): Promise<NoticeMutationResult> {
   const jwt = readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
@@ -57,6 +59,11 @@ export async function createNoticeAction(args: {
   if (!args.body || args.body.trim().length < 5) {
     return { ok: false, message: "본문은 5자 이상." };
   }
+  // 2026-06-12 — order_idx 1~20 (UI select). 범위 밖이면 서버 zod 가 422 반환.
+  const orderIdx =
+    typeof args.order_idx === "number" && Number.isFinite(args.order_idx)
+      ? Math.max(1, Math.min(20, Math.floor(args.order_idx)))
+      : undefined;
   // 2026-06-09 T03 — i18n. ko 가 있으면 단일 컬럼 fallback 으로도 ko 본문이 사용된다.
   const titleI18n = cleanI18n(args.title_i18n);
   const bodyI18n = cleanI18n(args.body_i18n);
@@ -69,6 +76,7 @@ export async function createNoticeAction(args: {
     title_i18n: titleI18n,
     body_i18n: bodyI18n,
     audience: args.audience,
+    ...(orderIdx !== undefined ? { order_idx: orderIdx } : {}),
   });
   if (!res.ok) return { ok: false, message: res.message, code: res.code };
   return { ok: true, notice: res.data };

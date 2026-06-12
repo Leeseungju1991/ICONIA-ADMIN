@@ -1,6 +1,16 @@
 // ICONIA Admin — 데모용 Mock 데이터.
 // 실제 백엔드 연동 시 lib/adminApi.ts 의 함수들로 교체.
 
+// 2026-06-12 — 어드민 사용자 목록에 인형 연동 정보 표시 (server adminUserService).
+//   handle = 전역 고유 식별자 (인형 넘버 표시용).
+export type LinkedDoll = {
+  id: string;
+  handle: string;
+  nickname: string;
+  status: string;
+  is_primary: boolean;
+};
+
 export type UserRow = {
   id: string;
   email: string;
@@ -11,6 +21,10 @@ export type UserRow = {
   created_at: string;
   // Server `/api/v1/admin/users` 응답에 미존재 — null 일 때 UI 가 "—" 표시.
   doll_count: number | null;
+  // 2026-06-12 — 서버가 doll list 첨부 시 populate. 없으면 null.
+  linked_dolls?: LinkedDoll[] | null;
+  // 2026-06-12 (사용자 요청 #29) — 마케팅 수신 동의 여부 (true → 동의 / false → 거부 / null → 미응답).
+  marketing_opt_in?: boolean | null;
 };
 
 export const mockUsers: UserRow[] = [
@@ -231,7 +245,7 @@ export type PersonaRow = {
   id: string;
   name: string;
   display_label: string;
-  language: "ko" | "en" | "ja";
+  language: "ko" | "en";
   voice_id: string;
   state: "live" | "staged" | "draft" | "archived";
   version: string;

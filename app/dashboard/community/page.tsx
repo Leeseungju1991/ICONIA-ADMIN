@@ -66,6 +66,14 @@ export default function CommunityPage() {
 
   function executeRestore(item: FeedListItem) {
     const id = item.id;
+    // 2026-06-12 audit — 우발 클릭 차단. 복귀는 mutation 이고 audit 기록되므로
+    //   confirm 으로 명시 사용자 의도 확인.
+    if (typeof window !== "undefined") {
+      const ok = window.confirm(
+        `게시물 ${id} 을(를) 복귀시키시겠습니까?\n\n감사 로그에 기록됩니다.`,
+      );
+      if (!ok) return;
+    }
     start(async () => {
       await recordOpsAuditWithSilentRetry({
         action: "community.unhide",
