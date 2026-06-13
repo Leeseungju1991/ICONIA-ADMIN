@@ -60,6 +60,9 @@ export async function patchFeedPostAction(input: {
   status?: "published" | "hidden" | "removed";
   visibility?: "public" | "followers" | "private";
   moderation_note?: string;
+  // 2026-06-13 (사용자 요청 #9) — 위치(쉼표 구분) / 해시태그 관리.
+  location?: string | null;
+  hashtags?: string[];
 }): Promise<FeedMutationResult> {
   const jwt = readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
@@ -73,6 +76,8 @@ export async function patchFeedPostAction(input: {
     status: input.status,
     visibility: input.visibility,
     moderation_note: input.moderation_note,
+    location: input.location,
+    hashtags: input.hashtags,
   });
   if (!parsed.success) {
     return { ok: false, message: firstZodError(parsed.error), code: "ERR_VALIDATION" };
@@ -85,6 +90,8 @@ export async function patchFeedPostAction(input: {
     status: input.status,
     visibility: input.visibility,
     moderation_note: input.moderation_note,
+    location: input.location,
+    hashtags: input.hashtags,
   });
   if (!res.ok) return { ok: false, message: res.message, code: res.code };
   revalidatePath("/dashboard/feed");

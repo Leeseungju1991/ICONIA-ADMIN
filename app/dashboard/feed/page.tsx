@@ -442,6 +442,9 @@ function FeedDetailDrawer({
   const [detail, setDetail] = useState<AdminFeedPostDetail | null>(null);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(post.body);
+  // 2026-06-13 (사용자 요청 #9) — 위치 / 해시태그 편집 드래프트(해시태그는 쉼표 구분).
+  const [locationDraft, setLocationDraft] = useState<string>(post.location ?? "");
+  const [hashtagsDraft, setHashtagsDraft] = useState<string>((post.hashtags ?? []).join(", "));
   const [err, setErr] = useState<string | null>(null);
   const [busy, startBusy] = useTransition();
 
@@ -451,6 +454,8 @@ function FeedDetailDrawer({
       if (r.ok) {
         setDetail(r.data);
         setDraft(r.data.post.body);
+        setLocationDraft(r.data.post.location ?? "");
+        setHashtagsDraft((r.data.post.hashtags ?? []).join(", "));
       } else {
         setErr(r.message);
       }
@@ -459,7 +464,18 @@ function FeedDetailDrawer({
 
   function save() {
     startBusy(async () => {
-      const r = await patchFeedPostAction({ id: post.id, body: draft });
+      // 2026-06-13 (사용자 요청 #9) — 해시태그는 쉼표/공백/# 정규화 후 배열로 전송. 위치는 trim.
+      const hashtags = hashtagsDraft
+        .split(/[,\s]+/)
+        .map((t) => t.replace(/^#+/, "").trim().toLowerCase())
+        .filter((t) => t.length > 0)
+        .slice(0, 10);
+      const r = await patchFeedPostAction({
+        id: post.id,
+        body: draft,
+        location: locationDraft.trim() ? locationDraft.trim() : null,
+        hashtags,
+      });
       if (!r.ok) {
         setErr(`수정 실패: ${r.message}`);
         return;
@@ -505,6 +521,44 @@ function FeedDetailDrawer({
             )}
           </div>
           <FeedMediaGrid media={detail?.post.media ?? post.media ?? []} />
+          {/* 2026-06-13 (사용자 요청 #9) — 해시태그 관리. */}
+          <div className="rounded-xl bg-white/60 border border-white/60 p-3">
+            <div className="text-xs text-muted mb-1">해시태그 (쉼표 구분, 최대 10개)</div>
+            {editing ? (
+              <input
+                className="w-full rounded-lg border border-slate-300 p-2 text-sm"
+                value={hashtagsDraft}
+                onChange={(e) => setHashtagsDraft(e.target.value)}
+                placeholder="예: 일상, 인형, 카페"
+              />
+            ) : (
+              <div className="flex flex-wrap gap-1.5">
+                {(detail?.post.hashtags ?? post.hashtags ?? []).length > 0 ? (
+                  (detail?.post.hashtags ?? post.hashtags ?? []).map((tag) => (
+                    <span key={tag} className="chip chip-muted text-[11px]">#{tag}</span>
+                  ))
+                ) : (
+                  <span className="text-xs text-muted">해시태그 없음</span>
+                )}
+              </div>
+            )}
+          </div>
+          {/* 2026-06-13 (사용자 요청 #9) — 위치 관리. */}
+          <div className="rounded-xl bg-white/60 border border-white/60 p-3">
+            <div className="text-xs text-muted mb-1">위치 (쉼표 구분, 최대 5개)</div>
+            {editing ? (
+              <input
+                className="w-full rounded-lg border border-slate-300 p-2 text-sm"
+                value={locationDraft}
+                onChange={(e) => setLocationDraft(e.target.value)}
+                placeholder="예: 서울 성수동, 부산 해운대"
+              />
+            ) : (
+              <p className="text-sm text-slate-800">
+                {(detail?.post.location ?? post.location) || <span className="text-xs text-muted">위치 없음</span>}
+              </p>
+            )}
+          </div>
           <div className="grid grid-cols-2 gap-2 text-xs">
             <Field label="작성자">
               {/* 2026-06-04 — 사용자 요청: 이메일·표시이름 노출. 클릭 → 사용자 상세. */}

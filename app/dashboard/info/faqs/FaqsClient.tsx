@@ -169,6 +169,9 @@ export default function FaqsClient() {
     const fd = new FormData(e.currentTarget);
     const question = String(fd.get("question") || "").trim();
     const answer = String(fd.get("answer") || "").trim();
+    // 2026-06-13 (사용자 요청 #13) — 영문 질문/답변(선택). 입력 시 앱이 영어로 표시.
+    const question_en = String(fd.get("question_en") || "").trim();
+    const answer_en = String(fd.get("answer_en") || "").trim();
     const category = String(fd.get("category") || DEFAULT_CATEGORY).trim();
     // 2026-06-12 — select 1~20. 비정상 값(빈 문자열 등)은 1 로 폴백.
     const orderIdxRaw = Number(fd.get("order_idx"));
@@ -177,7 +180,7 @@ export default function FaqsClient() {
       : 1;
     const form = e.currentTarget;
     startMutate(async () => {
-      const r = await createFaqAction({ question, answer, category, order_idx });
+      const r = await createFaqAction({ question, answer, question_en, answer_en, category, order_idx });
       if (!r.ok) {
         setToast(`작성 실패: ${messageForCode(r.code, r.message)}`);
         return;
@@ -278,6 +281,18 @@ export default function FaqsClient() {
             rows={3}
             className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
             required
+          />
+          {/* 2026-06-13 (사용자 요청 #13) — 영문 질문/답변(선택). 입력 시 앱 언어설정이 영어면 영어로 표시. */}
+          <input
+            name="question_en"
+            placeholder="Question (English, optional)"
+            className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+          />
+          <textarea
+            name="answer_en"
+            placeholder="Answer (English, optional)"
+            rows={3}
+            className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
           />
           <div className="flex items-center gap-2">
             <button

@@ -2225,6 +2225,9 @@ export type AdminFeedPostRow = {
   media?: AdminFeedMedia[];
   media_count?: number;
   thumbnail_url?: string | null;
+  /** 2026-06-13 (사용자 요청 #9) — 해시태그(상세 응답) + 위치. 어드민에서 관리. */
+  hashtags?: string[];
+  location?: string | null;
 };
 
 export type AdminFeedPostsList = {
@@ -2303,6 +2306,9 @@ export function patchAdminFeedPost(args: {
   visibility?: "public" | "followers" | "private";
   /** Phase B 신규 — 운영자 메모 (audit_log). */
   moderation_note?: string;
+  /** 2026-06-13 (사용자 요청 #9) — 위치(쉼표 구분) / 해시태그 배열 관리. */
+  location?: string | null;
+  hashtags?: string[];
 }): Promise<ServerResult<AdminFeedPostRow>> {
   const payload: Record<string, unknown> = {};
   if (typeof args.body === "string") payload.body = args.body;
@@ -2311,6 +2317,8 @@ export function patchAdminFeedPost(args: {
   if (args.visibility) payload.visibility = args.visibility;
   if (typeof args.moderation_note === "string")
     payload.moderation_note = args.moderation_note;
+  if (args.location !== undefined) payload.location = args.location;
+  if (Array.isArray(args.hashtags)) payload.hashtags = args.hashtags;
   return authedRequest<AdminFeedPostRow>({
     jwt: args.jwt,
     path: `/api/v1/admin/feed/posts/${encodeURIComponent(args.id)}`,
@@ -3261,6 +3269,9 @@ export type InfoFaqRow = {
   category: string;
   question: string;
   answer: string;
+  // 2026-06-13 (사용자 요청 #13) — FAQ 다국어 ({ ko, en }).
+  question_i18n?: { ko?: string; en?: string } | null;
+  answer_i18n?: { ko?: string; en?: string } | null;
   order_idx: number;
   is_published: boolean;
   locale: string;
@@ -3286,10 +3297,15 @@ export function createInfoFaq(args: {
   category?: string;
   question: string;
   answer: string;
+  // 2026-06-13 (사용자 요청 #13) — 영문 질문/답변(선택). ko 는 question/answer 로 동기.
+  question_en?: string;
+  answer_en?: string;
   order_idx?: number;
   is_published?: boolean;
   locale?: string;
 }): Promise<ServerResult<InfoFaqRow>> {
+  const questionI18n = { ko: args.question, ...(args.question_en?.trim() ? { en: args.question_en.trim() } : {}) };
+  const answerI18n = { ko: args.answer, ...(args.answer_en?.trim() ? { en: args.answer_en.trim() } : {}) };
   return authedRequest({
     jwt: args.jwt,
     path: `/api/v1/admin/info/faqs`,
@@ -3297,6 +3313,8 @@ export function createInfoFaq(args: {
     body: {
       question: args.question,
       answer: args.answer,
+      question_i18n: questionI18n,
+      answer_i18n: answerI18n,
       ...(args.category ? { category: args.category } : {}),
       ...(args.order_idx != null ? { order_idx: args.order_idx } : {}),
       ...(args.is_published != null ? { is_published: args.is_published } : {}),

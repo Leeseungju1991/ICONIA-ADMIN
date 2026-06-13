@@ -49,6 +49,9 @@ export const patchFeedPostSchema = z
     status: feedPostStatusSchema.optional(),
     visibility: feedPostVisibilitySchema.optional(),
     moderation_note: z.string().max(1000).optional(),
+    // 2026-06-13 (사용자 요청 #9) — 위치(쉼표 구분) / 해시태그 관리.
+    location: z.string().max(200).nullable().optional(),
+    hashtags: z.array(z.string().min(1).max(80)).max(10).optional(),
   })
   .refine(
     (v) =>
@@ -56,7 +59,9 @@ export const patchFeedPostSchema = z
       v.is_hidden !== undefined ||
       v.status !== undefined ||
       v.visibility !== undefined ||
-      v.moderation_note !== undefined,
+      v.moderation_note !== undefined ||
+      v.location !== undefined ||
+      v.hashtags !== undefined,
     { message: "최소 한 개의 필드를 수정하세요." },
   );
 

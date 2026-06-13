@@ -32,6 +32,9 @@ export async function createFaqAction(args: {
   category?: string;
   question: string;
   answer: string;
+  // 2026-06-13 (사용자 요청 #13) — 영문 질문/답변(선택).
+  question_en?: string;
+  answer_en?: string;
   order_idx?: number;
   is_published?: boolean;
   locale?: string;
@@ -46,6 +49,8 @@ export async function createFaqAction(args: {
     jwt,
     question,
     answer,
+    question_en: args.question_en,
+    answer_en: args.answer_en,
     category: args.category,
     order_idx: args.order_idx,
     is_published: args.is_published,
