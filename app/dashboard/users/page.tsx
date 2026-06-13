@@ -554,7 +554,22 @@ export default function UsersPage() {
           </>
         }
       >
-        <DataTable columns={columns} rows={filtered} empty="조건에 해당하는 회원이 없습니다." />
+        {loading ? (
+          <div className="text-sm text-muted px-1 py-6">불러오는 중...</div>
+        ) : loadError ? (
+          <div className="text-sm text-rose-700 px-1 py-6">
+            불러오기 실패: {loadError}{" "}
+            <button
+              type="button"
+              className="ml-2 underline text-slate-600"
+              onClick={() => void reloadUsers(q || undefined)}
+            >
+              다시 시도
+            </button>
+          </div>
+        ) : (
+          <DataTable columns={columns} rows={filtered} empty="조건에 해당하는 회원이 없습니다." />
+        )}
       </PanelCard>
 
       {toast ? (
@@ -1125,15 +1140,22 @@ function PasswordResetModal({
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-3 bg-black/40">
-      <div className="w-full max-w-md glass-panel rounded-3xl p-6 relative" data-testid="modal-password-reset">
+      <div
+        className="w-full max-w-md glass-panel rounded-3xl p-6 relative"
+        data-testid="modal-password-reset"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="pwreset-title"
+      >
         <button
           className="absolute right-4 top-4 rounded-xl px-3 py-1.5 bg-white/70 border border-white/70 text-xs text-slate-600"
           onClick={onClose}
           type="button"
+          aria-label="닫기"
         >
           닫기
         </button>
-        <h3 className="text-lg font-bold text-slate-900">비밀번호 변경</h3>
+        <h3 id="pwreset-title" className="text-lg font-bold text-slate-900">비밀번호 변경</h3>
         <p className="text-xs text-muted mt-0.5">{user.email}</p>
 
         <div className="mt-5 space-y-3">

@@ -77,7 +77,7 @@ export default function LoginForm() {
         </div>
       </div>
 
-      {errMessage ? <div className="text-sm text-rose-600">{errMessage}</div> : null}
+      {errMessage ? <div role="alert" className="text-sm text-rose-700">{errMessage}</div> : null}
 
       <button
         className="w-full btn-primary py-3 text-base disabled:opacity-60"
