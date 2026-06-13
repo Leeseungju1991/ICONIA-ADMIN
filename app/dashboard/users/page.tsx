@@ -31,7 +31,7 @@ import {
 import { listUsersAction } from "@/lib/actions/usersList";
 import { getUserDetailAction } from "@/lib/actions/userDetail";
 import { createAdminUserAction } from "@/lib/actions/adminUserCreate";
-import type { PipaUserRow, UserRow as ServerUserRow } from "@/lib/adminApi";
+import type { PipaUserRow, UserRow as ServerUserRow, UserDetail } from "@/lib/adminApi";
 
 // 강력 액션 2단계 확인 — /dashboard/ops 페이지와 같은 정책 (EXECUTE 정확 입력).
 const TWO_STEP_PHRASE = "EXECUTE";
@@ -680,7 +680,9 @@ function UserDetailDrawer({
     active_session_count: number | null;
     fetchError: string | null;
     loading: boolean;
-  }>({ active_session_count: null, fetchError: null, loading: true });
+    // 2026-06-13 (사용자 요청 #3) — 서버 fresh 상세(프로필/동의/UX + 인형/기기) 보관.
+    data: UserDetail | null;
+  }>({ active_session_count: null, fetchError: null, loading: true, data: null });
 
   useEffect(() => {
     let alive = true;
@@ -692,12 +694,14 @@ function UserDetailDrawer({
           active_session_count: r.data.active_session_count ?? 0,
           fetchError: null,
           loading: false,
+          data: r.data,
         });
       } else {
         setDetail({
           active_session_count: null,
           fetchError: r.message,
           loading: false,
+          data: null,
         });
       }
     })();
@@ -705,6 +709,15 @@ function UserDetailDrawer({
       alive = false;
     };
   }, [user.id]);
+
+  // 2026-06-13 (사용자 요청 #3) — 서버 fresh 상세(adminApi UserRow) 에서 확장 필드를 읽는다.
+  //   drawer 의 `user` prop 은 페이지 로컬 row 타입이라 확장 필드가 없으므로 detail.data.user 사용.
+  const du = detail.data?.user;
+  const fmtBool = (b: boolean | null | undefined) => (b == null ? "—" : b ? "예" : "아니오");
+  const fmtDate = (v: string | null | undefined) => (v ? formatDate(v) : "—");
+  const quietHours = du?.quiet_hours ?? (du?.quiet_hours_start != null
+    ? { start: du.quiet_hours_start, end: du.quiet_hours_end ?? 7 }
+    : null);
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:justify-end p-3 sm:p-6 bg-black/30">
@@ -737,7 +750,51 @@ function UserDetailDrawer({
                   : `${detail.active_session_count ?? 0}개`
             }
           />
+          {/* 2026-06-13 (사용자 요청 #3) — 저장된 프로필/동의/UX 정보 전체 노출. */}
+          <Row k="언어" v={du?.locale || "—"} />
+          <Row k="선제 발화" v={fmtBool(du?.proactive_enabled)} />
+          <Row k="마케팅 수신" v={fmtBool(du?.marketing_opt_in ?? user.marketing_opt_in)} />
+          <Row k="방해 금지(조용한 시간)" v={quietHours ? `${quietHours.start}시 ~ ${quietHours.end}시` : "—"} />
+          <Row k="온보딩 완료" v={fmtDate(du?.onboarded_at)} />
+          <Row k="약관 동의 버전" v={du?.consent_terms_version || "—"} />
+          <Row k="개인정보 동의 버전" v={du?.consent_privacy_version || "—"} />
+          <Row k="동의 일시" v={fmtDate(du?.consent_accepted_at)} />
+          <Row k="삭제 예정일" v={fmtDate(du?.scheduled_purge_at)} />
         </dl>
+
+        {/* 2026-06-13 (사용자 요청 #3) — 보유 인형 (표시이름은 인형별 발급). */}
+        {detail.data?.dolls && detail.data.dolls.length > 0 ? (
+          <div className="mt-5">
+            <h4 className="text-sm font-bold text-slate-900">보유 인형 ({detail.data.dolls.length})</h4>
+            <ul className="mt-2 space-y-2">
+              {detail.data.dolls.map((d) => (
+                <li key={d.id} className="rounded-2xl border border-white/70 bg-white/60 px-3 py-2 text-xs text-slate-700">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-slate-900">{d.nickname || d.handle}</span>
+                    {d.is_primary ? <span className="rounded-full bg-tan-soft px-2 py-0.5 text-[10px] text-tan-deep">대표</span> : null}
+                  </div>
+                  <div className="mt-1 text-muted">
+                    표시이름 {d.display_name || "—"} · 번호 {d.handle} · 상태 {d.status || "—"} · 게시물 {d.post_count ?? 0} · 팔로워 {d.follower_count ?? 0}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+
+        {/* 2026-06-13 (사용자 요청 #3) — 연동 기기. */}
+        {detail.data?.devices && detail.data.devices.length > 0 ? (
+          <div className="mt-4">
+            <h4 className="text-sm font-bold text-slate-900">연동 기기 ({detail.data.devices.length})</h4>
+            <ul className="mt-2 space-y-1 text-xs text-slate-700">
+              {detail.data.devices.map((dv) => (
+                <li key={dv.device_id} className="rounded-xl border border-white/70 bg-white/60 px-3 py-1.5">
+                  {dv.device_id}{dv.is_primary ? " · 대표" : ""}{dv.role ? ` · ${dv.role}` : ""} · {fmtDate(dv.created_at)}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
 
         {/* 2026-06-02 — 사용자 요청에 따라 마스킹 제거. PII 접근은 audit log
             (user.pii_unmasked) 가 운영자 시점에 자동 기록된다 — 본 drawer 가

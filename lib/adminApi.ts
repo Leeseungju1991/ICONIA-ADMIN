@@ -30,10 +30,51 @@ export type UserRow = {
   doll_count?: number;
   // 2026-06-12 (사용자 요청 #29) — 마케팅 수신 동의 여부 (User.marketing_opt_in).
   marketing_opt_in?: boolean;
+  // 2026-06-13 (사용자 요청 #3) — 어드민이 사용자 정보 전체를 보도록 저장된 프로필/동의/UX 필드.
+  updated_at?: string | null;
+  avatar_url?: string | null;
+  locale?: string | null;
+  proactive_enabled?: boolean | null;
+  quiet_hours_start?: number | null;
+  quiet_hours_end?: number | null;
+  quiet_hours?: { start: number; end: number } | null;
+  onboarded_at?: string | null;
+  scheduled_purge_at?: string | null;
+  consent_terms_version?: string | null;
+  consent_privacy_version?: string | null;
+  consent_accepted_at?: string | null;
+  additional_consents?: Record<string, unknown> | null;
+  available_souls?: string[] | null;
+};
+
+// 2026-06-13 (사용자 요청 #3) — 사용자 상세에 동봉되는 인형/기기.
+export type UserDetailDoll = {
+  id: string;
+  nickname: string;
+  handle: string;
+  display_name?: string | null;
+  is_primary?: boolean;
+  status?: string;
+  visibility?: string;
+  follower_count?: number;
+  post_count?: number;
+  created_at?: string;
+};
+export type UserDetailDevice = {
+  device_id: string;
+  is_primary?: boolean;
+  role?: string;
+  created_at?: string;
 };
 
 export type UsersList = { users: UserRow[]; total: number };
-export type UserDetail = { user: UserRow; active_session_count: number };
+export type UserDetail = {
+  user: UserRow;
+  active_session_count: number;
+  // 2026-06-13 (사용자 요청 #3) — 보유 인형 + 연동 기기.
+  dolls?: UserDetailDoll[];
+  devices?: UserDetailDevice[];
+};
 export type ForceLogoutResult = { revoked_count: number };
 
 export type DeviceRow = {
