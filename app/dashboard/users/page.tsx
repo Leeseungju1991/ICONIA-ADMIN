@@ -583,6 +583,137 @@ export default function UsersPage() {
   );
 }
 
+// 2026-06-13 (사용자 요청 #8) — 유저정보 목록의 사용자에 대해 서버가 반환하는
+//   모든 데이터를 빠짐없이 표시한다. 서버(GET /api/v1/admin/users/:id)가 password
+//   hash / refresh token / TOTP secret 등 비밀값은 제외하고 보내므로, 어드민은
+//   응답에 들어오는 모든 필드를 그대로 렌더한다. 서버가 새 필드를 추가해도 자동
+//   노출되도록 generic key/value 렌더러를 사용한다 (큐레이션된 상단 요약은 유지).
+
+// 자주 등장하는 필드의 한국어 라벨. 미정의 키는 raw key 를 그대로 노출한다.
+const FULL_DATA_FIELD_LABELS: Record<string, string> = {
+  id: "ID (UUID)",
+  email: "이메일",
+  display_name: "표시 이름 (앱 ID)",
+  account_status: "계정 상태",
+  paused_at: "일시정지 일시",
+  pending_deletion_at: "탈퇴 대기 일시",
+  totp_enabled: "MFA(TOTP) 사용",
+  last_login_at: "최근 로그인",
+  created_at: "가입일",
+  updated_at: "최근 수정",
+  avatar_url: "아바타 URL",
+  locale: "언어/로캘",
+  proactive_enabled: "선제 발화 사용",
+  quiet_hours: "방해 금지 시간",
+  quiet_hours_start: "방해 금지 시작(시)",
+  quiet_hours_end: "방해 금지 종료(시)",
+  onboarded_at: "온보딩 완료",
+  scheduled_purge_at: "삭제 예정일",
+  consent_terms_version: "약관 동의 버전",
+  consent_privacy_version: "개인정보 동의 버전",
+  consent_accepted_at: "동의 일시",
+  additional_consents: "추가 동의 항목",
+  available_souls: "이용 가능 SOUL",
+  marketing_opt_in: "마케팅 수신 동의",
+  doll_count: "보유 인형 수",
+  linked_dolls: "연동 인형",
+  active_session_count: "활성 세션 수",
+  // 인형/기기 하위 필드
+  handle: "인형 번호(handle)",
+  nickname: "별명",
+  is_primary: "대표 여부",
+  status: "상태",
+  visibility: "공개 범위",
+  follower_count: "팔로워 수",
+  post_count: "게시물 수",
+  device_id: "기기 ID",
+  role: "역할",
+};
+
+function fullDataLabel(key: string): string {
+  return FULL_DATA_FIELD_LABELS[key] ?? key;
+}
+
+// ISO 날짜처럼 보이는 문자열은 formatDate 로, 그 외 문자열/숫자/불리언은 그대로.
+function looksLikeIsoDate(v: string): boolean {
+  return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(v);
+}
+
+// 임의의 값(원시/배열/객체)을 사람이 읽기 좋은 ReactNode 로 렌더.
+function renderFullValue(value: unknown): React.ReactNode {
+  if (value == null) return <span className="text-muted">—</span>;
+  if (typeof value === "boolean") return value ? "예" : "아니오";
+  if (typeof value === "number") return String(value);
+  if (typeof value === "string") {
+    if (value === "") return <span className="text-muted">(빈 값)</span>;
+    if (looksLikeIsoDate(value)) return formatDate(value);
+    return value;
+  }
+  if (Array.isArray(value)) {
+    if (value.length === 0) return <span className="text-muted">(없음)</span>;
+    // 객체 배열(연동 인형 등)은 항목별 key/value 블록으로 펼친다.
+    if (value.some((it) => it && typeof it === "object")) {
+      return (
+        <div className="flex flex-col gap-2 w-full">
+          {value.map((it, i) => (
+            <div
+              key={i}
+              className="rounded-lg border border-white/60 bg-white/50 px-2 py-1.5"
+            >
+              {renderFullValue(it)}
+            </div>
+          ))}
+        </div>
+      );
+    }
+    // 원시값 배열은 콤마 결합.
+    return value.map((v) => String(v)).join(", ");
+  }
+  if (typeof value === "object") {
+    const entries = Object.entries(value as Record<string, unknown>);
+    if (entries.length === 0) return <span className="text-muted">(없음)</span>;
+    return (
+      <div className="flex flex-col gap-1 w-full">
+        {entries.map(([k, v]) => (
+          <div key={k} className="flex items-start justify-between gap-2">
+            <span className="text-[11px] text-muted shrink-0">{fullDataLabel(k)}</span>
+            <span className="text-[11px] text-slate-800 text-right break-all">
+              {renderFullValue(v)}
+            </span>
+          </div>
+        ))}
+      </div>
+    );
+  }
+  return String(value);
+}
+
+// 객체의 모든 필드를 key/value 행으로 렌더 (서버가 반환한 그대로, 빠짐없이).
+function FullDataObject({ data }: { data: Record<string, unknown> }) {
+  const entries = Object.entries(data);
+  if (entries.length === 0) {
+    return <p className="text-xs text-muted">표시할 데이터가 없습니다.</p>;
+  }
+  return (
+    <dl className="space-y-1.5">
+      {entries.map(([k, v]) => (
+        <div
+          key={k}
+          className="flex items-start justify-between gap-3 rounded-xl bg-white/55 border border-white/50 px-3 py-2"
+        >
+          <dt className="text-xs text-muted shrink-0 max-w-[45%] break-words">
+            {fullDataLabel(k)}
+            <span className="block font-mono text-[9px] text-slate-400">{k}</span>
+          </dt>
+          <dd className="text-xs text-slate-800 font-medium text-right break-all min-w-0">
+            {renderFullValue(v)}
+          </dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
 function UserDetailDrawer({
   user,
   onClose,
@@ -595,6 +726,8 @@ function UserDetailDrawer({
   onMounted?: (userId: string) => void;
 }) {
   const [isPending, startTransition] = useTransition();
+  // 2026-06-13 (사용자 요청 #8) — "전체 데이터" 섹션 펼침 상태 (기본 펼침).
+  const [showAllData, setShowAllData] = useState(true);
   // 비밀번호 변경 모달 — 관리자가 사용자 비밀번호를 강제 재설정.
   // 2026-06-02 사용자 요청. server endpoint POST /api/v1/admin/users/:id/reset-password
   // 가 argon2id hash + 기존 refresh family revoke + audit_log admin_password_reset 자동 기록.
@@ -795,6 +928,63 @@ function UserDetailDrawer({
             </ul>
           </div>
         ) : null}
+
+        {/* 2026-06-13 (사용자 요청 #8) — 전체 데이터(서버가 반환하는 모든 필드)를
+            빠짐없이 노출. 상단의 큐레이션 요약과 별도로, 서버 응답 객체를 generic
+            key/value 렌더러로 그대로 표시하므로 서버가 새 필드를 추가해도 자동
+            노출된다. password hash / refresh token / TOTP secret 등 비밀값은
+            서버 응답에서 이미 제외되어 들어오지 않는다. */}
+        <div className="mt-5 border-t border-white/60 pt-4">
+          <button
+            type="button"
+            className="flex w-full items-center justify-between text-sm font-bold text-slate-900"
+            onClick={() => setShowAllData((v) => !v)}
+            aria-expanded={showAllData}
+            data-testid="btn-toggle-full-data"
+          >
+            <span>전체 데이터 (서버 응답 원본)</span>
+            <span className="text-xs text-muted">{showAllData ? "접기" : "펼치기"}</span>
+          </button>
+          {showAllData ? (
+            detail.loading ? (
+              <p className="mt-3 text-xs text-muted">전체 데이터를 불러오는 중...</p>
+            ) : detail.fetchError ? (
+              <p className="mt-3 text-xs text-amber-700 bg-amber-50/80 border border-amber-200 rounded-xl px-3 py-2">
+                전체 데이터 조회 실패: {detail.fetchError}
+              </p>
+            ) : detail.data ? (
+              <div className="mt-3 space-y-4" data-testid="full-data-section">
+                <div>
+                  <h5 className="text-xs font-semibold text-slate-700 mb-1.5">계정 / 프로필 / 동의 / 설정</h5>
+                  {du ? (
+                    <FullDataObject data={du as unknown as Record<string, unknown>} />
+                  ) : (
+                    <p className="text-xs text-muted">사용자 데이터가 없습니다.</p>
+                  )}
+                </div>
+                <Row k="활성 세션 수" v={`${detail.data.active_session_count ?? 0}개`} />
+                {detail.data.dolls && detail.data.dolls.length > 0 ? (
+                  <div>
+                    <h5 className="text-xs font-semibold text-slate-700 mb-1.5">
+                      연동 인형 ({detail.data.dolls.length}) — 전체 필드
+                    </h5>
+                    {renderFullValue(detail.data.dolls)}
+                  </div>
+                ) : null}
+                {detail.data.devices && detail.data.devices.length > 0 ? (
+                  <div>
+                    <h5 className="text-xs font-semibold text-slate-700 mb-1.5">
+                      연동 기기 ({detail.data.devices.length}) — 전체 필드
+                    </h5>
+                    {renderFullValue(detail.data.devices)}
+                  </div>
+                ) : null}
+              </div>
+            ) : (
+              <p className="mt-3 text-xs text-muted">표시할 전체 데이터가 없습니다.</p>
+            )
+          ) : null}
+        </div>
 
         {/* 2026-06-02 — 사용자 요청에 따라 마스킹 제거. PII 접근은 audit log
             (user.pii_unmasked) 가 운영자 시점에 자동 기록된다 — 본 drawer 가
