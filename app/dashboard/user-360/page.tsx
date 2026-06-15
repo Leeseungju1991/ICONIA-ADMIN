@@ -259,62 +259,103 @@ export default function User360Page() {
         ) : usersList.users.length === 0 ? (
           <div className="text-sm text-muted">등록된 사용자가 없습니다.</div>
         ) : (
+          // 2026-06-15 (사용자 요청 - 재정합) — 9컬럼 표준화 (상태 컬럼 제거).
+          //   이메일 · 연동인형 이름 · 표시 이름 · UUID · 마케팅수신여부 · 최근접속일 · 가입일 · 수정 · 삭제
+          //   · 연동인형 이름: Doll.handle 1순위, nickname 폴백. 다중 시 "+N" 칩.
+          //   · 표시 이름: Doll.display_name ([a-z]{5}[0-9]{2}), 없으면 nickname 폴백.
+          //   · 마케팅수신여부: User.marketing_opt_in (동의/거부/—).
+          //   · 최근접속일: last_login_at (백필 후 created_at fallback 적용됨).
           <div className="scroll-x-touch">
-            <table className="w-full min-w-[720px] text-sm">
+            <table className="w-full min-w-[920px] text-sm">
               <thead>
                 <tr className="text-left text-muted border-b border-slate-200">
                   <th className="px-2 py-2 font-medium">이메일</th>
+                  <th className="px-2 py-2 font-medium">연동인형 이름</th>
                   <th className="px-2 py-2 font-medium">표시 이름</th>
                   <th className="px-2 py-2 font-medium">UUID</th>
-                  <th className="px-2 py-2 font-medium">상태</th>
+                  <th className="px-2 py-2 font-medium">마케팅수신여부</th>
+                  <th className="px-2 py-2 font-medium">최근접속일</th>
                   <th className="px-2 py-2 font-medium">가입일</th>
                   <th className="px-2 py-2"></th>
                 </tr>
               </thead>
               <tbody>
-                {usersList.users.map((u) => (
-                  <tr key={u.id} className="border-b border-slate-100 hover:bg-slate-50">
-                    <td className="px-2 py-2 text-slate-800">{u.email}</td>
-                    <td className="px-2 py-2 text-slate-700">{u.display_name || "—"}</td>
-                    <td className="px-2 py-2 font-mono text-[11px] text-slate-500">{u.id}</td>
-                    <td className="px-2 py-2">
-                      <span
-                        className={
-                          u.account_status === "active"
-                            ? "chip chip-success"
-                            : u.account_status === "paused"
-                              ? "chip chip-warn"
-                              : "chip chip-muted"
-                        }
-                      >
-                        {u.account_status ?? "—"}
-                      </span>
-                    </td>
-                    <td className="px-2 py-2 text-xs text-muted">
-                      {u.created_at ? u.created_at.slice(0, 10) : "—"}
-                    </td>
-                    <td className="px-2 py-2 text-right">
-                      <div className="inline-flex gap-2">
-                        <button
-                          type="button"
-                          disabled={u.account_status === "deleted"}
-                          onClick={() => openEdit(u)}
-                          className="rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-xs px-3 py-1.5"
-                        >
-                          수정
-                        </button>
-                        <button
-                          type="button"
-                          disabled={u.account_status === "deleted"}
-                          onClick={() => deleteRow(u.id, u.email)}
-                          className="rounded-lg bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-xs px-3 py-1.5"
-                        >
-                          삭제
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                {usersList.users.map((u) => {
+                  const dolls = Array.isArray(u.linked_dolls) ? u.linked_dolls : [];
+                  const sorted = [...dolls].sort((a, b) =>
+                    a.is_primary === b.is_primary ? 0 : a.is_primary ? -1 : 1,
+                  );
+                  const primaryDoll = sorted[0];
+                  const dollHandle = primaryDoll
+                    ? (primaryDoll.handle?.replace(/^@+/, "").trim() || primaryDoll.nickname || "—")
+                    : "—";
+                  const dollDisplayName = primaryDoll
+                    ? ((primaryDoll.display_name?.trim()) || primaryDoll.nickname || "—")
+                    : "—";
+                  const extraCount = sorted.length > 1 ? sorted.length - 1 : 0;
+                  return (
+                    <tr key={u.id} className="border-b border-slate-100 hover:bg-slate-50">
+                      <td className="px-2 py-2 text-slate-800">{u.email}</td>
+                      <td className="px-2 py-2 text-slate-700">
+                        {dollHandle === "—" ? (
+                          <span className="text-xs text-muted">미연동</span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1">
+                            {dollHandle}
+                            {extraCount > 0 ? (
+                              <span className="chip chip-muted text-[10px]">+{extraCount}</span>
+                            ) : null}
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-2 py-2 text-slate-700">
+                        {dollDisplayName === "—" ? (
+                          <span className="text-xs text-muted">—</span>
+                        ) : (
+                          <span>{dollDisplayName}</span>
+                        )}
+                      </td>
+                      <td className="px-2 py-2 font-mono text-[11px] text-slate-500" title={u.id}>
+                        {u.id.slice(0, 8)}…{u.id.slice(-4)}
+                      </td>
+                      <td className="px-2 py-2">
+                        {u.marketing_opt_in === null || u.marketing_opt_in === undefined ? (
+                          <span className="text-xs text-muted">—</span>
+                        ) : u.marketing_opt_in ? (
+                          <span className="chip chip-success text-[11px]">동의</span>
+                        ) : (
+                          <span className="chip chip-muted text-[11px]">거부</span>
+                        )}
+                      </td>
+                      <td className="px-2 py-2 text-xs text-muted">
+                        {u.last_login_at ? u.last_login_at.slice(0, 10) : "—"}
+                      </td>
+                      <td className="px-2 py-2 text-xs text-muted">
+                        {u.created_at ? u.created_at.slice(0, 10) : "—"}
+                      </td>
+                      <td className="px-2 py-2 text-right">
+                        <div className="inline-flex gap-2">
+                          <button
+                            type="button"
+                            disabled={u.account_status === "deleted"}
+                            onClick={() => openEdit(u)}
+                            className="rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-xs px-3 py-1.5"
+                          >
+                            수정
+                          </button>
+                          <button
+                            type="button"
+                            disabled={u.account_status === "deleted"}
+                            onClick={() => deleteRow(u.id, u.email)}
+                            className="rounded-lg bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-xs px-3 py-1.5"
+                          >
+                            삭제
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
