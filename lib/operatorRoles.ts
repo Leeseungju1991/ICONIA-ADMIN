@@ -86,6 +86,11 @@ export const PATH_REQUIRED_ROLES: { prefix: string; roles: OperatorRole[] }[] = 
   { prefix: "/dashboard/community", roles: ALL_ROLES },
   // 일반 조회 (대시보드 홈, 에러 모니터링, 통계, 공지, 푸시) 는 모든 role.
   { prefix: "/dashboard", roles: ALL_ROLES },
+  // 2026-06-15 (사용자 요청 — 보안 9 수정) — middleware matcher 는 `/admin/*`, `/security/*` 도 포함.
+  //   PATH_REQUIRED_ROLES 에 명시 매핑이 없으면 findRequiredRoles 가 null → middleware 통과 → silent viewer.
+  //   보수적으로: admin/security 경로는 SECOPS_OR_ABOVE 기본 가드, 더 구체적 sub-path 는 별도 정의 가능.
+  { prefix: "/admin", roles: SECOPS_OR_ABOVE },
+  { prefix: "/security", roles: SECOPS_OR_ABOVE },
 ];
 
 export function findRequiredRoles(pathname: string): OperatorRole[] | null {

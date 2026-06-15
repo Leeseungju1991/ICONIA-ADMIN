@@ -248,11 +248,10 @@ export default function UsersPage() {
   }
 
   const filtered = useMemo(() => {
-    // 2026-06-12 — 검색은 server exact match 로 일원화. 클라이언트 측은 status filter 와
-    //   pending_deletion 제거만 담당 (검색 contains 로직 폐기).
+    // 2026-06-15 (사용자 요청 #2/#5) — 탈퇴 대기(pending_deletion) + 삭제(deleted) 둘 다
+    //   회원 목록에서 완전 제거. 서버에서도 1차 필터링되지만 ADMIN 측에서도 방어.
     return users.filter((u) => {
-      // 2026-06-11 — 사용자 요청: 탈퇴 대기(pending_deletion)는 회원 목록에서 숨김.
-      if (u.account_status === "pending_deletion") return false;
+      if (u.account_status === "pending_deletion" || u.account_status === "deleted") return false;
       if (statusFilter !== "all" && u.account_status !== statusFilter) return false;
       return true;
     });
@@ -285,10 +284,13 @@ export default function UsersPage() {
     [users],
   );
 
-  // 2026-06-15 (사용자 요청 #5) — 컬럼 7개 재구성(연동인형 ↔ 표시이름 분리):
-  //   이메일 · 연동인형 · 표시이름 · UUID · 상태 · 최근접속일 · 가입일 · 액션
-  //   · 연동인형: Doll.handle (도구번호). 다중 ▾펼침.
-  //   · 표시이름: Doll.display_name ([a-z]{5}[0-9]{2} 자동 발급). 다중 ▾펼침.
+  // 2026-06-15 (사용자 요청 - 재정합) — 컬럼 7개 + 액션 분리:
+  //   이메일 · 연동인형 이름 · 표시 이름 · UUID · 마케팅수신여부 · 최근접속일 · 가입일 · 수정 · 삭제
+  //   · 연동인형 이름: Doll.handle (도구번호). 다중 ▾펼침.
+  //   · 표시 이름: Doll.display_name ([a-z]{5}[0-9]{2} 자동 발급). 피드/댓글에 보이는 작성자명.
+  //   · 마케팅수신여부: User.marketing_opt_in (가입 시 ConsentScreen 에서 결정).
+  //   · "상태" 컬럼 제거 (pending_deletion 은 이미 서버/클라 양측 필터링됨).
+  //   · 액션은 "수정" (drawer 열기) + "삭제" 두 버튼.
   const columns: Column<UserRow>[] = useMemo(() => [
     {
       key: "email",
@@ -297,12 +299,12 @@ export default function UsersPage() {
     },
     {
       key: "linked_doll_handle",
-      header: "연동인형",
+      header: "연동인형 이름",
       render: (r) => <LinkedDollListCell row={r} pick={resolveDollHandle} />,
     },
     {
-      key: "linked_doll_display_name",
-      header: "표시이름",
+      key: "display_name",
+      header: "표시 이름",
       render: (r) => <LinkedDollListCell row={r} pick={resolveDollDisplayName} />,
     },
     {
@@ -318,13 +320,18 @@ export default function UsersPage() {
       ),
     },
     {
-      key: "status",
-      header: "상태",
-      render: (r) => (
-        <span className={`${statusChip[r.account_status]} text-[11px]`}>
-          {statusLabel[r.account_status]}
-        </span>
-      ),
+      key: "marketing_opt_in",
+      header: "마케팅수신여부",
+      render: (r) => {
+        if (r.marketing_opt_in === null || r.marketing_opt_in === undefined) {
+          return <span className="text-xs text-muted">—</span>;
+        }
+        return r.marketing_opt_in ? (
+          <span className="chip chip-success text-[11px]">동의</span>
+        ) : (
+          <span className="chip chip-muted text-[11px]">거부</span>
+        );
+      },
     },
     {
       key: "last_login_at",
@@ -345,65 +352,21 @@ export default function UsersPage() {
       header: "",
       align: "right",
       render: (r) => {
-        // 2026-06-05 — 사용자 요청: 목록에서 즉시 비활성/활성 토글
-        // account_status="paused" 면 "활성화", "active" 면 "비활성화" 라벨로 토글.
-        // deleted/pending_deletion 은 토글 자체가 의미 없으므로 disabled.
-        const isPaused = r.account_status === "paused";
-        const toggleDisabled =
-          r.account_status === "deleted" || r.account_status === "pending_deletion";
-        const toggleLabel = isPaused ? "활성화" : "비활성화";
+        // 2026-06-15 (사용자 요청 - 재정합) — 액션 컬럼을 "수정 / 삭제" 두 버튼으로 표준화.
+        //   · 수정: row 클릭과 동일하게 user-detail drawer 진입(이메일/표시이름/마케팅/일시정지 토글 모두 drawer 내부).
+        //   · 삭제: 기존 동작 보존 — EXECUTE 2단계 + 사유 5자+ + soft-delete.
         return (
           <div className="flex gap-1.5 justify-end">
             <button
-              className="rounded-lg bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white text-xs px-3 py-1.5"
+              className="rounded-lg bg-slate-700 hover:bg-slate-800 text-white text-xs px-3 py-1.5"
               type="button"
-              disabled={toggleDisabled}
-              onClick={async () => {
-                if (isPaused) {
-                  // 활성화(정지 해제) — 덜 파괴적이므로 EXECUTE 2단계 생략, 사유만 5자+.
-                  const reason = window.prompt(
-                    `사용자 "${r.email}" 활성화 (일시정지 해제) 사유를 입력하세요 (감사 로그 기록, 5자 이상).`,
-                  );
-                  if (!reason || reason.trim().length < 5) {
-                    setToast("사유가 5자 이상 필요합니다. 활성화를 취소했습니다.");
-                    return;
-                  }
-                  const res = await resumeUserAction({ userId: r.id, reason: reason.trim() });
-                  if (!res.ok) {
-                    setToast(`활성화 실패 (${res.code ?? "ERR"}): ${res.message}`);
-                    return;
-                  }
-                  setToast(res.note ?? "사용자가 활성화되었습니다 (일시정지 해제). 감사 로그 기록됨.");
-                  void reloadUsers();
-                  return;
-                }
-                // 비활성화(일시정지) — 운영 안전상 EXECUTE 2단계 + 사유 5자+.
-                if (!twoStepConfirm(`사용자 "${r.email}" 비활성화 (일시정지)`)) {
-                  setToast("비활성화 취소 — 확인 문구 불일치.");
-                  return;
-                }
-                const reason = window.prompt(
-                  "비활성화(일시정지) 사유를 입력하세요 (감사 로그 기록, 5자 이상).",
-                );
-                if (!reason || reason.trim().length < 5) {
-                  setToast("사유가 5자 이상 필요합니다. 비활성화를 취소했습니다.");
-                  return;
-                }
-                const res = await pauseUserAction({ userId: r.id, reason: reason.trim() });
-                if (!res.ok) {
-                  setToast(`비활성화 실패 (${res.code ?? "ERR"}): ${res.message}`);
-                  return;
-                }
-                // Server pauseUser 는 account_status 만 paused 로 바꾸고 활성 세션은 끊지 않는다.
-                // 운영자가 즉시 세션을 끊고 싶다면 drawer 의 "강제 로그아웃" 을 별도로 실행해야 함.
-                setToast(
-                  (res.note ?? "사용자가 비활성화되었습니다 (일시정지). 감사 로그 기록됨.") +
-                    " 활성 세션 차단이 필요하면 상세 → 강제 로그아웃을 실행하세요.",
-                );
-                void reloadUsers();
+              onClick={() => {
+                // setSelected 가 detail drawer 를 열고 PII access audit 도 자동 기록한다.
+                setSelected(r);
+                void recordPiiAccessAudit(r.id);
               }}
             >
-              {toggleLabel}
+              수정
             </button>
             <button
               className="rounded-lg bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-xs px-3 py-1.5"

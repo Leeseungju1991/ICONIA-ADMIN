@@ -30,14 +30,16 @@ type NavItem = {
 // personas, knowledge, moderation, reports, ops/*, operators, ip-allowlist,
 // firmware-errors, server-errors, app-errors, notices, push, notifications,
 // content)는 라우트 보존되지만 사이드바에서 숨김.
+// 2026-06-15 (사용자 요청 #0/#1) — 사이드바 순서 재정렬 + "Gemini Key 관리" → "AI Key 관리".
+//   대시보드 / 사용자 정보 / AI Key 관리 / 콘텐츠 관리 / 신고된 피드 / FAQ관리 / 공지푸시 관리 / 신고 접수 / 오류 추적
+//   라우트 경로(/dashboard/gemini)는 보존 — URL 변경 시 외부 북마크 깨짐.
 const nav: NavItem[] = [
   { to: "/dashboard", label: "대시보드", icon: DashboardIcon },
   { to: "/dashboard/user-360", label: "사용자 정보", icon: UsersIcon },
-  // 2026-06-05 — 운영자 요청: AI 사용량 메뉴 제거 (Gemini Key 관리로 통합). 라우트는 보존.
-  { to: "/dashboard/gemini", label: "Gemini Key 관리", icon: KeyIcon },
+  { to: "/dashboard/gemini", label: "AI Key 관리", icon: KeyIcon },
   {
     to: "/dashboard/content",
-    label: "콘텐츠 (피드/커머스/도감)",
+    label: "콘텐츠 관리",
     icon: BookIcon,
     children: [
       { to: "/dashboard/feed", label: "피드" },
@@ -45,15 +47,11 @@ const nav: NavItem[] = [
       { to: "/dashboard/content/catalog", label: "도감" },
     ],
   },
-  // 2026-06-04 — 사용자 요청: "배너목록은 일단 모두 제거" — 사이드바 진입 제거.
-  // 라우트(/dashboard/commerce/banners) 는 보존되지만 메뉴에서 숨김 + 페이지 단락 처리.
-  { to: "/dashboard/info/faqs", label: "FAQ 관리", icon: LifebuoyIcon },
   { to: "/dashboard/reports", label: "신고된 피드", icon: MegaphoneIcon },
+  { to: "/dashboard/info/faqs", label: "FAQ 관리", icon: LifebuoyIcon },
   { to: "/dashboard/notice-push", label: "공지·푸시 관리", icon: BellIcon },
-  { to: "/dashboard/error-tracking", label: "오류 추적", icon: ServerIcon },
-  // 2026-06-10 — 분실/도난 신고 접수 (APP 사용자가 제출 → 운영자 처리).
-  //   기존 `/dashboard/reports`(신고된 피드) 와 별개 surface.
   { to: "/dashboard/lost-reports", label: "신고 접수", icon: FlagIcon },
+  { to: "/dashboard/error-tracking", label: "오류 추적", icon: ServerIcon },
 ];
 
 // 사이드바에서 빠졌지만 직접 URL 입력 시 노출되는 페이지들의 타이틀 (TopbarRich 용).
@@ -125,7 +123,7 @@ function pageTitle(pathname: string): { title: string; subtitle: string } {
 function subtitleFor(to: string): string {
   switch (to) {
     case "/dashboard/ai-usage": return "Gemini API Key 사용량 — 키별 일일 한도, 모델별 분포, 24h/7d/30d 시계열.";
-    case "/dashboard/gemini": return "Gemini API Key 관리 — quota 추적, 업그레이드 추천, 키 추가 가이드.";
+    case "/dashboard/gemini": return "AI API Key 관리 — quota 추적, 업그레이드 추천, 키 추가 가이드.";
     case "/dashboard/info/faqs": return "앱·웹 FAQ 등록·수정·비공개 처리.";
     case "/dashboard/commerce": return "커머스 표면 운영 — 배너 / 주문 read-only.";
     case "/dashboard/commerce/banners": return "메인 배너 등록·정렬·노출 기간 관리.";
