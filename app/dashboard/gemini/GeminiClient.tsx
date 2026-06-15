@@ -261,9 +261,10 @@ function UsageGauge({
         <span className="text-emerald-700/80">{tierBadgeNote}</span>
       </div>
 
-      {/* 1차 지표: 오늘 RPD */}
+      {/* 2026-06-15 (사용자 요청 #11) — 라벨 "오늘 RPD" → "오늘의 사용량".
+          Gauge 바 아래의 unavailable 텍스트 자리 그대로 유지(에러 안내). */}
       <Gauge
-        label="오늘 RPD"
+        label="오늘의 사용량"
         sub={
           activeKeys > 0
             ? `${FREE_TIER_CAPS_PER_KEY.rpd}/일 × ${activeKeys}키`
@@ -283,41 +284,8 @@ function UsageGauge({
         }
       />
 
-      {/* RPM / TPM 자리 — server 가 분 단위 집계를 노출하지 않아 안내만. */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <UnavailableMetric
-          label="이번 분 RPM"
-          sub={
-            activeKeys > 0
-              ? `한도 ${FREE_TIER_CAPS_PER_KEY.rpm * activeKeys} (${FREE_TIER_CAPS_PER_KEY.rpm}/분 × ${activeKeys}키)`
-              : `한도 ${FREE_TIER_CAPS_PER_KEY.rpm}/분 per key`
-          }
-          note="Server 가 분 단위 집계를 미노출 — RPD 게이지로 갈음"
-        />
-        <UnavailableMetric
-          label="이번 분 TPM"
-          sub={
-            activeKeys > 0
-              ? `한도 ${(FREE_TIER_CAPS_PER_KEY.tpm * activeKeys / 1_000_000).toFixed(0)}M (${(FREE_TIER_CAPS_PER_KEY.tpm / 1_000_000).toFixed(0)}M/분 × ${activeKeys}키)`
-              : `한도 ${(FREE_TIER_CAPS_PER_KEY.tpm / 1_000_000).toFixed(0)}M/분 per key`
-          }
-          note="Server 가 분 단위 집계를 미노출 — RPD 게이지로 갈음"
-        />
-      </div>
-
-      {/* 보조: 30일 토큰 누적 + 추정 비용 (Free Tier 한도와는 무관 — 사용 패턴 참고용) */}
-      <div className="rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-2 text-xs text-slate-600">
-        <div className="font-medium text-slate-700">최근 30일 누적 (참고)</div>
-        <div className="mt-1">
-          토큰 {tokens30d != null ? formatM(tokens30d) : "—"} · 추정 비용 $
-          {cost30d != null ? cost30d.toFixed(2) : "—"} · 활성 키 {activeKeys}개
-        </div>
-      </div>
-
-      <div className="text-[11px] text-slate-500 leading-relaxed">
-        Free Tier 기준 한도입니다. 유료 키는 별도로 한도 계산이 변경됩니다.
-        한도 출처: Google AI Studio (gemini-2.0-flash 무료 등급 — per key 1500 RPD / 15 RPM / 1M TPM).
-      </div>
+      {/* 2026-06-15 (사용자 요청 #11) — "이번 분 RPM/TPM" 카드 + "최근 30일 누적" 안내 + Free Tier 안내 문구
+          전부 제거. 사용량 게이지만 단독 노출하여 화면을 단순화. */}
     </div>
   );
 }

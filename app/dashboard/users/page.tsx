@@ -50,6 +50,81 @@ const TODAY_WINDOW_HOURS = 48;
 // P1 §7 (2026-05-19) — 기본 표시는 마스킹. "마스킹 해제" 액션은 audit log + 향후 2FA 재확인.
 // P1 §5 — drawer 의 운영자 액션 (강제 로그아웃 등) 은 server audit action 호출.
 
+// 2026-06-15 (사용자 요청 #5) — "연동인형" / "표시이름" 분리 셀.
+//   · 연동인형 셀: Doll.handle (도구 식별자 — "@dollxxx" / "doll_xxxx") 우선. nickname 폴백.
+//   · 표시이름 셀: Doll.display_name (자동 발급 [a-z]{5}[0-9]{2}) 우선. user.display_name 폴백.
+//   · 인형 1개: 단건. 0개: 둘 다 "미연동". 2개 이상: 첫 인형 + ▾펼침 토글.
+function resolveDollHandle(d: { handle?: string | null; nickname?: string | null }): string {
+  const h = (d.handle ?? "").trim().replace(/^@+/, "");
+  if (h) return h;
+  const nn = (d.nickname ?? "").trim();
+  return nn || "—";
+}
+
+function resolveDollDisplayName(d: { display_name?: string | null; nickname?: string | null }): string {
+  const dn = (d.display_name ?? "").trim();
+  if (dn) return dn;
+  const nn = (d.nickname ?? "").trim();
+  if (nn && nn !== "ICONIA" && nn !== "ICONIA-IOT") return nn;
+  return "—";
+}
+
+function LinkedDollListCell({
+  row,
+  pick,
+}: {
+  row: UserRow;
+  pick: (d: NonNullable<UserRow["linked_dolls"]>[number]) => string;
+}) {
+  const [open, setOpen] = useState(false);
+  const list = row.linked_dolls ?? [];
+  if (list.length === 0) {
+    return <span className="text-muted text-xs">미연동</span>;
+  }
+  const sorted = [...list].sort((a, b) => (a.is_primary === b.is_primary ? 0 : a.is_primary ? -1 : 1));
+  const first = sorted[0]!;
+  const firstValue = pick(first);
+  if (sorted.length === 1) {
+    return (
+      <span className="text-sm text-slate-800" title={first.handle}>
+        {firstValue}
+        {first.is_primary ? (
+          <span className="ml-1 chip chip-success text-[10px]">대표</span>
+        ) : null}
+      </span>
+    );
+  }
+  return (
+    <div className="flex flex-col gap-1">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="inline-flex items-center gap-1.5 text-sm text-slate-800 hover:text-accent"
+        aria-expanded={open}
+        aria-label={open ? "인형 목록 접기" : "인형 목록 펼치기"}
+      >
+        <span className="font-medium">{firstValue}</span>
+        {first.is_primary ? (
+          <span className="chip chip-success text-[10px]">대표</span>
+        ) : null}
+        <span className="text-[11px] text-slate-500">
+          {open ? "▴ 접기" : `▾ ${sorted.length - 1}개 더`}
+        </span>
+      </button>
+      {open ? (
+        <ul className="ml-2 mt-0.5 flex flex-col gap-0.5 border-l border-slate-200 pl-2">
+          {sorted.slice(1).map((d) => (
+            <li key={d.id} className="flex items-center gap-1.5 text-[12px] text-slate-700">
+              <span title={d.handle}>{pick(d)}</span>
+              <span className="text-[10px] text-slate-400">{d.status}</span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
+  );
+}
+
 const statusChip: Record<UserRow["account_status"], string> = {
   active: "chip chip-success",
   paused: "chip chip-warn",
@@ -210,9 +285,10 @@ export default function UsersPage() {
     [users],
   );
 
-  // 2026-06-12 — 사용자 요청에 따라 컬럼 재구성:
-  //   이메일 · 표시 이름 · 인형 연동(Y/N+개수) · 인형 번호(handle 목록) · 가입일 · 최근 접속일 · 액션
-  //   기존 ID/MFA/상태/ID(앱) 컬럼은 제거. 상태/MFA 는 drawer 상세에서 계속 조회 가능.
+  // 2026-06-15 (사용자 요청 #5) — 컬럼 7개 재구성(연동인형 ↔ 표시이름 분리):
+  //   이메일 · 연동인형 · 표시이름 · UUID · 상태 · 최근접속일 · 가입일 · 액션
+  //   · 연동인형: Doll.handle (도구번호). 다중 ▾펼침.
+  //   · 표시이름: Doll.display_name ([a-z]{5}[0-9]{2} 자동 발급). 다중 ▾펼침.
   const columns: Column<UserRow>[] = useMemo(() => [
     {
       key: "email",
@@ -220,96 +296,48 @@ export default function UsersPage() {
       render: (r) => <span className="text-sm text-slate-800">{r.email}</span>,
     },
     {
-      key: "display_name",
-      header: "표시 이름",
-      render: (r) => {
-        const v = r.display_name?.trim() ?? "";
-        const valid = v ? APP_SIGNUP_ID_RE.test(v) : false;
-        // 2026-06-12 (사용자 요청 #29) — 표시이름 아래에 마케팅 수신여부 라인 추가.
-        //   서버 `marketing_opt_in` 미응답이면 "—" (서버 응답 추가 필요).
-        const marketing = r.marketing_opt_in;
-        const marketingLabel =
-          marketing === true ? "동의" : marketing === false ? "거부" : "—";
-        const marketingClass =
-          marketing === true
-            ? "chip chip-success text-[10px]"
-            : marketing === false
-              ? "chip chip-muted text-[10px]"
-              : "text-[10px] text-muted";
-        return (
-          <div className="flex flex-col gap-1">
-            {v ? (
-              <span
-                className={
-                  "font-mono text-sm " + (valid ? "text-slate-800" : "text-amber-700")
-                }
-                title={valid ? "APP 가입 자동 ID" : "legacy 또는 사용자 지정 표시이름"}
-              >
-                {v}
-              </span>
-            ) : (
-              <span className="text-muted">—</span>
-            )}
-            <span className="flex items-center gap-1 text-[10px] text-muted">
-              <span>마케팅</span>
-              <span className={marketingClass}>{marketingLabel}</span>
-            </span>
-          </div>
-        );
-      },
+      key: "linked_doll_handle",
+      header: "연동인형",
+      render: (r) => <LinkedDollListCell row={r} pick={resolveDollHandle} />,
     },
     {
-      key: "doll_linked",
-      header: "인형 연동",
-      render: (r) => {
-        const count = r.doll_count ?? r.linked_dolls?.length ?? null;
-        if (count == null) return <span className="text-muted text-xs">—</span>;
-        if (count === 0) {
-          return <span className="chip chip-muted text-[11px]">미연동</span>;
-        }
-        return (
-          <span className="chip chip-success text-[11px]">연동 · {count}대</span>
-        );
-      },
+      key: "linked_doll_display_name",
+      header: "표시이름",
+      render: (r) => <LinkedDollListCell row={r} pick={resolveDollDisplayName} />,
     },
     {
-      key: "doll_handles",
-      header: "인형 번호",
-      render: (r) => {
-        const list = r.linked_dolls ?? [];
-        if (list.length === 0) return <span className="text-muted text-xs">—</span>;
-        return (
-          <div className="flex flex-wrap gap-1 max-w-[260px]">
-            {list.map((d) => (
-              <span
-                key={d.id}
-                className={
-                  "font-mono text-[11px] rounded-md px-1.5 py-0.5 " +
-                  (d.is_primary
-                    ? "bg-amber-100 text-amber-800 border border-amber-200"
-                    : "bg-slate-100 text-slate-700 border border-slate-200")
-                }
-                title={`${d.nickname} · ${d.status}${d.is_primary ? " · primary" : ""}`}
-              >
-                {d.handle}
-              </span>
-            ))}
-          </div>
-        );
-      },
+      key: "uuid",
+      header: "UUID",
+      render: (r) => (
+        <span
+          className="font-mono text-[11px] text-slate-500"
+          title={r.id}
+        >
+          {r.id.slice(0, 8)}…{r.id.slice(-4)}
+        </span>
+      ),
+    },
+    {
+      key: "status",
+      header: "상태",
+      render: (r) => (
+        <span className={`${statusChip[r.account_status]} text-[11px]`}>
+          {statusLabel[r.account_status]}
+        </span>
+      ),
+    },
+    {
+      key: "last_login_at",
+      header: "최근접속일",
+      render: (r) => (
+        <span className="text-xs text-muted">{formatDate(r.last_login_at)}</span>
+      ),
     },
     {
       key: "created_at",
       header: "가입일",
       render: (r) => (
         <span className="text-xs text-muted">{formatDate(r.created_at)}</span>
-      ),
-    },
-    {
-      key: "last_login_at",
-      header: "최근 접속일",
-      render: (r) => (
-        <span className="text-xs text-muted">{formatDate(r.last_login_at)}</span>
       ),
     },
     {

@@ -233,6 +233,44 @@ export default function FeedPage() {
         </span>
       ),
     },
+    // 2026-06-15 (사용자 요청 #4) — 해시태그 / 위치 컬럼을 목록에 노출.
+    //   상세 패널에서만 보였던 정보를 목록에서 바로 확인할 수 있도록 추가.
+    //   각 항목은 너무 길어지지 않게 max-w + line-clamp-1 로 한 줄 잘림.
+    {
+      key: "hashtags",
+      header: "해시태그",
+      render: (r) => {
+        const tags = (r.hashtags ?? []).filter(Boolean);
+        if (tags.length === 0) {
+          return <span className="text-[12px] text-muted">—</span>;
+        }
+        const text = tags.map((tag) => `#${tag}`).join(" ");
+        return (
+          <span
+            className="text-[12px] text-slate-700 line-clamp-1 max-w-[180px] inline-block align-middle"
+            title={text}
+          >
+            {text}
+          </span>
+        );
+      },
+    },
+    {
+      key: "location",
+      header: "위치",
+      render: (r) => {
+        const loc = (r.location ?? "").trim();
+        if (!loc) return <span className="text-[12px] text-muted">—</span>;
+        return (
+          <span
+            className="text-[12px] text-slate-700 line-clamp-1 max-w-[140px] inline-block align-middle"
+            title={loc}
+          >
+            {loc}
+          </span>
+        );
+      },
+    },
     { key: "comments", header: "댓글", align: "right", render: (r) => r.comments_count },
     {
       key: "hidden",

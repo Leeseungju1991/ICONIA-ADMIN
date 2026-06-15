@@ -13,6 +13,8 @@ export type LinkedDollRow = {
   nickname: string;
   status: string;
   is_primary: boolean;
+  // 2026-06-15 (사용자 요청 #1) — 서버 정본 표시이름. 미발급/누락이면 nickname → handle 폴백.
+  display_name?: string | null;
 };
 
 export type UserRow = {
