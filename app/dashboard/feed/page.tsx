@@ -682,6 +682,10 @@ function FeedDetailDrawer({
 
 // 2026-06-01 P0 fix #2 — 피드 리스트 row 의 미디어 썸네일 미니 셀.
 // thumbnail_url > 첫 image url > 비디오 카운트 표시. onError → placeholder.
+//
+// 2026-06-15 (사용자 요청) — 썸네일 로드 실패/URL 미정 시 "n/a" 텍스트 대신 미디어
+//   종류(이미지/동영상) 별 아이콘 + 카운트 노출. 운영자가 "어떤 종류의 미디어가
+//   있는데 썸만 못 받았다" 를 한눈에 알도록.
 function FeedRowThumb({ post }: { post: AdminFeedPostRow }) {
   const media = post.media ?? [];
   const thumb = post.thumbnail_url
@@ -693,6 +697,10 @@ function FeedRowThumb({ post }: { post: AdminFeedPostRow }) {
   if (!thumb && count === 0) {
     return <span className="text-[10px] text-slate-300">—</span>;
   }
+  const hasVideo = media.some((m) => m.kind === "video");
+  const hasImage = media.some((m) => m.kind === "image");
+  const fallbackIcon = hasVideo && !hasImage ? "🎬" : "🖼";
+  const fallbackLabel = hasVideo && !hasImage ? "동영상" : "이미지";
   return (
     <div className="inline-flex items-center gap-1.5">
       {thumb ? (
@@ -711,10 +719,13 @@ function FeedRowThumb({ post }: { post: AdminFeedPostRow }) {
         />
       ) : null}
       <span
-        className="w-10 h-10 rounded-md bg-slate-100 text-[10px] text-slate-400 items-center justify-center"
+        className="w-10 h-10 rounded-md bg-slate-100 text-slate-400 flex-col items-center justify-center"
         style={{ display: thumb ? "none" : "inline-flex" }}
+        title={`${fallbackLabel} ${count}개`}
+        aria-label={`${fallbackLabel} ${count}개`}
       >
-        n/a
+        <span className="text-base leading-none">{fallbackIcon}</span>
+        <span className="text-[9px] leading-tight mt-0.5">{count}</span>
       </span>
       {count > 1 ? (
         <span className="chip chip-info text-[10px]">+{count - 1}</span>
