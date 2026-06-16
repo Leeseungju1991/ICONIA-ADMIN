@@ -299,6 +299,36 @@ export type BlockedUsersResponse = {
 };
 
 // ---------------------------------------------------------------------------
+// [Feature Flag — 사용자별] — 특정 사용자의 기능 플래그 override 조회 + 토글
+//   GET   /api/v1/admin/users/:userId/feature-flags  -> { flags: [{flag_key, enabled}] }
+//   PATCH /api/v1/admin/users/:userId/feature-flags  body={flag_key, enabled}
+//                                                     -> {flag_key, enabled}
+// (cf. APP GET /api/v1/me/feature-flags -> {flags:{[key]:boolean}} — 빌드타임 flags 와 머지.)
+// 알려진 flag_key 목록은 서버 상수(feed/doll/mypage/commerce/rag 등 빌드 플래그 키와 정렬).
+// ---------------------------------------------------------------------------
+
+/** 서버 상수와 정렬된 알려진 feature flag 키 (빌드타임 flags 와 동일 네이밍). */
+export const KNOWN_FEATURE_FLAG_KEYS = [
+  "feed",
+  "doll",
+  "mypage",
+  "commerce",
+  "rag",
+] as const;
+
+export type FeatureFlagKey = (typeof KNOWN_FEATURE_FLAG_KEYS)[number] | string;
+
+/** 한 건의 사용자별 flag override — flag_key 와 enabled 불리언. */
+export type UserFeatureFlagRow = {
+  flag_key: FeatureFlagKey;
+  enabled: boolean;
+};
+
+export type UserFeatureFlagsResponse = {
+  flags: UserFeatureFlagRow[];
+};
+
+// ---------------------------------------------------------------------------
 // Result envelope (Admin server actions 가 공통으로 반환).
 // ---------------------------------------------------------------------------
 

@@ -46,6 +46,9 @@ export const PATH_REQUIRED_ROLES: { prefix: string; roles: OperatorRole[] }[] = 
   // sre/secops/superadmin — OTA 배포 / 펌웨어 (기존 카탈로그/진행률 뷰).
   { prefix: "/dashboard/ota", roles: SRE_OR_ABOVE },
   { prefix: "/dashboard/personas", roles: SRE_OR_ABOVE },
+  // 2026-06-16 (Wave 4) — 사용자별 Feature Flag 토글. 빌드타임 flag override 는
+  //   운영 조작이므로 sre/secops/superadmin 만 접근 (server PATCH 도 동일 가드 전제).
+  { prefix: "/dashboard/feature-flags", roles: SRE_OR_ABOVE },
   // 2026-05-27 신규 — AI 사용량 / 모더레이션 / 오류추적 / 공지작성 / 콘텐츠 hub.
   { prefix: "/dashboard/ai-usage", roles: ALL_ROLES },
   { prefix: "/dashboard/moderation", roles: CS_OR_ABOVE },

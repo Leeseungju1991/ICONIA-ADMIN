@@ -52,6 +52,7 @@ const nav: NavItem[] = [
   { to: "/dashboard/notice-push", label: "공지·푸시 관리", icon: BellIcon },
   { to: "/dashboard/lost-reports", label: "신고 접수", icon: FlagIcon },
   { to: "/dashboard/error-tracking", label: "오류 추적", icon: ServerIcon },
+  { to: "/dashboard/feature-flags", label: "기능 플래그", icon: ChipIcon },
 ];
 
 // 사이드바에서 빠졌지만 직접 URL 입력 시 노출되는 페이지들의 타이틀 (TopbarRich 용).
@@ -132,6 +133,7 @@ function subtitleFor(to: string): string {
     case "/dashboard/moderation": return "미해결 신고 통합 — 욕설/혐오/스팸 게시물·댓글·사용자·리뷰를 한 화면에서 처리.";
     case "/dashboard/blocked-users": return "특정 사용자가 차단한 사용자 목록을 조회(정렬·검색)하고 개별 차단을 해제합니다.";
     case "/dashboard/error-tracking": return "기능별 24시간 에러 — 스택, 빈도, 영향 사용자 수.";
+    case "/dashboard/feature-flags": return "특정 사용자의 빌드타임 기능 플래그 override 를 조회·토글합니다 (feed/doll/mypage/commerce/rag).";
     case "/dashboard/ota-deploy": return "펌웨어 업로드 + 디바이스 그룹 선택 + 단계 배포.";
     case "/dashboard/notifications": return "전체 / 사용자군 / 디바이스군 대상 앱푸시 + 인앱 배너 작성 발송.";
     case "/dashboard/content": return "피드 · 커머스 · 도감 — 세 콘텐츠 표면 진입.";
