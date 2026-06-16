@@ -69,6 +69,7 @@ const HIDDEN_TITLES: Record<string, string> = {
   "/dashboard/personas": "AI 페르소나",
   "/dashboard/knowledge": "RAG·대화 품질",
   "/dashboard/moderation": "모더레이션",
+  "/dashboard/blocked-users": "차단 사용자 관리",
   "/dashboard/community": "신고된 피드 (legacy)",
   "/dashboard/notifications": "공지/알람 작성",
   "/dashboard/notices": "공지/배너 관리",
@@ -129,6 +130,7 @@ function subtitleFor(to: string): string {
     case "/dashboard/commerce/banners": return "메인 배너 등록·정렬·노출 기간 관리.";
     case "/dashboard/commerce/orders": return "주문 조회 (display-only) — 결제·환불 액션 없음.";
     case "/dashboard/moderation": return "미해결 신고 통합 — 욕설/혐오/스팸 게시물·댓글·사용자·리뷰를 한 화면에서 처리.";
+    case "/dashboard/blocked-users": return "특정 사용자가 차단한 사용자 목록을 조회(정렬·검색)하고 개별 차단을 해제합니다.";
     case "/dashboard/error-tracking": return "기능별 24시간 에러 — 스택, 빈도, 영향 사용자 수.";
     case "/dashboard/ota-deploy": return "펌웨어 업로드 + 디바이스 그룹 선택 + 단계 배포.";
     case "/dashboard/notifications": return "전체 / 사용자군 / 디바이스군 대상 앱푸시 + 인앱 배너 작성 발송.";

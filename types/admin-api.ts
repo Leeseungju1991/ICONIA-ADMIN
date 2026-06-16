@@ -270,6 +270,35 @@ export type NotificationCreated = {
 };
 
 // ---------------------------------------------------------------------------
+// [차단 사용자] — 특정 사용자의 차단 목록 조회 + 개별 차단 해제
+//   GET  /api/v1/admin/users/:userId/blocked-users?query=&sort=created_at|display_name
+//   POST /api/v1/admin/users/:userId/unblock  body={target_user_id}
+// (cf. APP GET /api/v1/me/blocks 와 동일 계약 — 차단 대상(target)의 메타 노출.)
+// ---------------------------------------------------------------------------
+
+/** 차단 목록 정렬 키 — 차단 시각(최신순) 또는 대상 표시 이름(가나다순). */
+export type BlockedUserSort = "created_at" | "display_name";
+
+/** 한 건의 차단 — 대상(target) 사용자의 식별/표시 메타 + 차단 시각. */
+export type BlockedUserRow = {
+  /** 차단 대상 사용자의 ID. unblock 시 target_user_id 로 전달. */
+  target_user_id: string;
+  /** 대상 표시 이름 (없으면 빈 문자열일 수 있음). */
+  display_name: string;
+  /** 대상 이메일 (마스킹된 형태로 올 수 있음). */
+  email?: string | null;
+  /** 대상 아바타 URL — 없으면 null. */
+  avatar_url?: string | null;
+  /** 차단한 시각 (ISO8601). */
+  created_at: string;
+};
+
+export type BlockedUsersResponse = {
+  items: BlockedUserRow[];
+  next_cursor?: string | null;
+};
+
+// ---------------------------------------------------------------------------
 // Result envelope (Admin server actions 가 공통으로 반환).
 // ---------------------------------------------------------------------------
 
