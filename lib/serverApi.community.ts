@@ -121,29 +121,18 @@ export function takedownCommunityPost(jwt: string, postId: string, reason: strin
   );
 }
 
-// B9 — 서버 정본 미존재 (bulk takedown 미배포).
-// try/catch + UI 친화 graceful 응답으로 출시 시 콘솔 에러 차단.
-export async function hidePostsByAuthor(
+// B9 — POST /api/v1/admin/users/:authorId/hide-posts
+// 작성자의 모든 feed_posts 일괄 숨김. 응답: { affected: number }.
+// 2026-06-22 서버 배선 완료.
+export function hidePostsByAuthor(
   jwt: string,
   authorId: string,
   reason: string,
-): Promise<ServerResult<{ affected: number; ok: false; reason: "NOT_IMPLEMENTED" }>> {
-  try {
-    void jwt;
-    void authorId;
-    void reason;
-    return {
-      ok: false,
-      code: "ERR_NOT_IMPLEMENTED",
-      message: "bulk_hide_not_implemented",
-      status: 501,
-    };
-  } catch {
-    return {
-      ok: false,
-      code: "ERR_NOT_IMPLEMENTED",
-      message: "bulk_hide_not_implemented",
-      status: 0,
-    };
-  }
+): Promise<ServerResult<{ affected: number }>> {
+  return req<{ affected: number }>(
+    `/api/v1/admin/users/${encodeURIComponent(authorId)}/hide-posts`,
+    "POST",
+    jwt,
+    { reason },
+  );
 }
