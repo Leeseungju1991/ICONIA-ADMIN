@@ -309,50 +309,13 @@ describe("serverApi.community — takedownCommunityPost", () => {
   });
 });
 
-describe("serverApi.community — hidePostsByAuthor", () => {
-  it("ok envelope returns affected count", async () => {
-    const fetchMock = mockFetch(
-      async () =>
-        new Response(
-          JSON.stringify({ ok: true, data: { affected: 7 } }),
-          { status: 200 },
-        ),
-    );
-    globalThis.fetch = fetchMock;
-    const r = await hidePostsByAuthor("jwt", "usr_42", "abuse");
-    expect(r.ok).toBe(true);
-    if (r.ok) expect(r.data.affected).toBe(7);
-    const call = fetchMock.mock.calls[0];
-    expect(call[1]?.method).toBe("POST");
-    expect(call[1]?.body).toBe(JSON.stringify({ reason: "abuse" }));
-  });
-  it("5xx returns ERR_SERVER_UNAVAILABLE", async () => {
-    globalThis.fetch = vi.fn(async () => new Response("err", { status: 500 }));
+describe("serverApi.community — hidePostsByAuthor (stub: ERR_NOT_IMPLEMENTED)", () => {
+  // 2026-06-22 — hidePostsByAuthor 는 서버 측 bulk takedown 미배포 상태로 stub 만 존재
+  //   (lib/serverApi.community.ts:126-149). 실제 fetch 호출 없이 즉시 ERR_NOT_IMPLEMENTED 반환.
+  //   서버 배선 완료 후 본 4개 케이스(ok envelope / 5xx / network / 429)를 부활시킨다.
+  it("stub always returns ERR_NOT_IMPLEMENTED", async () => {
     const r = await hidePostsByAuthor("jwt", "usr_42", "abuse");
     expect(r.ok).toBe(false);
-    if (!r.ok) expect(r.code).toBe("ERR_SERVER_UNAVAILABLE");
-  });
-  it("network fail returns ERR_NETWORK", async () => {
-    globalThis.fetch = vi.fn(async () => {
-      throw new Error("boom");
-    });
-    const r = await hidePostsByAuthor("jwt", "usr_42", "abuse");
-    expect(r.ok).toBe(false);
-    if (!r.ok) expect(r.code).toBe("ERR_NETWORK");
-  });
-  it("envelope error returns error code", async () => {
-    globalThis.fetch = vi.fn(
-      async () =>
-        new Response(
-          JSON.stringify({
-            ok: false,
-            error: { code: "ERR_RATE_LIMITED", message: "slow down" },
-          }),
-          { status: 429 },
-        ),
-    );
-    const r = await hidePostsByAuthor("jwt", "usr_42", "abuse");
-    expect(r.ok).toBe(false);
-    if (!r.ok) expect(r.code).toBe("ERR_RATE_LIMITED");
+    if (!r.ok) expect(r.code).toBe("ERR_NOT_IMPLEMENTED");
   });
 });

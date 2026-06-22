@@ -106,10 +106,12 @@ describe("authedRequest (shared httpClient)", () => {
     }
   });
 
-  it("5xx maps to ERR_SERVER_UNAVAILABLE", async () => {
+  it("5xx without structured error maps to ERR_SERVER_UNAVAILABLE", async () => {
+    // 2026-06-22 — httpClient.ts:110-126 의 5xx 정책: envelope.error.code 가 있으면 통과,
+    //   없으면 ERR_SERVER_UNAVAILABLE 폴백. 본 테스트는 폴백 경로를 검증.
     mockFetchOnce({
       status: 502,
-      body: { ok: false, data: null, error: { code: "X", message: "y" } },
+      body: { ok: false, data: null }, // error 객체 미동봉 → fallback 경로.
     });
     const r = await authedRequest({ jwt: "j", path: "/api/v1/x", method: "GET" });
     expect(r.ok).toBe(false);

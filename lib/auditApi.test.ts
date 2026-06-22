@@ -120,10 +120,11 @@ describe("listAuditLog", () => {
     }
   });
 
-  it("maps 5xx to ERR_SERVER_UNAVAILABLE", async () => {
+  it("maps 5xx (unstructured) to ERR_SERVER_UNAVAILABLE", async () => {
+    // 2026-06-22 — httpClient 5xx 정책: 구조화 에러 envelope 가 있으면 통과, 없으면 폴백.
     mockFetchOnce({
       status: 502,
-      body: { ok: false, data: null, error: { code: "X", message: "y" } },
+      body: { ok: false, data: null }, // error 객체 미동봉 → fallback 경로.
     });
     const r = await listAuditLog({ jwt: "j" });
     expect(r.ok).toBe(false);
@@ -239,10 +240,11 @@ describe("appendAuditLog", () => {
     }
   });
 
-  it("propagates 5xx via shared httpClient mapping (ERR_SERVER_UNAVAILABLE)", async () => {
+  it("propagates 5xx (unstructured) via shared httpClient mapping (ERR_SERVER_UNAVAILABLE)", async () => {
+    // 2026-06-22 — 구조화 미동봉 5xx 만 ERR_SERVER_UNAVAILABLE 로 폴백 (httpClient 정책).
     mockFetchOnce({
       status: 503,
-      body: { ok: false, data: null, error: { code: "X", message: "y" } },
+      body: { ok: false, data: null },
     });
     const r = await appendAuditLog({ jwt: "j", input: { action: "user.force_logout" } });
     expect(r.ok).toBe(false);

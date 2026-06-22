@@ -388,7 +388,9 @@ describe("getAiHealth", () => {
     expect(r.ok).toBe(true);
     if (r.ok) expect(r.data.latency_ms.p95).toBe(2100);
     const [url, init] = fetchMock.mock.calls[0];
-    expect(url).toBe(`${BASE}/api/v1/admin/ai-health`);
+    // 2026-06-22 — adminApi.ts:471 — server 정본은 `/api/admin/ai/health` (v0 prefix).
+    //   `/api/v1/admin/ai-health` 는 미배포로 404. 본 테스트 경로도 정본에 일치.
+    expect(url).toBe(`${BASE}/api/admin/ai/health`);
     expect(init.method).toBe("GET");
   });
 
