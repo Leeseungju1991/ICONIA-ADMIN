@@ -15,6 +15,9 @@ export type LinkedDollRow = {
   is_primary: boolean;
   // 2026-06-15 (사용자 요청 #1) — 서버 정본 표시이름. 미발급/누락이면 nickname → handle 폴백.
   display_name?: string | null;
+  // 2026-06-22 — 카탈로그 공식 ID 및 한국어 이름 (서버 adminUserService 추가).
+  soul_catalog_id?: string | null;
+  soul_name?: string | null;
 };
 
 export type UserRow = {
@@ -61,6 +64,9 @@ export type UserDetailDoll = {
   follower_count?: number;
   post_count?: number;
   created_at?: string;
+  // 2026-06-22 — 카탈로그 공식 ID 및 한국어 이름.
+  soul_catalog_id?: string | null;
+  soul_name?: string | null;
 };
 export type UserDetailDevice = {
   device_id: string;

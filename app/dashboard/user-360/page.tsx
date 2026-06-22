@@ -262,7 +262,7 @@ export default function User360Page() {
           // 2026-06-15 (사용자 요청 - 재정합) — 9컬럼 표준화 (상태 컬럼 제거).
           //   이메일 · 연동인형 이름 · 표시 이름 · UUID · 마케팅수신여부 · 최근접속일 · 가입일 · 수정 · 삭제
           //   · 연동인형 이름: Doll.handle 1순위, nickname 폴백. 다중 시 "+N" 칩.
-          //   · 표시 이름: Doll.display_name ([a-z]{5}[0-9]{2}), 없으면 nickname 폴백.
+          //   · 표시 이름: Doll.soul_name(SOUL 24종 카탈로그 한국어명) 정본. display_name/nickname 폴백. 2026-06-22 변경.
           //   · 마케팅수신여부: User.marketing_opt_in (동의/거부/—).
           //   · 최근접속일: last_login_at (백필 후 created_at fallback 적용됨).
           <div className="scroll-x-touch">
@@ -289,8 +289,13 @@ export default function User360Page() {
                   const dollHandle = primaryDoll
                     ? (primaryDoll.handle?.replace(/^@+/, "").trim() || primaryDoll.nickname || "—")
                     : "—";
+                  // 2026-06-22 (사용자 요청) — 표시이름 = SOUL 24종 카탈로그 한국어명 정본.
+                  //   소스: Doll.soul_catalog_id → SOUL_CATALOG_LABELS (서버가 soul_name 으로 직렬화).
                   const dollDisplayName = primaryDoll
-                    ? ((primaryDoll.display_name?.trim()) || primaryDoll.nickname || "—")
+                    ? ((primaryDoll.soul_name?.trim())
+                        || (primaryDoll.display_name?.trim())
+                        || primaryDoll.nickname
+                        || "—")
                     : "—";
                   const extraCount = sorted.length > 1 ? sorted.length - 1 : 0;
                   return (

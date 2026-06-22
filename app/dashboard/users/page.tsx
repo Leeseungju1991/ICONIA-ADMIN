@@ -51,17 +51,34 @@ const TODAY_WINDOW_HOURS = 48;
 // P1 §5 — drawer 의 운영자 액션 (강제 로그아웃 등) 은 server audit action 호출.
 
 // 2026-06-15 (사용자 요청 #5) — "연동인형" / "표시이름" 분리 셀.
-//   · 연동인형 셀: Doll.handle (도구 식별자 — "@dollxxx" / "doll_xxxx") 우선. nickname 폴백.
+//   · 연동인형 셀: soul_name(카탈로그 공식 한국어명) > nickname > handle 순 우선순위.
 //   · 표시이름 셀: Doll.display_name (자동 발급 [a-z]{5}[0-9]{2}) 우선. user.display_name 폴백.
 //   · 인형 1개: 단건. 0개: 둘 다 "미연동". 2개 이상: 첫 인형 + ▾펼침 토글.
-function resolveDollHandle(d: { handle?: string | null; nickname?: string | null }): string {
-  const h = (d.handle ?? "").trim().replace(/^@+/, "");
-  if (h) return h;
+// 2026-06-22 — soul_name > nickname > handle 우선순위.
+function resolveDollName(d: {
+  soul_name?: string | null;
+  nickname?: string | null;
+  handle?: string | null;
+}): string {
+  const sn = (d.soul_name ?? "").trim();
+  if (sn) return sn;
   const nn = (d.nickname ?? "").trim();
-  return nn || "—";
+  if (nn) return nn;
+  const h = (d.handle ?? "").trim().replace(/^@+/, "");
+  return h || "—";
 }
 
-function resolveDollDisplayName(d: { display_name?: string | null; nickname?: string | null }): string {
+// 2026-06-22 (사용자 요청) — 표시이름 = 이메일에 연동된 대표인형(SOUL 24종) 중 하나의 한국어 정본명.
+//   소스: Doll.soul_catalog_id → SOUL_CATALOG_LABELS (예: aira → "아이라"). 서버가 soul_name 으로 직렬화.
+// Why: 기존 자동 발급 ID([a-z]{5}[0-9]{2}) 는 사용자 식별에 무의미 — 24종 카탈로그 한국어명이 정본.
+function resolveDollDisplayName(d: {
+  soul_name?: string | null;
+  display_name?: string | null;
+  nickname?: string | null;
+}): string {
+  const sn = (d.soul_name ?? "").trim();
+  if (sn) return sn;
+  // 폴백: 서버가 soul_name 미반환(legacy) 시 display_name → nickname.
   const dn = (d.display_name ?? "").trim();
   if (dn) return dn;
   const nn = (d.nickname ?? "").trim();
@@ -296,8 +313,8 @@ export default function UsersPage() {
 
   // 2026-06-15 (사용자 요청 - 재정합) — 컬럼 7개 + 액션 분리:
   //   이메일 · 연동인형 이름 · 표시 이름 · UUID · 마케팅수신여부 · 최근접속일 · 가입일 · 수정 · 삭제
-  //   · 연동인형 이름: Doll.handle (도구번호). 다중 ▾펼침.
-  //   · 표시 이름: Doll.display_name ([a-z]{5}[0-9]{2} 자동 발급). 피드/댓글에 보이는 작성자명.
+  //   · 연동인형 이름: Doll.soul_name(카탈로그 한국어명) > nickname > handle. 다중 ▾펼침.
+  //   · 표시 이름: Doll.soul_name(SOUL 24종 정본명) > display_name > nickname. 2026-06-22 변경.
   //   · 마케팅수신여부: User.marketing_opt_in (가입 시 ConsentScreen 에서 결정).
   //   · "상태" 컬럼 제거 (pending_deletion 은 이미 서버/클라 양측 필터링됨).
   //   · 액션은 "수정" (drawer 열기) + "삭제" 두 버튼.
@@ -310,7 +327,8 @@ export default function UsersPage() {
     {
       key: "linked_doll_handle",
       header: "연동인형 이름",
-      render: (r) => <LinkedDollListCell row={r} pick={resolveDollHandle} />,
+      // 2026-06-22 — soul_name(카탈로그 한국어명) > nickname > handle 우선순위.
+      render: (r) => <LinkedDollListCell row={r} pick={resolveDollName} />,
     },
     {
       key: "display_name",
@@ -919,7 +937,8 @@ function UserDetailDrawer({
               {detail.data.dolls.map((d) => (
                 <li key={d.id} className="rounded-2xl border border-white/70 bg-white/60 px-3 py-2 text-xs text-slate-700">
                   <div className="flex items-center gap-2">
-                    <span className="font-semibold text-slate-900">{d.nickname || d.handle}</span>
+                    {/* 2026-06-22 — soul_name(카탈로그 공식명) > nickname > handle 우선순위. */}
+                    <span className="font-semibold text-slate-900">{d.soul_name || d.nickname || d.handle}</span>
                     {d.is_primary ? <span className="rounded-full bg-tan-soft px-2 py-0.5 text-[10px] text-tan-deep">대표</span> : null}
                   </div>
                   <div className="mt-1 text-muted">

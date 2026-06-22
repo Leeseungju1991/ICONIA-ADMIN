@@ -9,6 +9,9 @@ export type LinkedDoll = {
   nickname: string;
   status: string;
   is_primary: boolean;
+  // 2026-06-22 — 카탈로그 공식 ID 및 한국어 이름 (서버 adminUserService 추가).
+  soul_catalog_id?: string | null;
+  soul_name?: string | null;
 };
 
 export type UserRow = {
