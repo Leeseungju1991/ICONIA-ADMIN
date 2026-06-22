@@ -149,6 +149,16 @@ function adaptServerUser(s: ServerUserRow): UserRow {
   //   미응답 시 (legacy server) null 폴백 — UI 는 "—" 표시.
   const linked = Array.isArray(s.linked_dolls) ? s.linked_dolls : null;
   const dollCount = typeof s.doll_count === "number" ? s.doll_count : (linked?.length ?? null);
+  // 2026-06-17 (감사 보고 — 정합 검증) — denormalized doll_count 와 linked_dolls.length 가
+  //   어긋나면 콘솔에 1회 경고 (운영자가 reconcile 백그라운드 워커 필요성 인지). UI 표시는
+  //   기존 그대로 (사용자 명세 변경 없이 silent log).
+  if (linked && typeof s.doll_count === "number" && s.doll_count !== linked.length) {
+    if (typeof console !== "undefined") {
+      console.warn(
+        `[admin/users] doll_count mismatch user=${s.id} doll_count=${s.doll_count} linked.length=${linked.length}`,
+      );
+    }
+  }
   // 2026-06-12 (사용자 요청 #29) — 마케팅 수신여부. 서버 미응답 시 null → UI 가 "—" 표시.
   const marketing = typeof s.marketing_opt_in === "boolean" ? s.marketing_opt_in : null;
   return {

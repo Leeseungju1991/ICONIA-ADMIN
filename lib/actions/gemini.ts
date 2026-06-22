@@ -435,3 +435,49 @@ export async function upsertGeminiKeyQuotaAction(args: {
   if (!res.ok) return { ok: false, message: res.message, code: res.code };
   return { ok: true, alias: res.data.key_alias, tier: res.data.tier };
 }
+
+// ── /byok-usage ────────────────────────────────────────────────────────
+// 2026-06-17 (BYOK 가시성 라운드) — 사용자 본인 키 호출 집계.
+// 서버: GET /api/v1/admin/gemini/byok-usage?from&to&limit
+// 응답: { range: { from, to }, total, items: [{ user_id, byok_calls,
+//        prompt_tokens, completion_tokens, cost_estimate_usd, last_ts }] }
+export interface ByokUsageItem {
+  user_id: string;
+  byok_calls: number;
+  prompt_tokens: number;
+  completion_tokens: number;
+  cost_estimate_usd: number;
+  last_ts: string | null;
+}
+export interface ByokUsageResponse {
+  range: { from: string; to: string };
+  total: number;
+  items: ByokUsageItem[];
+}
+
+export async function fetchByokUsageAction(
+  args?: { from?: string; to?: string; limit?: number },
+): Promise<AdminResult<ByokUsageResponse> & { source: "server" }> {
+  const jwt = readSession();
+  if (!jwt) return { ok: false, message: "세션 만료", source: "server" };
+  const qs = new URLSearchParams();
+  if (args?.from) qs.set("from", args.from);
+  if (args?.to) qs.set("to", args.to);
+  if (args?.limit) qs.set("limit", String(args.limit));
+  const path = `/api/v1/admin/gemini/byok-usage${qs.toString() ? `?${qs}` : ""}`;
+  const res = await authedRequest<ByokUsageResponse>({
+    jwt,
+    path,
+    method: "GET",
+  });
+  if (!res.ok) {
+    return {
+      ok: false,
+      code: res.code,
+      message: res.message,
+      unreachable: unreachable(res.code),
+      source: "server",
+    };
+  }
+  return { ok: true, data: res.data, source: "server" };
+}

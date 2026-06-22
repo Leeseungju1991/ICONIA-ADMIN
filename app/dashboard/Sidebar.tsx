@@ -58,6 +58,7 @@ const nav: NavItem[] = [
 // 사이드바에서 빠졌지만 직접 URL 입력 시 노출되는 페이지들의 타이틀 (TopbarRich 용).
 const HIDDEN_TITLES: Record<string, string> = {
   "/dashboard/ai-usage": "AI 사용량 (legacy)",
+  "/dashboard/byok-usage": "BYOK 사용량 — 사용자 본인 키 호출 집계 (2026-06-17 신설)",
   "/dashboard/cs": "CS 통합 조회",
   "/dashboard/users": "회원 관리",
   "/dashboard/users/rights": "사용자 권리 큐",
@@ -125,6 +126,7 @@ function pageTitle(pathname: string): { title: string; subtitle: string } {
 function subtitleFor(to: string): string {
   switch (to) {
     case "/dashboard/ai-usage": return "Gemini API Key 사용량 — 키별 일일 한도, 모델별 분포, 24h/7d/30d 시계열.";
+    case "/dashboard/byok-usage": return "BYOK(사용자 본인 키) 사용량 — 사용자별 호출/토큰/비용 추정. 운영자 quota 영향 없음.";
     case "/dashboard/gemini": return "AI API Key 관리 — quota 추적, 업그레이드 추천, 키 추가 가이드.";
     case "/dashboard/info/faqs": return "앱·웹 FAQ 등록·수정·비공개 처리.";
     case "/dashboard/commerce": return "커머스 표면 운영 — 배너 / 주문 read-only.";
