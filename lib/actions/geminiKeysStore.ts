@@ -5,16 +5,21 @@
 // SERVER 엔드포인트:
 //   GET    /api/v1/admin/gemini/keys-store               목록 (마스킹)
 //   POST   /api/v1/admin/gemini/keys-store               등록 (apiKey 평문)
+//   PUT    /api/v1/admin/gemini/keys-store/:id/rotate    키 회전 (신규 평문 + reason)
 //   DELETE /api/v1/admin/gemini/keys-store/:id           soft disable
 //   GET    /api/v1/admin/gemini/keys-store/usage-summary 총 사용량 + 키별 분포 + cap 대비 비율
 //
-// 평문 KEY 는 등록 호출 1회만 통과 — 응답 / 목록에는 prefix 4자 + alias 만.
+// 평문 KEY 는 등록/회전 호출 시점에만 존재 — 응답 / 목록에는 prefix 4자 + alias 만.
+// 회전(rotate) 시 audit_log 1건 기록 (ai_key.rotated) + reason 5자 이상 강제.
 
+import { createHash } from "node:crypto";
 import { readSession } from "@/lib/authCookie";
+import { appendAuditLog } from "@/lib/auditApi";
 import {
   listGeminiKeysStore,
   addGeminiKeysStore,
   disableGeminiKeysStore,
+  rotateGeminiKeysStore,
   geminiKeysStoreUsageSummary,
   type GeminiKeysStoreItem,
   type GeminiKeysStoreUsageSummary,
@@ -93,6 +98,53 @@ export async function disableKeyStoreAction(
   if (!res.ok) {
     return { ok: false, code: res.code, message: friendlyKeyStoreMessage(res.code, res.message) };
   }
+  return { ok: true, data: { item: res.data.item } };
+}
+
+// 2026-06-24 — AI Key 회전(rotate) action.
+//   신규 평문 API KEY + reason(5자 이상) 을 받아 서버에 PUT 요청.
+//   완료 시 audit_log (ai_key.rotated) 1건 기록.
+//   KEY 실 값은 서버(Secrets Manager)에서만 처리 — ADMIN 은 rotate command 만 발행.
+export async function rotateKeyStoreAction(
+  id: string,
+  newApiKey: string,
+  reason: string,
+): Promise<AdminActionResult<{ item: GeminiKeysStoreItem }>> {
+  const jwt = readSession();
+  if (!jwt) return { ok: false, message: "세션 만료" };
+  const keyTrimmed = String(newApiKey || "").trim();
+  const reasonTrimmed = String(reason || "").trim();
+  if (!keyTrimmed)
+    return { ok: false, message: "새 API KEY 가 비어 있습니다" };
+  if (!/^[A-Za-z][A-Za-z0-9._-]{19,}$/.test(keyTrimmed) || keyTrimmed.length > 256)
+    return { ok: false, message: "API KEY 형식이 올바르지 않습니다 (예: AIza...)" };
+  if (reasonTrimmed.length < 5)
+    return { ok: false, message: "회전 사유는 5자 이상 입력하세요" };
+
+  const res = await rotateGeminiKeysStore({ jwt, id, newApiKey: keyTrimmed, reason: reasonTrimmed });
+  if (!res.ok) {
+    return { ok: false, code: res.code, message: friendlyKeyStoreMessage(res.code, res.message) };
+  }
+
+  // audit log 기록 — best-effort (실패해도 rotate 결과는 반환)
+  try {
+    const payloadHash = createHash("sha256")
+      .update(JSON.stringify({ id, action: "ai_key.rotated", reason: reasonTrimmed }))
+      .digest("hex");
+    await appendAuditLog({
+      jwt,
+      input: {
+        action: "ai_key.rotated",
+        targetResourceType: "ai_key",
+        targetResourceId: id,
+        reasonText: reasonTrimmed,
+        payloadHash,
+      },
+    });
+  } catch {
+    // audit log 실패는 toast 경고로만 처리 (rotate 자체는 성공)
+  }
+
   return { ok: true, data: { item: res.data.item } };
 }
 

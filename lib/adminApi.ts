@@ -3645,6 +3645,22 @@ export function disableGeminiKeysStore(args: {
   });
 }
 
+// 2026-06-24 — KEY 회전 (rotate). 신규 평문 KEY + 사유 전달. 서버가 기존 키를 폐기하고
+//   신규 키를 Secrets Manager 에 저장. 응답에는 prefix 4자 + alias 만 반환.
+export function rotateGeminiKeysStore(args: {
+  jwt: string;
+  id: string;
+  newApiKey: string;
+  reason: string;
+}): Promise<ServerResult<{ item: GeminiKeysStoreItem }>> {
+  return authedRequest({
+    jwt: args.jwt,
+    path: `/api/v1/admin/gemini/keys-store/${encodeURIComponent(args.id)}/rotate`,
+    method: "PUT",
+    body: { newApiKey: args.newApiKey, reason: args.reason },
+  });
+}
+
 export function geminiKeysStoreUsageSummary(args: {
   jwt: string;
   range?: "24h" | "7d" | "30d";

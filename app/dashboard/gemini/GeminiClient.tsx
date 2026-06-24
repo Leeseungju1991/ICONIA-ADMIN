@@ -8,11 +8,12 @@
 //   등록하므로 monthly_token_cap (custom tier 가정) 대신 Google 공식 Free Tier
 //   한도 × 활성 키 수로 측정한다. 1차 지표: 오늘 RPD. 보조: 30일 토큰 누적.
 
-import { useCallback, useEffect, useState, useTransition, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition, type FormEvent } from "react";
 import { PanelCard } from "../_components/PanelCard";
 import {
   addKeyStoreAction,
   disableKeyStoreAction,
+  rotateKeyStoreAction,
   keysStoreUsageSummaryAction,
   listKeysStoreAction,
 } from "@/lib/actions/geminiKeysStore";
@@ -39,6 +40,8 @@ export default function GeminiClient() {
   const [, startLoad] = useTransition();
   const [mutating, startMutate] = useTransition();
   const [toast, setToast] = useState<string | null>(null);
+  // 회전(rotate) 모달 상태 — null 이면 닫힘, item 이면 해당 키의 rotate 폼 열림
+  const [rotatingItem, setRotatingItem] = useState<GeminiKeysStoreItem | null>(null);
 
   const reload = useCallback(() => {
     startLoad(async () => {
@@ -78,6 +81,23 @@ export default function GeminiClient() {
           ? `재활성화: ${r.data.item.alias} (${r.data.item.keyPrefix}***)`
           : `등록 완료: ${r.data.item.alias} (${r.data.item.keyPrefix}***)`,
       );
+      reload();
+    });
+  }
+
+  function handleRotateRequest(item: GeminiKeysStoreItem) {
+    setRotatingItem(item);
+  }
+
+  async function handleRotateSubmit(item: GeminiKeysStoreItem, newKey: string, reason: string) {
+    setRotatingItem(null);
+    startMutate(async () => {
+      const r = await rotateKeyStoreAction(item.id, newKey, reason);
+      if (!r.ok) {
+        setToast(`회전 실패: ${r.message}`);
+        return;
+      }
+      setToast(`키 회전 완료: ${r.data.item.alias} (${r.data.item.keyPrefix}***) — 감사 로그 기록됨`);
       reload();
     });
   }
@@ -165,7 +185,7 @@ export default function GeminiClient() {
                 {items.map((item) => (
                   <tr key={item.id} className="border-b border-slate-100 last:border-b-0">
                     <td className="py-2 pr-3 font-mono text-slate-900">
-                      {item.keyPrefix}***
+                      <span title="마지막 4자만 표시 (보안 마스킹)">{item.keyPrefix}***</span>
                     </td>
                     <td className="py-2 pr-3 text-slate-700">{item.alias}</td>
                     <td className="py-2 pr-3">
@@ -177,14 +197,25 @@ export default function GeminiClient() {
                       {formatDate(item.createdAt)}
                     </td>
                     <td className="py-2 pr-3 text-right">
-                      <button
-                        type="button"
-                        onClick={() => handleDisable(item)}
-                        disabled={mutating}
-                        className="rounded-lg border border-rose-200 bg-white px-3 py-1.5 text-xs text-rose-700 hover:bg-rose-50 disabled:opacity-50 disabled:cursor-not-allowed min-h-[36px]"
-                      >
-                        삭제
-                      </button>
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleRotateRequest(item)}
+                          disabled={mutating}
+                          className="rounded-lg border border-amber-200 bg-white px-3 py-1.5 text-xs text-amber-700 hover:bg-amber-50 disabled:opacity-50 disabled:cursor-not-allowed min-h-[36px]"
+                          title="키 회전 — 신규 KEY 로 교체 + audit log 기록"
+                        >
+                          회전
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDisable(item)}
+                          disabled={mutating}
+                          className="rounded-lg border border-rose-200 bg-white px-3 py-1.5 text-xs text-rose-700 hover:bg-rose-50 disabled:opacity-50 disabled:cursor-not-allowed min-h-[36px]"
+                        >
+                          삭제
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -206,6 +237,14 @@ export default function GeminiClient() {
         />
       </PanelCard>
 
+      {rotatingItem ? (
+        <RotateKeyModal
+          item={rotatingItem}
+          onCancel={() => setRotatingItem(null)}
+          onSubmit={handleRotateSubmit}
+        />
+      ) : null}
+
       {toast ? (
         <div className="fixed bottom-6 right-6 z-50 rounded-2xl bg-slate-900/85 text-white text-sm px-4 py-3 shadow-card">
           {toast}
@@ -218,6 +257,119 @@ export default function GeminiClient() {
           </button>
         </div>
       ) : null}
+    </div>
+  );
+}
+
+// ───────────────────────────────────────────────────────────────────────
+// 2026-06-24 — 키 회전 모달.
+//   - 신규 API KEY 입력 (password type, 마스킹)
+//   - 회전 사유 5자 이상 필수 (audit_log reason_text 로 기록됨)
+//   - 제출 전 confirm 없음 — 폼 유효성 검사로 충분
+function RotateKeyModal({
+  item,
+  onCancel,
+  onSubmit,
+}: {
+  item: GeminiKeysStoreItem;
+  onCancel: () => void;
+  onSubmit: (item: GeminiKeysStoreItem, newKey: string, reason: string) => void;
+}) {
+  const [newKey, setNewKey] = useState("");
+  const [reason, setReason] = useState("");
+  const [err, setErr] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+
+  function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    const k = newKey.trim();
+    const r = reason.trim();
+    if (!k) { setErr("새 API KEY 를 입력하세요"); return; }
+    if (!/^[A-Za-z][A-Za-z0-9._-]{19,}$/.test(k) || k.length > 256) {
+      setErr("API KEY 형식이 올바르지 않습니다 (예: AIza...)");
+      return;
+    }
+    if (r.length < 5) { setErr("회전 사유는 5자 이상 입력하세요"); return; }
+    setErr(null);
+    onSubmit(item, k, r);
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 px-4">
+      <div className="w-full max-w-md rounded-2xl bg-white shadow-card p-6 space-y-4">
+        <div>
+          <div className="text-base font-semibold text-slate-900">키 회전</div>
+          <div className="text-xs text-slate-500 mt-0.5">
+            <span className="font-mono">{item.alias} ({item.keyPrefix}***)</span> — 신규 KEY 로 교체합니다.
+            완료 시 감사 로그(ai_key.rotated)가 자동 기록됩니다.
+          </div>
+        </div>
+
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+          KEY 실 값은 서버(Secrets Manager)에만 저장됩니다. ADMIN 은 회전 명령만 전달합니다.
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <label className="block text-xs text-slate-700">
+            <span className="font-semibold text-slate-900 text-sm">새 API KEY</span>
+            <input
+              ref={inputRef}
+              type="password"
+              value={newKey}
+              onChange={(e) => setNewKey(e.target.value)}
+              placeholder="AIza..."
+              autoComplete="off"
+              spellCheck={false}
+              maxLength={256}
+              className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-mono min-h-[44px]"
+            />
+          </label>
+
+          <label className="block text-xs text-slate-700">
+            <span className="font-semibold text-slate-900 text-sm">
+              회전 사유 <span className="text-rose-600">*</span>
+            </span>
+            <span className="ml-1 text-muted">(5자 이상, audit log 에 기록됨)</span>
+            <textarea
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="예: 분기 정기 교체, 키 노출 의심으로 즉시 교체..."
+              maxLength={500}
+              rows={3}
+              className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm resize-none"
+            />
+            <span className={`text-[11px] ${reason.trim().length < 5 && reason.length > 0 ? "text-rose-500" : "text-slate-400"}`}>
+              {reason.trim().length} / 500
+            </span>
+          </label>
+
+          {err ? (
+            <div className="rounded-lg bg-rose-50 border border-rose-200 px-3 py-2 text-xs text-rose-700">
+              {err}
+            </div>
+          ) : null}
+
+          <div className="flex gap-2 pt-1">
+            <button
+              type="button"
+              onClick={onCancel}
+              className="flex-1 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition"
+            >
+              취소
+            </button>
+            <button
+              type="submit"
+              className="flex-1 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-semibold text-sm px-4 py-2.5 transition"
+            >
+              회전 실행
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }
