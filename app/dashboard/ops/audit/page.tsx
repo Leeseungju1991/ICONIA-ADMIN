@@ -363,18 +363,69 @@ export default function OpsAuditPage() {
                 value={selected.current_hash ?? "—"}
                 mono
               />
-              <div>
-                <div className="text-[11px] text-muted mb-1">metadata</div>
-                <pre className="text-xs bg-slate-50 rounded p-2 whitespace-pre-wrap break-all">
-                  {selected.metadata != null
-                    ? JSON.stringify(selected.metadata, null, 2)
-                    : "—"}
-                </pre>
-              </div>
+              <MetadataDiff metadata={selected.metadata} />
             </div>
           </aside>
         </div>
       ) : null}
+    </div>
+  );
+}
+
+function MetadataDiff({ metadata }: { metadata: unknown }) {
+  if (metadata == null) {
+    return (
+      <div>
+        <div className="text-[11px] text-muted mb-1">metadata</div>
+        <span className="text-xs text-muted">—</span>
+      </div>
+    );
+  }
+
+  const m = metadata as Record<string, unknown>;
+  const hasBefore = "before" in m || "prev" in m;
+  const hasAfter = "after" in m || "next" in m;
+
+  if (hasBefore || hasAfter) {
+    const before = m.before ?? m.prev;
+    const after = m.after ?? m.next;
+    const rest = Object.fromEntries(
+      Object.entries(m).filter(([k]) => !["before", "after", "prev", "next"].includes(k)),
+    );
+    return (
+      <div className="space-y-2">
+        {Object.keys(rest).length > 0 ? (
+          <div>
+            <div className="text-[11px] text-muted mb-1">metadata</div>
+            <pre className="text-xs bg-slate-50 rounded p-2 whitespace-pre-wrap break-all">
+              {JSON.stringify(rest, null, 2)}
+            </pre>
+          </div>
+        ) : null}
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <div className="text-[11px] text-muted mb-1">변경 전 (before)</div>
+            <pre className="text-xs bg-red-50 border border-red-100 rounded p-2 whitespace-pre-wrap break-all">
+              {before != null ? JSON.stringify(before, null, 2) : "—"}
+            </pre>
+          </div>
+          <div>
+            <div className="text-[11px] text-muted mb-1">변경 후 (after)</div>
+            <pre className="text-xs bg-green-50 border border-green-100 rounded p-2 whitespace-pre-wrap break-all">
+              {after != null ? JSON.stringify(after, null, 2) : "—"}
+            </pre>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="text-[11px] text-muted mb-1">metadata</div>
+      <pre className="text-xs bg-slate-50 rounded p-2 whitespace-pre-wrap break-all">
+        {JSON.stringify(metadata, null, 2)}
+      </pre>
     </div>
   );
 }

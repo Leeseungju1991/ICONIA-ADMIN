@@ -198,6 +198,12 @@ export default function OperatorsClient({
 
   return (
     <div className="space-y-6">
+      <div className="rounded-xl border border-amber-200 bg-amber-50/80 px-4 py-3 text-sm text-amber-800">
+        <span className="font-semibold">MFA 정책 권고:</span>{" "}
+        운영 환경에서는{" "}
+        <code className="font-mono bg-amber-100 rounded px-1">OPERATOR_MFA_ENFORCE_ROLES=all</code>{" "}
+        로 전체 역할 TOTP 2FA 를 강제하세요. 2FA 미등록 운영자는 아래 목록에서 확인할 수 있습니다.
+      </div>
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           label="활성 운영자"

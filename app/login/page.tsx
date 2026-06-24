@@ -2,11 +2,6 @@ import { redirect } from "next/navigation";
 import LoginForm from "./LoginForm";
 import { readSession } from "@/lib/authCookie";
 
-// P0 보안 정상화 (2026-05-19):
-//   - 이전 클라이언트 `soomAuth.ts` + localStorage 우회 완전 제거.
-//   - Server Component 로 cookie 를 직접 확인 → 인증된 운영자는 즉시 /dashboard.
-//   - LoginForm (client) 은 server action `loginAction` 만 호출 — Server boundary 가 권위.
-
 export const dynamic = "force-dynamic";
 
 export default function LoginPage({
@@ -29,6 +24,9 @@ export default function LoginPage({
             <span className="block">ICONIA</span>
             <span className="block">관리자 페이지</span>
           </div>
+          <p className="mt-2 text-xs text-slate-500">
+            본 시스템은 만 14세 이상 운영자에게만 제공됩니다.
+          </p>
         </div>
 
         {banner ? (
