@@ -7,18 +7,27 @@
 //     다른 값을 x-forwarded-host 에 채울 때 추가 허용 (예: CloudFront 가 Host 를 origin
 //     으로 forward 하면서 ALB 의 :8082 port 가 붙은 경우). 미설정 시 ADMIN_ALLOWED_ORIGIN
 //     fallback.
+//
+// IMPORTANT (2026-06-24): next.config.mjs 의 allowedOrigins 는 빌드 타임에 실행되어
+//   required-server-files.json 에 bake 된다. 런타임 env(SSM 패치)는 이미 빌드된
+//   standalone 번들에 반영되지 않는다. 따라서 no-domain PoC CF 도메인을 빌드 타임
+//   상수로 포함시켜 재빌드 없이 SSM 패치만으로 완전 작동하지 않는 문제를 방지한다.
+//   도메인 취득 후 ADMIN_ALLOWED_ORIGIN env 를 설정하면 그쪽이 우선 적용된다.
+const ADMIN_CF_DOMAIN_FALLBACK = "dlfp1lyn34gcj.cloudfront.net";
+
 const ADMIN_ALLOWED_ORIGINS = (() => {
   const fromEnv = (process.env.ADMIN_ALLOWED_ORIGIN || "")
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
-  // 항상 dev origin 포함 (개발자 로컬 개발용).
-  return Array.from(new Set(["localhost:3000", ...fromEnv]));
+  // 항상 dev origin + no-domain PoC CF 도메인 포함.
+  // CF 도메인은 빌드 타임 상수로 포함 (runtime env 미설정 시에도 CSRF 통과).
+  return Array.from(new Set(["localhost:3000", ADMIN_CF_DOMAIN_FALLBACK, ...fromEnv]));
 })();
 const ADMIN_ALLOWED_FORWARDED_HOSTS = (() => {
   const raw = process.env.ADMIN_ALLOWED_FORWARDED_HOSTS || process.env.ADMIN_ALLOWED_ORIGIN || "";
   const fromEnv = raw.split(",").map((s) => s.trim()).filter(Boolean);
-  return Array.from(new Set(["localhost:3000", ...fromEnv]));
+  return Array.from(new Set(["localhost:3000", ADMIN_CF_DOMAIN_FALLBACK, ...fromEnv]));
 })();
 
 // Content Security Policy — admin 전용 (단일 운영자 콘솔, Secure JWT cookie).
