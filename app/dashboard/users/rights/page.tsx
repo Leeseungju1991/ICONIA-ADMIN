@@ -5,6 +5,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { PanelCard } from "../../_components/PanelCard";
+import { AdminToast, useAdminToast } from "../../_components/AdminToast";
 import {
   listRightsRequestsAction,
   transitionRightsAction,
@@ -44,7 +45,7 @@ export default function RightsQueuePage() {
   const [pipaAugmented, setPipaAugmented] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [loading, startLoad] = useTransition();
-  const [toast, setToast] = useState<string | null>(null);
+  const { toast, setToast } = useAdminToast();
 
   function reload() {
     startLoad(async () => {
@@ -72,7 +73,7 @@ export default function RightsQueuePage() {
 
   async function handleTransition(row: RightsRequestRow, next: RightsRequestStatus) {
     if (row.id.startsWith("demo-") || row.id.startsWith("pipa-")) {
-      setToast("placeholder 항목은 Server 도입 후 처리 가능합니다.");
+      setToast({ message: "placeholder 항목은 Server 도입 후 처리 가능합니다.", tone: "warning" });
       return;
     }
     const reason =
@@ -88,10 +89,10 @@ export default function RightsQueuePage() {
       reason: reason.trim(),
     });
     if (!r.ok) {
-      setToast(`전이 실패: ${r.message}`);
+      setToast({ message: `전이 실패: ${r.message}`, tone: "error" });
       return;
     }
-    setToast("전이 완료");
+    setToast({ message: "전이 완료", tone: "success" });
     reload();
   }
 
@@ -243,18 +244,7 @@ export default function RightsQueuePage() {
         )}
       </PanelCard>
 
-      {toast ? (
-        <div className="fixed bottom-6 right-6 z-50 rounded-2xl bg-slate-900/85 text-white text-sm px-4 py-3 shadow-card">
-          {toast}
-          <button
-            className="ml-3 underline opacity-80"
-            onClick={() => setToast(null)}
-            type="button"
-          >
-            닫기
-          </button>
-        </div>
-      ) : null}
+      <AdminToast toast={toast} onDismiss={() => setToast(null)} />
     </div>
   );
 }

@@ -4,11 +4,12 @@ import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { PanelCard } from "../_components/PanelCard";
+import { AdminToast, useAdminToast } from "../_components/AdminToast";
 import { DataTable, type Column } from "../_components/DataTable";
 import { StatCard } from "../_components/StatCard";
 import { AutoRefreshToggle } from "../_components/AutoRefreshToggle";
 import { useAutoRefresh } from "@/lib/hooks/useAutoRefresh";
-import { formatDate, type UserRow } from "@/lib/mockData";
+import { formatDate, formatRelativeDate, type UserRow } from "@/lib/mockData";
 import { maskEmail } from "@/lib/maskPii";
 import { recordOperatorAuditAction } from "@/lib/actions/auditLog";
 import {
@@ -22,14 +23,11 @@ import {
 } from "@/lib/actions/userMutations";
 import {
   finalizePipaDeletionAction,
-  listPipaUsersAction,
-  triggerPipaExportAction,
-  type PipaActionResult,
 } from "@/lib/actions/pipa";
 import { listUsersAction } from "@/lib/actions/usersList";
 import { getUserDetailAction } from "@/lib/actions/userDetail";
 import { createAdminUserAction } from "@/lib/actions/adminUserCreate";
-import type { PipaUserRow, UserRow as ServerUserRow, UserDetail } from "@/lib/adminApi";
+import type { UserRow as ServerUserRow, UserDetail } from "@/lib/adminApi";
 import { soulLabel } from "@/lib/soulCatalog";
 import { exportCsv, isoDateStamp } from "@/lib/exportData";
 
@@ -196,6 +194,8 @@ function adaptServerUser(s: ServerUserRow): UserRow {
     account_status: (s.account_status ?? "active") as UserRow["account_status"],
     created_at: s.created_at ?? new Date().toISOString(),
     last_login_at: s.last_login_at ?? s.created_at ?? new Date().toISOString(),
+    // 2026-06-25 — 최근 활동 시각 (requireUser 미들웨어 throttle 1분). NULL = 미접속.
+    last_seen_at: s.last_seen_at ?? null,
     totp_enabled: Boolean(s.totp_enabled),
     doll_count: dollCount,
     linked_dolls: linked,
@@ -212,13 +212,13 @@ export function UsersClient({ csMode = false }: { csMode?: boolean }) {
   const [searchInput, setSearchInput] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | UserRow["account_status"]>("all");
   const [selected, setSelected] = useState<UserRow | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
+  const { toast, setToast } = useAdminToast();
 
   // 사용자 추가 페이지에서 돌아온 경우 — flash 토스트.
   useEffect(() => {
     const created = searchParams?.get("created");
     if (created) {
-      setToast(`사용자 추가 완료 (ID: ${created.slice(0, 8)}…). 감사 로그에 기록되었습니다.`);
+      setToast({ message: `사용자 추가 완료 (ID: ${created.slice(0, 8)}…). 감사 로그에 기록되었습니다.`, tone: "success" });
     }
   }, [searchParams]);
 
@@ -281,7 +281,7 @@ export function UsersClient({ csMode = false }: { csMode?: boolean }) {
       reasonText: "drawer_open_auto",
     });
     if (res.status === "error") {
-      setToast("PII 접근 감사 로그 기록 실패 — 운영자 확인 필요.");
+      setToast({ message: "PII 접근 감사 로그 기록 실패 — 운영자 확인 필요.", tone: "error" });
     }
   }
 
@@ -347,8 +347,22 @@ export function UsersClient({ csMode = false }: { csMode?: boolean }) {
     },
     {
       key: "display_name",
-      header: "표시 이름",
+      // 2026-06-25 (ITEM 5) — 헤더명 변경: "표시 이름" → "인형 이름".
+      //   셀 값: 대표 인형의 SOUL 24종 카탈로그 한국어명 (soul_name > soulLabel(soul_catalog_id) > 폴백).
+      header: "인형 이름",
       render: (r) => <LinkedDollListCell row={r} pick={resolveDollDisplayName} />,
+    },
+    {
+      // 2026-06-25 (ITEM 5) — 신규 "사용자" 컬럼. UUID 앞에 배치.
+      //   피드 글 작성자 표시이름과 동일한 필드: User.display_name (가입 시 자동 부여 영문5+숫자2).
+      //   feed author 정본은 resolveUserDisplayName(user) = user.display_name 이 1순위.
+      key: "user_display_name",
+      header: "사용자",
+      render: (r) => (
+        <span className="text-sm text-slate-700 font-mono">
+          {r.display_name || <span className="text-muted text-xs">—</span>}
+        </span>
+      ),
     },
     {
       key: "uuid",
@@ -379,9 +393,17 @@ export function UsersClient({ csMode = false }: { csMode?: boolean }) {
     {
       key: "last_login_at",
       header: "최근접속일",
-      render: (r) => (
-        <span className="text-xs text-muted">{formatDate(r.last_login_at)}</span>
-      ),
+      // 2026-06-25 (ITEM 6) — last_seen_at(인증 요청 활동) 우선, 없으면 last_login_at 폴백.
+      //   상대 시간 표시: "방금 전" / "N분 전" / "N시간 전" / "어제" / "N일 전" / 절대날짜.
+      render: (r) => {
+        const ts = r.last_seen_at ?? null;
+        if (!ts) return <span className="text-xs text-muted">—</span>;
+        return (
+          <span className="text-xs text-muted" title={formatDate(ts)}>
+            {formatRelativeDate(ts)}
+          </span>
+        );
+      },
     },
     {
       key: "created_at",
@@ -419,22 +441,22 @@ export function UsersClient({ csMode = false }: { csMode?: boolean }) {
                 // 2026-06-01 — 사용자 요청: 상세 버튼 제거 + 삭제만 남김.
                 // 삭제 확인 단계는 EXECUTE 문구 + 사유 5자 이상으로 사고 방지 (audit 기록).
                 if (!twoStepConfirm(`사용자 "${r.email}" 삭제`)) {
-                  setToast("삭제 취소 — 확인 문구 불일치.");
+                  setToast({ message: "삭제 취소 — 확인 문구 불일치.", tone: "warning" });
                   return;
                 }
                 const reason = window.prompt(
                   "삭제 사유를 입력하세요 (감사 로그 기록, 5자 이상).",
                 );
                 if (!reason || reason.trim().length < 5) {
-                  setToast("사유가 5자 이상 필요합니다. 삭제를 취소했습니다.");
+                  setToast({ message: "사유가 5자 이상 필요합니다. 삭제를 취소했습니다.", tone: "warning" });
                   return;
                 }
                 const res = await deleteUserAction({ userId: r.id, reason: reason.trim() });
                 if (!res.ok) {
-                  setToast(`삭제 실패: ${res.message}`);
+                  setToast({ message: `삭제 실패: ${res.message}`, tone: "error" });
                   return;
                 }
-                setToast(res.note ?? "사용자가 삭제되었습니다. (감사 로그 기록됨)");
+                setToast({ message: res.note ?? "사용자가 삭제되었습니다. (감사 로그 기록됨)", tone: "success" });
                 void reloadUsers();
               }}
             >
@@ -489,8 +511,6 @@ export function UsersClient({ csMode = false }: { csMode?: boolean }) {
       </section>
 
       <LiveUsersPanel />
-
-      <LivePipaPanel />
 
       {pipaTrackList.length > 0 ? (
         <PanelCard
@@ -630,17 +650,7 @@ export function UsersClient({ csMode = false }: { csMode?: boolean }) {
         )}
       </PanelCard>
 
-      {toast ? (
-        <div
-          className="fixed bottom-6 right-6 z-50 rounded-2xl bg-slate-900/85 text-white text-sm px-4 py-3 shadow-card"
-          onAnimationEnd={() => setToast(null)}
-        >
-          {toast}
-          <button className="ml-3 underline opacity-80" onClick={() => setToast(null)} type="button">
-            닫기
-          </button>
-        </div>
-      ) : null}
+      <AdminToast toast={toast} onDismiss={() => setToast(null)} />
 
       {selected ? (
         <UserDetailDrawer
@@ -1441,7 +1451,7 @@ function LiveUsersPanel() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [autoOn, setAutoOn] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
+  const { toast: liveToast, setToast: setLiveToast } = useAdminToast();
   // 새로 들어온 사용자 ID 추적 — highlight 표시용. row mount 시 1초 후 클리어.
   const [newIds, setNewIds] = useState<Set<string>>(new Set());
   const knownIdsRef = useRef<Set<string>>(new Set());
@@ -1495,11 +1505,11 @@ function LiveUsersPanel() {
     enabled: autoOn,
     maxFailures: 3,
     onResult: ({ ok }) => {
-      if (!ok) setToast("일시 연결 끊김 — 다음 갱신에서 재시도");
+      if (!ok) setLiveToast({ message: "일시 연결 끊김 — 다음 갱신에서 재시도", tone: "warning" });
     },
     onMaxFailures: () => {
       setAutoOn(false);
-      setToast("자동 갱신 중지 — 3회 연속 실패로 폴링을 중단했습니다.");
+      setLiveToast({ message: "자동 갱신 중지 — 3회 연속 실패로 폴링을 중단했습니다.", tone: "error" });
     },
   });
 
@@ -1556,148 +1566,8 @@ function LiveUsersPanel() {
           ))}
         </ul>
       )}
-      {toast ? (
-        <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700 flex items-start gap-3">
-          <span className="flex-1">{toast}</span>
-          <button
-            type="button"
-            className="underline text-amber-800"
-            onClick={() => setToast(null)}
-          >
-            닫기
-          </button>
-        </div>
-      ) : null}
+      <AdminToast toast={liveToast} onDismiss={() => setLiveToast(null)} />
     </PanelCard>
   );
 }
 
-// V2.0 #15 — Server `/api/v1/admin/users/pipa` (Phase2-A) 실 연동 패널.
-// 기존 users 기반 pipaTrackList 와 병존 — Server 도달 시 실 데이터 표시.
-function LivePipaPanel() {
-  const [pendingItems, setPendingItems] = useState<PipaUserRow[] | null>(null);
-  const [exportItems, setExportItems] = useState<PipaUserRow[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [exportToast, setExportToast] = useState<string | null>(null);
-
-  async function reload() {
-    setLoading(true);
-    setError(null);
-    const [r1, r2] = await Promise.all([
-      listPipaUsersAction({ status: "pending_deletion" }),
-      listPipaUsersAction({ status: "recent_export" }),
-    ]);
-    if (!r1.ok || !r2.ok) {
-      const msg = !r1.ok ? r1.message : !r2.ok ? r2.message : "unknown";
-      setError(msg);
-      setPendingItems(null);
-      setExportItems(null);
-    } else {
-      setPendingItems(r1.data.items);
-      setExportItems(r2.data.items);
-    }
-    setLoading(false);
-  }
-
-  useEffect(() => {
-    reload();
-  }, []);
-
-  async function runExport(userId: string) {
-    const reason = window.prompt(
-      "PIPA export 트리거 사유를 입력하세요 (감사 로그에 기록, 5자 이상).",
-    );
-    if (!reason || reason.trim().length < 5) {
-      setExportToast("사유가 5자 이상 필요합니다. 취소되었습니다.");
-      return;
-    }
-    const r: PipaActionResult<{ id: string; status: string }> = await triggerPipaExportAction({
-      userId,
-      reason: reason.trim(),
-    });
-    if (!r.ok) {
-      setExportToast(`실패 (${r.code ?? "ERR"}): ${r.message}`);
-      return;
-    }
-    setExportToast(`export job ${r.data.id} 생성됨 (status=${r.data.status})`);
-    reload();
-  }
-
-  return (
-    <PanelCard
-      title="PIPA 실시간 추적 (Server)"
-      description="탈퇴 대기·최근 데이터 내보내기 요청을 표시합니다. 최고관리자 전용."
-    >
-      {loading ? (
-        <div className="text-sm text-muted">불러오는 중</div>
-      ) : error ? (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-          Server 도달 실패: {error}
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <div>
-            <div className="text-xs text-muted mb-2">
-              탈퇴 대기 (pending_deletion) — {pendingItems?.length ?? 0}건
-            </div>
-            {pendingItems && pendingItems.length > 0 ? (
-              <ul className="space-y-1">
-                {pendingItems.slice(0, 10).map((u) => (
-                  <li
-                    key={u.user_id}
-                    className="rounded-xl border border-white/60 bg-white/55 px-3 py-2 text-xs"
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="font-mono">{u.user_id}</span>
-                      <button
-                        type="button"
-                        onClick={() => runExport(u.user_id)}
-                        className="rounded-lg bg-accent px-2 py-0.5 text-white text-[11px]"
-                      >
-                        export 강제
-                      </button>
-                    </div>
-                    <div className="text-muted mt-1">
-                      pending {u.pending_deletion_at ?? "—"} · purge{" "}
-                      {u.scheduled_purge_at ?? "—"}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <div className="text-xs text-muted">대기 사용자 없음.</div>
-            )}
-          </div>
-          <div>
-            <div className="text-xs text-muted mb-2">
-              최근 export (recent_export) — {exportItems?.length ?? 0}건
-            </div>
-            {exportItems && exportItems.length > 0 ? (
-              <ul className="space-y-1">
-                {exportItems.slice(0, 10).map((u) => (
-                  <li
-                    key={u.user_id}
-                    className="rounded-xl border border-white/60 bg-white/55 px-3 py-2 text-xs"
-                  >
-                    <div className="font-mono">{u.user_id}</div>
-                    <div className="text-muted mt-1">
-                      export {u.recent_export_at ?? "—"}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <div className="text-xs text-muted">최근 export 없음.</div>
-            )}
-          </div>
-        </div>
-      )}
-      {exportToast ? (
-        <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
-          {exportToast}
-        </div>
-      ) : null}
-    </PanelCard>
-  );
-}
