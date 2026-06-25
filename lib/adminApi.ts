@@ -472,9 +472,9 @@ export function getAiHealth(args: {
 }): Promise<ServerResult<AiHealthSnapshot>> {
   return authedRequest<AiHealthSnapshot>({
     jwt: args.jwt,
-    // B19 — Server 정본은 `/api/admin/ai/health` (v0 prefix).
-    // 기존 `/api/v1/admin/ai-health` 는 미배포 → 404 가능.
-    path: `/api/admin/ai/health`,
+    // Server 정본 (adminStubRoutes.js:399): `/api/v1/admin/ai-health`.
+    // 이전 B19 주석의 `/api/admin/ai/health` (v0 prefix) 는 미등록 경로 — 404 반환.
+    path: `/api/v1/admin/ai-health`,
     method: "GET",
   });
 }
@@ -3751,4 +3751,106 @@ const ADMIN_ERROR_MESSAGES_KO: Record<string, string> = {
 export function adminErrorMessageKo(code: string | undefined): string {
   if (!code) return "알 수 없는 오류가 발생했습니다.";
   return ADMIN_ERROR_MESSAGES_KO[code] ?? code;
+}
+
+// ---------------------------------------------------------------------------
+// 2026-06-25 — [PDF #11] IP 허용목록 (operator IP allowlist)
+//   Server: GET    /api/v1/admin/security/ip-allowlist
+//           POST   /api/v1/admin/security/ip-allowlist
+//           DELETE /api/v1/admin/security/ip-allowlist/:id
+//   superadmin 전용. CIDR 또는 단일 IP 형식 허용.
+// ---------------------------------------------------------------------------
+
+export type IpAllowlistEntry = {
+  id: string;
+  cidr: string;
+  label: string;
+  added_by: string;
+  added_at: string;
+  last_seen_at: string | null;
+};
+
+export function listIpAllowlist(args: {
+  jwt: string;
+}): Promise<ServerResult<{ items: IpAllowlistEntry[] }>> {
+  return authedRequest({
+    jwt: args.jwt,
+    path: "/api/v1/admin/security/ip-allowlist",
+    method: "GET",
+  });
+}
+
+export function addIpAllowlist(args: {
+  jwt: string;
+  cidr: string;
+  label?: string;
+}): Promise<ServerResult<{ entry: IpAllowlistEntry }>> {
+  return authedRequest({
+    jwt: args.jwt,
+    path: "/api/v1/admin/security/ip-allowlist",
+    method: "POST",
+    body: { cidr: args.cidr, label: args.label ?? "" },
+  });
+}
+
+export function deleteIpAllowlist(args: {
+  jwt: string;
+  id: string;
+}): Promise<ServerResult<{ deleted: true }>> {
+  return authedRequest({
+    jwt: args.jwt,
+    path: `/api/v1/admin/security/ip-allowlist/${encodeURIComponent(args.id)}`,
+    method: "DELETE",
+  });
+}
+
+// ---------------------------------------------------------------------------
+// 2026-06-25 — [PDF #12] Operator TOTP 2FA audit 전용 server action helper.
+//   enrollOperatorTotp / verifyOperatorTotpEnroll 은 기존 adminApi.ts 에 있음.
+//   audit_log 기록을 위한 헬퍼 타입만 추가.
+// ---------------------------------------------------------------------------
+
+export type TotpAuditAction = "totp.enrolled" | "totp.verified" | "totp.backup_used";
+
+// ---------------------------------------------------------------------------
+// 2026-06-25 — [PDF #13] ops 인프라 CloudWatch 메트릭 프록시
+//   Server: GET /api/v1/admin/ops/metrics?namespace=&metric=&period=&stat=&from=&to=
+//   SERVER agent 가 CloudWatch GetMetricStatistics 를 호출하고 datapoints 를 반환.
+// ---------------------------------------------------------------------------
+
+export type OpsMetricDatapoint = {
+  timestamp: string;
+  value: number;
+  unit: string;
+};
+
+export type OpsMetricResult = {
+  namespace: string;
+  metric_name: string;
+  period: number;
+  stat: string;
+  datapoints: OpsMetricDatapoint[];
+};
+
+export function fetchOpsMetrics(args: {
+  jwt: string;
+  namespace: string;
+  metric: string;
+  period?: number;
+  stat?: string;
+  from?: string;
+  to?: string;
+}): Promise<ServerResult<OpsMetricResult>> {
+  const params = new URLSearchParams();
+  params.set("namespace", args.namespace);
+  params.set("metric", args.metric);
+  if (args.period) params.set("period", String(args.period));
+  if (args.stat) params.set("stat", args.stat);
+  if (args.from) params.set("from", args.from);
+  if (args.to) params.set("to", args.to);
+  return authedRequest({
+    jwt: args.jwt,
+    path: `/api/v1/admin/ops/metrics?${params.toString()}`,
+    method: "GET",
+  });
 }
