@@ -18,7 +18,7 @@ export async function stagePersonaAction(args: {
   soulCatalogId: string;
   reason: string;
 }): Promise<PersonaActionResult> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   const v = validateReason(args.reason);
   if (v) return { ok: false, message: v };
@@ -31,7 +31,7 @@ export async function promotePersonaAction(args: {
   soulCatalogId: string;
   reason: string;
 }): Promise<PersonaActionResult> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   const v = validateReason(args.reason);
   if (v) return { ok: false, message: v };
@@ -45,7 +45,7 @@ export async function rollbackPersonaAction(args: {
   reason: string;
   target_version?: string;
 }): Promise<PersonaActionResult> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   const v = validateReason(args.reason);
   if (v) return { ok: false, message: v };

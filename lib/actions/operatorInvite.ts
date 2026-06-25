@@ -13,7 +13,7 @@ export type InviteOperatorResult =
 export async function inviteOperatorAction(
   formData: FormData,
 ): Promise<InviteOperatorResult> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   const email = String(formData.get("email") || "").trim();
   const role = String(formData.get("role") || "viewer");

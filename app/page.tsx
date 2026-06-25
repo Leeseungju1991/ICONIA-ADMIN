@@ -7,8 +7,8 @@ import { readSession } from "@/lib/authCookie";
 
 export const dynamic = "force-dynamic";
 
-export default function Home() {
-  if (readSession()) {
+export default async function Home() {
+  if (await readSession()) {
     redirect("/dashboard");
   }
   redirect("/login");

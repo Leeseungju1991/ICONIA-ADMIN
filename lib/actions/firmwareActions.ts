@@ -20,7 +20,7 @@ export async function uploadFirmwareAction(args: {
   size_bytes: number;
   notes?: string;
 }): Promise<UploadResult> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   if (!args.version || !args.channel || !args.sha256 || !args.size_bytes) {
     return { ok: false, message: "version/channel/sha256/size_bytes 모두 필수." };
@@ -38,7 +38,7 @@ export async function advanceDeploymentAction(args: {
   deploymentId: string;
   reason?: string;
 }): Promise<DeploymentActionResult> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   const res = await advanceDeployment({ jwt, deploymentId: args.deploymentId, reason: args.reason });
   if (!res.ok) return { ok: false, message: res.message, code: res.code };
@@ -49,7 +49,7 @@ export async function abortDeploymentAction(args: {
   deploymentId: string;
   reason: string;
 }): Promise<DeploymentActionResult> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   if (!args.reason || args.reason.trim().length < 5) {
     return { ok: false, message: "abort 사유는 5자 이상 필수." };

@@ -19,7 +19,7 @@ export type StubListResult =
 async function callStub(
   fn: (args: { jwt: string }) => Promise<{ ok: boolean } & Record<string, unknown>>,
 ): Promise<StubListResult> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   const res = (await fn({ jwt })) as
     | { ok: true; data: StubListResponse }

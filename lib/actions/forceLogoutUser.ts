@@ -18,7 +18,7 @@ const schema = z.object({
 export async function forceLogoutUserAction(
   formData: FormData,
 ): Promise<FormState> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) {
     redirect("/login?reason=expired");
   }
@@ -50,7 +50,7 @@ export async function forceLogoutUserAction(
     result.code === "ERR_OPERATOR_AUTH_EXPIRED" ||
     result.code === "ERR_OPERATOR_AUTH_INVALID"
   ) {
-    clearSession();
+    await clearSession();
     redirect(
       `/login?reason=${result.code === "ERR_OPERATOR_AUTH_EXPIRED" ? "expired" : "invalid"}`,
     );

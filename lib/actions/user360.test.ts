@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 // next/headers 모킹 — server action 환경 simulation
 vi.mock("next/headers", () => ({
-  cookies: () => ({ get: (k: string) => (k === "iconia_admin_jwt" ? { value: "test-jwt" } : undefined) }),
+  cookies: async () => ({ get: (k: string) => (k === "iconia_admin_jwt" ? { value: "test-jwt" } : undefined) }),
 }));
 
 import { fetchUser360Action } from "./user360";

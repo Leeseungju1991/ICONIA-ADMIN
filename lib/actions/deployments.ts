@@ -15,7 +15,7 @@ export async function listDeploymentsAction(args?: {
   limit?: number;
   since?: string;
 }): Promise<ListDeploymentsResult> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   const res = await listDeployments({
     jwt,

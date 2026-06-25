@@ -19,7 +19,7 @@ export async function listLostReportsAction(args?: {
   status?: LostReportStatus;
   limit?: number;
 }): Promise<LostReportActionResult<{ items: LostReportRow[]; next_cursor: string | null }>> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   const res = await listLostReports({ jwt, status: args?.status, limit: args?.limit });
   if (!res.ok) return { ok: false, message: res.message, code: res.code };
@@ -29,7 +29,7 @@ export async function listLostReportsAction(args?: {
 export async function updateLostReportStatusAction(formData: FormData): Promise<
   LostReportActionResult<{ report: LostReportRow }>
 > {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   const id = String(formData.get("id") || "").trim();
   const status = String(formData.get("status") || "").trim() as LostReportStatus;

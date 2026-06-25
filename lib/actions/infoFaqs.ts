@@ -17,7 +17,7 @@ export type FaqsListResult =
   | { ok: false; message: string; code?: string };
 
 export async function listFaqsAction(): Promise<FaqsListResult> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   const res = await listInfoFaqs({ jwt });
   if (!res.ok) return { ok: false, message: res.message, code: res.code };
@@ -39,7 +39,7 @@ export async function createFaqAction(args: {
   is_published?: boolean;
   locale?: string;
 }): Promise<FaqMutationResult> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   const question = (args.question ?? "").trim();
   const answer = (args.answer ?? "").trim();
@@ -69,7 +69,7 @@ export async function updateFaqAction(args: {
     >
   >;
 }): Promise<FaqMutationResult> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   if (!args.id) return { ok: false, message: "id 누락" };
   const res = await updateInfoFaq({ jwt, id: args.id, patch: args.patch });
@@ -80,7 +80,7 @@ export async function updateFaqAction(args: {
 export async function deleteFaqAction(args: {
   id: string;
 }): Promise<{ ok: boolean; message?: string; code?: string }> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   if (!args.id) return { ok: false, message: "id 누락" };
   const res = await deleteInfoFaq({ jwt, id: args.id });

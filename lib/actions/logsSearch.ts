@@ -38,7 +38,7 @@ export type LogSearchActionResult =
 export async function searchLogsAction(
   input: LogSearchInput,
 ): Promise<LogSearchActionResult> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   const res = await searchLogs({ jwt, ...input });
   if (!res.ok) return { ok: false, message: res.message, code: res.code };

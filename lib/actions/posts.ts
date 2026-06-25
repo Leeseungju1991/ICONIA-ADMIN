@@ -11,7 +11,7 @@ export type ListReportedPostsResult =
 // /dashboard/reports client component 가 호출. authCookie (next/headers) 를
 // 직접 import 하면 client bundle 에 들어가 빌드 실패하므로 server action 으로 우회.
 export async function listReportedPostsAction(): Promise<ListReportedPostsResult> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   const res = await listPosts({ jwt, filter: "reported", limit: 200 });
   if (!res.ok) return { ok: false, message: `${res.code}: ${res.message}` };
@@ -19,7 +19,7 @@ export async function listReportedPostsAction(): Promise<ListReportedPostsResult
 }
 
 export async function hidePostAction(formData: FormData) {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   const postId = String(formData.get("post_id") || "");
   const reason = String(formData.get("reason") || "");
@@ -32,7 +32,7 @@ export async function hidePostAction(formData: FormData) {
 }
 
 export async function unhidePostAction(formData: FormData) {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   const postId = String(formData.get("post_id") || "");
   if (!postId) return { ok: false, message: "post_id 누락" };

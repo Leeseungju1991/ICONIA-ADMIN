@@ -18,7 +18,7 @@ export type AiHealthResult =
  * 호출자(client)가 mock 으로 graceful degrade 할 수 있도록 ok:false 를 반환한다.
  */
 export async function getAiHealthAction(): Promise<AiHealthResult> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션이 만료되었습니다. 다시 로그인하세요." };
   const res = await getAiHealth({ jwt });
   if (!res.ok) {

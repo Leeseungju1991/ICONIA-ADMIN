@@ -20,7 +20,7 @@ export async function listOrdersAction(args?: {
   status?: string;
   limit?: number;
 }): Promise<OrdersListResult> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   const res = await listCommerceOrders({
     jwt,
@@ -38,7 +38,7 @@ export type OrderDetailResult =
 export async function getOrderDetailAction(args: {
   id: string;
 }): Promise<OrderDetailResult> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   if (!args.id) return { ok: false, message: "id 누락" };
   const res = await getCommerceOrderDetail({ jwt, id: args.id });

@@ -60,7 +60,7 @@ function validateInput(input: CreateAdminUserInputClient): string | null {
 export async function createAdminUserAction(
   input: CreateAdminUserInputClient,
 ): Promise<CreateAdminUserResult> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) {
     return { ok: false, message: "세션이 만료되었습니다. 다시 로그인하세요.", code: "ERR_UNAUTHORIZED" };
   }

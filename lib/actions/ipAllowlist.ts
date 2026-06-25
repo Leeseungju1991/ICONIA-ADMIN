@@ -46,7 +46,7 @@ function validateCidr(raw: string): string | null {
 export async function listIpAllowlistAction(): Promise<
   IpAllowlistActionResult<{ items: IpAllowlistEntry[] }>
 > {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   const res = await listIpAllowlist({ jwt });
   if (!res.ok) return { ok: false, code: res.code, message: res.message };
@@ -57,7 +57,7 @@ export async function addIpAllowlistAction(args: {
   cidr: string;
   label?: string;
 }): Promise<IpAllowlistActionResult<{ entry: IpAllowlistEntry }>> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
 
   const err = validateCidr(args.cidr);
@@ -78,7 +78,7 @@ export async function addIpAllowlistAction(args: {
 export async function deleteIpAllowlistAction(args: {
   id: string;
 }): Promise<IpAllowlistActionResult<{ deleted: true }>> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   if (!args.id.trim()) return { ok: false, message: "id 누락" };
 

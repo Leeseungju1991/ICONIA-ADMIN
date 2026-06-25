@@ -21,7 +21,7 @@ export type DeviceOwnershipResult =
 export async function fetchDeviceOwnershipHistoryAction(args: {
   deviceId: string;
 }): Promise<DeviceOwnershipResult> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   const res = await fetchDeviceOwnershipHistory({ jwt, deviceId: args.deviceId });
   if (!res.ok) return { ok: false, message: res.message, code: res.code };

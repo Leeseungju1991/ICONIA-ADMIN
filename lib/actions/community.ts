@@ -14,8 +14,8 @@ import type { ServerResult } from "../types";
 
 const COOKIE = "iconia_admin_jwt";
 
-function jwt(): string | null {
-  return cookies().get(COOKIE)?.value ?? null;
+async function jwt(): Promise<string | null> {
+  return (await cookies()).get(COOKIE)?.value ?? null;
 }
 
 export type FeedListResult =
@@ -31,7 +31,7 @@ export async function listFeedAction(
   tab: "latest" | "popular" | "reported",
   cursor?: string,
 ): Promise<FeedListResult> {
-  const token = jwt();
+  const token = await jwt();
   if (!token) return { ok: false, code: "ERR_UNAUTHENTICATED", message: "no_jwt" };
   const r = await fetchCommunityFeed(token, tab, cursor);
   if (r.ok) {
@@ -50,7 +50,7 @@ export type PostDetailResult =
   | { ok: false; code: string; message: string };
 
 export async function getPostDetailAction(postId: string): Promise<PostDetailResult> {
-  const token = jwt();
+  const token = await jwt();
   if (!token) return { ok: false, code: "ERR_UNAUTHENTICATED", message: "no_jwt" };
   const r = await fetchCommunityPost(token, postId);
   if (r.ok) return { ok: true, source: "server", post: r.data };
@@ -62,7 +62,7 @@ export type CommunityHealthResult =
   | { ok: false; code: string; message: string };
 
 export async function getCommunityHealthAction(): Promise<CommunityHealthResult> {
-  const token = jwt();
+  const token = await jwt();
   if (!token) return { ok: false, code: "ERR_UNAUTHENTICATED", message: "no_jwt" };
   const r = await fetchCommunityHealth(token);
   if (r.ok) return { ok: true, source: "server", health: r.data };
@@ -73,7 +73,7 @@ export async function hidePostAction(
   postId: string,
   reason: string,
 ): Promise<ServerResult<{ status: string }> | { ok: false; code: string; message: string }> {
-  const token = jwt();
+  const token = await jwt();
   if (!token) return { ok: false, code: "ERR_UNAUTHENTICATED", message: "no_jwt" };
   if (reason.trim().length < 5) {
     return { ok: false, code: "ERR_REASON_TOO_SHORT", message: "reason_too_short" };
@@ -84,7 +84,7 @@ export async function hidePostAction(
 export async function unhidePostAction(
   postId: string,
 ): Promise<ServerResult<{ status: string }> | { ok: false; code: string; message: string }> {
-  const token = jwt();
+  const token = await jwt();
   if (!token) return { ok: false, code: "ERR_UNAUTHENTICATED", message: "no_jwt" };
   return unhideCommunityPost(token, postId);
 }
@@ -93,7 +93,7 @@ export async function takedownPostAction(
   postId: string,
   reason: string,
 ): Promise<ServerResult<{ status: string }> | { ok: false; code: string; message: string }> {
-  const token = jwt();
+  const token = await jwt();
   if (!token) return { ok: false, code: "ERR_UNAUTHENTICATED", message: "no_jwt" };
   if (reason.trim().length < 5) {
     return { ok: false, code: "ERR_REASON_TOO_SHORT", message: "reason_too_short" };

@@ -15,7 +15,7 @@ export type ListFirmwareResult =
   | { ok: false; message: string; code?: string };
 
 export async function listFirmwareCatalogAction(): Promise<ListFirmwareResult> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   const res = await listFirmware({ jwt });
   if (!res.ok) return { ok: false, message: res.message, code: res.code };

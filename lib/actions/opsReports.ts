@@ -21,7 +21,7 @@ export async function listOpsReportsAction(args?: {
   since?: string;
   limit?: number;
 }): Promise<ListOpsReportsResult> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   const res = await listOpsReports({ jwt, ...args });
   if (!res.ok) return { ok: false, message: res.message, code: res.code };
@@ -33,7 +33,7 @@ export type RunOpsReportResult =
   | { ok: false; message: string; code?: string };
 
 export async function runOpsReportAction(formData: FormData): Promise<RunOpsReportResult> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   const kind = String(formData.get("kind") || "daily") as OpsReportKind;
   if (!["daily", "weekly", "quality"].includes(kind)) {

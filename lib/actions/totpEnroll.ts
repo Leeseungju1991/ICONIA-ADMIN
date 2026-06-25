@@ -11,7 +11,7 @@ export type EnrollTotpResult =
   | { ok: false; message: string; code?: string };
 
 export async function enrollTotpAction(): Promise<EnrollTotpResult> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   const res = await enrollOperatorTotp({ jwt });
   if (!res.ok) return { ok: false, message: res.message, code: res.code };
@@ -29,7 +29,7 @@ export type VerifyTotpResult =
 export async function verifyTotpEnrollAction(args: {
   code: string;
 }): Promise<VerifyTotpResult> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   if (!args.code || args.code.trim().length < 6) {
     return { ok: false, message: "6자리 인증 코드를 입력하세요." };

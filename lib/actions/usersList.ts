@@ -15,7 +15,7 @@ export async function listUsersAction(args?: {
   email?: string;
   limit?: number;
 }): Promise<ListUsersResult> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   // 빈 검색어 (전체 list) 도 Server 가 처리하도록 — 운영자가 dashboard 진입 시 첫 로딩.
   const res = await searchUsers({ jwt, email: args?.email ?? "", limit: args?.limit ?? 50 });

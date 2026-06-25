@@ -29,7 +29,7 @@ export type AuditListResult =
 export async function listAuditLogAction(
   input: AuditListInput,
 ): Promise<AuditListResult> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   const res = await listAuditLog({ jwt, ...input });
   if (!res.ok) return { ok: false, message: res.message, code: res.code };

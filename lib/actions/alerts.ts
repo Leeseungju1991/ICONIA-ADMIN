@@ -20,7 +20,7 @@ export async function listIncidentAlertsAction(args?: {
   status?: "open" | "closed";
   limit?: number;
 }): Promise<ListAlertsResult> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   const res = await listIncidentAlerts({ jwt, ...args });
   if (!res.ok) return { ok: false, message: res.message, code: res.code };
@@ -35,7 +35,7 @@ export async function ackIncidentAlertAction(args: {
   id: string;
   note: string;
 }): Promise<AckAlertResult> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   if (!args.note || args.note.trim().length < 5) {
     return { ok: false, message: "ack note 는 5자 이상." };

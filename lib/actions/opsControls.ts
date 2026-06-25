@@ -31,7 +31,7 @@ export async function closeCircuitAction(input: {
 }): Promise<OpsControlResult> {
   const reason = requireReason(input.reason);
   if (!reason) return { ok: false, message: "사유는 5자 이상." };
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   if (!input.name) return { ok: false, message: "circuit breaker 이름이 필요합니다." };
   const res = await closeCircuitBreaker({ jwt, name: input.name, reason });
@@ -45,7 +45,7 @@ export async function invalidateCacheAction(input: {
 }): Promise<OpsControlResult> {
   const reason = requireReason(input.reason);
   if (!reason) return { ok: false, message: "사유는 5자 이상." };
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   if (!input.selector) return { ok: false, message: "selector 가 필요합니다." };
   const res = await invalidateCache({ jwt, selector: input.selector, reason });
@@ -60,7 +60,7 @@ export async function setMaintenanceAction(input: {
 }): Promise<OpsControlResult> {
   const reason = requireReason(input.reason);
   if (!reason) return { ok: false, message: "사유는 5자 이상." };
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   const res = await setMaintenanceMode({
     jwt,

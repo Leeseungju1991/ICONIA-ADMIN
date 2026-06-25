@@ -51,7 +51,7 @@ function toServerSegment(audienceKind: string): "all" | "staff" | "beta" {
 export async function broadcastNotificationAction(
   req: NotificationCreate,
 ): Promise<AdminResult<NotificationCreated>> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   if (!req.title || req.title.trim().length < 2) {
     return { ok: false, message: "제목은 2자 이상." };

@@ -18,7 +18,7 @@ export type ListPersonasResult =
   | { ok: false; message: string; code?: string };
 
 export async function listPersonasAction(): Promise<ListPersonasResult> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션이 만료되었습니다." };
   const res = await listPersonas({ jwt });
   if (!res.ok) return { ok: false, message: res.message, code: res.code };

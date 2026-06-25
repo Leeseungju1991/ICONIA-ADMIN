@@ -4,16 +4,18 @@ import { readSession } from "@/lib/authCookie";
 
 export const dynamic = "force-dynamic";
 
-export default function LoginPage({
+export default async function LoginPage({
   searchParams,
 }: {
-  searchParams?: { reason?: string };
+  searchParams?: Promise<{ reason?: string }> | { reason?: string };
 }) {
-  if (readSession()) {
+  if (await readSession()) {
     redirect("/dashboard");
   }
 
-  const reason = searchParams?.reason;
+  // Next.js 15: searchParams 가 Promise 로 래핑되는 경우 await.
+  const resolvedParams = searchParams instanceof Promise ? await searchParams : searchParams;
+  const reason = resolvedParams?.reason;
   const banner = reasonToBanner(reason);
 
   return (

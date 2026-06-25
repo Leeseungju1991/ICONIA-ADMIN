@@ -15,8 +15,8 @@ import BackupCodePanel from "./BackupCodePanel";
 
 export const dynamic = "force-dynamic";
 
-export default function TwoFactorPage() {
-  const jwt = readSession();
+export default async function TwoFactorPage() {
+  const jwt = await readSession();
   if (!jwt) {
     redirect("/login?reason=missing");
   }

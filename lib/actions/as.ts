@@ -21,7 +21,7 @@ export type AsActionResult<T> =
 export async function createAsTicketAction(formData: FormData): Promise<
   AsActionResult<{ ticket: AsTicketRow; unpaired: number }>
 > {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   const user_id = String(formData.get("user_id") || "").trim();
   const device_id = String(formData.get("device_id") || "").trim();
@@ -37,7 +37,7 @@ export async function createAsTicketAction(formData: FormData): Promise<
 export async function replaceAsTicketAction(formData: FormData): Promise<
   AsActionResult<AsTicketRow>
 > {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   const id = String(formData.get("id") || "").trim();
   const replacement_device_id = String(formData.get("replacement_device_id") || "").trim();
@@ -52,7 +52,7 @@ export async function replaceAsTicketAction(formData: FormData): Promise<
 export async function closeAsTicketAction(formData: FormData): Promise<
   AsActionResult<AsTicketRow>
 > {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   const id = String(formData.get("id") || "").trim();
   const note = String(formData.get("note") || "").trim();
@@ -68,7 +68,7 @@ export async function listAsTicketsAction(args?: {
   status?: AsTicketStatus;
   limit?: number;
 }): Promise<AsActionResult<{ items: AsTicketRow[]; next_cursor: string | null }>> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   const res = await listAsTickets({ jwt, status: args?.status, limit: args?.limit });
   if (!res.ok) return { ok: false, message: res.message, code: res.code };

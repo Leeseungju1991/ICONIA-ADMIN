@@ -20,7 +20,7 @@ export type CreateLotResult =
   | { ok: false; message: string; code?: string };
 
 export async function createLotAction(formData: FormData): Promise<CreateLotResult> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션이 만료되었습니다." };
 
   const lot_code = String(formData.get("lot_code") || "").trim();
@@ -57,7 +57,7 @@ export type BatchIssueResult =
 export async function batchIssueSerialsAction(
   formData: FormData,
 ): Promise<BatchIssueResult> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션이 만료되었습니다." };
 
   const lotId = String(formData.get("lot_id") || "").trim();
@@ -87,7 +87,7 @@ export type SubmitFactoryTestResult =
 export async function submitFactoryTestAction(
   formData: FormData,
 ): Promise<SubmitFactoryTestResult> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션이 만료되었습니다." };
 
   const serial = String(formData.get("serial") || "").trim();

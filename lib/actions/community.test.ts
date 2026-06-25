@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 vi.mock("next/headers", () => ({
-  cookies: () => ({
+  cookies: async () => ({
     get: (k: string) => (k === "iconia_admin_jwt" ? { value: "test-jwt" } : undefined),
   }),
 }));

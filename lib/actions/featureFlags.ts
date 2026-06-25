@@ -23,7 +23,7 @@ function unreachable(code?: string): boolean {
 export async function listUserFeatureFlagsAction(args: {
   userId: string;
 }): Promise<AdminResult<UserFeatureFlagsResponse>> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   if (!args.userId.trim()) return { ok: false, message: "사용자 ID 가 필요합니다." };
   const res = await authedRequest<UserFeatureFlagsResponse>({
@@ -47,7 +47,7 @@ export async function setUserFeatureFlagAction(args: {
   flagKey: FeatureFlagKey;
   enabled: boolean;
 }): Promise<AdminResult<UserFeatureFlagRow>> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   if (!args.userId.trim()) return { ok: false, message: "사용자 ID 가 필요합니다." };
   if (!args.flagKey.trim()) return { ok: false, message: "flag_key 가 필요합니다." };

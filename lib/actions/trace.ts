@@ -11,7 +11,7 @@ export type FetchTraceResult =
   | { ok: false; message: string; code?: string };
 
 export async function fetchAdminTraceAction(formData: FormData): Promise<FetchTraceResult> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   const traceId = String(formData.get("trace_id") || "").trim();
   if (!traceId) return { ok: false, message: "trace_id 를 입력하세요." };

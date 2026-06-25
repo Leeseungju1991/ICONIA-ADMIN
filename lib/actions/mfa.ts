@@ -42,7 +42,7 @@ export async function mfaAction(
   const result = await operatorLoginStep2(args);
 
   if (result.ok) {
-    writeSession({ jwt: result.data.jwt, expiresAt: result.data.expires_at });
+    await writeSession({ jwt: result.data.jwt, expiresAt: result.data.expires_at });
     redirect("/dashboard");
   }
 

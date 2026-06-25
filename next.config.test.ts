@@ -10,6 +10,8 @@ type NextConfigLike = {
   output?: string;
   poweredByHeader?: boolean;
   reactStrictMode?: boolean;
+  // Next.js 15: serverActions 는 top-level (experimental 에서 이동).
+  serverActions?: { allowedOrigins?: string[] };
   experimental?: { serverActions?: { allowedOrigins?: string[] } };
   headers?: () => Promise<HeaderBlock[]>;
 };
@@ -110,7 +112,8 @@ describe("next.config security", () => {
   it("always includes localhost:3000 in Server Actions allowedOrigins; merges ADMIN_ALLOWED_ORIGIN", async () => {
     process.env.ADMIN_ALLOWED_ORIGIN = "admin.iconia.example, admin2.iconia.example";
     const cfg = await loadConfig();
-    const origins = cfg.experimental?.serverActions?.allowedOrigins ?? [];
+    // Next.js 15: top-level serverActions, experimental.serverActions 에서 이동.
+    const origins = cfg.serverActions?.allowedOrigins ?? cfg.experimental?.serverActions?.allowedOrigins ?? [];
     expect(origins).toContain("localhost:3000");
     expect(origins).toContain("admin.iconia.example");
     expect(origins).toContain("admin2.iconia.example");

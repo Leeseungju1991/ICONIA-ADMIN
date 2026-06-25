@@ -23,7 +23,7 @@ export async function fetchOpsMetricsAction(args: {
   from?: string;
   to?: string;
 }): Promise<OpsMetricActionResult> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
 
   const res = await fetchOpsMetrics({

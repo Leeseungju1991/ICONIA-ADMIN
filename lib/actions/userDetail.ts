@@ -14,7 +14,7 @@ export type GetUserDetailResult =
 export async function getUserDetailAction(input: {
   userId: string;
 }): Promise<GetUserDetailResult> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료", code: "ERR_UNAUTHORIZED" };
   const res = await getUserDetail({ jwt, userId: input.userId });
   if (!res.ok) return { ok: false, message: res.message, code: res.code };

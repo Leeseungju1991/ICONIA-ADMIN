@@ -16,7 +16,7 @@ export type BootInvariantsResult =
 export async function getDeviceBootInvariantsAction(args: {
   deviceId: string;
 }): Promise<BootInvariantsResult> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   const res = await getDeviceBootInvariants({ jwt, deviceId: args.deviceId });
   if (!res.ok) return { ok: false, message: res.message, code: res.code };

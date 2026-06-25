@@ -4,7 +4,7 @@
 // Server 는 ICONIA envelope({ ok, data, error, meta }) 로 응답 → 여기서 unwrap 해 ServerResult<T> 반환 (throw 안 함).
 // 필드명은 snake_case (서버 계약 그대로). camelCase 로 변환하지 않는다.
 // Server 의 admin RAG 라우트는 Bearer JWT(requireOperator)로 gating 되며, 호출자(RSC/Server Action)가
-// readSession() 으로 세션 JWT 를 읽어 jwt 인자로 넘긴다 (adminApi.ts 의 함수들과 동일).
+// await readSession() 으로 세션 JWT 를 읽어 jwt 인자로 넘긴다 (adminApi.ts 의 함수들과 동일).
 
 import { authedRequest } from "../httpClient";
 import type { ServerResult } from "../types";

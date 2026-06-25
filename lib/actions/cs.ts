@@ -18,7 +18,7 @@ export type CsLookupActionResult =
 export async function csLookupAction(
   formData: FormData,
 ): Promise<CsLookupActionResult> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션이 만료되었습니다. 다시 로그인하세요." };
 
   const q = String(formData.get("q") || "").trim();

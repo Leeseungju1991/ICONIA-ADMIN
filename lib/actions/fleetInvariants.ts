@@ -22,7 +22,7 @@ export type ListBootInvariantViolationsResult =
 export async function listBootInvariantViolationsAction(args?: {
   limit?: number;
 }): Promise<ListBootInvariantViolationsResult> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   const res = await listBootInvariantViolations({
     jwt,

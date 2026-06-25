@@ -22,7 +22,7 @@ export async function listBlockedUsersAction(args: {
   query?: string;
   sort?: BlockedUserSort;
 }): Promise<AdminResult<BlockedUsersResponse>> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   if (!args.userId.trim()) return { ok: false, message: "사용자 ID 가 필요합니다." };
   const params = new URLSearchParams();
@@ -51,7 +51,7 @@ export async function unblockUserAction(args: {
   userId: string;
   targetUserId: string;
 }): Promise<AdminResult<{ ok: true }>> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   if (!args.userId.trim()) return { ok: false, message: "사용자 ID 가 필요합니다." };
   if (!args.targetUserId.trim()) {

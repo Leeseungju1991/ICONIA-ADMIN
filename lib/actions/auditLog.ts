@@ -56,7 +56,7 @@ export async function recordOperatorAuditAction(
     return { status: "error", code: "ERR_VALIDATION_LOCAL" };
   }
 
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) {
     return { status: "error", code: "ERR_OPERATOR_AUTH_EXPIRED" };
   }

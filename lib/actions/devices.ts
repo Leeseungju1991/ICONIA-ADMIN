@@ -21,7 +21,7 @@ export async function listDevicesAction(args?: {
   status?: string;
   limit?: number;
 }): Promise<ListDevicesResult> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션이 만료되었습니다." };
   const res = await listDevices({
     jwt,
@@ -43,7 +43,7 @@ export async function listDeviceEventsAction(args: {
   cursor?: string | null;
   limit?: number;
 }): Promise<ListDeviceEventsResult> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션이 만료되었습니다." };
   if (!args.deviceId) return { ok: false, message: "device_id 누락" };
   const res = await fetchDeviceEvents({
@@ -57,7 +57,7 @@ export async function listDeviceEventsAction(args: {
 }
 
 export async function forceUnpairAction(formData: FormData) {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션이 만료되었습니다" };
   const deviceId = String(formData.get("device_id") || "");
   const reason = String(formData.get("reason") || "");
@@ -91,7 +91,7 @@ export type FirmwareErrorsResult =
   | { ok: false; message: string; code?: string };
 
 export async function listFirmwareErrorEventsAction(): Promise<FirmwareErrorsResult> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션이 만료되었습니다." };
   try {
     const res = await authedRequest<{ items: FirmwareErrorEvent[] }>({
@@ -125,7 +125,7 @@ export type FirmwareDeploymentsResult =
   | { ok: false; message: string; code?: string };
 
 export async function listFirmwareDeploymentsAction(): Promise<FirmwareDeploymentsResult> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션이 만료되었습니다." };
   try {
     const res = await authedRequest<{ items: FirmwareDeploymentRow[] }>({
@@ -141,7 +141,7 @@ export async function listFirmwareDeploymentsAction(): Promise<FirmwareDeploymen
 }
 
 export async function markLostAction(formData: FormData) {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션이 만료되었습니다" };
   const deviceId = String(formData.get("device_id") || "");
   const note = String(formData.get("note") || "");

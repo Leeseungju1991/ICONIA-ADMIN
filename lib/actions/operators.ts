@@ -18,7 +18,7 @@ export type DisableOperatorResult = { ok: true } | { ok: false; message: string 
 export async function disableOperatorAction(
   formData: FormData,
 ): Promise<DisableOperatorResult> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   const operatorId = String(formData.get("operator_id") || "");
   const reason = String(formData.get("reason") || "");
@@ -53,7 +53,7 @@ export type ListOperatorsResult =
  * 에러는 호출자(페이지)가 명확한 에러 상태로 렌더할 수 있도록 message 로 반환.
  */
 export async function listOperatorsAction(): Promise<ListOperatorsResult> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션이 만료되었습니다. 다시 로그인하세요." };
   const res = await listOperators({ jwt });
   if (!res.ok) {
@@ -77,7 +77,7 @@ export async function createOperatorAction(args: {
   password: string;
   role: OperatorRole;
 }): Promise<CreateOperatorResult> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션이 만료되었습니다. 다시 로그인하세요." };
   const email = args.email.trim().toLowerCase();
   if (!email || !email.includes("@")) {

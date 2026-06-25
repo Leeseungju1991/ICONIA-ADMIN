@@ -30,7 +30,7 @@ export type LegalActionResult<T> =
 
 /** 운영자가 보는 활성 약관 버전. */
 export async function getActiveTermsAction(): Promise<LegalActionResult<ActiveTermsVersions>> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   const res = await getActiveTermsVersions({ jwt });
   if (!res.ok) return { ok: false, message: res.message, code: res.code };
@@ -44,7 +44,7 @@ export async function getActiveTermsAction(): Promise<LegalActionResult<ActiveTe
 export async function listTermsAction(args?: {
   kind?: TermsKind;
 }): Promise<LegalActionResult<{ items: TermsVersionRow[]; placeholder: boolean }>> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   const res = await listTermsVersions({ jwt, kind: args?.kind });
   if (res.ok) {
@@ -68,7 +68,7 @@ export async function publishTermsAction(args: {
   change_note: string;
   activate: boolean;
 }): Promise<LegalActionResult<TermsVersionRow>> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   if (!args.version || args.version.trim().length < 1) {
     return { ok: false, message: "버전을 입력하세요." };
@@ -96,7 +96,7 @@ export async function publishTermsAction(args: {
 export async function getConsentStatsAction(args?: {
   days?: number;
 }): Promise<LegalActionResult<{ stats: ConsentStats; placeholder: boolean }>> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   const res = await getConsentStats({ jwt, days: args?.days ?? 30 });
   if (res.ok) {
@@ -110,7 +110,7 @@ export async function getConsentStatsAction(args?: {
 
 /** 운영자가 보는 회사 정보 — Server `/api/v1/legal/business-info` 미구현 시 placeholder. */
 export async function getBusinessInfoAction(): Promise<LegalActionResult<BusinessInfo>> {
-  const jwt = readSession();
+  const jwt = await readSession();
   // 세션 없어도 placeholder 는 항상 반환 (Sidebar footer 가 anonymous 렌더 시).
   if (!jwt) return { ok: true, data: COMPANY_INFO_PLACEHOLDER };
   const res = await getBusinessInfo({ jwt });

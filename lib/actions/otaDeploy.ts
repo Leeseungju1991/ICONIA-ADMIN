@@ -29,7 +29,7 @@ function unreachable(code?: string): boolean {
 export async function presignFirmwareUploadAction(
   req: OtaPresignRequest,
 ): Promise<AdminResult<OtaPresignResponse>> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   if (!req.version || req.version.trim().length < 3) {
     return { ok: false, message: "version 은 3자 이상." };
@@ -65,7 +65,7 @@ export async function presignFirmwareUploadAction(
 export async function registerFirmwareUploadAction(args: {
   firmwareId: string;
 }): Promise<AdminResult<{ ok: true }>> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   try {
     void args.firmwareId;
@@ -81,7 +81,7 @@ export async function registerFirmwareUploadAction(args: {
 export async function listDeviceGroupsAction(): Promise<
   AdminResult<{ items: OtaDeviceGroup[] }> & { source: "server" | "fixture" | "fallback" }
 > {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료", source: "server" };
   const res = await authedRequest<{ items: OtaDeviceGroup[] }>({
     jwt,
@@ -119,7 +119,7 @@ export async function listDeviceGroupsAction(): Promise<
 export async function createOtaRolloutAction(
   req: OtaRolloutRequest,
 ): Promise<AdminResult<OtaRolloutResponse>> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   if (!req.firmware_id) return { ok: false, message: "firmware_id 필요." };
   if (!Array.isArray(req.group_ids) || req.group_ids.length === 0) {

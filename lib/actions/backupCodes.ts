@@ -10,7 +10,7 @@ export type GenerateBackupCodesResult =
   | { ok: false; message: string; code?: string };
 
 export async function generateBackupCodesAction(): Promise<GenerateBackupCodesResult> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   const res = await generateBackupCodes({ jwt });
   if (!res.ok) return { ok: false, message: res.message, code: res.code };
@@ -24,7 +24,7 @@ export type VerifyBackupCodeResult =
 export async function verifyBackupCodeAction(args: {
   code: string;
 }): Promise<VerifyBackupCodeResult> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   if (!args.code || args.code.trim().length < 4) {
     return { ok: false, message: "백업 코드를 입력하세요." };

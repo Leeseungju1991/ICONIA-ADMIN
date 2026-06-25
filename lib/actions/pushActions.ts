@@ -16,7 +16,7 @@ export type CampaignsListResult =
   | { ok: false; message: string; code?: string };
 
 export async function listCampaignsAction(): Promise<CampaignsListResult> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   const res = await listPushCampaigns({ jwt });
   if (!res.ok) return { ok: false, message: res.message, code: res.code };
@@ -33,7 +33,7 @@ export async function createCampaignAction(args: {
   body: string;
   audience?: string;
 }): Promise<CampaignMutationResult> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   if (!args.title || args.title.trim().length < 2) {
     return { ok: false, message: "제목은 2자 이상." };
@@ -59,7 +59,7 @@ export async function createCampaignAction(args: {
 export async function sendCampaignAction(args: {
   id: string;
 }): Promise<CampaignMutationResult> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   const res = await sendPushCampaign({ jwt, id: args.id });
   if (!res.ok) return { ok: false, message: res.message, code: res.code };

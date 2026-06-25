@@ -8,8 +8,8 @@ import { hideCommunityPost, takedownCommunityPost, unhideCommunityPost, hidePost
 
 const COOKIE = "iconia_admin_jwt";
 
-function jwt(): string | null {
-  return cookies().get(COOKIE)?.value ?? null;
+async function jwt(): Promise<string | null> {
+  return (await cookies()).get(COOKIE)?.value ?? null;
 }
 
 // 서버 미도달(network/5xx) 시에만 mock 으로 graceful fallback. 인증/권한 오류
@@ -26,7 +26,7 @@ export type User360ActionResult =
   | { ok: false; code: string; message: string };
 
 export async function fetchUser360Action(key: string): Promise<User360ActionResult> {
-  const token = jwt();
+  const token = await jwt();
   if (!token) return { ok: false, code: "ERR_UNAUTHENTICATED", message: "no_jwt" };
   const r = await fetchUser360Snapshot(token, key);
   if (r.ok) return { ok: true, source: "server", snapshot: r.data };
@@ -45,7 +45,7 @@ export type User360TimelineResult =
   | { ok: false; code: string; message: string };
 
 export async function fetchUser360TimelineAction(key: string): Promise<User360TimelineResult> {
-  const token = jwt();
+  const token = await jwt();
   if (!token) return { ok: false, code: "ERR_UNAUTHENTICATED", message: "no_jwt" };
   const r = await fetchUser360Timeline(token, key);
   if (r.ok) return { ok: true, source: "server", events: r.data.items, next_cursor: r.data.next_cursor };
@@ -60,7 +60,7 @@ export async function fetchUser360TimelineAction(key: string): Promise<User360Ti
 }
 
 export async function hidePostsByUserAction(authorId: string, reason: string) {
-  const token = jwt();
+  const token = await jwt();
   if (!token) return { ok: false as const, code: "ERR_UNAUTHENTICATED", message: "no_jwt" };
   if (reason.trim().length < 5) return { ok: false as const, code: "ERR_REASON_TOO_SHORT", message: "reason_too_short" };
   return hidePostsByAuthor(token, authorId, reason);

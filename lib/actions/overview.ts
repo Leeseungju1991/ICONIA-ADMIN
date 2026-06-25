@@ -11,7 +11,7 @@ export type AdminOverviewResult =
   | { ok: false; message: string; code?: string };
 
 export async function fetchAdminOverviewAction(): Promise<AdminOverviewResult> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   const res = await fetchAdminOverview({ jwt });
   if (!res.ok) return { ok: false, message: res.message, code: res.code };

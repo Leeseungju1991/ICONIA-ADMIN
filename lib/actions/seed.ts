@@ -17,7 +17,7 @@ export type SeedStatusResult =
   | { ok: false; message: string; code?: string };
 
 export async function getSeedStatusAction(): Promise<SeedStatusResult> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   const res = await getAdminSeedStatus({ jwt });
   if (!res.ok) return { ok: false, message: res.message, code: res.code };
@@ -29,7 +29,7 @@ export type SeedRunResult =
   | { ok: false; message: string; code?: string };
 
 export async function runSeedAction(input: { reason?: string }): Promise<SeedRunResult> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   const res = await runAdminSeed({ jwt, reason: input.reason });
   if (!res.ok) return { ok: false, message: res.message, code: res.code };

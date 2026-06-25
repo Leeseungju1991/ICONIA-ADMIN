@@ -140,7 +140,7 @@ function classifyStatus(
 export async function fetchGeminiKeysAction(): Promise<
   AdminResult<GeminiKeysResponse> & { source: "server" | "fixture" }
 > {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료", source: "server" };
 
   // 키 quota config + 24h / 30d 키별 누적 — 3 호출 병렬.
@@ -246,7 +246,7 @@ export async function fetchGeminiKeysAction(): Promise<
 export async function fetchGeminiUsageAction(
   range: "24h" | "7d" | "30d",
 ): Promise<AdminResult<GeminiUsageResponse> & { source: "server" | "fixture" }> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료", source: "server" };
 
   const [byDayRes, byModelRes] = await Promise.all([
@@ -335,7 +335,7 @@ export async function fetchGeminiUsageAction(
 export async function fetchGeminiQuotaAlertsAction(): Promise<
   AdminResult<GeminiQuotaAlertsResponse> & { source: "server" | "fixture" }
 > {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료", source: "server" };
 
   const res = await authedRequest<ServerAlertsResponse>({
@@ -390,7 +390,7 @@ export async function updateGeminiKeyTierAction(args: {
   alias: string;
   tier: GeminiTier;
 }): Promise<GeminiQuotaUpdateResult> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   if (!args.alias) return { ok: false, message: "alias 누락" };
   const res = await updateGeminiKeyQuota({
@@ -416,7 +416,7 @@ export async function upsertGeminiKeyQuotaAction(args: {
   /** 2026-06-02 — 카테고리별 모델 매핑 정식 컬럼. server 가 body.models 로 수용. */
   models?: GeminiKeyModels | null;
 }): Promise<GeminiQuotaUpdateResult> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   const alias = String(args.alias || "").trim();
   if (!alias) return { ok: false, message: "alias 누락" };
@@ -458,7 +458,7 @@ export interface ByokUsageResponse {
 export async function fetchByokUsageAction(
   args?: { from?: string; to?: string; limit?: number },
 ): Promise<AdminResult<ByokUsageResponse> & { source: "server" }> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료", source: "server" };
   const qs = new URLSearchParams();
   if (args?.from) qs.set("from", args.from);

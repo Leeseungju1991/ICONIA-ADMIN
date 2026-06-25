@@ -28,7 +28,7 @@ export async function listReportsAction(args: {
   kind?: ReportTargetKind;
   cursor?: string;
 }): Promise<AdminResult<ReportsResponse> & { source: "server" | "fixture" }> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료", source: "server" };
   const params = new URLSearchParams();
   if (args.status) params.set("status", args.status);
@@ -70,7 +70,7 @@ export async function resolveReportAction(args: {
   action: ReportAction;
   reason: string;
 }): Promise<AdminResult<{ ok: true }>> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   if (!args.reason || args.reason.trim().length < 5) {
     return { ok: false, message: "사유는 5자 이상." };

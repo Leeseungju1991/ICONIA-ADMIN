@@ -22,7 +22,7 @@ export type PipaActionResult<T> =
 export async function listPipaUsersAction(args: {
   status: "pending_deletion" | "recent_export";
 }): Promise<PipaActionResult<{ items: PipaUserRow[] }>> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   const res = await listPipaUsers({ jwt, status: args.status });
   if (!res.ok) return { ok: false, message: res.message, code: res.code };
@@ -33,7 +33,7 @@ export async function triggerPipaExportAction(args: {
   userId: string;
   reason: string;
 }): Promise<PipaActionResult<{ id: string; status: string }>> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   if (!args.reason || args.reason.trim().length < 5) {
     return { ok: false, message: "사유는 5자 이상." };
@@ -47,7 +47,7 @@ export async function finalizePipaDeletionAction(args: {
   userId: string;
   reason: string;
 }): Promise<PipaActionResult<{ ok: boolean; deleted_at?: string }>> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   if (!args.reason || args.reason.trim().length < 5) {
     return { ok: false, message: "사유는 5자 이상." };

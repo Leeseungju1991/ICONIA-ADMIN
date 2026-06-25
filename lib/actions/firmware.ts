@@ -17,7 +17,7 @@ export async function listFirmwareFailuresAction(args?: {
   version?: string;
   since?: string;
 }): Promise<ListFirmwareFailuresResult> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션이 만료되었습니다." };
   const res = await listFirmwareFailures({
     jwt,
@@ -29,7 +29,7 @@ export async function listFirmwareFailuresAction(args?: {
 }
 
 export async function pauseDeploymentAction(formData: FormData) {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   const deploymentId = String(formData.get("deployment_id") || "");
   const reason = String(formData.get("reason") || "");
@@ -41,7 +41,7 @@ export async function pauseDeploymentAction(formData: FormData) {
 }
 
 export async function resumeDeploymentAction(formData: FormData) {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   const deploymentId = String(formData.get("deployment_id") || "");
   const reason = String(formData.get("reason") || "");

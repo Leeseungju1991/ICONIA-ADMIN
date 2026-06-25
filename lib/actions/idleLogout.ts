@@ -13,7 +13,7 @@ import { clearSession, readSession } from "../authCookie";
 //   3) logoutAction 과 분리해 audit 측면에서 "사용자 명시 로그아웃" 과
 //      "idle 타임아웃 로그아웃" 을 logs 에서 구분 가능.
 export async function idleLogoutAction(): Promise<void> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (jwt) {
     try {
       await operatorLogout(jwt);
@@ -21,6 +21,6 @@ export async function idleLogoutAction(): Promise<void> {
       // best-effort: cookie clear 는 보장.
     }
   }
-  clearSession();
+  await clearSession();
   redirect("/login?reason=idle");
 }

@@ -18,7 +18,7 @@ export type BannersListResult =
   | { ok: false; message: string; code?: string };
 
 export async function listBannersAction(): Promise<BannersListResult> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   const res = await listCommerceBanners({ jwt });
   if (!res.ok) return { ok: false, message: res.message, code: res.code };
@@ -39,7 +39,7 @@ export async function createBannerAction(args: {
   starts_at?: string | null;
   ends_at?: string | null;
 }): Promise<BannerMutationResult> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   const title = (args.title ?? "").trim();
   const image_url = (args.image_url ?? "").trim();
@@ -76,7 +76,7 @@ export async function updateBannerAction(args: {
     >
   >;
 }): Promise<BannerMutationResult> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   if (!args.id) return { ok: false, message: "id 누락" };
   const res = await updateCommerceBanner({ jwt, id: args.id, patch: args.patch });
@@ -87,7 +87,7 @@ export async function updateBannerAction(args: {
 export async function deleteBannerAction(args: {
   id: string;
 }): Promise<{ ok: boolean; message?: string; code?: string }> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   if (!args.id) return { ok: false, message: "id 누락" };
   const res = await deleteCommerceBanner({ jwt, id: args.id });

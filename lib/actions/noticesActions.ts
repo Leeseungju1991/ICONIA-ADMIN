@@ -17,7 +17,7 @@ export type NoticesListResult =
   | { ok: false; message: string; code?: string };
 
 export async function listNoticesAction(): Promise<NoticesListResult> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   const res = await listNotices({ jwt });
   if (!res.ok) return { ok: false, message: res.message, code: res.code };
@@ -51,7 +51,7 @@ export async function createNoticeAction(args: {
   audience?: string;
   order_idx?: number;
 }): Promise<NoticeMutationResult> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   if (!args.title || args.title.trim().length < 2) {
     return { ok: false, message: "제목은 2자 이상." };
@@ -83,7 +83,7 @@ export async function createNoticeAction(args: {
 }
 
 export async function deleteNoticeAction(args: { id: string }): Promise<{ ok: boolean; message?: string }> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   const res = await deleteNotice({ jwt, id: args.id });
   if (!res.ok) return { ok: false, message: res.message };

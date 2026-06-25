@@ -80,7 +80,7 @@ export async function listAdminCommerceProductsAction(args?: {
   page?: number;
   page_size?: number;
 }): Promise<ListProductsResult> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   const res = await listAdminCommerceProducts({
     jwt,
@@ -107,7 +107,7 @@ export type ProductMutationResult =
 export async function createAdminCommerceProductAction(
   input: CreateProductInput,
 ): Promise<ProductMutationResult> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   if (!input.name || input.name.trim().length < 1) {
     return { ok: false, message: "상품명은 필수입니다." };
@@ -123,7 +123,7 @@ export async function createAdminCommerceProductAction(
 export async function deleteAdminCommerceProductAction(args: {
   id: string;
 }): Promise<{ ok: true } | { ok: false; message: string; code?: string }> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   const res = await deleteAdminCommerceProduct({ jwt, id: args.id });
   if (!res.ok) return { ok: false, message: res.message, code: res.code };
@@ -145,7 +145,7 @@ export type ProductDetailResult =
 export async function getAdminCommerceProductAction(args: {
   id: string;
 }): Promise<ProductDetailResult> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   if (!args.id || args.id.trim().length === 0) {
     return { ok: false, message: "상품 id 누락" };

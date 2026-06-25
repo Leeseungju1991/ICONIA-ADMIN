@@ -10,8 +10,8 @@ import { decodeJwtPayloadUnsafe } from "@/lib/jwt";
 //
 // 경로별 RBAC 강제는 middleware.ts (edge) 가 수행 — JWT role 클레임 + PATH_REQUIRED_ROLES.
 
-export default function RequireAuth({ children }: { children: ReactNode }) {
-  const jwt = readSession();
+export default async function RequireAuth({ children }: { children: ReactNode }) {
+  const jwt = await readSession();
   if (!jwt) {
     redirect("/login?reason=missing");
   }

@@ -30,7 +30,7 @@ export type AdminActionResult<T> =
   | { ok: false; code?: string; message: string };
 
 export async function listKeysStoreAction(): Promise<AdminActionResult<{ items: GeminiKeysStoreItem[] }>> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   const res = await listGeminiKeysStore({ jwt });
   if (!res.ok) return { ok: false, code: res.code, message: res.message };
@@ -40,7 +40,7 @@ export async function listKeysStoreAction(): Promise<AdminActionResult<{ items: 
 export async function addKeyStoreAction(
   apiKey: string,
 ): Promise<KeyStoreActionResult<{ item: GeminiKeysStoreItem; reactivated?: boolean }>> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   const trimmed = String(apiKey || "").trim();
   if (!trimmed) return { ok: false, message: "API KEY 가 비어 있습니다" };
@@ -104,7 +104,7 @@ function friendlyKeyStoreMessage(code: string | undefined, raw: string): string 
 export async function disableKeyStoreAction(
   id: string,
 ): Promise<AdminActionResult<{ item: GeminiKeysStoreItem }>> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   const trimmed = String(id || "").trim();
   if (!trimmed) return { ok: false, message: "id 누락" };
@@ -124,7 +124,7 @@ export async function rotateKeyStoreAction(
   newApiKey: string,
   reason: string,
 ): Promise<AdminActionResult<{ item: GeminiKeysStoreItem }>> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   const keyTrimmed = String(newApiKey || "").trim();
   const reasonTrimmed = String(reason || "").trim();
@@ -165,7 +165,7 @@ export async function rotateKeyStoreAction(
 export async function keysStoreUsageSummaryAction(
   range: "24h" | "7d" | "30d" = "30d",
 ): Promise<AdminActionResult<GeminiKeysStoreUsageSummary>> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   const res = await geminiKeysStoreUsageSummary({ jwt, range });
   if (!res.ok) return { ok: false, code: res.code, message: res.message };

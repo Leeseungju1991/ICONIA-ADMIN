@@ -6,7 +6,7 @@ import { operatorLogout } from "../serverApi";
 import { clearSession, readSession } from "../authCookie";
 
 export async function logoutAction(): Promise<void> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (jwt) {
     try {
       await operatorLogout(jwt);
@@ -14,6 +14,6 @@ export async function logoutAction(): Promise<void> {
       // best-effort: cookie clear is the contract.
     }
   }
-  clearSession();
+  await clearSession();
   redirect("/login");
 }

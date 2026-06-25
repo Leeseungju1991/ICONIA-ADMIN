@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { makeRedirect, expectRedirect } from "../../test/helpers/captureRedirect";
 
 const cookieStore = { set: vi.fn(), delete: vi.fn(), get: vi.fn() };
-vi.mock("next/headers", () => ({ cookies: () => cookieStore }));
+vi.mock("next/headers", () => ({ cookies: async () => cookieStore }));
 vi.mock("next/navigation", () => ({
   get redirect() {
     return makeRedirect();

@@ -22,7 +22,7 @@ export async function authedFetchCount(
   | { ok: true; count: number; source: "server" | "fixture" }
   | { ok: false; message: string; source: null }
 > {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료", source: null };
   const res = await authedRequest<{ items?: unknown[]; total?: number }>({
     jwt,

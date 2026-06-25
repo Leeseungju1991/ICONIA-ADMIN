@@ -26,7 +26,7 @@ export async function listErrorsAction(args: {
   domain: ErrorDomain;
   since?: string; // ISO8601
 }): Promise<AdminResult<ErrorsResponse> & { source: "server" | "fixture" }> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료", source: "server" };
   // admin ErrorDomain → server 라우트 source 토큰. firmware 는 server 의 device ledger.
   const SOURCE_BY_DOMAIN: Record<ErrorDomain, string> = {
@@ -71,7 +71,7 @@ export async function listErrorsAction(args: {
 export async function resolveErrorAction(args: {
   id: string;
 }): Promise<AdminResult<{ event: ErrorRow }>> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   const id = String(args.id || "").trim();
   if (!id) return { ok: false, message: "id 누락" };

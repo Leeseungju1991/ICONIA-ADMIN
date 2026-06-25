@@ -29,7 +29,7 @@ export async function listFeedPostsAction(input: {
   page?: number;
   page_size?: number;
 }): Promise<FeedListResult> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   const res = await listAdminFeedPosts({ jwt, ...input });
   if (!res.ok) return { ok: false, message: res.message, code: res.code };
@@ -41,7 +41,7 @@ export type FeedDetailResult =
   | { ok: false; message: string; code?: string };
 
 export async function getFeedPostAction(input: { id: string }): Promise<FeedDetailResult> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   const res = await getAdminFeedPost({ jwt, id: input.id });
   if (!res.ok) return { ok: false, message: res.message, code: res.code };
@@ -64,7 +64,7 @@ export async function patchFeedPostAction(input: {
   location?: string | null;
   hashtags?: string[];
 }): Promise<FeedMutationResult> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   // Phase B 정합 — zod 로 server action 입력 검증. 클라이언트 검증과 동일 schema.
   const { patchFeedPostSchema, firstZodError } = await import(
@@ -99,7 +99,7 @@ export async function patchFeedPostAction(input: {
 }
 
 export async function deleteFeedPostAction(input: { id: string }): Promise<{ ok: boolean; message?: string; code?: string }> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   const res = await deleteAdminFeedPost({ jwt, id: input.id });
   if (!res.ok) return { ok: false, message: res.message, code: res.code };

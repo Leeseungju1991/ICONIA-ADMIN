@@ -7,7 +7,7 @@ const cookieStore = {
 };
 
 vi.mock("next/headers", () => ({
-  cookies: () => cookieStore,
+  cookies: async () => cookieStore,
 }));
 
 import {
@@ -35,9 +35,9 @@ function setNodeEnv(v: string) {
 }
 
 describe("writeSession", () => {
-  it("sets cookie with httpOnly + sameSite=strict + computed maxAge", () => {
+  it("sets cookie with httpOnly + sameSite=strict + computed maxAge", async () => {
     setNodeEnv("production");
-    writeSession({ jwt: "j", expiresAt: "2026-05-08T10:30:00.000Z" });
+    await writeSession({ jwt: "j", expiresAt: "2026-05-08T10:30:00.000Z" });
     expect(cookieStore.set).toHaveBeenCalledTimes(1);
     const call = cookieStore.set.mock.calls[0][0];
     expect(call.name).toBe(AUTH_COOKIE_NAME);
@@ -49,36 +49,36 @@ describe("writeSession", () => {
     expect(call.maxAge).toBe(30 * 60);
   });
 
-  it("uses secure=false only when COOKIE_SECURE_OVERRIDE=false", () => {
+  it("uses secure=false only when COOKIE_SECURE_OVERRIDE=false", async () => {
     setNodeEnv("development");
     process.env.COOKIE_SECURE_OVERRIDE = "false";
-    writeSession({ jwt: "j", expiresAt: "2026-05-08T10:30:00.000Z" });
+    await writeSession({ jwt: "j", expiresAt: "2026-05-08T10:30:00.000Z" });
     expect(cookieStore.set.mock.calls[0][0].secure).toBe(false);
     delete process.env.COOKIE_SECURE_OVERRIDE;
   });
 
-  it("clamps maxAge to >= 1 second when already past", () => {
+  it("clamps maxAge to >= 1 second when already past", async () => {
     setNodeEnv("development");
-    writeSession({ jwt: "j", expiresAt: "2026-05-08T09:00:00.000Z" });
+    await writeSession({ jwt: "j", expiresAt: "2026-05-08T09:00:00.000Z" });
     expect(cookieStore.set.mock.calls[0][0].maxAge).toBe(1);
   });
 });
 
 describe("clearSession", () => {
-  it("calls cookies().delete with cookie name", () => {
-    clearSession();
+  it("calls cookies().delete with cookie name", async () => {
+    await clearSession();
     expect(cookieStore.delete).toHaveBeenCalledWith(AUTH_COOKIE_NAME);
   });
 });
 
 describe("readSession", () => {
-  it("returns the cookie value when present", () => {
+  it("returns the cookie value when present", async () => {
     cookieStore.get.mockReturnValue({ value: "abc" });
-    expect(readSession()).toBe("abc");
+    expect(await readSession()).toBe("abc");
   });
 
-  it("returns null when cookie absent", () => {
+  it("returns null when cookie absent", async () => {
     cookieStore.get.mockReturnValue(undefined);
-    expect(readSession()).toBeNull();
+    expect(await readSession()).toBeNull();
   });
 });

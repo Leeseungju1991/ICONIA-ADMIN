@@ -29,7 +29,7 @@ export async function listRightsRequestsAction(args?: {
   status?: RightsRequestStatus;
   limit?: number;
 }): Promise<RightsActionResult<{ items: RightsRequestRow[]; placeholder: boolean; pipa_augmented: boolean }>> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
 
   const limit = args?.limit ?? 50;
@@ -103,7 +103,7 @@ export async function transitionRightsAction(args: {
   next_status: RightsRequestStatus;
   reason: string;
 }): Promise<RightsActionResult<RightsRequestRow>> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   if (!args.reason || args.reason.trim().length < 5) {
     return { ok: false, message: "사유는 5자 이상 입력하세요." };

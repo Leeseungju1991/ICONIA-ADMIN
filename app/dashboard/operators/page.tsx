@@ -13,7 +13,7 @@ export default async function OperatorsPage() {
 
   // 현재 로그인한 운영자 식별 — self-disable UI 가드 + audit 표시용.
   // Server `/api/v1/operator/me` 서명검증 신원 우선, 도달 불가 시 JWT fallback.
-  const jwt = readSession();
+  const jwt = await readSession();
   const identity = await resolveIdentity(jwt);
 
   return (

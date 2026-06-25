@@ -20,7 +20,7 @@ export default async function DashboardLayout({
   // RBAC — 운영자 역할/이메일을 Server `/api/v1/operator/me` 로 서명검증 조회한다.
   // Server 도달 불가 시 JWT payload 로 graceful fallback (resolveIdentity 내부).
   // 경로별 강제 차단은 middleware.ts (edge) 가 1차로 수행 — 여기는 표시/네비 게이팅.
-  const jwt = readSession();
+  const jwt = await readSession();
   const identity = await resolveIdentity(jwt);
   const role: OperatorRole = identity?.role ?? "viewer";
 

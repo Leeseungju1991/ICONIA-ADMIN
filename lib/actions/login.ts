@@ -62,7 +62,7 @@ export async function loginAction(
   if (isIssued(result.data)) {
     const ttlSec = result.data.access_token_expires_in_sec || 3600;
     const expiresAt = new Date(Date.now() + ttlSec * 1000).toISOString();
-    writeSession({ jwt: result.data.access_token, expiresAt });
+    await writeSession({ jwt: result.data.access_token, expiresAt });
     redirect("/dashboard");
   }
 

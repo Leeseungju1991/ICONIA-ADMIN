@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
 const cookieStore = { set: vi.fn(), delete: vi.fn(), get: vi.fn() };
-vi.mock("next/headers", () => ({ cookies: () => cookieStore }));
+vi.mock("next/headers", () => ({ cookies: async () => cookieStore }));
 vi.mock("@/lib/adminApi", () => ({ getAiHealth: vi.fn() }));
 
 import { getAiHealth, type AiHealthSnapshot } from "@/lib/adminApi";

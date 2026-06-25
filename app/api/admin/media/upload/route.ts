@@ -15,7 +15,7 @@ export const runtime = "nodejs";
 export const maxDuration = 64;
 
 export async function POST(req: Request): Promise<NextResponse> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) {
     return NextResponse.json(
       {

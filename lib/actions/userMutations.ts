@@ -39,7 +39,7 @@ export async function forceLogoutUserAction(args: {
   userId: string;
   reason: string;
 }): Promise<UserMutationResult> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션이 만료되었습니다. 다시 로그인하세요." };
   const v = validateReason(args.reason);
   if (v) return { ok: false, message: v };
@@ -52,7 +52,7 @@ export async function pauseUserAction(args: {
   userId: string;
   reason: string;
 }): Promise<UserMutationResult> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션이 만료되었습니다. 다시 로그인하세요." };
   const v = validateReason(args.reason);
   if (v) return { ok: false, message: v };
@@ -68,7 +68,7 @@ export async function resumeUserAction(args: {
   userId: string;
   reason: string;
 }): Promise<UserMutationResult> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션이 만료되었습니다. 다시 로그인하세요." };
   const v = validateReason(args.reason);
   if (v) return { ok: false, message: v };
@@ -84,7 +84,7 @@ export async function mfaResetUserAction(args: {
   userId: string;
   reason: string;
 }): Promise<UserMutationResult> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션이 만료되었습니다. 다시 로그인하세요." };
   const v = validateReason(args.reason);
   if (v) return { ok: false, message: v };
@@ -105,7 +105,7 @@ export async function updateUserAction(args: {
   status?: "active" | "paused";
   currentStatus?: string | null;
 }): Promise<UserMutationResult> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션이 만료되었습니다. 다시 로그인하세요." };
   const v = validateReason(args.reason);
   if (v) return { ok: false, message: v };
@@ -133,7 +133,7 @@ export async function resetUserPasswordAction(args: {
   password: string;
   reason: string;
 }): Promise<UserMutationResult> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션이 만료되었습니다. 다시 로그인하세요." };
   const v = validateReason(args.reason);
   if (v) return { ok: false, message: v };
@@ -168,7 +168,7 @@ export async function deleteUserAction(args: {
   userId: string;
   reason: string;
 }): Promise<UserMutationResult> {
-  const jwt = readSession();
+  const jwt = await readSession();
   if (!jwt) return { ok: false, message: "세션이 만료되었습니다. 다시 로그인하세요." };
   const v = validateReason(args.reason);
   if (v) return { ok: false, message: v };
