@@ -22,6 +22,106 @@ export type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 //   AbortController 로 상한선을 두어 timeout 을 ERR_NETWORK 로 graceful 매핑한다.
 const DEFAULT_TIMEOUT_MS = 10_000;
 
+// ─── Retry 정책 ──────────────────────────────────────────────────────────────
+// 5xx / 429: retry (최대 3회, exponential backoff 200ms base, cap 2s)
+// 4xx (429 제외): no retry — 클라이언트 측 오류이므로 즉시 final.
+const RETRY_MAX_ATTEMPTS = 3; // 최초 시도 포함 총 횟수 (= 최초 1 + 재시도 2)
+const RETRY_BASE_MS = 200;
+const RETRY_CAP_MS = 2_000;
+
+/** `Retry-After` 헤더 파싱 → 대기 ms. 초(단위) 또는 HTTP-date 형식 지원. */
+function parseRetryAfterMs(header: string | null): number | null {
+  if (!header) return null;
+  // 숫자 (초 단위)
+  const secs = Number(header.trim());
+  if (!Number.isNaN(secs) && secs >= 0) return Math.min(secs * 1_000, 60_000);
+  // HTTP-date 형식
+  const at = Date.parse(header);
+  if (!Number.isNaN(at)) {
+    const delta = at - Date.now();
+    return delta > 0 ? Math.min(delta, 60_000) : 0;
+  }
+  return null;
+}
+
+/** 주어진 ms 를 Promise 로 대기. 테스트에서 주입 가능. */
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// ─── In-process Circuit Breaker ───────────────────────────────────────────────
+// 슬라이딩 윈도우 30s / 연속 5xx 임계값 5 / 쿨다운 30s
+// 인스턴스 1개 (모듈 스코프) — 서버 프로세스 전체 공유. 의존성 추가 없음.
+const BREAKER_WINDOW_MS = 30_000;
+const BREAKER_THRESHOLD = 5; // 연속 5xx 횟수
+const BREAKER_COOLDOWN_MS = 30_000;
+
+type BreakerState = "closed" | "open";
+
+const breaker: {
+  state: BreakerState;
+  consecutiveFails: number;
+  openedAt: number | null;
+  // 슬라이딩 윈도우: 5xx 발생 타임스탬프 배열 (오래된 것은 trimWindow 에서 제거)
+  failTimestamps: number[];
+} = {
+  state: "closed",
+  consecutiveFails: 0,
+  openedAt: null,
+  failTimestamps: [],
+};
+
+/** 윈도우 밖 타임스탬프 정리 */
+function trimWindow(): void {
+  const cutoff = Date.now() - BREAKER_WINDOW_MS;
+  while (breaker.failTimestamps.length > 0 && breaker.failTimestamps[0] < cutoff) {
+    breaker.failTimestamps.shift();
+  }
+}
+
+/** 5xx 발생 시 브레이커 알림 */
+function breakerRecordFailure(): void {
+  const now = Date.now();
+  breaker.failTimestamps.push(now);
+  trimWindow();
+  breaker.consecutiveFails += 1;
+  if (breaker.consecutiveFails >= BREAKER_THRESHOLD) {
+    breaker.state = "open";
+    breaker.openedAt = now;
+  }
+}
+
+/** 성공 시 브레이커 초기화 */
+function breakerRecordSuccess(): void {
+  breaker.consecutiveFails = 0;
+  breaker.failTimestamps = [];
+  if (breaker.state === "open") {
+    breaker.state = "closed";
+    breaker.openedAt = null;
+  }
+}
+
+/**
+ * 브레이커가 open 상태인지 확인. 쿨다운 경과 시 half-open → closed 전환.
+ * (Half-open 을 명시적 상태로 두지 않고 단순 시간 경과 후 closed 로 복귀)
+ */
+function isBreakerOpen(): boolean {
+  if (breaker.state !== "open") return false;
+  const elapsed = Date.now() - (breaker.openedAt ?? 0);
+  if (elapsed >= BREAKER_COOLDOWN_MS) {
+    // 쿨다운 만료 → 닫힘 복귀 (다음 요청이 실제 probe)
+    breaker.state = "closed";
+    breaker.consecutiveFails = 0;
+    breaker.openedAt = null;
+    return false;
+  }
+  return true;
+}
+
+// 사용자에게 노출할 한국어 에러 메시지
+const MSG_SERVER_TRANSIENT =
+  "서버에 일시적 문제가 발생했습니다. 잠시 후 다시 시도해주세요.";
+
 export type AuthedRequestArgs = {
   jwt: string;
   path: string;
@@ -47,11 +147,28 @@ export type AuthedRequestArgs = {
  *   - fetch throw                     → `{ ok: false, code: ERR_NETWORK, status: 0 }`
  *   - 비-JSON body                    → `{ ok: false, code: ERR_INVALID_RESPONSE, ... }`
  *
+ * 추가 동작 (req#4/#5):
+ *   - 5xx / 429: 최대 3회(재시도 2회) 지수 backoff (200ms base, 2s cap)
+ *   - Retry-After 헤더 존재 시 그 값 우선
+ *   - 4xx (429 제외): no retry
+ *   - 연속 5xx 5회 → circuit breaker open → 쿨다운 30s (이후 자동 복귀)
+ *   - breaker open / retries 소진 시 MSG_SERVER_TRANSIENT 한국어 메시지 포함
+ *
  * never throws.
  */
 export async function authedRequest<T>(
   args: AuthedRequestArgs,
 ): Promise<ServerResult<T>> {
+  // ── 브레이커 확인 ────────────────────────────────────────────────────────
+  if (isBreakerOpen()) {
+    return {
+      ok: false,
+      code: "ERR_CIRCUIT_OPEN",
+      message: MSG_SERVER_TRANSIENT,
+      status: 0,
+    };
+  }
+
   const env = loadEnv();
   const headers: Record<string, string> = {
     Accept: "application/json",
@@ -61,54 +178,88 @@ export async function authedRequest<T>(
   if (args.idempotencyKey) headers["Idempotency-Key"] = args.idempotencyKey;
   if (args.requestId) headers["X-Request-Id"] = args.requestId;
 
-  // timeout guard — AbortController 로 hang 한 요청을 끊는다.
   const timeoutMs = args.timeoutMs ?? DEFAULT_TIMEOUT_MS;
-  const controller = timeoutMs > 0 ? new AbortController() : null;
-  const timer =
-    controller != null
-      ? setTimeout(() => controller.abort(), timeoutMs)
-      : null;
 
-  let response: Response;
-  try {
-    response = await fetch(`${env.ICONIA_SERVER_URL}${args.path}`, {
-      method: args.method,
-      headers,
-      body: args.body === undefined ? undefined : JSON.stringify(args.body),
-      cache: "no-store",
-      signal: controller?.signal,
-    });
-  } catch (err) {
-    // abort (timeout) 와 일반 네트워크 실패를 구분해 메시지만 다르게 — 코드는 동일.
-    const isTimeout =
-      err instanceof Error && err.name === "AbortError";
-    return {
-      ok: false,
-      code: "ERR_NETWORK",
-      message: isTimeout ? "request_timeout" : "network_error",
-      status: 0,
-    };
-  } finally {
-    if (timer != null) clearTimeout(timer);
-  }
+  // ── 단일 fetch 시도 (timeout 포함) ──────────────────────────────────────
+  async function attemptFetch(): Promise<ServerResult<T> & { _retryAfterMs?: number }> {
+    const controller = timeoutMs > 0 ? new AbortController() : null;
+    const timer =
+      controller != null
+        ? setTimeout(() => controller.abort(), timeoutMs)
+        : null;
 
-  let envelope: ServerEnvelope<T>;
-  try {
-    envelope = (await response.json()) as ServerEnvelope<T>;
-  } catch {
-    return {
-      ok: false,
-      code: "ERR_INVALID_RESPONSE",
-      message: "invalid_response",
-      status: response.status,
-    };
-  }
+    let response: Response;
+    try {
+      response = await fetch(`${env.ICONIA_SERVER_URL}${args.path}`, {
+        method: args.method,
+        headers,
+        body: args.body === undefined ? undefined : JSON.stringify(args.body),
+        cache: "no-store",
+        signal: controller?.signal,
+      });
+    } catch (err) {
+      const isTimeout = err instanceof Error && err.name === "AbortError";
+      return {
+        ok: false,
+        code: "ERR_NETWORK",
+        message: isTimeout ? "request_timeout" : "network_error",
+        status: 0,
+      };
+    } finally {
+      if (timer != null) clearTimeout(timer);
+    }
 
-  // 5xx 처리: envelope.ok === false + error.code 가 있으면 server 가 의도적으로 보낸
-  //   구조화된 실패 — 호출자가 분기할 수 있게 그대로 전달 (e.g. 503 ERR_DEPENDENCY_UNAVAILABLE).
-  //   없으면 일반 ERR_SERVER_UNAVAILABLE 폴백.
-  if (response.status >= 500) {
-    if (envelope?.ok === false && envelope.error?.code) {
+    let envelope: ServerEnvelope<T>;
+    try {
+      envelope = (await response.json()) as ServerEnvelope<T>;
+    } catch {
+      return {
+        ok: false,
+        code: "ERR_INVALID_RESPONSE",
+        message: "invalid_response",
+        status: response.status,
+      };
+    }
+
+    // 5xx 처리
+    if (response.status >= 500) {
+      const retryAfterMs =
+        parseRetryAfterMs(response.headers.get("Retry-After")) ?? undefined;
+
+      if (envelope?.ok === false && envelope.error?.code) {
+        return {
+          ok: false,
+          code: envelope.error.code,
+          message: envelope.error.message,
+          status: response.status,
+          details: envelope.error.details,
+          _retryAfterMs: retryAfterMs,
+        };
+      }
+      return {
+        ok: false,
+        code: "ERR_SERVER_UNAVAILABLE",
+        message: "server_unavailable",
+        status: response.status,
+        _retryAfterMs: retryAfterMs,
+      };
+    }
+
+    // 429 Too Many Requests — retry 대상
+    if (response.status === 429) {
+      const retryAfterMs =
+        parseRetryAfterMs(response.headers.get("Retry-After")) ?? undefined;
+      return {
+        ok: false,
+        code: "ERR_RATE_LIMITED",
+        message: "rate_limited",
+        status: 429,
+        _retryAfterMs: retryAfterMs,
+      };
+    }
+
+    if (envelope?.ok === true) return { ok: true, data: envelope.data };
+    if (envelope?.ok === false && envelope.error) {
       return {
         ok: false,
         code: envelope.error.code,
@@ -119,26 +270,75 @@ export async function authedRequest<T>(
     }
     return {
       ok: false,
-      code: "ERR_SERVER_UNAVAILABLE",
-      message: "server_unavailable",
+      code: "ERR_INVALID_RESPONSE",
+      message: "invalid_response",
       status: response.status,
     };
   }
 
-  if (envelope?.ok === true) return { ok: true, data: envelope.data };
-  if (envelope?.ok === false && envelope.error) {
+  // ── Retry 루프 ───────────────────────────────────────────────────────────
+  let lastResult: ServerResult<T> | null = null;
+
+  for (let attempt = 1; attempt <= RETRY_MAX_ATTEMPTS; attempt++) {
+    const result = await attemptFetch();
+    lastResult = result;
+
+    const isRetryable =
+      !result.ok &&
+      (result.status >= 500 ||
+        result.status === 429 ||
+        result.code === "ERR_RATE_LIMITED" ||
+        result.code === "ERR_SERVER_UNAVAILABLE");
+
+    // 5xx → 브레이커에 알림
+    if (!result.ok && result.status >= 500) {
+      breakerRecordFailure();
+    } else if (result.ok) {
+      breakerRecordSuccess();
+    }
+
+    // 성공 혹은 retry 불가 (4xx 등)
+    if (result.ok || !isRetryable) {
+      return result;
+    }
+
+    // 브레이커가 방금 열렸으면 즉시 반환
+    if (isBreakerOpen()) {
+      return {
+        ok: false,
+        code: "ERR_CIRCUIT_OPEN",
+        message: MSG_SERVER_TRANSIENT,
+        status: 0,
+      };
+    }
+
+    // 마지막 시도였으면 루프 종료 (재시도 없음)
+    if (attempt >= RETRY_MAX_ATTEMPTS) break;
+
+    // Retry-After 우선, 없으면 지수 backoff
+    const retryAfterMs =
+      (result as ServerResult<T> & { _retryAfterMs?: number })._retryAfterMs;
+    const backoff = Math.min(
+      RETRY_BASE_MS * Math.pow(2, attempt - 1),
+      RETRY_CAP_MS,
+    );
+    const delayMs = retryAfterMs !== undefined ? retryAfterMs : backoff;
+    await sleep(delayMs);
+  }
+
+  // 모든 재시도 소진 — 한국어 메시지로 교체
+  if (lastResult !== null && !lastResult.ok) {
     return {
-      ok: false,
-      code: envelope.error.code,
-      message: envelope.error.message,
-      status: response.status,
-      details: envelope.error.details,
+      ...lastResult,
+      message: MSG_SERVER_TRANSIENT,
     };
   }
+
+  // 이 경로는 정상적으로 도달하지 않음
   return {
     ok: false,
-    code: "ERR_INVALID_RESPONSE",
-    message: "invalid_response",
-    status: response.status,
+    code: "ERR_SERVER_UNAVAILABLE",
+    message: MSG_SERVER_TRANSIENT,
+    status: 0,
   };
 }
