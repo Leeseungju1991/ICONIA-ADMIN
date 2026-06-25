@@ -105,8 +105,6 @@ const navGroups: NavGroup[] = [
         label: "운영 안정성",
         icon: ShieldIcon,
         children: [
-          { to: "/dashboard/ops/slo", label: "SLO 대시보드" },
-          { to: "/dashboard/ops/alerts", label: "알람 설정" },
           { to: "/dashboard/ops/logs", label: "로그 검색" },
           { to: "/dashboard/ops/audit", label: "감사 로그" },
           { to: "/dashboard/ops/runbook", label: "장애 Runbook" },
@@ -207,8 +205,6 @@ function subtitleFor(to: string): string {
     // 사이드바 [시스템·운영] 그룹
     case "/dashboard/error-tracking": return "기능별 24시간 에러 — 스택, 빈도, 영향 사용자 수.";
     case "/dashboard/ops": return "observability · tracing · alerting · audit · replay · recovery · kill switch · feature flag.";
-    case "/dashboard/ops/slo": return "API p50/p95/p99 · error rate · AI fallback · DB · 외부 의존성 — 5분 sliding window.";
-    case "/dashboard/ops/alerts": return "SLO 위반 알람 임계치 · 활성화 · 채널 (이메일/슬랙). 변경은 사유 5자 + audit_log.";
     case "/dashboard/ops/logs": return "운영 로그 검색 — request-id / user-id / endpoint / status / level / 시간 범위. PII 는 마스킹.";
     case "/dashboard/ops/audit": return "감사 로그 뷰어 — 운영자 변경 작업 hash chain. CSV export 지원.";
     case "/dashboard/ops/runbook": return "장애 대응 절차 모음 + 수동 운영 작업 (circuit close · cache invalidate · 메인터넌스 모드).";

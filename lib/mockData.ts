@@ -21,6 +21,8 @@ export type UserRow = {
   account_status: "active" | "paused" | "deleted" | "pending_deletion";
   totp_enabled: boolean;
   last_login_at: string;
+  // 2026-06-25 — requireUser 미들웨어(throttle 1분) 가 갱신. null = 아직 인증 요청 없음.
+  last_seen_at?: string | null;
   created_at: string;
   // Server `/api/v1/admin/users` 응답에 미존재 — null 일 때 UI 가 "—" 표시.
   doll_count: number | null;
@@ -300,5 +302,35 @@ export function formatDate(iso: string): string {
     return d.toLocaleString("ko-KR", { dateStyle: "medium", timeStyle: "short" });
   } catch {
     return iso;
+  }
+}
+
+// 2026-06-25 — 최근접속일용 상대 시간 포맷.
+//   1분 미만 → "방금 전"
+//   1시간 미만 → "N분 전"
+//   24시간 미만 → "N시간 전"
+//   어제 (당일 기준 전날) → "어제"
+//   7일 미만 → "N일 전"
+//   그 이상 → "YYYY-MM-DD HH:MM" 절대값
+export function formatRelativeDate(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  try {
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return "—";
+    const now = Date.now();
+    const diffMs = now - d.getTime();
+    if (diffMs < 0) return formatDate(iso); // 미래 시각은 그냥 절대값
+    const diffSec = Math.floor(diffMs / 1000);
+    if (diffSec < 60) return "방금 전";
+    const diffMin = Math.floor(diffSec / 60);
+    if (diffMin < 60) return `${diffMin}분 전`;
+    const diffHr = Math.floor(diffMin / 60);
+    if (diffHr < 24) return `${diffHr}시간 전`;
+    const diffDay = Math.floor(diffHr / 24);
+    if (diffDay === 1) return "어제";
+    if (diffDay < 7) return `${diffDay}일 전`;
+    return d.toLocaleString("ko-KR", { dateStyle: "medium", timeStyle: "short" });
+  } catch {
+    return "—";
   }
 }

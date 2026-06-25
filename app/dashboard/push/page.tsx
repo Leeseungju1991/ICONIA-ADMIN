@@ -8,6 +8,7 @@ import { AdminToast, useAdminToast } from "../_components/AdminToast";
 import {
   listCampaignsAction,
   createAndSendCampaignAction,
+  sendCampaignAction,
   type CampaignsListResult,
 } from "@/lib/actions/pushActions";
 import type { PushCampaignRow } from "@/lib/adminApi";
@@ -16,6 +17,7 @@ import type { PushCampaignRow } from "@/lib/adminApi";
 // 2026-06-02 UX 통합:
 // - 행 클릭(펼침 버튼)으로 본문/도달 통계 펼침 (error-tracking 패턴, ExpandableRow 공통화).
 // - 강력액션(즉시 전체 발송) DangerConfirmDialog 색상 강조 모달.
+// 2026-06-25 — 행별 발송(재발송) 버튼 추가. 작성폼 버튼 텍스트 '발송'으로 정정.
 
 const statusLabel = (s: string) =>
   s === "sent" ? "발송 완료" : s === "failed" ? "발송 실패" : s === "draft" ? "대기" : s;
@@ -29,14 +31,18 @@ const statusChip = (s: string) =>
         : "chip chip-muted";
 
 type Pending = { title: string; body: string; form: HTMLFormElement } | null;
+// 행 단위 발송 confirm — campaign id + 표시 정보.
+type RowPending = { id: string; title: string; body: string } | null;
 
 export default function PushPage() {
   const [state, setState] = useState<CampaignsListResult | null>(null);
   const [loading, startLoad] = useTransition();
   const [sending, startSend] = useTransition();
+  const [rowSending, startRowSend] = useTransition();
   const { toast, setToast } = useAdminToast();
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [pending, setPending] = useState<Pending>(null);
+  const [rowPending, setRowPending] = useState<RowPending>(null);
   const formRef = useRef<HTMLFormElement | null>(null);
 
   function reload() {
@@ -83,6 +89,27 @@ export default function PushPage() {
     });
   }
 
+  function confirmRowSend() {
+    if (!rowPending) return;
+    const { id } = rowPending;
+    startRowSend(async () => {
+      const r = await sendCampaignAction({ id });
+      if (!r.ok) {
+        setToast({ message: `발송 실패: ${r.message}`, tone: "error" });
+        setRowPending(null);
+        return;
+      }
+      setToast({
+        message: r.campaign.status === "sent"
+          ? `발송 완료 (도달 ${r.campaign.delivered_count ?? 0}건)`
+          : `발송 처리됨: ${statusLabel(r.campaign.status)}`,
+        tone: "success",
+      });
+      setRowPending(null);
+      reload();
+    });
+  }
+
   const items: PushCampaignRow[] = state && state.ok ? state.items : [];
 
   return (
@@ -107,9 +134,9 @@ export default function PushPage() {
               type="submit"
               disabled={sending}
               title="전체 설치 사용자에게 즉시 푸시 발송 (되돌릴 수 없음)"
-              className="rounded-xl bg-red-600 hover:bg-red-700 px-4 py-2 text-sm font-semibold text-white shadow-card disabled:opacity-60"
+              className="rounded-xl bg-blue-600 hover:bg-blue-700 px-4 py-2 text-sm font-semibold text-white shadow-card disabled:opacity-60"
             >
-              {sending ? "발송 중..." : "삭제 (전체 발송)"}
+              {sending ? "발송 중..." : "발송"}
             </button>
           </div>
         </form>
@@ -145,17 +172,33 @@ export default function PushPage() {
                   expanded={isOpen}
                   onToggle={() => setExpandedId(isOpen ? null : c.id)}
                   summary={
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-medium text-slate-800 truncate">{c.title}</span>
-                        <span className={statusChip(c.status)}>{statusLabel(c.status)}</span>
-                      </div>
-                      {c.status === "sent" ? (
-                        <div className="mt-1 text-[11px] text-muted">
-                          도달 {c.delivered_count ?? 0}건 · {c.sent_at ?? ""}
+                    <div className="min-w-0 flex items-start gap-2 w-full">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-medium text-slate-800 truncate">{c.title}</span>
+                          <span className={statusChip(c.status)}>{statusLabel(c.status)}</span>
                         </div>
-                      ) : (
-                        <div className="mt-1 text-[11px] text-muted">{c.body.slice(0, 60)}</div>
+                        {c.status === "sent" ? (
+                          <div className="mt-1 text-[11px] text-muted">
+                            도달 {c.delivered_count ?? 0}건 · {c.sent_at ?? ""}
+                          </div>
+                        ) : (
+                          <div className="mt-1 text-[11px] text-muted">{c.body.slice(0, 60)}</div>
+                        )}
+                      </div>
+                      {/* 발송 버튼 — draft / failed 캠페인에만 표시. sent 는 재발송 불가. */}
+                      {c.status !== "sent" && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setRowPending({ id: c.id, title: c.title, body: c.body });
+                          }}
+                          disabled={rowSending}
+                          className="shrink-0 rounded-lg bg-blue-600 hover:bg-blue-700 px-3 py-1 text-xs font-semibold text-white disabled:opacity-60"
+                        >
+                          발송
+                        </button>
                       )}
                     </div>
                   }
@@ -192,6 +235,7 @@ export default function PushPage() {
         )}
       </PanelCard>
 
+      {/* 작성 폼 발송 confirm */}
       <DangerConfirmDialog
         open={!!pending}
         title="전체 사용자에게 푸시 발송"
@@ -203,12 +247,35 @@ export default function PushPage() {
             </span>
           ) : null
         }
-        confirmLabel="삭제"
+        confirmLabel="발송"
+        variant="primary"
         busy={sending}
         onConfirm={confirmSend}
         onCancel={() => {
           if (sending) return;
           setPending(null);
+        }}
+      />
+
+      {/* 행 단위 발송 confirm */}
+      <DangerConfirmDialog
+        open={!!rowPending}
+        title="이 알림을 발송하시겠습니까?"
+        description={rowPending ? `"${rowPending.title}" 알림을 전체 설치 사용자에게 발송합니다.` : ""}
+        detail={
+          rowPending ? (
+            <span>
+              본문: <span className="line-clamp-3">{rowPending.body}</span>
+            </span>
+          ) : null
+        }
+        confirmLabel="발송"
+        variant="primary"
+        busy={rowSending}
+        onConfirm={confirmRowSend}
+        onCancel={() => {
+          if (rowSending) return;
+          setRowPending(null);
         }}
       />
 

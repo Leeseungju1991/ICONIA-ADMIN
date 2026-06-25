@@ -51,7 +51,6 @@ const RUNBOOKS: Runbook[] = [
       "광범위 + Server 5xx 다발이면: 메인터넌스 모드 토글 검토 (10~30분).",
     ],
     related: [
-      { href: "/dashboard/ops/slo", label: "SLO 대시보드" },
       { href: "/dashboard/ops/logs", label: "로그 검색" },
       { href: "/dashboard/ops", label: "운영 안정성 (feature flag · kill switch)" },
     ],
@@ -88,7 +87,7 @@ const RUNBOOKS: Runbook[] = [
       "사용자 영향이 있었다면 사후 공지 작성.",
     ],
     related: [
-      { href: "/dashboard/ops/slo", label: "의존성 상태" },
+      { href: "/dashboard/ops", label: "운영 안정성" },
       { href: "/dashboard/notices", label: "공지 작성" },
     ],
   },

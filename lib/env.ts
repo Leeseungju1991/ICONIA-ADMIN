@@ -12,7 +12,7 @@ import { z } from "zod";
 
 // AWS 실서버 정본 base URL (단일 데이터 대상). env override 가 없으면 항상 이 값.
 const AWS_SERVER_URL =
-  "http://iconia-prod-alb-1600486872.ap-northeast-2.elb.amazonaws.com";
+  "http://iconia-prod-alb-1408962743.ap-northeast-2.elb.amazonaws.com";
 
 // ICONIA_ENV — 운영자가 prod/staging/dev 콘솔을 시각적으로 구분하기 위한
 // 환경 식별자 (§2.12 / 감사 §5.1.10a). NODE_ENV 와 별개로 운영 환경을 명시.

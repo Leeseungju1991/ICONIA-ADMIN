@@ -2,8 +2,9 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { loadEnv, loadIconiaEnv, loadIdleTimeoutMinutes } from "./env";
 
 // AWS 실서버 정본 ALB URL — env override 가 없을 때의 단일 데이터 대상.
+// 2026-06-25: AWS 계정 이전(022671037305 → 169063643478) 후 ALB URL 변경.
 const AWS_SERVER_URL =
-  "http://iconia-prod-alb-1600486872.ap-northeast-2.elb.amazonaws.com";
+  "http://iconia-prod-alb-1408962743.ap-northeast-2.elb.amazonaws.com";
 
 function setNodeEnv(v: string) {
   (process.env as { NODE_ENV?: string }).NODE_ENV = v;

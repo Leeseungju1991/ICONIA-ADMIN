@@ -29,6 +29,8 @@ export type UserRow = {
   pending_deletion_at?: string | null;
   totp_enabled?: boolean;
   last_login_at?: string | null;
+  // 2026-06-25 — 최근 활동 시각 (requireUser 미들웨어 throttle 1분 갱신).
+  last_seen_at?: string | null;
   created_at?: string;
   // 2026-06-12 — 연동된 인형 목록 (handle = 인형 넘버, nickname = 사용자 지정명).
   linked_dolls?: LinkedDollRow[];
@@ -1828,6 +1830,21 @@ export function sendPushCampaign(args: {
     path: `/api/v1/admin/push/campaigns/${encodeURIComponent(args.id)}/send`,
     method: "POST",
     body: {},
+  });
+}
+
+// Phase 15 2026-06-25 — 어드민 발송 버튼 진입점.
+// POST /api/v1/admin/push/send { campaign_id }
+// 응답: { campaign: PushCampaignRow, delivered_count: number }
+export function dispatchPushSend(args: {
+  jwt: string;
+  campaign_id: string;
+}): Promise<ServerResult<{ campaign: PushCampaignRow; delivered_count: number }>> {
+  return authedRequest({
+    jwt: args.jwt,
+    path: `/api/v1/admin/push/send`,
+    method: "POST",
+    body: { campaign_id: args.campaign_id },
   });
 }
 

@@ -20,13 +20,10 @@ import {
 } from "@/lib/actions/devices";
 import { getDeviceBootInvariantsAction } from "@/lib/actions/bootInvariants";
 import { safeImgSrc } from "@/lib/safeUrl";
-import { fetchDistributionAction } from "@/lib/actions/deviceDistribution";
 import type {
   OwnershipHop,
   DeviceRow as ServerDeviceRow,
   DeviceBootInvariants,
-  DistributionBy,
-  DistributionItem,
   DeviceEventRow,
 } from "@/lib/adminApi";
 
@@ -322,8 +319,6 @@ export default function DevicesPage() {
       </section>
 
       <LiveDevicesPanel />
-
-      <FleetDistributionPanel />
 
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
@@ -812,96 +807,6 @@ function LiveDevicesPanel() {
                   : ""}
                 {" · 최근 통신 "}
                 {d.last_seen_at ?? "—"}
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
-    </PanelCard>
-  );
-}
-
-// 양산직전 #15 — Fleet 디바이스 분포 패널.
-// Server `/api/v1/admin/devices/distribution?by=...` 4가지 by 토글.
-function FleetDistributionPanel() {
-  const [by, setBy] = useState<DistributionBy>("version");
-  const [items, setItems] = useState<DistributionItem[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-    fetchDistributionAction({ by })
-      .then((r) => {
-        if (cancelled) return;
-        if (!r.ok) {
-          setError(r.message);
-          setItems(null);
-        } else {
-          setItems(r.items);
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [by]);
-
-  const byLabel: Record<DistributionBy, string> = {
-    version: "펌웨어 버전",
-    region: "지역",
-    cohort: "cohort",
-    fw_state: "펌웨어 상태",
-  };
-
-  return (
-    <PanelCard
-      title="Fleet 분포 (Server)"
-      description="전체 기기의 분포 현황을 확인합니다."
-      actions={
-        <select
-          className="select max-w-[160px]"
-          value={by}
-          onChange={(e) => setBy(e.target.value as DistributionBy)}
-        >
-          {(["version", "region", "cohort", "fw_state"] as const).map((k) => (
-            <option key={k} value={k}>
-              {byLabel[k]} 기준
-            </option>
-          ))}
-        </select>
-      }
-    >
-      {loading ? (
-        <div className="text-sm text-muted">불러오는 중</div>
-      ) : error ? (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-          Server 도달 실패: {error}
-        </div>
-      ) : !items || items.length === 0 ? (
-        <div className="text-sm text-muted">분포 데이터가 없습니다.</div>
-      ) : (
-        <ul className="space-y-2 text-sm">
-          {items.map((it) => (
-            <li
-              key={it.key}
-              className="rounded-xl border border-white/60 bg-white/55 px-3 py-2"
-            >
-              <div className="flex items-center justify-between gap-2">
-                <span className="font-mono text-xs">{it.key}</span>
-                <span className="text-xs text-muted">
-                  {it.count.toLocaleString()}대 · {it.percent.toFixed(1)}%
-                </span>
-              </div>
-              <div className="mt-1 h-1.5 rounded-full bg-white/70 overflow-hidden">
-                <div
-                  className="h-full bg-accent"
-                  style={{ width: `${Math.min(it.percent, 100)}%` }}
-                />
               </div>
             </li>
           ))}
