@@ -10,12 +10,14 @@
 
 import { useCallback, useEffect, useRef, useState, useTransition, type FormEvent } from "react";
 import { PanelCard } from "../_components/PanelCard";
+import { AdminToast, useAdminToast } from "../_components/AdminToast";
 import {
   addKeyStoreAction,
   disableKeyStoreAction,
   rotateKeyStoreAction,
   keysStoreUsageSummaryAction,
   listKeysStoreAction,
+  type KeyStoreActionResult,
 } from "@/lib/actions/geminiKeysStore";
 import { fetchGeminiUsageAction } from "@/lib/actions/gemini";
 import {
@@ -39,7 +41,9 @@ export default function GeminiClient() {
   const [apiKey, setApiKey] = useState("");
   const [, startLoad] = useTransition();
   const [mutating, startMutate] = useTransition();
-  const [toast, setToast] = useState<string | null>(null);
+  const { toast, setToast } = useAdminToast();
+  // 2026-06-25 — KEK 미설정 시 setup 안내 배너 표시 플래그.
+  const [setupRequired, setSetupRequired] = useState(false);
   // 회전(rotate) 모달 상태 — null 이면 닫힘, item 이면 해당 키의 rotate 폼 열림
   const [rotatingItem, setRotatingItem] = useState<GeminiKeysStoreItem | null>(null);
 
@@ -72,15 +76,22 @@ export default function GeminiClient() {
     startMutate(async () => {
       const r = await addKeyStoreAction(trimmed);
       if (!r.ok) {
-        setToast(`등록 실패: ${r.message}`);
+        // 2026-06-25 — KEK 미설정이면 토스트 대신 배너로 안내.
+        if ((r as { setup_required?: boolean }).setup_required) {
+          setSetupRequired(true);
+          return;
+        }
+        setToast({ message: `등록 실패: ${r.message}`, tone: "error" });
         return;
       }
+      setSetupRequired(false);
       setApiKey("");
-      setToast(
-        r.data.reactivated
+      setToast({
+        message: r.data.reactivated
           ? `재활성화: ${r.data.item.alias} (${r.data.item.keyPrefix}***)`
           : `등록 완료: ${r.data.item.alias} (${r.data.item.keyPrefix}***)`,
-      );
+        tone: "success",
+      });
       reload();
     });
   }
@@ -94,10 +105,10 @@ export default function GeminiClient() {
     startMutate(async () => {
       const r = await rotateKeyStoreAction(item.id, newKey, reason);
       if (!r.ok) {
-        setToast(`회전 실패: ${r.message}`);
+        setToast({ message: `회전 실패: ${r.message}`, tone: "error" });
         return;
       }
-      setToast(`키 회전 완료: ${r.data.item.alias} (${r.data.item.keyPrefix}***) — 감사 로그 기록됨`);
+      setToast({ message: `키 회전 완료: ${r.data.item.alias} (${r.data.item.keyPrefix}***) — 감사 로그 기록됨`, tone: "success" });
       reload();
     });
   }
@@ -117,17 +128,57 @@ export default function GeminiClient() {
     startMutate(async () => {
       const r = await disableKeyStoreAction(item.id);
       if (!r.ok) {
-        setToast(`삭제 실패: ${r.message}`);
+        setToast({ message: `삭제 실패: ${r.message}`, tone: "error" });
         reload(); // 실패 시 서버 상태로 되돌린다.
         return;
       }
-      setToast(`삭제 완료: ${item.alias}`);
+      setToast({ message: `삭제 완료: ${item.alias}`, tone: "success" });
       reload();
     });
   }
 
   return (
     <div className="space-y-6">
+      {/* ───────── 서버 KEK 미설정 안내 배너 ───────── */}
+      {setupRequired ? (
+        <div className="rounded-2xl border border-amber-300 bg-amber-50 px-5 py-4 text-sm text-amber-900 space-y-2">
+          <div className="font-semibold">서버 마스터 암호화 키(KEK) 미설정</div>
+          <div className="text-xs text-amber-800 space-y-1">
+            <p>
+              Gemini API KEY 를 Secrets Manager 에 암호화 저장하려면 서버에
+              <code className="mx-1 rounded bg-amber-100 px-1 font-mono">GEMINI_KEY_STORE_SECRET</code>
+              환경변수가 필요합니다.
+            </p>
+            <p className="font-medium">AWS 계정 169063643478 설정 절차:</p>
+            <ol className="list-decimal ml-4 space-y-0.5">
+              <li>
+                AWS Secrets Manager →
+                <code className="mx-1 rounded bg-amber-100 px-1 font-mono">iconia/prod/gemini/key_store_secret</code>
+                생성 (임의 32자 이상 문자열)
+              </li>
+              <li>
+                EC2 인스턴스 프로파일 IAM Role 에{" "}
+                <code className="mx-1 rounded bg-amber-100 px-1 font-mono">secretsmanager:GetSecretValue</code>{" "}
+                권한 확인
+              </li>
+              <li>
+                SSM Parameter Store 또는 EC2 UserData 로
+                <code className="mx-1 rounded bg-amber-100 px-1 font-mono">GEMINI_KEY_STORE_SECRET</code>
+                주입 후 서버 재시작
+              </li>
+            </ol>
+            <p className="text-amber-700">설정 완료 후 이 화면에서 KEY 등록을 재시도하세요.</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setSetupRequired(false)}
+            className="text-xs underline text-amber-700 hover:text-amber-900"
+          >
+            닫기
+          </button>
+        </div>
+      ) : null}
+
       {/* ───────────────── 1. one-box 등록 ───────────────── */}
       <PanelCard
         title="Gemini API KEY"
@@ -245,18 +296,7 @@ export default function GeminiClient() {
         />
       ) : null}
 
-      {toast ? (
-        <div className="fixed bottom-6 right-6 z-50 rounded-2xl bg-slate-900/85 text-white text-sm px-4 py-3 shadow-card">
-          {toast}
-          <button
-            className="ml-3 underline opacity-80"
-            onClick={() => setToast(null)}
-            type="button"
-          >
-            닫기
-          </button>
-        </div>
-      ) : null}
+      <AdminToast toast={toast} onDismiss={() => setToast(null)} />
     </div>
   );
 }

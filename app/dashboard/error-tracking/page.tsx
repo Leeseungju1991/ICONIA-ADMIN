@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 import { PanelCard } from "../_components/PanelCard";
 import { StatCard } from "../_components/StatCard";
 import { EmptyState, ErrorState, FixtureBadge, LoadingState } from "../_components/CardStates";
+import { AdminToast, useAdminToast } from "../_components/AdminToast";
 import { listErrorsAction, resolveErrorAction } from "@/lib/actions/errorsTracking";
 import type { ErrorDomain, ErrorRow } from "@/types/admin-api";
 
@@ -55,7 +56,7 @@ export default function ErrorTrackingPage() {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [loading, startLoad] = useTransition();
   const [resolving, setResolving] = useState<Set<string>>(new Set());
-  const [toast, setToast] = useState<string | null>(null);
+  const { toast, setToast } = useAdminToast();
 
   function reload() {
     startLoad(async () => {
@@ -94,11 +95,11 @@ export default function ErrorTrackingPage() {
       return next;
     });
     if (!r.ok) {
-      setToast(`처리 실패: ${r.message ?? r.code ?? "알 수 없는 오류"}`);
+      setToast({ message: `처리 실패: ${r.message ?? r.code ?? "알 수 없는 오류"}`, tone: "error" });
       return;
     }
     setItems((prev) => prev.filter((e) => e.id !== id));
-    setToast("처리 완료로 표시되어 목록에서 제거했습니다.");
+    setToast({ message: "처리 완료로 표시되어 목록에서 제거했습니다.", tone: "success" });
   }
 
   const stats = useMemo(() => {
@@ -252,18 +253,7 @@ export default function ErrorTrackingPage() {
         )}
       </PanelCard>
 
-      {toast ? (
-        <div className="fixed bottom-6 right-6 z-50 rounded-2xl bg-slate-900/85 text-white text-sm px-4 py-3 shadow-card">
-          {toast}
-          <button
-            className="ml-3 underline opacity-80"
-            onClick={() => setToast(null)}
-            type="button"
-          >
-            닫기
-          </button>
-        </div>
-      ) : null}
+      <AdminToast toast={toast} onDismiss={() => setToast(null)} />
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import { PanelCard } from "../../_components/PanelCard";
 import { LoadingState, EmptyState } from "../../_components/CardStates";
 import { DangerConfirmDialog } from "../../_components/DangerConfirmDialog";
+import { AdminToast, useAdminToast } from "../../_components/AdminToast";
 import {
   listFaqsAction,
   createFaqAction,
@@ -149,7 +150,7 @@ export default function FaqsClient() {
   const [editQuestion, setEditQuestion] = useState("");
   const [editAnswer, setEditAnswer] = useState("");
   const [editCategory, setEditCategory] = useState<string>(DEFAULT_CATEGORY);
-  const [toast, setToast] = useState<string | null>(null);
+  const { toast, setToast } = useAdminToast();
   // V1.0 라운드 — window.confirm → DangerConfirmDialog 정합.
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
@@ -182,10 +183,10 @@ export default function FaqsClient() {
     startMutate(async () => {
       const r = await createFaqAction({ question, answer, question_en, answer_en, category, order_idx });
       if (!r.ok) {
-        setToast(`작성 실패: ${messageForCode(r.code, r.message)}`);
+        setToast({ message: `작성 실패: ${messageForCode(r.code, r.message)}`, tone: "error" });
         return;
       }
-      setToast(`FAQ 작성됨: ${r.faq.id}`);
+      setToast({ message: `FAQ 작성됨: ${r.faq.id}`, tone: "success" });
       form.reset();
       reload();
     });
@@ -218,10 +219,10 @@ export default function FaqsClient() {
         },
       });
       if (!r.ok) {
-        setToast(`수정 실패: ${messageForCode(r.code, r.message)}`);
+        setToast({ message: `수정 실패: ${messageForCode(r.code, r.message)}`, tone: "error" });
         return;
       }
-      setToast("FAQ 수정됨");
+      setToast({ message: "FAQ 수정됨", tone: "success" });
       cancelEdit();
       reload();
     });
@@ -239,10 +240,10 @@ export default function FaqsClient() {
     startMutate(async () => {
       const r = await deleteFaqAction({ id });
       if (!r.ok) {
-        setToast(`삭제 실패: ${messageForCode(r.code, r.message)}`);
+        setToast({ message: `삭제 실패: ${messageForCode(r.code, r.message)}`, tone: "error" });
         return;
       }
-      setToast("FAQ 삭제됨");
+      setToast({ message: "FAQ 삭제됨", tone: "success" });
       reload();
     });
   }
@@ -415,18 +416,7 @@ export default function FaqsClient() {
         )}
       </PanelCard>
 
-      {toast ? (
-        <div className="fixed bottom-6 right-6 z-50 rounded-2xl bg-slate-900/85 text-white text-sm px-4 py-3 shadow-card">
-          {toast}
-          <button
-            className="ml-3 underline opacity-80"
-            onClick={() => setToast(null)}
-            type="button"
-          >
-            닫기
-          </button>
-        </div>
-      ) : null}
+      <AdminToast toast={toast} onDismiss={() => setToast(null)} />
 
       <DangerConfirmDialog
         open={pendingDeleteId !== null}

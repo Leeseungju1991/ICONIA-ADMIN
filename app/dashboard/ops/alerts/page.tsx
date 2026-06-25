@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { PanelCard } from "../../_components/PanelCard";
+import { AdminToast, useAdminToast } from "../../_components/AdminToast";
 import {
   getAlertConfigAction,
   updateAlertRuleAction,
@@ -52,7 +53,7 @@ export default function OpsAlertsPage() {
     unreachable: boolean;
   } | null>(null);
   const [loading, startLoad] = useTransition();
-  const [toast, setToast] = useState<string | null>(null);
+  const { toast, setToast } = useAdminToast();
 
   const reload = useCallback(() => {
     startLoad(async () => {
@@ -148,10 +149,10 @@ export default function OpsAlertsPage() {
                 key={rule.key}
                 rule={rule}
                 onSaved={() => {
-                  setToast(`규칙 ${rule.key} 변경 완료.`);
+                  setToast({ message: `규칙 ${rule.key} 변경 완료.`, tone: "success" });
                   reload();
                 }}
-                onError={(msg) => setToast(`변경 실패: ${msg}`)}
+                onError={(msg) => setToast({ message: `변경 실패: ${msg}`, tone: "error" })}
               />
             ))}
           </ul>
@@ -199,18 +200,7 @@ export default function OpsAlertsPage() {
         </div>
       </PanelCard>
 
-      {toast ? (
-        <div className="fixed bottom-6 right-6 z-50 rounded-2xl bg-slate-900/85 text-white text-sm px-4 py-3 shadow-card max-w-md">
-          {toast}
-          <button
-            className="ml-3 underline opacity-80"
-            onClick={() => setToast(null)}
-            type="button"
-          >
-            닫기
-          </button>
-        </div>
-      ) : null}
+      <AdminToast toast={toast} onDismiss={() => setToast(null)} />
     </div>
   );
 }

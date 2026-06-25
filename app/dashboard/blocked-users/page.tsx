@@ -7,6 +7,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { PanelCard } from "../_components/PanelCard";
+import { AdminToast, useAdminToast } from "../_components/AdminToast";
 import { StatCard } from "../_components/StatCard";
 import { EmptyState, ErrorState, LoadingState } from "../_components/CardStates";
 import {
@@ -14,6 +15,7 @@ import {
   unblockUserAction,
 } from "@/lib/actions/blockedUsers";
 import type { BlockedUserRow, BlockedUserSort } from "@/types/admin-api";
+import { safeImgSrc } from "@/lib/safeUrl";
 
 const SORT_LABEL: Record<BlockedUserSort, string> = {
   created_at: "차단 최신순",
@@ -26,7 +28,7 @@ export default function BlockedUsersPage() {
   const [sort, setSort] = useState<BlockedUserSort>("created_at");
   const [items, setItems] = useState<BlockedUserRow[] | null>(null);
   const [error, setError] = useState<{ message: string; unreachable: boolean } | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
+  const { toast, setToast } = useAdminToast();
   const [loading, startLoad] = useTransition();
   const [acting, startAct] = useTransition();
 
@@ -64,10 +66,10 @@ export default function BlockedUsersPage() {
     startAct(async () => {
       const res = await unblockUserAction({ userId: uid, targetUserId: target.target_user_id });
       if (!res.ok) {
-        setToast(`차단 해제 실패: ${res.message}`);
+        setToast({ message: `차단 해제 실패: ${res.message}`, tone: "error" });
         return;
       }
-      setToast(`차단 해제 완료 — ${target.display_name || target.target_user_id}`);
+      setToast({ message: `차단 해제 완료 — ${target.display_name || target.target_user_id}`, tone: "success" });
       // 목록에서 즉시 제거 (낙관적) 후 재조회.
       setItems((cur) =>
         (cur ?? []).filter((b) => b.target_user_id !== target.target_user_id),
@@ -172,18 +174,7 @@ export default function BlockedUsersPage() {
         )}
       </PanelCard>
 
-      {toast ? (
-        <div className="fixed bottom-6 right-6 z-50 rounded-2xl bg-slate-900/85 text-white text-sm px-4 py-3 shadow-card max-w-md">
-          {toast}
-          <button
-            className="ml-3 underline opacity-80"
-            onClick={() => setToast(null)}
-            type="button"
-          >
-            닫기
-          </button>
-        </div>
-      ) : null}
+      <AdminToast toast={toast} onDismiss={() => setToast(null)} />
     </div>
   );
 }
@@ -200,10 +191,10 @@ function BlockedRow({
   return (
     <li className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 flex items-center justify-between gap-3 flex-wrap">
       <div className="min-w-0 flex-1 flex items-center gap-3">
-        {row.avatar_url ? (
+        {safeImgSrc(row.avatar_url) ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={row.avatar_url}
+            src={safeImgSrc(row.avatar_url)}
             alt=""
             className="h-9 w-9 rounded-full object-cover bg-slate-100 shrink-0"
           />

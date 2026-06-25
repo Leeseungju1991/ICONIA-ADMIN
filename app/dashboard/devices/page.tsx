@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { PanelCard } from "../_components/PanelCard";
+import { AdminToast, useAdminToast } from "../_components/AdminToast";
 import { DataTable, type Column } from "../_components/DataTable";
 import { StatCard } from "../_components/StatCard";
 import {
@@ -18,6 +19,7 @@ import {
   type FirmwareDeploymentRow,
 } from "@/lib/actions/devices";
 import { getDeviceBootInvariantsAction } from "@/lib/actions/bootInvariants";
+import { safeImgSrc } from "@/lib/safeUrl";
 import { fetchDistributionAction } from "@/lib/actions/deviceDistribution";
 import type {
   OwnershipHop,
@@ -139,7 +141,7 @@ export default function DevicesPage() {
       cancelled = true;
     };
   }, []);
-  const [toast, setToast] = useState<string | null>(null);
+  const { toast, setToast } = useAdminToast();
 
   const filtered = useMemo(
     () =>
@@ -474,14 +476,7 @@ export default function DevicesPage() {
         <DataTable columns={columns} rows={filtered} empty="조건에 맞는 디바이스가 없습니다." />
       </PanelCard>
 
-      {toast ? (
-        <div className="fixed bottom-6 right-6 z-50 rounded-2xl bg-slate-900/85 text-white text-sm px-4 py-3 shadow-card">
-          {toast}
-          <button className="ml-3 underline opacity-80" onClick={() => setToast(null)} type="button">
-            닫기
-          </button>
-        </div>
-      ) : null}
+      <AdminToast toast={toast} onDismiss={() => setToast(null)} />
 
       {picked ? (
         <DeviceDrawer
@@ -612,10 +607,10 @@ function DeviceMediaPanel({ deviceId }: { deviceId: string }) {
               className="rounded-xl bg-white/65 border border-white/50 px-3 py-2 text-xs"
             >
               <div className="flex items-start gap-3">
-                {ev.image_url ? (
+                {safeImgSrc(ev.image_url) ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={ev.image_url}
+                    src={safeImgSrc(ev.image_url)}
                     alt={`이벤트 ${ev.event_id} 사진`}
                     loading="lazy"
                     className="h-14 w-14 shrink-0 rounded-lg object-cover border border-white/60 bg-slate-100"

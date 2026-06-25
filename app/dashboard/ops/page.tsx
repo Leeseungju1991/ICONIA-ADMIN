@@ -5,6 +5,7 @@ import { PanelCard } from "../_components/PanelCard";
 import { DataTable, type Column } from "../_components/DataTable";
 import { StatCard } from "../_components/StatCard";
 import { OpsAuditTrailPanel } from "../_components/OpsAuditTrailPanel";
+import { AdminToast, useAdminToast } from "../_components/AdminToast";
 import {
   mockHealthProbes,
   mockOpsAlerts,
@@ -46,7 +47,13 @@ import {
   bulkRetryDlqAction,
   type DlqListResult,
 } from "@/lib/actions/dlq";
-import type { DeadLetterRow as ServerDeadLetterRow } from "@/lib/adminApi";
+import type { DeadLetterRow as ServerDeadLetterRow, OpsMetricResult } from "@/lib/adminApi";
+import {
+  fetchCpuUtilizationAction,
+  fetchAlbRequestCountAction,
+  fetchAlbTargetResponseTimeAction,
+  fetchRdsConnectionsAction,
+} from "@/lib/actions/opsMetrics";
 
 // 운영 안정성 9항목 통합 표면 — Round 3 (2026-05-20).
 //
@@ -83,7 +90,7 @@ function askReason(label: string): string | null {
 }
 
 export default function OpsPage() {
-  const [toast, setToast] = useState<string | null>(null);
+  const { toast, setToast } = useAdminToast();
   const [auditTick, setAuditTick] = useState(0);
   const refreshAudit = () => setAuditTick((t) => t + 1);
 
@@ -104,18 +111,7 @@ export default function OpsPage() {
       <FeatureFlagBlock onToast={setToast} onRefreshAudit={refreshAudit} />
       <AuditLogBlock auditTick={auditTick} />
 
-      {toast ? (
-        <div className="fixed bottom-6 right-6 z-50 rounded-2xl bg-slate-900/85 text-white text-sm px-4 py-3 shadow-card max-w-md">
-          {toast}
-          <button
-            className="ml-3 underline opacity-80"
-            type="button"
-            onClick={() => setToast(null)}
-          >
-            닫기
-          </button>
-        </div>
-      ) : null}
+      <AdminToast toast={toast} onDismiss={() => setToast(null)} />
     </div>
   );
 }
@@ -236,7 +232,139 @@ function ObservabilityBlock() {
       >
         <DataTable columns={columns} rows={probes} empty="probe 데이터가 없습니다." />
       </PanelCard>
+
+      {/* 2026-06-25 — [PDF #13] CloudWatch 실 데이터 패널 */}
+      <CloudWatchMetricsBlock />
     </>
+  );
+}
+
+// ── 1-c) CloudWatch 실 메트릭 (AWS 계정 169063643478) ──────────
+// [PDF #13] opsInfraMock.ts 데이터를 대체 — SERVER proxy endpoint 경유 실 데이터 fetch.
+// SERVER agent 가 /api/v1/admin/ops/metrics 를 구현하면 자동 활성됨.
+// endpoint 미구현 시 "Server endpoint 준비 중" 배지로 graceful 노출.
+function CloudWatchMetricsBlock() {
+  const [cpu, setCpu] = useState<OpsMetricResult | null>(null);
+  const [alb, setAlb] = useState<OpsMetricResult | null>(null);
+  const [p95, setP95] = useState<OpsMetricResult | null>(null);
+  const [rds, setRds] = useState<OpsMetricResult | null>(null);
+  const [loading, startLoad] = useTransition();
+  const [notImplemented, setNotImplemented] = useState(false);
+
+  useEffect(() => {
+    startLoad(async () => {
+      const [cpuRes, albRes, p95Res, rdsRes] = await Promise.all([
+        fetchCpuUtilizationAction(),
+        fetchAlbRequestCountAction(),
+        fetchAlbTargetResponseTimeAction(),
+        fetchRdsConnectionsAction(),
+      ]);
+      // endpoint 미구현 감지 — 어느 하나라도 ERR_NOT_FOUND / ERR_NOT_IMPLEMENTED
+      const codes = [cpuRes, albRes, p95Res, rdsRes]
+        .filter((r) => !r.ok)
+        .map((r) => (r as { code?: string }).code);
+      if (codes.some((c) => c === "ERR_NOT_IMPLEMENTED" || c === "ERR_NOT_FOUND")) {
+        setNotImplemented(true);
+        return;
+      }
+      setNotImplemented(false);
+      if (cpuRes.ok) setCpu(cpuRes.data);
+      if (albRes.ok) setAlb(albRes.data);
+      if (p95Res.ok) setP95(p95Res.data);
+      if (rdsRes.ok) setRds(rdsRes.data);
+    });
+  }, []);
+
+  // 최신 datapoint 값 추출
+  function latestValue(m: OpsMetricResult | null): number | null {
+    if (!m || m.datapoints.length === 0) return null;
+    return m.datapoints.at(-1)!.value;
+  }
+
+  if (notImplemented) {
+    return (
+      <PanelCard
+        title="CloudWatch 메트릭 (실 데이터)"
+        description="AWS 계정 169063643478 — EC2 CPU / ALB 요청수 / p95 응답시간 / RDS 연결수"
+      >
+        <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-700">
+          <div className="font-medium">Server proxy endpoint 준비 중</div>
+          <div className="mt-1 text-xs text-muted">
+            SERVER agent 가{" "}
+            <code className="mx-1 rounded bg-slate-100 px-1 font-mono">
+              GET /api/v1/admin/ops/metrics
+            </code>{" "}
+            를 구현하면 CloudWatch 실 데이터가 여기에 표시됩니다.
+          </div>
+        </div>
+      </PanelCard>
+    );
+  }
+
+  const cpuVal = latestValue(cpu);
+  const albVal = latestValue(alb);
+  const p95Val = latestValue(p95);
+  const rdsVal = latestValue(rds);
+
+  return (
+    <PanelCard
+      title="CloudWatch 메트릭 (실 데이터)"
+      description={`AWS 계정 169063643478 — 최근 1시간 평균${loading ? " (갱신 중...)" : ""}`}
+    >
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <CloudWatchCell
+          label="EC2 CPU"
+          unit="%"
+          value={cpuVal}
+          warn={cpuVal != null && cpuVal > 70}
+          loading={loading}
+        />
+        <CloudWatchCell
+          label="ALB 요청수"
+          unit="req/5min"
+          value={albVal}
+          loading={loading}
+        />
+        <CloudWatchCell
+          label="ALB p95 응답"
+          unit="s"
+          value={p95Val}
+          warn={p95Val != null && p95Val > 1}
+          loading={loading}
+        />
+        <CloudWatchCell
+          label="RDS 연결수"
+          unit="conn"
+          value={rdsVal}
+          warn={rdsVal != null && rdsVal > 80}
+          loading={loading}
+        />
+      </div>
+    </PanelCard>
+  );
+}
+
+function CloudWatchCell({
+  label,
+  unit,
+  value,
+  warn = false,
+  loading = false,
+}: {
+  label: string;
+  unit: string;
+  value: number | null;
+  warn?: boolean;
+  loading?: boolean;
+}) {
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white px-3 py-3">
+      <div className="text-[11px] text-muted">{label}</div>
+      <div className={`mt-1 text-xl font-semibold tabular-nums ${warn ? "text-rose-600" : "text-slate-900"}`}>
+        {loading ? "..." : value != null ? value.toFixed(2) : "—"}
+      </div>
+      <div className="text-[10px] text-muted mt-0.5">{unit}</div>
+    </div>
   );
 }
 

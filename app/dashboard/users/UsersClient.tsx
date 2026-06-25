@@ -30,6 +30,8 @@ import { listUsersAction } from "@/lib/actions/usersList";
 import { getUserDetailAction } from "@/lib/actions/userDetail";
 import { createAdminUserAction } from "@/lib/actions/adminUserCreate";
 import type { PipaUserRow, UserRow as ServerUserRow, UserDetail } from "@/lib/adminApi";
+import { soulLabel } from "@/lib/soulCatalog";
+import { exportCsv, isoDateStamp } from "@/lib/exportData";
 
 // 강력 액션 2단계 확인 — /dashboard/ops 페이지와 같은 정책 (EXECUTE 정확 입력).
 const TWO_STEP_PHRASE = "EXECUTE";
@@ -52,14 +54,19 @@ const TODAY_WINDOW_HOURS = 48;
 //   · 연동인형 셀: soul_name(카탈로그 공식 한국어명) > nickname > handle 순 우선순위.
 //   · 표시이름 셀: Doll.display_name (자동 발급 [a-z]{5}[0-9]{2}) 우선. user.display_name 폴백.
 //   · 인형 1개: 단건. 0개: 둘 다 "미연동". 2개 이상: 첫 인형 + ▾펼침 토글.
-// 2026-06-22 — soul_name > nickname > handle 우선순위.
+// 2026-06-22 — soul_name > soul_catalog_id(SOUL_CATALOG_LABELS) > nickname > handle 우선순위.
+// 2026-06-24 — 서버 V 라운드 soul_name 미평탄화 시 soul_catalog_id → SOUL_CATALOG_LABELS 로컬 폴백 추가.
 function resolveDollName(d: {
   soul_name?: string | null;
+  soul_catalog_id?: string | null;
   nickname?: string | null;
   handle?: string | null;
 }): string {
   const sn = (d.soul_name ?? "").trim();
   if (sn) return sn;
+  // soul_catalog_id 가 있으면 로컬 카탈로그로 한국어명 조회 (서버 V 라운드 미완료 fallback).
+  const label = soulLabel(d.soul_catalog_id);
+  if (label) return label;
   const nn = (d.nickname ?? "").trim();
   if (nn) return nn;
   const h = (d.handle ?? "").trim().replace(/^@+/, "");
@@ -68,17 +75,23 @@ function resolveDollName(d: {
 
 // 2026-06-22 (사용자 요청) — 표시이름 = 이메일에 연동된 대표인형(SOUL 24종) 중 하나의 한국어 정본명.
 //   소스: Doll.soul_catalog_id → SOUL_CATALOG_LABELS (예: aira → "아이라"). 서버가 soul_name 으로 직렬화.
+// 2026-06-24 — soul_catalog_id → soulLabel() 로컬 폴백 추가 (서버 V 라운드 미완료 대응).
 // Why: 기존 자동 발급 ID([a-z]{5}[0-9]{2}) 는 사용자 식별에 무의미 — 24종 카탈로그 한국어명이 정본.
 function resolveDollDisplayName(d: {
   soul_name?: string | null;
+  soul_catalog_id?: string | null;
   display_name?: string | null;
   nickname?: string | null;
 }): string {
   const sn = (d.soul_name ?? "").trim();
   if (sn) return sn;
-  // 폴백: 서버가 soul_name 미반환(legacy) 시 display_name → nickname.
+  // soul_catalog_id 기반 로컬 카탈로그 조회 (서버 V 라운드 soul_name 미평탄화 fallback).
+  const label = soulLabel(d.soul_catalog_id);
+  if (label) return label;
+  // 최후 폴백: 서버가 soul_name/soul_catalog_id 미반환(legacy) 시 display_name → nickname.
   const dn = (d.display_name ?? "").trim();
-  if (dn) return dn;
+  // display_name 이 APP 자동 발급 ID([A-Za-z]{5}[0-9]{2}) 형식이면 표시 불필요.
+  if (dn && !APP_SIGNUP_ID_RE.test(dn)) return dn;
   const nn = (d.nickname ?? "").trim();
   if (nn && nn !== "ICONIA" && nn !== "ICONIA-IOT") return nn;
   return "—";
@@ -529,6 +542,30 @@ export function UsersClient({ csMode = false }: { csMode?: boolean }) {
         description="검색은 이메일 정확 일치만 가능합니다 (대소문자 무시). 비우고 검색하면 전체 목록을 표시합니다. 모든 PII 접근은 감사 로그에 자동 기록됩니다."
         actions={
           <>
+            {filtered.length > 0 && !csMode ? (
+              <button
+                type="button"
+                onClick={() => {
+                  exportCsv(
+                    [
+                      { key: "id", header: "UUID", value: (r) => r.id },
+                      { key: "email", header: "이메일", value: (r) => r.email },
+                      { key: "display_name", header: "표시이름", value: (r) => r.display_name ?? "" },
+                      { key: "account_status", header: "계정상태", value: (r) => r.account_status },
+                      { key: "totp_enabled", header: "MFA", value: (r) => r.totp_enabled ? "사용" : "미사용" },
+                      { key: "marketing_opt_in", header: "마케팅수신", value: (r) => r.marketing_opt_in == null ? "" : r.marketing_opt_in ? "동의" : "거부" },
+                      { key: "last_login_at", header: "최근접속", value: (r) => r.last_login_at },
+                      { key: "created_at", header: "가입일", value: (r) => r.created_at },
+                    ],
+                    filtered,
+                    `users-${isoDateStamp()}.csv`,
+                  );
+                }}
+                className="rounded-xl bg-white border border-slate-300 px-3 py-2 text-xs text-slate-700 hover:bg-slate-50"
+              >
+                CSV 내보내기 ({filtered.length}건)
+              </button>
+            ) : null}
             <input
               className="input w-full sm:max-w-[280px]"
               placeholder="이메일 입력 후 Enter (예: user@example.com)"

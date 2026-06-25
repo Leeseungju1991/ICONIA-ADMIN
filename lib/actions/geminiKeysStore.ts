@@ -39,7 +39,7 @@ export async function listKeysStoreAction(): Promise<AdminActionResult<{ items: 
 
 export async function addKeyStoreAction(
   apiKey: string,
-): Promise<AdminActionResult<{ item: GeminiKeysStoreItem; reactivated?: boolean }>> {
+): Promise<KeyStoreActionResult<{ item: GeminiKeysStoreItem; reactivated?: boolean }>> {
   const jwt = readSession();
   if (!jwt) return { ok: false, message: "세션 만료" };
   const trimmed = String(apiKey || "").trim();
@@ -51,7 +51,12 @@ export async function addKeyStoreAction(
   }
   const res = await addGeminiKeysStore({ jwt, apiKey: trimmed });
   if (!res.ok) {
-    return { ok: false, code: res.code, message: friendlyKeyStoreMessage(res.code, res.message) };
+    const msg = friendlyKeyStoreMessage(res.code, res.message);
+    // 2026-06-25 — KEK 미설정은 별도 setup_required 플래그로 분리.
+    if (msg === "KEY_STORE_NOT_CONFIGURED") {
+      return { ok: false, code: res.code, message: "서버 KEK 미설정", setup_required: true };
+    }
+    return { ok: false, code: res.code, message: msg };
   }
   return { ok: true, data: { item: res.data.item, reactivated: res.data.reactivated } };
 }
@@ -59,11 +64,20 @@ export async function addKeyStoreAction(
 // 2026-06-10 — KEY 등록/해제 실패 시 raw server message 대신 친화 메시지로 매핑.
 //   ERR_DEPENDENCY_UNAVAILABLE (GEMINI_KEY_STORE_SECRET 미설정),
 //   ERR_VALIDATION, ERR_CONFLICT, ERR_NOT_FOUND, ERR_FORBIDDEN 등.
+//
+// 2026-06-25 — KEY_STORE_NOT_CONFIGURED 에 setup_required 플래그 추가.
+//   GeminiClient 가 이 플래그를 보고 "설정 안내" 배너를 렌더한다.
+export type KeyStoreActionResult<T> = AdminActionResult<T> & {
+  setup_required?: boolean;
+};
+
 function friendlyKeyStoreMessage(code: string | undefined, raw: string): string {
   switch (code) {
     case "ERR_KEY_STORE_NOT_CONFIGURED":
     case "ERR_DEPENDENCY_UNAVAILABLE":
-      return "암호화 키가 설정되지 않았습니다. 운영자에게 GEMINI_KEY_STORE_SECRET 환경변수 설정을 요청하세요.";
+      // 2026-06-25 — 마스터 KEK 미설정. ADMIN 에서 에러를 터뜨리는 대신
+      //   setup_required 플래그로 분리해 UI 에서 안내 배너를 표시한다.
+      return "KEY_STORE_NOT_CONFIGURED";
     case "ERR_VALIDATION":
       return "API KEY 형식이 올바르지 않습니다.";
     case "ERR_CONFLICT":

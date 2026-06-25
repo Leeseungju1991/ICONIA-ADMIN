@@ -5,6 +5,7 @@ import { PanelCard } from "../_components/PanelCard";
 import { DataTable, type Column } from "../_components/DataTable";
 import { StatCard } from "../_components/StatCard";
 import { OpsAuditTrailPanel } from "../_components/OpsAuditTrailPanel";
+import { AdminToast, useAdminToast } from "../_components/AdminToast";
 import { formatDate } from "@/lib/mockData";
 import { recordOpsAuditWithSilentRetry } from "@/lib/opsAuditTrail";
 import {
@@ -47,7 +48,7 @@ export default function OperatorsClient({
     initial.ok ? initial.operators : [],
   );
   const [loadError] = useState<string | null>(initial.ok ? null : initial.message);
-  const [toast, setToast] = useState<string | null>(null);
+  const { toast, setToast } = useAdminToast();
   const [inviting, setInviting] = useState(false);
   const [auditTick, setAuditTick] = useState(0);
   const [isPending, startTransition] = useTransition();
@@ -114,14 +115,14 @@ export default function OperatorsClient({
       });
       setAuditTick((t) => t + 1);
       if (!res.ok) {
-        setToast(`운영자 비활성화 실패 — ${res.message}`);
+        setToast({ message: `운영자 비활성화 실패 — ${res.message}`, tone: "error" });
         return;
       }
       setDisabledOverrides((prev) => ({
         ...prev,
         [op.id]: new Date().toISOString(),
       }));
-      setToast(`${op.email} 운영자를 비활성화했습니다.`);
+      setToast({ message: `${op.email} 운영자를 비활성화했습니다.`, tone: "success" });
     });
   }
 
@@ -272,18 +273,7 @@ export default function OperatorsClient({
         refresh={{ tick: auditTick }}
       />
 
-      {toast ? (
-        <div className="fixed bottom-6 right-6 z-50 rounded-2xl bg-slate-900/85 text-white text-sm px-4 py-3 shadow-card max-w-md">
-          {toast}
-          <button
-            className="ml-3 underline opacity-80"
-            onClick={() => setToast(null)}
-            type="button"
-          >
-            닫기
-          </button>
-        </div>
-      ) : null}
+      <AdminToast toast={toast} onDismiss={() => setToast(null)} />
 
       {inviting ? (
         <InviteModal

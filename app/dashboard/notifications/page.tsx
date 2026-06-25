@@ -6,6 +6,7 @@
 import { useState, useTransition } from "react";
 import { PanelCard } from "../_components/PanelCard";
 import { DangerConfirmDialog } from "../_components/DangerConfirmDialog";
+import { AdminToast, useAdminToast } from "../_components/AdminToast";
 import { broadcastNotificationAction } from "@/lib/actions/notificationsBroadcast";
 import type {
   NotificationAudienceKind,
@@ -32,7 +33,7 @@ export default function NotificationsBroadcastPage() {
   const [scheduledAt, setScheduledAt] = useState("");
   const [result, setResult] = useState<string | null>(null);
   // 발송 결과 토스트 — devices/users 페이지 컨벤션(fixed bottom-right).
-  const [toast, setToast] = useState<string | null>(null);
+  const { toast, setToast } = useAdminToast();
   const [submitting, startSubmit] = useTransition();
   // V1.0 라운드 — window.confirm → DangerConfirmDialog 정합.
   // pendingBroadcast 가 null 아니면 모달 표시. 사용자 동의 시 doBroadcast 호출.
@@ -82,17 +83,17 @@ export default function NotificationsBroadcastPage() {
           const msg =
             "서버 라우트 미구현 — POST /api/v1/admin/notifications 가 아직 배포되지 않았습니다. 작성한 본문은 새로고침 시 사라집니다.";
           setResult(msg);
-          setToast(msg);
+          setToast({ message: msg, tone: "warning" });
           return;
         }
         const msg = `발송 실패: ${r.message}`;
         setResult(msg);
-        setToast(msg);
+        setToast({ message: msg, tone: "error" });
         return;
       }
       const msg = `발송 ${r.data.status} — id=${r.data.id}`;
       setResult(msg);
-      setToast(msg);
+      setToast({ message: msg, tone: "success" });
       // 폼 리셋은 사용자가 결과 확인 후 직접.
     });
   }
@@ -262,18 +263,7 @@ export default function NotificationsBroadcastPage() {
         </form>
       </PanelCard>
 
-      {toast ? (
-        <div className="fixed bottom-6 right-6 z-50 rounded-2xl bg-slate-900/85 text-white text-sm px-4 py-3 shadow-card">
-          {toast}
-          <button
-            className="ml-3 underline opacity-80"
-            onClick={() => setToast(null)}
-            type="button"
-          >
-            닫기
-          </button>
-        </div>
-      ) : null}
+      <AdminToast toast={toast} onDismiss={() => setToast(null)} />
 
       <DangerConfirmDialog
         open={pendingBroadcast !== null}

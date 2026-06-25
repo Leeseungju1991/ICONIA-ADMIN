@@ -9,6 +9,7 @@
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { PanelCard } from "../_components/PanelCard";
 import { DataTable, type Column } from "../_components/DataTable";
+import { AdminToast, useAdminToast } from "../_components/AdminToast";
 import { StatCard } from "../_components/StatCard";
 import {
   listLostReportsAction,
@@ -59,7 +60,7 @@ export default function LostReportsPage() {
   const [tab, setTab] = useState<Tab>("pending");
   const [rows, setRows] = useState<LostReportRow[]>([]);
   const [picked, setPicked] = useState<LostReportRow | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
+  const { toast, setToast } = useAdminToast();
   const [error, setError] = useState<{ message: string; unreachable: boolean } | null>(null);
   const [loading, startLoad] = useTransition();
 
@@ -100,10 +101,10 @@ export default function LostReportsPage() {
     fd.append("status", status);
     const r = await updateLostReportStatusAction(fd);
     if (!r.ok) {
-      setToast(`상태 변경 실패: ${r.message}`);
+      setToast({ message: `상태 변경 실패: ${r.message}`, tone: "error" });
       return;
     }
-    setToast(`신고 ${report.id.slice(0, 8)}… 상태 → ${statusLabel[status]} 변경 완료.`);
+    setToast({ message: `신고 ${report.id.slice(0, 8)}… 상태 → ${statusLabel[status]} 변경 완료.`, tone: "success" });
     setPicked(null);
     reload();
   }
@@ -233,14 +234,7 @@ export default function LostReportsPage() {
         />
       </PanelCard>
 
-      {toast ? (
-        <div className="fixed bottom-6 right-6 z-50 rounded-2xl bg-slate-900/85 text-white text-sm px-4 py-3 shadow-card max-w-md">
-          {toast}
-          <button className="ml-3 underline opacity-80" onClick={() => setToast(null)} type="button">
-            닫기
-          </button>
-        </div>
-      ) : null}
+      <AdminToast toast={toast} onDismiss={() => setToast(null)} />
 
       {picked ? (
         <ReportDrawer

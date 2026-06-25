@@ -4,6 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import { PanelCard } from "../_components/PanelCard";
 import { ExpandableRow } from "../_components/ExpandableRow";
 import { DangerConfirmDialog } from "../_components/DangerConfirmDialog";
+import { AdminToast, useAdminToast } from "../_components/AdminToast";
 import {
   listNoticesAction,
   createNoticeAction,
@@ -29,7 +30,7 @@ export default function NoticesPage() {
   const [state, setState] = useState<NoticesListResult | null>(null);
   const [loading, startLoad] = useTransition();
   const [creating, startCreate] = useTransition();
-  const [toast, setToast] = useState<string | null>(null);
+  const { toast, setToast } = useAdminToast();
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<NoticeRow | null>(null);
   const [deletingBusy, setDeletingBusy] = useState(false);
@@ -70,10 +71,10 @@ export default function NoticesPage() {
         order_idx,
       });
       if (!r.ok) {
-        setToast(`작성 실패: ${r.message}`);
+        setToast({ message: `작성 실패: ${r.message}`, tone: "error" });
         return;
       }
-      setToast(`공지 작성됨: ${r.notice.id}`);
+      setToast({ message: `공지 작성됨: ${r.notice.id}`, tone: "success" });
       form?.reset?.();
       reload();
     });
@@ -85,10 +86,10 @@ export default function NoticesPage() {
     const r = await deleteNoticeAction({ id: deleting.id });
     setDeletingBusy(false);
     if (!r.ok) {
-      setToast(`삭제 실패: ${r.message}`);
+      setToast({ message: `삭제 실패: ${r.message}`, tone: "error" });
       return;
     }
-    setToast("삭제됨");
+    setToast({ message: "삭제됨", tone: "success" });
     setDeleting(null);
     reload();
   }
@@ -264,18 +265,7 @@ export default function NoticesPage() {
         }}
       />
 
-      {toast ? (
-        <div className="fixed bottom-6 right-6 z-50 rounded-2xl bg-slate-900/85 text-white text-sm px-4 py-3 shadow-card">
-          {toast}
-          <button
-            className="ml-3 underline opacity-80"
-            onClick={() => setToast(null)}
-            type="button"
-          >
-            닫기
-          </button>
-        </div>
-      ) : null}
+      <AdminToast toast={toast} onDismiss={() => setToast(null)} />
     </div>
   );
 }

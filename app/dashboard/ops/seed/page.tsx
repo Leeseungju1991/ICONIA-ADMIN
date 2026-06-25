@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState, useTransition } from "react";
 import { PanelCard } from "../../_components/PanelCard";
 import { StatCard } from "../../_components/StatCard";
+import { AdminToast, useAdminToast } from "../../_components/AdminToast";
 import type { AdminSeedStatus } from "@/lib/adminApi";
 import { getSeedStatusAction, runSeedAction } from "@/lib/actions/seed";
 
@@ -29,7 +30,7 @@ export default function OpsSeedPage() {
   const [loading, startLoad] = useTransition();
   const [running, startRun] = useTransition();
   const [reason, setReason] = useState("");
-  const [toast, setToast] = useState<string | null>(null);
+  const { toast, setToast } = useAdminToast();
   const [lastResult, setLastResult] = useState<{
     duration_ms: number;
     counts: Record<string, number>;
@@ -54,7 +55,7 @@ export default function OpsSeedPage() {
 
   function handleRun() {
     if (reason.trim().length < 5) {
-      setToast("사유는 5자 이상 입력해야 합니다.");
+      setToast({ message: "사유는 5자 이상 입력해야 합니다.", tone: "warning" });
       return;
     }
     if (typeof window !== "undefined") {
@@ -62,21 +63,21 @@ export default function OpsSeedPage() {
         `Seed 수동 실행\n\n실행하려면 정확히 "SEED" 를 입력하세요.\n\n사유: ${reason.trim()}`,
       );
       if (phrase !== "SEED") {
-        setToast("실행 취소 — 확인 문구 불일치.");
+        setToast({ message: "실행 취소 — 확인 문구 불일치.", tone: "warning" });
         return;
       }
     }
     startRun(async () => {
       const r = await runSeedAction({ reason: reason.trim() });
       if (!r.ok) {
-        setToast(`실행 실패: ${r.message}`);
+        setToast({ message: `실행 실패: ${r.message}`, tone: "error" });
         return;
       }
       setLastResult({
         duration_ms: r.data.duration_ms,
         counts: r.data.counts ?? {},
       });
-      setToast(`Seed 실행 완료 (${r.data.duration_ms}ms)`);
+      setToast({ message: `Seed 실행 완료 (${r.data.duration_ms}ms)`, tone: "success" });
       setReason("");
       reload();
     });
@@ -221,18 +222,7 @@ export default function OpsSeedPage() {
         ) : null}
       </PanelCard>
 
-      {toast ? (
-        <div className="fixed bottom-6 right-6 z-50 rounded-2xl bg-slate-900/85 text-white text-sm px-4 py-3 shadow-card max-w-md">
-          {toast}
-          <button
-            className="ml-3 underline opacity-80"
-            onClick={() => setToast(null)}
-            type="button"
-          >
-            닫기
-          </button>
-        </div>
-      ) : null}
+      <AdminToast toast={toast} onDismiss={() => setToast(null)} />
     </div>
   );
 }

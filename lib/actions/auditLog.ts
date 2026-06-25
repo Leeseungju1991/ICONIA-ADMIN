@@ -25,12 +25,18 @@ const ALLOWED_ACTIONS = [
   "user.account_deleted",
   "user.persona_changed",
   "user.pii_unmasked",
+  // 2026-06-25 — [PDF #12] Operator 2FA TOTP audit 항목 추가.
+  "totp.enrolled",
+  "totp.verified",
+  "totp.backup_used",
 ] as const;
 
 const schema = z.object({
   action: z.enum(ALLOWED_ACTIONS),
   targetUserId: z.string().min(1).max(128).optional(),
-  reasonText: z.string().min(5).max(500).optional(),
+  targetResourceType: z.string().max(64).optional(),
+  targetResourceId: z.string().max(128).nullable().optional(),
+  reasonText: z.string().min(3).max(500).optional(),
 });
 
 export type OperatorAuditActionInput = z.infer<typeof schema> & {
@@ -68,8 +74,12 @@ export async function recordOperatorAuditAction(
   const auditInput: AuditAppendInput = {
     action: parsed.data.action,
     targetUserId: parsed.data.targetUserId,
-    targetResourceType: parsed.data.targetUserId ? "user" : undefined,
-    targetResourceId: parsed.data.targetUserId,
+    // 2026-06-25 — targetResourceType/Id 를 호출 측에서 지정 가능하도록 확장.
+    targetResourceType:
+      parsed.data.targetResourceType ??
+      (parsed.data.targetUserId ? "user" : undefined),
+    targetResourceId:
+      parsed.data.targetResourceId ?? parsed.data.targetUserId,
     reasonText: parsed.data.reasonText,
     payloadHash,
   };

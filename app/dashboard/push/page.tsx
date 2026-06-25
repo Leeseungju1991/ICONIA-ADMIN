@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { PanelCard } from "../_components/PanelCard";
 import { ExpandableRow } from "../_components/ExpandableRow";
 import { DangerConfirmDialog } from "../_components/DangerConfirmDialog";
+import { AdminToast, useAdminToast } from "../_components/AdminToast";
 import {
   listCampaignsAction,
   createAndSendCampaignAction,
@@ -33,7 +34,7 @@ export default function PushPage() {
   const [state, setState] = useState<CampaignsListResult | null>(null);
   const [loading, startLoad] = useTransition();
   const [sending, startSend] = useTransition();
-  const [toast, setToast] = useState<string | null>(null);
+  const { toast, setToast } = useAdminToast();
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [pending, setPending] = useState<Pending>(null);
   const formRef = useRef<HTMLFormElement | null>(null);
@@ -66,15 +67,16 @@ export default function PushPage() {
     startSend(async () => {
       const r = await createAndSendCampaignAction({ title, body });
       if (!r.ok) {
-        setToast(`발송 실패: ${r.message}`);
+        setToast({ message: `발송 실패: ${r.message}`, tone: "error" });
         setPending(null);
         return;
       }
-      setToast(
-        r.campaign.status === "sent"
+      setToast({
+        message: r.campaign.status === "sent"
           ? `전체 발송 완료 (도달 ${r.campaign.delivered_count ?? 0}건)`
           : `발송 처리됨: ${statusLabel(r.campaign.status)}`,
-      );
+        tone: "success",
+      });
       form.reset();
       setPending(null);
       reload();

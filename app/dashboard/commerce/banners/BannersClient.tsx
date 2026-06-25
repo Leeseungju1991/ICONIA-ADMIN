@@ -3,6 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import { PanelCard } from "../../_components/PanelCard";
 import { LoadingState, EmptyState } from "../../_components/CardStates";
+import { AdminToast, useAdminToast } from "../../_components/AdminToast";
 import { DangerConfirmDialog } from "../../_components/DangerConfirmDialog";
 import {
   listBannersAction,
@@ -13,6 +14,7 @@ import {
 } from "@/lib/actions/commerceBanners";
 import type { CommerceBannerRow } from "@/lib/adminApi";
 import { messageForCode } from "@/lib/errorMessages";
+import { safeImgSrc } from "@/lib/safeUrl";
 
 // 2026-06-01 — 배너 CRUD. 이미지 업로드는 /api/admin/media/upload (XHR + progress).
 // notices/page.tsx 패턴 + media upload progress.
@@ -43,7 +45,7 @@ export default function BannersClient() {
   const [state, setState] = useState<BannersListResult | null>(null);
   const [loading, startLoad] = useTransition();
   const [mutating, startMutate] = useTransition();
-  const [toast, setToast] = useState<string | null>(null);
+  const { toast, setToast } = useAdminToast();
 
   // 신규 배너 폼.
   const [title, setTitle] = useState("");
@@ -114,17 +116,17 @@ export default function BannersClient() {
               setUploadRatio(1);
             } else {
               const code = body?.error?.code ?? "ERR_INTERNAL";
-              setToast(`업로드 실패: ${messageForCode(code, body?.error?.message)}`);
+              setToast({ message: `업로드 실패: ${messageForCode(code, body?.error?.message)}`, tone: "error" });
               setUploadState("error");
             }
           } catch {
-            setToast("업로드 응답 해석 실패");
+            setToast({ message: "업로드 응답 해석 실패", tone: "error" });
             setUploadState("error");
           }
           resolve();
         };
         xhr.onerror = () => {
-          setToast("업로드 네트워크 오류");
+          setToast({ message: "업로드 네트워크 오류", tone: "error" });
           setUploadState("error");
           resolve();
         };
@@ -141,7 +143,7 @@ export default function BannersClient() {
   function handleCreate(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!title.trim() || !imageUrl.trim()) {
-      setToast("타이틀 + 이미지 URL 필수");
+      setToast({ message: "타이틀 + 이미지 URL 필수", tone: "warning" });
       return;
     }
     startMutate(async () => {
@@ -156,10 +158,10 @@ export default function BannersClient() {
         ends_at: localInputToIso(endsAt),
       });
       if (!r.ok) {
-        setToast(`작성 실패: ${messageForCode(r.code, r.message)}`);
+        setToast({ message: `작성 실패: ${messageForCode(r.code, r.message)}`, tone: "error" });
         return;
       }
-      setToast(`배너 작성됨: ${r.banner.id}`);
+      setToast({ message: `배너 작성됨: ${r.banner.id}`, tone: "success" });
       resetForm();
       reload();
     });
@@ -172,10 +174,10 @@ export default function BannersClient() {
         patch: { is_published: !row.is_published },
       });
       if (!r.ok) {
-        setToast(`수정 실패: ${messageForCode(r.code, r.message)}`);
+        setToast({ message: `수정 실패: ${messageForCode(r.code, r.message)}`, tone: "error" });
         return;
       }
-      setToast("상태 변경됨");
+      setToast({ message: "상태 변경됨", tone: "success" });
       reload();
     });
   }
@@ -192,10 +194,10 @@ export default function BannersClient() {
     startMutate(async () => {
       const r = await deleteBannerAction({ id });
       if (!r.ok) {
-        setToast(`삭제 실패: ${messageForCode(r.code, r.message)}`);
+        setToast({ message: `삭제 실패: ${messageForCode(r.code, r.message)}`, tone: "error" });
         return;
       }
-      setToast("배너 삭제됨");
+      setToast({ message: "배너 삭제됨", tone: "success" });
       reload();
     });
   }
@@ -255,7 +257,7 @@ export default function BannersClient() {
             ) : uploadState === "ok" ? (
               <div className="text-[11px] text-emerald-700">업로드 완료 — URL 자동 반영됨</div>
             ) : null}
-            {imageUrl ? (
+            {safeImgSrc(imageUrl) ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={imageUrl}
@@ -367,7 +369,7 @@ export default function BannersClient() {
                     <td className="px-2 py-2">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
-                        src={b.image_url}
+                        src={safeImgSrc(b.image_url) ?? "/placeholder-product.svg"}
                         alt={b.title}
                         className="h-12 w-20 rounded-md object-cover border border-slate-200"
                       />
@@ -415,18 +417,7 @@ export default function BannersClient() {
         )}
       </PanelCard>
 
-      {toast ? (
-        <div className="fixed bottom-6 right-6 z-50 rounded-2xl bg-slate-900/85 text-white text-sm px-4 py-3 shadow-card">
-          {toast}
-          <button
-            className="ml-3 underline opacity-80"
-            onClick={() => setToast(null)}
-            type="button"
-          >
-            닫기
-          </button>
-        </div>
-      ) : null}
+      <AdminToast toast={toast} onDismiss={() => setToast(null)} />
 
       <DangerConfirmDialog
         open={pendingDeleteId !== null}

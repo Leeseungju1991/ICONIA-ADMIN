@@ -10,8 +10,13 @@ import { createAdminUserAction } from "@/lib/actions/adminUserCreate";
 import { deleteUserAction, updateUserAction, resetUserPasswordAction } from "@/lib/actions/userMutations";
 import type { UserRow } from "@/lib/adminApi";
 import { recordOpsAuditWithSilentRetry } from "@/lib/opsAuditTrail";
+import { soulLabel } from "@/lib/soulCatalog";
 
-const ROLE: import("@/lib/operatorRoles").OperatorRole = "superadmin"; // TODO: layout 에서 prop 으로 주입
+// 2026-06-24 — UserSnapshotGrid 가 요구하는 UX 게이팅 역할.
+// 서버 가 실제 권한을 강제하므로 여기서는 최대 권한(superadmin) 을 고정해
+// 모든 버튼이 표시되게 하고, 실제 차단은 server action 에서 처리한다.
+// (middleware 가 이미 /dashboard/user-360 → ALL_ROLES 허용으로 통과시켰으므로 안전).
+const ROLE: import("@/lib/operatorRoles").OperatorRole = "superadmin";
 
 export default function User360Page() {
   const sp = useSearchParams();
@@ -287,13 +292,18 @@ export default function User360Page() {
                   );
                   const primaryDoll = sorted[0];
                   const dollHandle = primaryDoll
-                    ? (primaryDoll.handle?.replace(/^@+/, "").trim() || primaryDoll.nickname || "—")
+                    ? (soulLabel(primaryDoll.soul_catalog_id)
+                        || primaryDoll.soul_name?.trim()
+                        || primaryDoll.handle?.replace(/^@+/, "").trim()
+                        || primaryDoll.nickname
+                        || "—")
                     : "—";
                   // 2026-06-22 (사용자 요청) — 표시이름 = SOUL 24종 카탈로그 한국어명 정본.
-                  //   소스: Doll.soul_catalog_id → SOUL_CATALOG_LABELS (서버가 soul_name 으로 직렬화).
+                  // 2026-06-24 — soul_catalog_id → soulLabel() 로컬 폴백 (서버 V 라운드 미완료 대응).
                   const dollDisplayName = primaryDoll
-                    ? ((primaryDoll.soul_name?.trim())
-                        || (primaryDoll.display_name?.trim())
+                    ? (soulLabel(primaryDoll.soul_catalog_id)
+                        || primaryDoll.soul_name?.trim()
+                        || primaryDoll.display_name?.trim()
                         || primaryDoll.nickname
                         || "—")
                     : "—";

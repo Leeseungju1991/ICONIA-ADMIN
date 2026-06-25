@@ -7,6 +7,19 @@ import type { OperatorRole } from "@/lib/operatorRoles";
 const ORDER: OperatorRole[] = ["viewer", "cs", "secops", "sre", "superadmin"];
 const allow = (r: OperatorRole, m: OperatorRole) => ORDER.indexOf(r) >= ORDER.indexOf(m);
 
+// P0 보안 — 미디어 URL 프로토콜 화이트리스트 검사.
+// post.media 는 서버/사용자 업로드 URL. CSP img-src 'self' data: https: 가 javascript:
+// 등을 img 로딩 레벨에서 차단하지만, 운영자 콘솔에서는 추가 방어로 https: / data: / blob:
+// 이외의 src 를 렌더하지 않는다. HTTP는 admin 이 HTTPS 단독 운영이므로 허용 X.
+function isSafeMediaUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === "https:" || parsed.protocol === "data:" || parsed.protocol === "blob:";
+  } catch {
+    return false;
+  }
+}
+
 export type ModerationKey = "hide" | "unhide" | "takedown" | "hide_all_by_user";
 
 export function PostInspector({ post, role, onAction }: {
@@ -27,7 +40,13 @@ export function PostInspector({ post, role, onAction }: {
       <p className="text-sm text-slate-800 whitespace-pre-line">{post.body}</p>
       {post.media.length > 0 ? (
         <div className="flex gap-2 overflow-x-auto">
-          {post.media.map((m) => <img key={m} src={m} alt="" className="h-28 w-auto rounded-lg border border-slate-200" />)}
+          {post.media.map((m) =>
+            isSafeMediaUrl(m) ? (
+              <img key={m} src={m} alt="" className="h-28 w-auto rounded-lg border border-slate-200" />
+            ) : (
+              <span key={m} className="inline-flex h-28 w-20 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-[10px] text-slate-400" title="지원하지 않는 미디어 URL">미지원 URL</span>
+            )
+          )}
         </div>
       ) : null}
       <section>

@@ -7,6 +7,7 @@ import { PanelCard } from "../_components/PanelCard";
 import { DataTable, type Column } from "../_components/DataTable";
 import { StatCard } from "../_components/StatCard";
 import { AutoRefreshToggle } from "../_components/AutoRefreshToggle";
+import { AdminToast, useAdminToast } from "../_components/AdminToast";
 import { useAutoRefresh } from "@/lib/hooks/useAutoRefresh";
 import type { AdminFeedPostRow, AdminFeedPostDetail, AdminFeedMedia } from "@/lib/adminApi";
 import {
@@ -15,6 +16,7 @@ import {
   patchFeedPostAction,
   deleteFeedPostAction,
 } from "@/lib/actions/feed";
+import { safeImgSrc, safeHref, safeVideoSrc } from "@/lib/safeUrl";
 
 // 피드 관리 (Feed).
 // 게시물 검색 / 숨김·복구 / 삭제 (soft) / 상세 + 댓글 미리보기.
@@ -45,7 +47,7 @@ export default function FeedPage() {
   const [error, setError] = useState<FeedError>(null);
   const [loading, startLoad] = useTransition();
   const [picked, setPicked] = useState<AdminFeedPostRow | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
+  const { toast, setToast } = useAdminToast();
   // 2026-05-28 — 자동 새로고침 (visibility-aware, 10s 기본).
   const [autoOn, setAutoOn] = useState(false);
   const [newIds, setNewIds] = useState<Set<string>>(new Set());
@@ -56,7 +58,7 @@ export default function FeedPage() {
   useEffect(() => {
     const created = searchParams?.get("created");
     if (created) {
-      setToast(`게시물 발행 완료 (ID: ${created.slice(0, 12)}…). 감사 로그에 기록되었습니다.`);
+      setToast({ message: `게시물 발행 완료 (ID: ${created.slice(0, 12)}…). 감사 로그에 기록되었습니다.`, tone: "success" });
     }
   }, [searchParams]);
 
@@ -120,11 +122,11 @@ export default function FeedPage() {
     enabled: autoOn,
     maxFailures: 3,
     onResult: ({ ok }) => {
-      if (!ok) setToast("일시 연결 끊김 — 다음 갱신에서 재시도");
+      if (!ok) setToast({ message: "일시 연결 끊김 — 다음 갱신에서 재시도", tone: "warning" });
     },
     onMaxFailures: () => {
       setAutoOn(false);
-      setToast("자동 갱신 중지 — 3회 연속 실패로 폴링을 중단했습니다.");
+      setToast({ message: "자동 갱신 중지 — 3회 연속 실패로 폴링을 중단했습니다.", tone: "warning" });
     },
   });
 
@@ -151,10 +153,10 @@ export default function FeedPage() {
     }
     const r = await patchFeedPostAction({ id: p.id, is_hidden: !p.is_hidden });
     if (!r.ok) {
-      setToast(`상태 변경 실패: ${r.message}`);
+      setToast({ message: `상태 변경 실패: ${r.message}`, tone: "error" });
       return;
     }
-    setToast(`게시물 ${p.id} ${p.is_hidden ? "복구" : "숨김"} 완료.`);
+    setToast({ message: `게시물 ${p.id} ${p.is_hidden ? "복구" : "숨김"} 완료.`, tone: "success" });
     reload();
   }
 
@@ -164,17 +166,17 @@ export default function FeedPage() {
         `게시물 삭제 (soft delete)\n\n실행하려면 정확히 "DELETE" 를 입력하세요.`,
       );
       if (phrase !== "DELETE") {
-        setToast("실행 취소 — 확인 문구 불일치.");
+        setToast({ message: "실행 취소 — 확인 문구 불일치.", tone: "warning" });
         return;
       }
     }
     const r = await deleteFeedPostAction({ id: p.id });
     if (!r.ok) {
-      setToast(`삭제 실패: ${r.message}`);
+      setToast({ message: `삭제 실패: ${r.message}`, tone: "error" });
       return;
     }
     setPicked(null);
-    setToast(`게시물 ${p.id} 삭제 완료.`);
+    setToast({ message: `게시물 ${p.id} 삭제 완료.`, tone: "success" });
     reload();
   }
 
@@ -443,14 +445,7 @@ export default function FeedPage() {
         </div>
       </PanelCard>
 
-      {toast ? (
-        <div className="fixed bottom-6 right-6 z-50 rounded-2xl bg-slate-900/85 text-white text-sm px-4 py-3 shadow-card max-w-md">
-          {toast}
-          <button className="ml-3 underline opacity-80" onClick={() => setToast(null)} type="button">
-            닫기
-          </button>
-        </div>
-      ) : null}
+      <AdminToast toast={toast} onDismiss={() => setToast(null)} />
 
       {picked ? (
         <FeedDetailDrawer
@@ -703,10 +698,10 @@ function FeedRowThumb({ post }: { post: AdminFeedPostRow }) {
   const fallbackLabel = hasVideo && !hasImage ? "동영상" : "이미지";
   return (
     <div className="inline-flex items-center gap-1.5">
-      {thumb ? (
+      {safeImgSrc(thumb) ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={thumb}
+          src={safeImgSrc(thumb)}
           alt=""
           className="w-10 h-10 rounded-md object-cover bg-slate-100"
           loading="lazy"
@@ -754,10 +749,10 @@ function FeedMediaGrid({ media }: { media: AdminFeedMedia[] }) {
             className="aspect-square rounded-lg overflow-hidden bg-slate-100 border border-slate-200 relative"
           >
             {m.kind === "video" ? (
-              m.url ? (
+              safeVideoSrc(m.url) ? (
                 <video
-                  src={m.url}
-                  poster={m.thumbnail_url ?? undefined}
+                  src={safeVideoSrc(m.url)}
+                  poster={safeImgSrc(m.thumbnail_url)}
                   controls
                   preload="metadata"
                   className="w-full h-full object-cover bg-black"
@@ -769,14 +764,14 @@ function FeedMediaGrid({ media }: { media: AdminFeedMedia[] }) {
               )
             ) : m.url || m.thumbnail_url ? (
               <a
-                href={m.url ?? m.thumbnail_url ?? "#"}
+                href={safeHref(m.url ?? m.thumbnail_url)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="block w-full h-full"
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={m.thumbnail_url ?? m.url ?? ""}
+                  src={safeImgSrc(m.thumbnail_url ?? m.url) ?? ""}
                   alt=""
                   className="w-full h-full object-cover"
                   loading="lazy"

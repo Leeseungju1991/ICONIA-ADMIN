@@ -2,10 +2,30 @@
 
 import { useState, useTransition } from "react";
 import { enrollTotpAction, verifyTotpEnrollAction } from "@/lib/actions/totpEnroll";
+import { recordOperatorAuditAction } from "@/lib/actions/auditLog";
 
-// Phase 12 #10 — 2FA TOTP enrollment 실 wiring.
+// Phase 12 #10 / [PDF #12] — 2FA TOTP enrollment 실 wiring.
 //   Server: POST /api/v1/operator/totp/{enroll,verify}
-//   enroll 응답에 otpauth_uri + base32 secret (1회만), QR 은 클라이언트에서 렌더.
+//   enroll 응답에 otpauth_uri + base32 secret (1회만).
+//   2026-06-25 — QR 코드 실 렌더링 추가 (외부 QR API 사용, 의존성 0).
+//                audit 로그 기록 (totp.enrolled / totp.verified).
+
+// QR 렌더링 — api.qrserver.com 을 사용해 img 태그로 표시.
+// 외부 라이브러리 없이 동작 (Next.js images domain 설정 불필요 — img 태그 직접 사용).
+function OtpauthQr({ uri }: { uri: string }) {
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(uri)}`;
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={qrUrl}
+      alt="TOTP QR Code"
+      width={160}
+      height={160}
+      className="rounded-xl border border-slate-200"
+    />
+  );
+}
+
 export default function TwoFactorEnroll() {
   const [step, setStep] = useState<"idle" | "issued" | "verified">("idle");
   const [code, setCode] = useState("");
@@ -26,6 +46,15 @@ export default function TwoFactorEnroll() {
       setOtpauthUri(r.otpauth_uri);
       setSecretBase32(r.totp_secret_base32);
       setStep("issued");
+      // audit log — best-effort
+      try {
+        await recordOperatorAuditAction({
+          action: "totp.enrolled",
+          targetResourceType: "operator",
+          targetResourceId: null,
+          reasonText: "TOTP enroll QR 발급",
+        });
+      } catch { /* ignore */ }
     });
   }
 
@@ -41,6 +70,15 @@ export default function TwoFactorEnroll() {
         setError(`verify 실패 (${r.code ?? "ERR"}): ${r.message}`);
         return;
       }
+      // audit log — best-effort
+      try {
+        await recordOperatorAuditAction({
+          action: "totp.verified",
+          targetResourceType: "operator",
+          targetResourceId: null,
+          reasonText: "TOTP enrollment 검증 완료",
+        });
+      } catch { /* ignore */ }
       setStep("verified");
     });
   }
@@ -70,21 +108,22 @@ export default function TwoFactorEnroll() {
             {issuePending ? "발급 중..." : "QR 발급 (Server enroll)"}
           </button>
         ) : (
-          <div className="mt-3 flex items-start gap-4">
-            <div className="h-32 w-32 rounded-xl border border-slate-200 bg-white flex items-center justify-center text-[10px] text-slate-400">
-              {/* QR 렌더링은 클라이언트 라이브러리 (qrcode 등) 도입 시. 현재는 otpauth URI 텍스트 표시. */}
-              QR (URI 복사)
-            </div>
-            <div className="text-xs space-y-1 max-w-[260px]">
-              <div className="text-muted">Authenticator 앱에서 다음 URI 또는 secret 으로 등록:</div>
-              <code className="block break-all bg-white/70 border border-white/70 rounded px-2 py-1">
-                {otpauthUri}
-              </code>
-              <div className="text-muted">또는 base32 secret:</div>
-              <code className="block break-all bg-white/70 border border-white/70 rounded px-2 py-1">
+          <div className="mt-3 flex items-start gap-4 flex-wrap">
+            {/* 2026-06-25 — QR 실 렌더링 (api.qrserver.com, 외부 라이브러리 0). */}
+            {otpauthUri ? (
+              <OtpauthQr uri={otpauthUri} />
+            ) : null}
+            <div className="text-xs space-y-2 max-w-[280px]">
+              <div className="text-muted">
+                Google Authenticator / 1Password / Authy 등에서 QR 을 스캔하세요.
+              </div>
+              <div className="text-muted">또는 base32 secret 을 직접 입력:</div>
+              <code className="block break-all bg-white/70 border border-white/70 rounded px-2 py-1.5 select-all">
                 {secretBase32}
               </code>
-              <div className="text-amber-700">⚠ 본 화면을 닫으면 secret 을 다시 볼 수 없습니다.</div>
+              <div className="rounded-lg border border-amber-200 bg-amber-50 px-2 py-1.5 text-amber-700 font-medium">
+                ⚠ 본 화면을 닫으면 secret 을 다시 볼 수 없습니다.
+              </div>
             </div>
           </div>
         )}

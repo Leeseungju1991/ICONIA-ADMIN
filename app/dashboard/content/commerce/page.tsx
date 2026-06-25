@@ -19,6 +19,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { PanelCard } from "../../_components/PanelCard";
 import { AutoRefreshToggle } from "../../_components/AutoRefreshToggle";
+import { AdminToast, useAdminToast } from "../../_components/AdminToast";
 import { DangerConfirmDialog } from "../../_components/DangerConfirmDialog";
 import { useAutoRefresh } from "@/lib/hooks/useAutoRefresh";
 import {
@@ -29,12 +30,13 @@ import {
 } from "@/lib/actions/adminCommerce";
 import type { AdminCommerceProductRow } from "@/lib/adminApi";
 import { pickShopCategoryLabel } from "@/lib/shopCategoryLabels";
+import { safeImgSrc } from "@/lib/safeUrl";
 
 export default function CommercePage() {
   const [state, setState] = useState<ListProductsResult | null>(null);
   const [loading, startLoad] = useTransition();
   const [creating, startCreate] = useTransition();
-  const [toast, setToast] = useState<string | null>(null);
+  const { toast, setToast } = useAdminToast();
   const [autoOn, setAutoOn] = useState(false);
   const [newIds, setNewIds] = useState<Set<string>>(new Set());
   const knownIdsRef = useRef<Set<string>>(new Set());
@@ -97,11 +99,11 @@ export default function CommercePage() {
     enabled: autoOn,
     maxFailures: 3,
     onResult: ({ ok }) => {
-      if (!ok) setToast("일시 연결 끊김 — 다음 갱신에서 재시도");
+      if (!ok) setToast({ message: "일시 연결 끊김 — 다음 갱신에서 재시도", tone: "warning" });
     },
     onMaxFailures: () => {
       setAutoOn(false);
-      setToast("자동 갱신 중지 — 3회 연속 실패로 폴링을 중단했습니다.");
+      setToast({ message: "자동 갱신 중지 — 3회 연속 실패로 폴링을 중단했습니다.", tone: "warning" });
     },
   });
 
@@ -117,7 +119,7 @@ export default function CommercePage() {
     const price = Number(priceStr);
     const stock = Number(stockStr);
     if (name.length < 1 || !Number.isFinite(price) || price < 0) {
-      setToast("상품명과 가격(0 이상)을 정확히 입력하세요.");
+      setToast({ message: "상품명과 가격(0 이상)을 정확히 입력하세요.", tone: "warning" });
       return;
     }
     startCreate(async () => {
@@ -129,10 +131,10 @@ export default function CommercePage() {
         stock: Number.isFinite(stock) && stock >= 0 ? Math.floor(stock) : 0,
       });
       if (!r.ok) {
-        setToast(`추가 실패: ${r.message}`);
+        setToast({ message: `추가 실패: ${r.message}`, tone: "error" });
         return;
       }
-      setToast(`추가됨: ${r.product.name}`);
+      setToast({ message: `추가됨: ${r.product.name}`, tone: "success" });
       form.reset();
       reload();
     });
@@ -150,10 +152,10 @@ export default function CommercePage() {
     startCreate(async () => {
       const r = await deleteAdminCommerceProductAction({ id: p.id });
       if (!r.ok) {
-        setToast(`제거 실패: ${r.message}`);
+        setToast({ message: `제거 실패: ${r.message}`, tone: "error" });
         return;
       }
-      setToast(`제거됨: ${p.name}`);
+      setToast({ message: `제거됨: ${p.name}`, tone: "success" });
       reload();
     });
   }
@@ -269,10 +271,10 @@ export default function CommercePage() {
                           <circle cx="9" cy="11" r="1.5" />
                           <path d="M21 17l-5-5-4 4-3-3-6 6" />
                         </svg>
-                        {p.image_url ? (
+                        {safeImgSrc(p.image_url) ? (
                           /* eslint-disable-next-line @next/next/no-img-element */
                           <img
-                            src={p.image_url}
+                            src={safeImgSrc(p.image_url)}
                             alt=""
                             className="absolute inset-0 w-12 h-12 object-cover"
                             loading="lazy"
@@ -345,18 +347,7 @@ export default function CommercePage() {
         )}
       </PanelCard>
 
-      {toast ? (
-        <div className="fixed bottom-6 right-6 z-50 rounded-2xl bg-slate-900/85 text-white text-sm px-4 py-3 shadow-card max-w-md">
-          {toast}
-          <button
-            className="ml-3 underline opacity-80"
-            onClick={() => setToast(null)}
-            type="button"
-          >
-            닫기
-          </button>
-        </div>
-      ) : null}
+      <AdminToast toast={toast} onDismiss={() => setToast(null)} />
 
       <DangerConfirmDialog
         open={pendingRemove !== null}

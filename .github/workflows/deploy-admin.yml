@@ -12,12 +12,19 @@
 #   ECR_REPOSITORY       <account>.dkr.ecr.<region>.amazonaws.com/iconia-<env>/admin
 #   ECS_CLUSTER          iconia-<env>-cluster
 #   ECS_SERVICE          iconia-<env>-admin
+#
+# [2026-06-24] P1 수정: push:main 트리거 제거 — CI 게이트 없이 ECS 배포가 진행되던
+# 문제 해결. SERVER/AI deploy-server.yml/deploy-ai.yml 과 동일하게 workflow_dispatch
+# 수동 트리거만 남김. 실 배포 정본은 ICONIA-CI/deploy.yml (SSM EC2 경로).
+# ECS ADMIN 배포(CloudFront→ALB:8082→ECS)는 수동 dispatch 시에만 실행됨.
 # -----------------------------------------------------------------------------
 name: deploy-admin
 
 on:
-  push:
-    branches: [main]
+  # push 트리거 제거 — CI 게이트(lint/typecheck/test) 없이 ECS 배포가 진행되던 P1 이슈.
+  # 아래 주석을 해제하려면 반드시 needs: [admin-lint, admin-typecheck, admin-test] 를 deploy job에 추가할 것:
+  # push:
+  #   branches: [main]
   workflow_dispatch:
 
 concurrency:

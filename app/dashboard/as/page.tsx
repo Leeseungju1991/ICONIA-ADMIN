@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { PanelCard } from "../_components/PanelCard";
+import { AdminToast, useAdminToast } from "../_components/AdminToast";
 import {
   createAsTicketAction,
   replaceAsTicketAction,
@@ -35,7 +36,7 @@ export default function AsPage() {
   const [tickets, setTickets] = useState<AsTicketRow[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isReloading, startReload] = useTransition();
-  const [toast, setToast] = useState<string | null>(null);
+  const { toast, setToast } = useAdminToast();
 
   function reload() {
     startReload(async () => {
@@ -115,14 +116,7 @@ export default function AsPage() {
         <CloseTicketPanel onDone={(msg) => { setToast(msg); reload(); }} />
       </div>
 
-      {toast ? (
-        <div className="fixed bottom-6 right-6 z-50 rounded-2xl bg-slate-900/85 text-white text-sm px-4 py-3 shadow-card">
-          {toast}
-          <button className="ml-3 underline opacity-80" onClick={() => setToast(null)} type="button">
-            닫기
-          </button>
-        </div>
-      ) : null}
+      <AdminToast toast={toast} onDismiss={() => setToast(null)} />
     </div>
   );
 }

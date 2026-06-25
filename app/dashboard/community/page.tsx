@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState, useTransition } from "react";
 import { PanelCard } from "../_components/PanelCard";
+import { AdminToast, useAdminToast } from "../_components/AdminToast";
 import { CommunityHealthChips } from "../_components/CommunityHealthChips";
 import {
   listFeedAction,
@@ -20,7 +21,7 @@ export default function CommunityPage() {
   const [pending, start] = useTransition();
   const [target, setTarget] = useState<FeedListItem | null>(null);
   const [reason, setReason] = useState("");
-  const [toast, setToast] = useState<string | null>(null);
+  const { toast, setToast } = useAdminToast();
 
   function reload() {
     start(async () => {
@@ -59,7 +60,7 @@ export default function CommunityPage() {
       const r = await takedownPostAction(id, trimmed);
       setTarget(null);
       setReason("");
-      setToast(r?.ok === false ? `삭제 실패: ${r.message ?? "알 수 없음"}` : `게시물 ${id} 삭제 완료`);
+      setToast(r?.ok === false ? { message: `삭제 실패: ${r.message ?? "알 수 없음"}`, tone: "error" } : { message: `게시물 ${id} 삭제 완료`, tone: "success" });
       reload();
     });
   }
@@ -84,7 +85,7 @@ export default function CommunityPage() {
         outcome: "queued",
       });
       const r = await unhidePostAction(id);
-      setToast(r?.ok === false ? `복귀 실패: ${r.message ?? "알 수 없음"}` : `게시물 ${id} 복귀 완료`);
+      setToast(r?.ok === false ? { message: `복귀 실패: ${r.message ?? "알 수 없음"}`, tone: "error" } : { message: `게시물 ${id} 복귀 완료`, tone: "success" });
       reload();
     });
   }
@@ -199,12 +200,7 @@ export default function CommunityPage() {
         </div>
       ) : null}
 
-      {toast ? (
-        <div className="fixed bottom-6 right-6 z-50 rounded-2xl bg-slate-900/85 text-white text-sm px-4 py-3 shadow-card max-w-md">
-          {toast}
-          <button className="ml-3 underline opacity-80" onClick={() => setToast(null)} type="button">닫기</button>
-        </div>
-      ) : null}
+      <AdminToast toast={toast} onDismiss={() => setToast(null)} />
     </div>
   );
 }

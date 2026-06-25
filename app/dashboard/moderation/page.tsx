@@ -7,6 +7,7 @@
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { PanelCard } from "../_components/PanelCard";
 import { StatCard } from "../_components/StatCard";
+import { AdminToast, useAdminToast } from "../_components/AdminToast";
 import { EmptyState, ErrorState, FixtureBadge, LoadingState } from "../_components/CardStates";
 import { listReportsAction, resolveReportAction } from "@/lib/actions/reportsAdmin";
 import type {
@@ -44,7 +45,7 @@ export default function ModerationPage() {
   const [error, setError] = useState<{ message: string; unreachable: boolean } | null>(null);
   const [source, setSource] = useState<"server" | "fixture" | null>(null);
   const [picked, setPicked] = useState<ReportRow | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
+  const { toast, setToast } = useAdminToast();
   const [loading, startLoad] = useTransition();
   const [acting, startAct] = useTransition();
 
@@ -100,12 +101,12 @@ export default function ModerationPage() {
           )
         : "EXECUTE";
     if (phrase !== "EXECUTE") {
-      setToast("실행 취소 — 확인 문구 불일치.");
+      setToast({ message: "실행 취소 — 확인 문구 불일치.", tone: "warning" });
       return;
     }
     const reason = window.prompt(`${confirmLabel} 사유 (5자 이상, 감사 로그 기록):`);
     if (!reason || reason.trim().length < 5) {
-      setToast("사유가 5자 이상 필요합니다.");
+      setToast({ message: "사유가 5자 이상 필요합니다.", tone: "warning" });
       return;
     }
     startAct(async () => {
@@ -115,10 +116,10 @@ export default function ModerationPage() {
         reason: reason.trim(),
       });
       if (!res.ok) {
-        setToast(`처리 실패: ${res.message}`);
+        setToast({ message: `처리 실패: ${res.message}`, tone: "error" });
         return;
       }
-      setToast(`${confirmLabel} 처리 완료 — ${r.id}`);
+      setToast({ message: `${confirmLabel} 처리 완료 — ${r.id}`, tone: "success" });
       setPicked(null);
       reload();
     });
@@ -220,18 +221,7 @@ export default function ModerationPage() {
         )}
       </PanelCard>
 
-      {toast ? (
-        <div className="fixed bottom-6 right-6 z-50 rounded-2xl bg-slate-900/85 text-white text-sm px-4 py-3 shadow-card max-w-md">
-          {toast}
-          <button
-            className="ml-3 underline opacity-80"
-            onClick={() => setToast(null)}
-            type="button"
-          >
-            닫기
-          </button>
-        </div>
-      ) : null}
+      <AdminToast toast={toast} onDismiss={() => setToast(null)} />
 
       {picked ? (
         <ReportDrawer

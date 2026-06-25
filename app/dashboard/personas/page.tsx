@@ -9,6 +9,7 @@ import {
 } from "@/lib/actions/personas";
 import { getAiHealthAction } from "@/lib/actions/aiHealth";
 import type { AdminPersonaRow, AiHealthSnapshot } from "@/lib/adminApi";
+import { soulLabel, SOUL_CANONICAL_COUNT, isSoulCanonical } from "@/lib/soulCatalog";
 
 // Phase 14-C — personas 재설계.
 // Server `GET /api/v1/admin/personas` (Phase 1) + `GET /api/v1/admin/ai-health` (by_soul_catalog_id 차원).
@@ -56,10 +57,15 @@ export default function PersonasPage() {
   }, [state, statusFilter]);
 
   const stats = useMemo(() => {
-    if (!state || !state.ok) return { total: 0, live: 0, staged: 0 };
+    if (!state || !state.ok) return { total: 0, canonical: 0, live: 0, staged: 0 };
     const live = state.personas.filter((p) => p.status === "live").length;
     const staged = state.personas.filter((p) => p.status === "staged").length;
-    return { total: state.personas.length, live, staged };
+    // 2026-06-25 — 운영 정본 24종만 카운트 (deprecated 12종 제외).
+    //   서버가 36개를 반환해도 표시 카운트는 canonical 24 기준.
+    const canonical = state.personas.filter(
+      (p) => p.soul_catalog_id && isSoulCanonical(p.soul_catalog_id),
+    ).length;
+    return { total: state.personas.length, canonical, live, staged };
   }, [state]);
 
   const byKindCost = aiSnap?.cost?.by_kind;
@@ -74,8 +80,8 @@ export default function PersonasPage() {
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           label="등록 SOUL"
-          value={String(stats.total)}
-          hint="Server PersonaClient.listCatalog"
+          value={String(stats.canonical)}
+          hint={`정본 24종 기준 (카탈로그 총 ${SOUL_CANONICAL_COUNT}종)`}
           accent="purple"
         />
         <StatCard
@@ -197,7 +203,10 @@ function SoulCard({
   return (
     <div className="rounded-xl border border-white/60 bg-white/60 px-3 py-3">
       <div className="flex items-center justify-between">
-        <div className="font-medium text-slate-800">{persona.name}</div>
+        <div className="font-medium text-slate-800">
+          {/* 2026-06-24 — soul_catalog_id → soulLabel() 로컬 폴백 (서버 V 라운드 soul_name 미완료 대응). */}
+          {soulLabel(persona.soul_catalog_id) ?? persona.name}
+        </div>
         <span className={statusChip[persona.status] ?? "chip chip-muted"}>
           {persona.status}
         </span>

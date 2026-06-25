@@ -10,6 +10,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { PanelCard } from "../_components/PanelCard";
 import { StatCard } from "../_components/StatCard";
+import { AdminToast, useAdminToast } from "../_components/AdminToast";
 import { EmptyState, ErrorState, LoadingState } from "../_components/CardStates";
 import {
   listUserFeatureFlagsAction,
@@ -48,7 +49,7 @@ export default function FeatureFlagsPage() {
   const [userId, setUserId] = useState("");
   const [flags, setFlags] = useState<UserFeatureFlagRow[] | null>(null);
   const [error, setError] = useState<{ message: string; unreachable: boolean } | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
+  const { toast, setToast } = useAdminToast();
   const [pendingKey, setPendingKey] = useState<string | null>(null);
   const [loading, startLoad] = useTransition();
   const [acting, startAct] = useTransition();
@@ -56,7 +57,7 @@ export default function FeatureFlagsPage() {
   function reload() {
     const uid = userId.trim();
     if (!uid) {
-      setToast("조회할 사용자 ID 를 입력하세요.");
+      setToast({ message: "조회할 사용자 ID 를 입력하세요.", tone: "warning" });
       return;
     }
     startLoad(async () => {
@@ -90,7 +91,7 @@ export default function FeatureFlagsPage() {
       });
       setPendingKey(null);
       if (!res.ok) {
-        setToast(`토글 실패: ${res.message}`);
+        setToast({ message: `토글 실패: ${res.message}`, tone: "error" });
         return;
       }
       // 서버 응답(flag_key, enabled) 으로 해당 행만 갱신 (낙관적 대신 정본 반영).
@@ -99,9 +100,10 @@ export default function FeatureFlagsPage() {
           f.flag_key === res.data.flag_key ? { ...f, enabled: res.data.enabled } : f,
         ),
       );
-      setToast(
-        `${flagLabel(res.data.flag_key)} — ${res.data.enabled ? "켜짐" : "꺼짐"}`,
-      );
+      setToast({
+        message: `${flagLabel(res.data.flag_key)} — ${res.data.enabled ? "켜짐" : "꺼짐"}`,
+        tone: "success",
+      });
     });
   }
 
@@ -184,18 +186,7 @@ export default function FeatureFlagsPage() {
         )}
       </PanelCard>
 
-      {toast ? (
-        <div className="fixed bottom-6 right-6 z-50 rounded-2xl bg-slate-900/85 text-white text-sm px-4 py-3 shadow-card max-w-md">
-          {toast}
-          <button
-            className="ml-3 underline opacity-80"
-            onClick={() => setToast(null)}
-            type="button"
-          >
-            닫기
-          </button>
-        </div>
-      ) : null}
+      <AdminToast toast={toast} onDismiss={() => setToast(null)} />
     </div>
   );
 }

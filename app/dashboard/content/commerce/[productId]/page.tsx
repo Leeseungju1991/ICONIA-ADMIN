@@ -18,6 +18,7 @@ import {
   type ProductDetailResult,
 } from "@/lib/actions/adminCommerce";
 import type { AdminCommerceProductRow } from "@/lib/adminApi";
+import { safeImgSrc } from "@/lib/safeUrl";
 import { messageForCode } from "@/lib/errorMessages";
 // 2026-06-05 — 사용자 요청: 카테고리는 APP Shop(dollsoomSeries) 라벨 풀에서 결정론적 랜덤.
 //   목록 페이지와 동일한 fallback 정책 적용 (server category 우선, 비면 id seed).
@@ -123,10 +124,10 @@ export default function CommerceProductDetailPage({ params }: Params) {
                     adminCommerce.ts normalize 가 null 일 때도 placeholder 주입. */}
                 <div className="relative w-40 h-40 rounded-2xl bg-slate-100 overflow-hidden flex items-center justify-center text-xs text-slate-400">
                   <span aria-hidden>이미지 없음</span>
-                  {product.image_url ? (
+                  {safeImgSrc(product.image_url) ? (
                     /* eslint-disable-next-line @next/next/no-img-element */
                     <img
-                      src={product.image_url}
+                      src={safeImgSrc(product.image_url)}
                       alt={product.name}
                       className="absolute inset-0 w-40 h-40 object-cover"
                       loading="lazy"
