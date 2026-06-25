@@ -79,7 +79,7 @@ async function request<T>({
       return {
         ok: false,
         code: envelope.error.code,
-        message: envelope.error.message,
+        message: envelope.error.message ?? "",
         status: response.status,
         details: envelope.error.details,
       };
@@ -99,8 +99,8 @@ async function request<T>({
   if (envelope?.ok === false && envelope.error) {
     return {
       ok: false,
-      code: envelope.error.code,
-      message: envelope.error.message,
+      code: envelope.error.code ?? "ERR_UNKNOWN",
+      message: envelope.error.message ?? "",
       status: response.status,
       details: envelope.error.details,
     };
