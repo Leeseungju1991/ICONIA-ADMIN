@@ -36,11 +36,16 @@ afterEach(() => {
 
 function mockFetchOnce(input: { status: number; body: unknown }) {
   const body = JSON.stringify(input.body);
-  const fetchMock = vi.fn().mockResolvedValue(
-    new Response(body, {
-      status: input.status,
-      headers: { "Content-Type": "application/json" },
-    }),
+  // mockImplementation so each retry attempt gets a fresh Response instance —
+  // Response.body is a one-time readable stream; reusing the same object causes
+  // .json() to throw on the 2nd call (retry), producing ERR_INVALID_RESPONSE.
+  const fetchMock = vi.fn().mockImplementation(() =>
+    Promise.resolve(
+      new Response(body, {
+        status: input.status,
+        headers: { "Content-Type": "application/json" },
+      }),
+    ),
   );
   vi.stubGlobal("fetch", fetchMock);
   return fetchMock;
@@ -388,9 +393,8 @@ describe("getAiHealth", () => {
     expect(r.ok).toBe(true);
     if (r.ok) expect(r.data.latency_ms.p95).toBe(2100);
     const [url, init] = fetchMock.mock.calls[0];
-    // 2026-06-22 — adminApi.ts:471 — server 정본은 `/api/admin/ai/health` (v0 prefix).
-    //   `/api/v1/admin/ai-health` 는 미배포로 404. 본 테스트 경로도 정본에 일치.
-    expect(url).toBe(`${BASE}/api/admin/ai/health`);
+    // adminApi.ts 정본 경로: `/api/v1/admin/ai-health` (v0 prefix `/api/admin/ai/health` 는 폐기).
+    expect(url).toBe(`${BASE}/api/v1/admin/ai-health`);
     expect(init.method).toBe("GET");
   });
 

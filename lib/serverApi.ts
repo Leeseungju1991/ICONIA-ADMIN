@@ -73,17 +73,9 @@ async function request<T>({
     };
   }
 
-  // 5xx: 구조화된 에러코드가 있으면 그대로 전달 (httpClient 와 동일 정책).
+  // 5xx: pre-auth 흐름은 서버 body 의 code 를 무시하고 항상 ERR_SERVER_UNAVAILABLE 반환.
+  // (serverApi.test.ts:108 계약 — 로그인/MFA/로그아웃 경로에서 서버 내부 오류 코드 노출 차단)
   if (response.status >= 500) {
-    if (envelope?.ok === false && envelope.error?.code) {
-      return {
-        ok: false,
-        code: envelope.error.code,
-        message: envelope.error.message ?? "",
-        status: response.status,
-        details: envelope.error.details,
-      };
-    }
     return {
       ok: false,
       code: "ERR_SERVER_UNAVAILABLE",

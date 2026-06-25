@@ -13,11 +13,16 @@ afterEach(() => {
 
 function mockFetchOnce(input: { status: number; body: unknown; bodyText?: string }) {
   const body = input.bodyText ?? JSON.stringify(input.body);
-  const fetchMock = vi.fn().mockResolvedValue(
-    new Response(body, {
-      status: input.status,
-      headers: { "Content-Type": "application/json" },
-    }),
+  // mockImplementation (not mockResolvedValue) so each retry attempt gets a fresh
+  // Response instance — Response.body is a one-time readable stream and a single
+  // instance would throw on the 2nd .json() call (retry path).
+  const fetchMock = vi.fn().mockImplementation(() =>
+    Promise.resolve(
+      new Response(body, {
+        status: input.status,
+        headers: { "Content-Type": "application/json" },
+      }),
+    ),
   );
   vi.stubGlobal("fetch", fetchMock);
   return fetchMock;

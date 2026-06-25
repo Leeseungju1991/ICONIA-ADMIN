@@ -13,11 +13,16 @@ afterEach(() => {
 
 function mockFetchOnce(input: { status: number; body: unknown; bodyText?: string }) {
   const body = input.bodyText ?? JSON.stringify(input.body);
-  const fetchMock = vi.fn().mockResolvedValue(
-    new Response(body, {
-      status: input.status,
-      headers: { "Content-Type": "application/json" },
-    }),
+  // mockImplementation so each retry attempt gets a fresh Response instance —
+  // Response.body is a one-time readable stream; reusing the same object causes
+  // .json() to throw on the 2nd call (retry), producing ERR_INVALID_RESPONSE.
+  const fetchMock = vi.fn().mockImplementation(() =>
+    Promise.resolve(
+      new Response(body, {
+        status: input.status,
+        headers: { "Content-Type": "application/json" },
+      }),
+    ),
   );
   vi.stubGlobal("fetch", fetchMock);
   return fetchMock;
