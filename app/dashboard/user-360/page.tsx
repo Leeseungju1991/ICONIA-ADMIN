@@ -2,6 +2,7 @@
 import { useEffect, useState, useTransition } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { PanelCard } from "../_components/PanelCard";
+import { AdminToast, useAdminToast } from "../_components/AdminToast";
 import { UserSnapshotGrid, type ActionKey } from "../_components/UserSnapshotGrid";
 import { UserTimeline } from "../_components/UserTimeline";
 import { fetchUser360Action, fetchUser360TimelineAction, type User360ActionResult, type User360TimelineResult } from "@/lib/actions/user360";
@@ -101,7 +102,7 @@ export default function User360Page() {
   const [addUuid, setAddUuid] = useState("");
   const [addPending, startAdd] = useTransition();
   const [addError, setAddError] = useState<string | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
+  const { toast, setToast } = useAdminToast();
 
   function submitAdd(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -131,7 +132,7 @@ export default function User360Page() {
         setAddError(r.message || "사용자 추가 실패");
         return;
       }
-      setToast(`사용자 추가 완료: ${r.data.user.email} (${r.data.user.id.slice(0, 8)}…)`);
+      setToast({ message: `사용자 추가 완료: ${r.data.user.email} (${r.data.user.id.slice(0, 8)}…)`, tone: "success" });
       setAddEmail(""); setAddPassword(""); setAddUuid("");
       setAddOpen(false);
       loadUsersList("");
@@ -191,7 +192,7 @@ export default function User360Page() {
         if (!sr.ok) { setEditError(sr.message); return; }
         if (sr.note) notes.push(sr.note);
       }
-      setToast(notes.length ? notes.join(" ") : "사용자 정보가 갱신되었습니다.");
+      setToast({ message: notes.length ? notes.join(" ") : "사용자 정보가 갱신되었습니다.", tone: "success" });
       setEditTarget(null);
       loadUsersList("");
     });
@@ -201,18 +202,18 @@ export default function User360Page() {
     // 2026-06-01 — 사용자 요청: 영문 "EXECUTE" 대신 한글 "삭제" 입력으로 확인.
     const confirm1 = window.prompt(`사용자 "${email}" 삭제\n\n강력 액션입니다. 실행하려면 정확히 "삭제" 를 입력하세요.`);
     if (confirm1 !== "삭제") {
-      setToast("삭제 취소 — 확인 문구 불일치 (정확히 '삭제' 를 입력).");
+      setToast({ message: "삭제 취소 — 확인 문구 불일치 (정확히 '삭제' 를 입력).", tone: "warning" });
       return;
     }
     const reasonText = window.prompt("삭제 사유 (감사 로그 기록, 5자 이상)");
     if (!reasonText || reasonText.trim().length < 5) {
-      setToast("사유가 5자 이상 필요합니다. 삭제를 취소했습니다.");
+      setToast({ message: "사유가 5자 이상 필요합니다. 삭제를 취소했습니다.", tone: "warning" });
       return;
     }
     void (async () => {
       const r = await deleteUserAction({ userId, reason: reasonText.trim() });
-      if (!r.ok) { setToast(`삭제 실패: ${r.message}`); return; }
-      setToast(r.note ?? "사용자가 삭제되었습니다. (감사 로그 기록됨)");
+      if (!r.ok) { setToast({ message: `삭제 실패: ${r.message}`, tone: "error" }); return; }
+      setToast({ message: r.note ?? "사용자가 삭제되었습니다. (감사 로그 기록됨)", tone: "success" });
       loadUsersList("");
     })();
   }

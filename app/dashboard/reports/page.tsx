@@ -5,6 +5,7 @@ import { PanelCard } from "../_components/PanelCard";
 import { DataTable, type Column } from "../_components/DataTable";
 import { StatCard } from "../_components/StatCard";
 import { OpsAuditTrailPanel } from "../_components/OpsAuditTrailPanel";
+import { AdminToast, useAdminToast } from "../_components/AdminToast";
 import { recordOpsAuditWithSilentRetry } from "@/lib/opsAuditTrail";
 import type { PostRow } from "@/lib/adminApi";
 import {
@@ -52,7 +53,7 @@ async function runUnhide(postId: string, reason: string) {
 export default function ReportsPage() {
   const [tab, setTab] = useState<"all" | "visible" | "hidden">("visible");
   const [picked, setPicked] = useState<PostRow | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
+  const { toast, setToast } = useAdminToast();
   const [auditTick, setAuditTick] = useState(0);
   const [posts, setPosts] = useState<PostRow[]>([]);
   const [error, setError] = useState<{ message: string; unreachable: boolean } | null>(null);
@@ -107,18 +108,18 @@ export default function ReportsPage() {
         `게시물 숨김 처리\n\n강력 액션입니다. 실행하려면 정확히 "EXECUTE" 를 입력하세요.`,
       );
       if (phrase !== "EXECUTE") {
-        setToast("실행 취소 — 확인 문구 불일치.");
+        setToast({ message: "실행 취소 — 확인 문구 불일치.", tone: "warning" });
         return;
       }
     }
     const reason = window.prompt("숨김 사유 (감사 로그에 기록, 5자 이상):");
     if (!reason || reason.trim().length < 5) {
-      setToast("사유가 5자 이상 필요합니다.");
+      setToast({ message: "사유가 5자 이상 필요합니다.", tone: "warning" });
       return;
     }
     const r = await runHide(p.post_id, reason.trim());
     if (!r.ok) {
-      setToast(`숨김 처리 실패: ${r.message}`);
+      setToast({ message: `숨김 처리 실패: ${r.message}`, tone: "error" });
       return;
     }
     await recordOpsAuditWithSilentRetry({
@@ -131,25 +132,25 @@ export default function ReportsPage() {
     });
     setAuditTick((t) => t + 1);
     setPicked(null);
-    setToast(`게시물 ${p.post_id} 숨김 처리 완료.`);
+    setToast({ message: `게시물 ${p.post_id} 숨김 처리 완료.`, tone: "success" });
     reload();
   }
 
   async function handleUnhide(p: PostRow) {
     // 2026-06-05 — 복귀에도 사유 5자+ 강제 (audit_log 가시성).
     if (p.status === "taken_down") {
-      setToast("영구 차단(taken_down) 게시물은 복구할 수 없습니다. superadmin 문의 필요.");
+      setToast({ message: "영구 차단(taken_down) 게시물은 복구할 수 없습니다. superadmin 문의 필요.", tone: "error" });
       return;
     }
     if (typeof window === "undefined") return;
     const reason = window.prompt("게시물 복귀 사유 (감사 로그에 기록, 5자 이상):");
     if (!reason || reason.trim().length < 5) {
-      setToast("복귀 사유가 5자 이상 필요합니다.");
+      setToast({ message: "복귀 사유가 5자 이상 필요합니다.", tone: "warning" });
       return;
     }
     const r = await runUnhide(p.post_id, reason.trim());
     if (!r.ok) {
-      setToast(`복구 실패: ${r.message}`);
+      setToast({ message: `복구 실패: ${r.message}`, tone: "error" });
       return;
     }
     await recordOpsAuditWithSilentRetry({
@@ -162,7 +163,7 @@ export default function ReportsPage() {
     });
     setAuditTick((t) => t + 1);
     setPicked(null);
-    setToast(`게시물 ${p.post_id} 복구 완료.`);
+    setToast({ message: `게시물 ${p.post_id} 복구 완료.`, tone: "success" });
     reload();
   }
 
@@ -260,14 +261,7 @@ export default function ReportsPage() {
         refresh={{ tick: auditTick }}
       />
 
-      {toast ? (
-        <div className="fixed bottom-6 right-6 z-50 rounded-2xl bg-slate-900/85 text-white text-sm px-4 py-3 shadow-card max-w-md">
-          {toast}
-          <button className="ml-3 underline opacity-80" onClick={() => setToast(null)} type="button">
-            닫기
-          </button>
-        </div>
-      ) : null}
+      <AdminToast toast={toast} onDismiss={() => setToast(null)} />
 
       {picked ? (
         <ReportDrawer
