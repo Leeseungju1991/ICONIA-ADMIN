@@ -56,8 +56,12 @@ async function request<T>({
     clearTimeout(timer);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let envelope: any;
+  type Envelope = {
+    ok?: boolean;
+    data?: unknown;
+    error?: { code?: string; message?: string; details?: unknown };
+  };
+  let envelope: Envelope = {};
   try {
     envelope = await response.json();
   } catch {
