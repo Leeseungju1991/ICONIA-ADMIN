@@ -38,3 +38,6 @@ secrets/
 *.tfvars
 *.tfvars.json
 .terraform/
+
+# 에이전트 임시 작업 파일 (이전 라운드 부산물, 운영 코드 무관)
+.tmp/
