@@ -1,5 +1,7 @@
 # ICONIA ADMIN (운영자 콘솔)
 
+> **Release Stage — MVP 1.0.0**  ·  제작자 / Author — **LEE SEUNG JU**
+
 ICONIA 운영자 콘솔 — Next.js 14 (App Router) · React 18 · Tailwind 3.
 
 > **★ 데이터 연결은 AWS 실서버 단일 대상입니다.**

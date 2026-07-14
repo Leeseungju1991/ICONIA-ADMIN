@@ -51,7 +51,7 @@ describe("OpsSeedPage — render states", () => {
       ok: true,
       data: {
         last_run_at: "2026-05-26T03:00:00Z",
-        last_run_by: "web@soomkorea.com",
+        last_run_by: "privacy@example.com",
         duration_ms: 1234,
         counts: { users: 100, products: 12 },
       },

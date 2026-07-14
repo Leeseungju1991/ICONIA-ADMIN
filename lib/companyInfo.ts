@@ -54,7 +54,7 @@ export const COMPANY_INFO_PLACEHOLDER: BusinessInfo = {
   address_ko: "출시 전 등록 예정",
   address_en: "To be registered before launch",
   // 대표 전화 — (주)숨코리아 정식 번호 (CI/docs/legal/business-info.md 와 정합).
-  phone: "02-2038-2935",
+  phone: "00-0000-0000",
   // 이메일 도메인은 `6. CI/docs/legal/business-info.md` 정본과 일치 (dollsoom.com).
   support_email: "support@dollsoom.com",
   // PIPA 제31조 지정 DPO. Server `/api/v1/legal/business-info` 도입 시 동기화.
