@@ -1,8 +1,12 @@
-# ICONIA ADMIN (운영자 콘솔)
+# 🖥️ ICONIA ADMIN (운영자 콘솔)
 
 > **Release Stage — MVP 1.0.0**  ·  제작자 / Author — **LEE SEUNG JU**
 
-ICONIA 운영자 콘솔 — Next.js 14 (App Router) · React 18 · Tailwind 3.
+**3줄 요약**
+
+1. 🔐 ID/비밀번호 + TOTP 2단계 인증으로 로그인하는 **ICONIA 운영자 단일 콘솔** (Next.js 14 · React 18 · Tailwind 3).
+2. 🧭 회원·디바이스·AI 페르소나·OTA·콘텐츠·커머스·법률·관측성(SLO)을 **한 화면에서 통합 관리**하고 시스템 건강 상태를 실시간 모니터링.
+3. 🛡️ 모든 강력 액션은 **사유 입력 + EXECUTE 2단계 확인 + 감사 로그(hash chain)** 를 거치며, 데이터 연결은 **AWS 실서버 단일 대상**.
 
 > **★ 데이터 연결은 AWS 실서버 단일 대상입니다.**
 > 기본 Server URL = `http://iconia-prod-alb-1600486872.ap-northeast-2.elb.amazonaws.com`.
@@ -10,41 +14,39 @@ ICONIA 운영자 콘솔 — Next.js 14 (App Router) · React 18 · Tailwind 3.
 
 ---
 
-## 1. 구조도
+## 🏗️ 1. 구조도
 
-```
-운영자 브라우저
-    │  (HTTPS, httpOnly 쿠키)
-    ▼
-┌─────────────── ICONIA-ADMIN (Next.js 14) ───────────────┐
-│  /login → MFA(TOTP) → JWT 발급                          │
-│                                                          │
-│  middleware.ts (Edge)                                    │
-│     │ JWT 없음 → /login                                  │
-│     │ role 기반 경로 차단                                 │
-│     ▼                                                    │
-│  /dashboard                                              │
-│   ├─ 홈 (KPI 8종 + 5개 서비스 상태)                       │
-│   ├─ CS 통합 조회·회원·디바이스·OTA·페르소나              │
-│   ├─ 리뷰·신고·공지·푸시·통계                            │
-│   ├─ 펌웨어/서버/앱 에러                                  │
-│   ├─ 운영 안정성 9항목 + AI 호출 모니터링                 │
-│   ├─ 운영 — SLO·알람·로그·감사·runbook (V1.0)             │
-│   ├─ 양산·AS·운영 리포트 아카이브                         │
-│   └─ 운영자 관리 (최고관리자)                             │
-│                                                          │
-│  Server Action / RSC (브라우저는 Server 직접 호출 안 함)  │
-└──────────────────────┬───────────────────────────────────┘
-                       │  Bearer JWT (서버사이드만)
-                       ▼
-                 ICONIA-SERVER
-                  /api/v1/admin/*
-                  /api/v1/operator/*
+운영자 브라우저 → ICONIA-ADMIN(Next.js 14) → ICONIA-SERVER 로 이어지는 계층 구조. **브라우저는 Server 를 직접 호출하지 않으며**, 서버사이드(Server Action / RSC)만 Bearer JWT 로 SERVER 에 접근합니다.
+
+```mermaid
+flowchart TD
+    Browser["운영자 브라우저"]
+
+    subgraph ADMIN["ICONIA-ADMIN (Next.js 14)"]
+        direction TB
+        Login["/login<br/>MFA(TOTP) → JWT 발급"]
+        MW["middleware.ts (Edge)<br/>JWT 없음 → /login<br/>role 기반 경로 차단"]
+        Dashboard["/dashboard"]
+        Menu["홈 (KPI 8종 + 5개 서비스 상태)<br/>CS 통합 조회·회원·디바이스·OTA·페르소나<br/>리뷰·신고·공지·푸시·통계<br/>펌웨어/서버/앱 에러<br/>운영 안정성 9항목 + AI 호출 모니터링<br/>운영 — SLO·알람·로그·감사·runbook (V1.0)<br/>양산·AS·운영 리포트 아카이브<br/>운영자 관리 (최고관리자)"]
+        RSC["Server Action / RSC<br/>(브라우저는 Server 직접 호출 안 함)"]
+
+        Login --> MW
+        MW --> Dashboard
+        Dashboard --> Menu
+        Menu --> RSC
+    end
+
+    subgraph SERVER["ICONIA-SERVER"]
+        API["/api/v1/admin/*<br/>/api/v1/operator/*"]
+    end
+
+    Browser -->|"HTTPS, httpOnly 쿠키"| Login
+    RSC -->|"Bearer JWT (서버사이드만)"| API
 ```
 
 ---
 
-## 2. 동작 설명 (5줄)
+## ⚙️ 2. 동작 설명 (5줄)
 
 1. 관리자가 ID/비밀번호와 2단계 인증(TOTP)으로 로그인합니다.
 2. 한 화면에서 사용자·디바이스·AI 페르소나·펌웨어 배포·신고·공지·푸시를 관리합니다.
@@ -54,9 +56,23 @@ ICONIA 운영자 콘솔 — Next.js 14 (App Router) · React 18 · Tailwind 3.
 
 ---
 
-## 3. 기능
+## 🧩 3. 기능
 
-> **Contract Matrix:** ADMIN ↔ SERVER endpoint 정합 매트릭스는 [`docs/contract-matrix.md`](docs/contract-matrix.md). 전체 정본은 `ICONIA-SERVER/docs/contract-matrix.md`. 정본 정책: **SERVER 가 single source of truth — ADMIN 은 SERVER spec 에 맞춤.** 회귀 가드는 `lib/adminApi.contractAlignment.test.ts` 가 담당.
+> **📑 Contract Matrix:** ADMIN ↔ SERVER endpoint 정합 매트릭스는 [`docs/contract-matrix.md`](docs/contract-matrix.md). 전체 정본은 `ICONIA-SERVER/docs/contract-matrix.md`. 정본 정책: **SERVER 가 single source of truth — ADMIN 은 SERVER spec 에 맞춤.** 회귀 가드는 `lib/adminApi.contractAlignment.test.ts` 가 담당.
+
+### 기능 맵 (한눈에)
+
+| 영역 | 하위 기능 | 상세 |
+| --- | --- | --- |
+| 🔌 **인프라·인증** | 데이터 연결 · 로그인/권한 · 대시보드 홈 | §3.1 · §3.2 · §3.3 |
+| 👤 **사용자·디바이스** | 회원 관리 · 사용자 360 · 디바이스 모니터링 · OTA | §3.4 · §3.4b · §3.5 · §3.6 |
+| 🤖 **AI·콘텐츠·커머스** | AI 페르소나 · 콘텐츠 운영 · 커머스 · Seed · 법률/약관 | §3.7 · §3.8 · §3.8b · §3.8c · §3.8a |
+| 📊 **관측성·안정성** | 에러 로그 · 운영 안정성 · V1.0 SLO/알람/로그 · 통계 | §3.9 · §3.10 · §3.10a · §3.12 |
+| 🏭 **양산·운영자·플랫폼** | 양산/출고 · 운영자 관리 · 양산화/안정성 · 보안 · i18n · 디자인 | §3.11 · §3.13 · §3.14 · §3.15 · §3.16 · §3.17 |
+| 🔗 **의존성·자동화** | SERVER endpoint 의존성 매트릭스 · 자동 새로고침(polling) 매트릭스 | §3.18 · §3.19 |
+
+<details>
+<summary><b>🔌 3.1 ~ 3.3 — 인프라 · 인증 · 대시보드 홈</b></summary>
 
 ### 3.1 데이터 연결 (AWS 실서버 단일)
 - Admin 웹은 **오직 AWS 실서버(ICONIA-SERVER)** 에만 연결합니다 — 로컬/LAN 백엔드 연결 개념 없음
@@ -75,6 +91,11 @@ ICONIA 운영자 콘솔 — Next.js 14 (App Router) · React 18 · Tailwind 3.
 - **5개 서비스 상태** — 백엔드(서버·AI·DB)와 클라이언트(관리자·앱)를 구간 분리해 표시
 - 처리 대기 신고·앱 에러·서버 에러 미리보기 3건씩
 
+</details>
+
+<details>
+<summary><b>👤 3.4 ~ 3.6 — 회원 · 사용자 360 · 디바이스 · OTA</b></summary>
+
 ### 3.4 회원 관리
 - 이메일·이름·UUID 통합 검색
 - 강제 로그아웃 · 계정 일시정지 · MFA 초기화 · 탈퇴 처리
@@ -86,10 +107,10 @@ ICONIA 운영자 콘솔 — Next.js 14 (App Router) · React 18 · Tailwind 3.
 
 ### 3.4b 사용자 360 통합 관리 (신규)
 - 이메일·시리얼·UUID 한 줄 검색으로 한 사용자의 HW · Server · AI · APP 상태를 한 화면에서 관리
-- HW: 페어링 디바이스별 OTA 채널 강제 / force-unpair / AS 티켓
-- Server: 강제 로그아웃 / 계정 일시정지 / MFA 초기화
-- AI: persona fallback 강제 토글 / persona 리셋
-- APP: 테스트 푸시 / 강제 재인증
+- **HW:** 페어링 디바이스별 OTA 채널 강제 / force-unpair / AS 티켓
+- **Server:** 강제 로그아웃 / 계정 일시정지 / MFA 초기화
+- **AI:** persona fallback 강제 토글 / persona 리셋
+- **APP:** 테스트 푸시 / 강제 재인증
 - 이벤트 타임라인 (audit + ops events 시간 역순)
 - 모든 강력 액션 = 사유 5자+ + EXECUTE 2단계 + audit chain
 
@@ -103,6 +124,11 @@ ICONIA 운영자 콘솔 — Next.js 14 (App Router) · React 18 · Tailwind 3.
 - 펌웨어 채널 관리 (stable/beta/dev)
 - 단계적 배포 · 일시정지 · 중단 · 롤백
 - 배포 실패 디바이스 코드별 분포
+
+</details>
+
+<details>
+<summary><b>🤖 3.7 ~ 3.8a — AI 페르소나 · 콘텐츠 · 커머스 · Seed · 법률/약관</b></summary>
 
 ### 3.7 AI 페르소나
 - SOUL 파일 24종 검수
@@ -157,6 +183,11 @@ ICONIA 운영자 콘솔 — Next.js 14 (App Router) · React 18 · Tailwind 3.
   상세는 `/dashboard/legal` 의 회사 정보 패널 — 상호·대표·사업자등록번호·통신판매업
   신고·주소·고객지원/개인정보보호책임자 표시.
 
+</details>
+
+<details>
+<summary><b>📊 3.9 ~ 3.12 — 에러 로그 · 운영 안정성 · V1.0 관측성 · 통계</b></summary>
+
 ### 3.9 에러 로그
 - 펌웨어/서버/앱 에러 통합 조회
 - 코드별 분포 · 영향 사용자 수 · CSV/JSON 내보내기
@@ -195,6 +226,11 @@ ICONIA 운영자 콘솔 — Next.js 14 (App Router) · React 18 · Tailwind 3.
 - DAU · 가입 · 매출 추세
 - 사용자 인지 에러율 SLO 카드
 
+</details>
+
+<details>
+<summary><b>🏭 3.13 ~ 3.17 — 운영자 관리 · 양산화/안정성 · 보안 · 국제화 · 디자인</b></summary>
+
 ### 3.13 운영자 관리 (최고관리자 전용)
 - **운영자 초대** — 이메일 초대 + 역할 부여 + 초기 비밀번호 발급
 - 운영자 비활성화 · 역할 변경
@@ -223,7 +259,9 @@ ICONIA 운영자 콘솔 — Next.js 14 (App Router) · React 18 · Tailwind 3.
 - Tailwind 3 + 일관된 디자인 토큰 (색상·간격·타이포)
 - 공통 컴포넌트 (PanelCard · StatCard · DataTable · 모달)
 
-### 3.18 신규 페이지 · SERVER endpoint 의존성 (출시 정비)
+</details>
+
+### 🔗 3.18 신규 페이지 · SERVER endpoint 의존성 (출시 정비)
 
 운영팀 수동 진입 페이지 ↔ SERVER endpoint 매트릭스.
 
@@ -238,18 +276,18 @@ ICONIA 운영자 콘솔 — Next.js 14 (App Router) · React 18 · Tailwind 3.
 - ADMIN 측 미디어 업로드는 `/api/admin/media/upload` Next.js Route Handler 가 인증을
   처리하고 SERVER 로 multipart 본문을 forward — 브라우저 XHR 가 진행률을 직접 노출.
 
-### 3.19 자동 새로고침 (polling) — 페이지 매트릭스
+### 🔁 3.19 자동 새로고침 (polling) — 페이지 매트릭스
 
 운영자가 APP → SERVER → ADMIN 흐름을 즉시 확인할 수 있도록, 자주 갱신되는 페이지
 3종에 토글 ON/OFF 식 polling 을 제공한다. 공통 hook 은 `lib/hooks/useAutoRefresh.ts`.
 
 | 페이지 | 자동 갱신 | 주기 | 신규 행 표시 |
-| --- | --- | --- | --- |
+| --- | :---: | :---: | --- |
 | `/dashboard/users` (실시간 사용자 패널) | ✅ | 10s | NEW 행 1초 highlight |
 | `/dashboard/feed` | ✅ | 10s | NEW 칩 + ID highlight 1초 |
 | `/dashboard/content/commerce` (상품) | ✅ | 10s | NEW 칩 + 행 highlight 1초 |
 
-공통 동작:
+**공통 동작:**
 - 기본 OFF (운영자 명시적 활성). 토글 클릭 시 즉시 polling 시작.
 - 페이지 포커스 잃으면 자동 일시정지 (`document.visibilitychange`) — 배터리/CPU 절약.
 - 포커스 복귀 시 즉시 1회 갱신 + interval 재개. "마지막 조회 HH:MM:SS" 표시.
@@ -259,9 +297,10 @@ ICONIA 운영자 콘솔 — Next.js 14 (App Router) · React 18 · Tailwind 3.
 
 ---
 
-## 4. 추가 개발 항목
+## 🚧 4. 추가 개발 항목
 
-### ⚠️ 부분 가능 (이유)
+<details>
+<summary><b>⚠️ 부분 가능 (이유)</b></summary>
 
 - **mock → real swap 일부 화면** — Server endpoint 부재 항목은 client 함수 시그니처와 빈/에러 분기까지만 준비됨. Server `/api/v1/admin/ops/probes·alerts·traces·dead-letters·kill-switches·feature-flags·error-slo·expo-receipts·battery-distribution·users/signups·pipa/*·devices/pairings` 도입 후 swap 완료 가능. *(Server 라우트 작업이 선행되어야 함)*
 - **MAU 카드 · SKU 분포 등 통계 확장** — Server 가 데이터를 노출하면 가능. 현재는 통계 표면 골격만 존재. *(Server 통계 endpoint 추가 필요)*
@@ -295,11 +334,17 @@ ICONIA 운영자 콘솔 — Next.js 14 (App Router) · React 18 · Tailwind 3.
   현재 `lib/companyInfo.ts` placeholder ((주)숨코리아 / Soom Korea Inc.) 가 정본.
   *(사업자등록·통신판매업 신고 완료 후 실 값으로 교체)*
 
-### ❌ 당장 불가능 (이유)
+</details>
+
+<details>
+<summary><b>❌ 당장 불가능 (이유)</b></summary>
 
 - **실 운영자 트래픽 부하 테스트** — 실 사용자 운영자 다수가 동시에 콘솔을 쓰는 시나리오의 실측 부하는 베타 운영 단계 진입 후 가능. *(실 운영 환경 필요)*
 
-### 🔄 운영팀 가이드 — APP 가입 후 ADMIN 즉시 확인
+</details>
+
+<details>
+<summary><b>🔄 운영팀 가이드 — APP 가입 후 ADMIN 즉시 확인</b></summary>
 
 신규 APP 사용자가 정상 등록되었는지 ADMIN 콘솔에서 실시간 확인하는 표준 흐름:
 
@@ -314,7 +359,10 @@ ICONIA 운영자 콘솔 — Next.js 14 (App Router) · React 18 · Tailwind 3.
 7. 일시적인 SERVER 5xx 는 토스트로만 안내 (polling 유지). 3회 연속 실패 시 자동
    OFF 로 전환되어 운영자가 의식적으로 재활성화하도록 강제.
 
-### 📋 운영팀 채울 항목 (출시 직전 (주)숨코리아 등록 작업)
+</details>
+
+<details>
+<summary><b>📋 운영팀 채울 항목 (출시 직전 (주)숨코리아 등록 작업)</b></summary>
 
 본 라운드는 코드 + placeholder + TODO 만 정비. 아래는 사람이 입력/등록해야 하는 값.
 
@@ -333,3 +381,5 @@ ICONIA 운영자 콘솔 — Next.js 14 (App Router) · React 18 · Tailwind 3.
 - **신규 약관 발행 절차 표준화** — 운영팀 SOP: (1) 법무 검토 → (2) 운영 콘솔에서
   staging 발행 → (3) 내부 리뷰 → (4) activate=true 로 재발행 → (5) `/dashboard/notices`
   에 사용자 안내 공지 작성 → (6) 기존 사용자 reconsent 흐름은 App 가 수행.
+
+</details>
