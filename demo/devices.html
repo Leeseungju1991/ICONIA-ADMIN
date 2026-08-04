@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>디바이스 모니터링 — ICONIA 관리자 데모</title>
+<link rel="stylesheet" href="style.css" />
+<style>
+  .badge.red { background: #FEF2F2; color: #DC2626; }
+</style>
+</head>
+<body>
+  <div class="demo-banner">DEMO 모드 — 실제 서버/DB 연결 없이 화면 미리보기만 제공합니다. 모든 수치는 목데이터입니다.</div>
+
+  <div class="app-shell">
+    <div class="sidebar" id="sidebar-mount"></div>
+
+    <div class="main">
+      <div class="topbar" id="topbar-mount"></div>
+
+      <div class="content">
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-label">전체 디바이스</div>
+            <div class="kpi-value">1,284</div>
+            <div class="kpi-sub">누적 등록</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">온라인</div>
+            <div class="kpi-value">947</div>
+            <div class="kpi-sub">▲ 2.1% (전일 대비)</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">배터리 부족</div>
+            <div class="kpi-value">23</div>
+            <div class="kpi-sub" style="color:#F97316;">20% 미만</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">펌웨어 에러</div>
+            <div class="kpi-value">5</div>
+            <div class="kpi-sub" style="color:#DC2626;">확인 필요</div>
+          </div>
+        </div>
+
+        <div class="toolbar">
+          <input type="text" placeholder="시리얼 · 소유자 검색 (데모에서는 비활성)" disabled />
+          <button disabled>원격 재시작</button>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title">디바이스 목록 <span class="muted">최근 8건 (목데이터)</span></div>
+          <table>
+            <thead>
+              <tr><th>시리얼</th><th>소유자</th><th>마지막 연결</th><th>배터리</th><th>펌웨어 버전</th><th>온라인</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>IC-8827A1</td><td>ke***@naver.com</td><td>2026-08-04 09:12</td><td>82%</td><td>2.4.1</td><td><span class="badge green">온라인</span></td></tr>
+              <tr><td>IC-8827B2</td><td>ke***@naver.com</td><td>2026-08-04 07:55</td><td>64%</td><td>2.4.1</td><td><span class="badge green">온라인</span></td></tr>
+              <tr><td>IC-7714C0</td><td>pa***@gmail.com</td><td>2026-08-03 23:40</td><td>18%</td><td>2.3.9</td><td><span class="badge gray">오프라인</span></td></tr>
+              <tr><td>IC-6602D4</td><td>le***@naver.com</td><td>2026-08-04 08:02</td><td>45%</td><td>2.4.1</td><td><span class="badge green">온라인</span></td></tr>
+              <tr><td>IC-9931E7</td><td>ch***@daum.net</td><td>2026-08-04 09:00</td><td>91%</td><td>2.4.0</td><td><span class="badge green">온라인</span></td></tr>
+              <tr><td>IC-4520F1</td><td>ch***@daum.net</td><td>2026-08-02 20:14</td><td>12%</td><td>2.2.7</td><td><span class="badge red">펌웨어 에러</span></td></tr>
+              <tr><td>IC-3317A9</td><td>jo***@gmail.com</td><td>2026-08-04 06:48</td><td>77%</td><td>2.4.1</td><td><span class="badge green">온라인</span></td></tr>
+              <tr><td>IC-2208B3</td><td>yu***@naver.com</td><td>2026-08-01 15:22</td><td>9%</td><td>2.3.9</td><td><span class="badge gray">오프라인</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="demo-note" style="max-width:100%;">
+          실제 콘솔에서는 디바이스 상태가 실시간 텔레메트리로 갱신되며, 원격 재시작 등 제어 명령은 사유 입력 후
+          감사 로그에 기록됩니다. 이 데모는 조회 전용이며 모든 버튼이 비활성화되어 있습니다.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="nav.js"></script>
+  <script>
+    renderSidebar("sidebar-mount", "devices.html");
+    renderTopbar("topbar-mount", "디바이스 모니터링");
+  </script>
+</body>
+</html>

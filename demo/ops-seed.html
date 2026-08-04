@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Seed 상태 — ICONIA 관리자 데모</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="demo-banner">DEMO 모드 — 실제 서버/DB 연결 없이 화면 미리보기만 제공합니다. 모든 값은 목데이터입니다.</div>
+
+  <div class="app-shell">
+    <div class="sidebar" id="sidebar-mount"></div>
+
+    <div class="main">
+      <div class="topbar" id="topbar-mount"></div>
+
+      <div class="content">
+        <div class="panel">
+          <div class="panel-title">마지막 실행 정보</div>
+          <div class="status-grid">
+            <div class="status-item"><span class="status-dot"></span> 실행 시각: 2026-08-04 03:00:12</div>
+            <div class="status-item"><span class="status-dot"></span> 실행자: ci-seed-bot</div>
+            <div class="status-item"><span class="status-dot"></span> 소요 시간: 42.8초</div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title">카테고리별 시드 현황 <span class="muted">총 7개 카테고리</span></div>
+          <table>
+            <thead>
+              <tr><th>카테고리</th><th>건수</th><th>상태</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>users</td><td>1,284</td><td><span class="badge green">완료</span></td></tr>
+              <tr><td>characters</td><td>36</td><td><span class="badge green">완료</span></td></tr>
+              <tr><td>rooms</td><td>512</td><td><span class="badge green">완료</span></td></tr>
+              <tr><td>legal-agreements</td><td>1,284</td><td><span class="badge green">완료</span></td></tr>
+              <tr><td>notices</td><td>24</td><td><span class="badge green">완료</span></td></tr>
+              <tr><td>feature-flags</td><td>18</td><td><span class="badge blue">부분 완료</span></td></tr>
+              <tr><td>faq</td><td>52</td><td><span class="badge green">완료</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="demo-note" style="max-width:100%;">
+          실제 콘솔에서는 이 화면에서 Seed 재실행을 트리거할 수 있으며, 실행 로그와 실패 카테고리의 상세 원인을 확인할 수 있습니다.
+          이 데모에서는 조회만 가능합니다.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="nav.js"></script>
+  <script>
+    renderSidebar("sidebar-mount", "ops-seed.html");
+    renderTopbar("topbar-mount", "Seed 상태");
+  </script>
+</body>
+</html>

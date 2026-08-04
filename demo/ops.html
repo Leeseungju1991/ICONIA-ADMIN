@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>운영 안정성 — ICONIA 관리자 데모</title>
+<link rel="stylesheet" href="style.css" />
+<style>
+  .ops-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+  .ops-card {
+    background: var(--surface); border: 1px solid var(--hairline); border-radius: 14px; padding: 20px;
+    box-shadow: 0 1px 2px rgba(15,23,42,.04); display: block; transition: box-shadow .15s, border-color .15s;
+  }
+  .ops-card:hover { border-color: var(--accent); box-shadow: 0 4px 14px rgba(109,93,254,.14); }
+  .ops-card-title { font-size: 15px; font-weight: 800; color: var(--text); }
+  .ops-card-desc { font-size: 12.5px; color: var(--text-muted); margin-top: 8px; line-height: 1.6; }
+  .ops-card-arrow { font-size: 12px; color: var(--accent); font-weight: 700; margin-top: 14px; }
+</style>
+</head>
+<body>
+  <div class="demo-banner">DEMO 모드 — 실제 서버/DB 연결 없이 화면 미리보기만 제공합니다. 모든 수치는 목데이터입니다.</div>
+
+  <div class="app-shell">
+    <div class="sidebar" id="sidebar-mount"></div>
+
+    <div class="main">
+      <div class="topbar" id="topbar-mount"></div>
+
+      <div class="content">
+        <div class="panel">
+          <div class="panel-title">운영 안정성 개요 <span class="muted">4개 하위 화면</span></div>
+          <div class="status-grid">
+            <div class="status-item"><span class="status-dot"></span> 로그 수집 정상</div>
+            <div class="status-item"><span class="status-dot"></span> 감사 로그 정상</div>
+            <div class="status-item"><span class="status-dot warn"></span> Runbook 갱신 필요</div>
+            <div class="status-item"><span class="status-dot"></span> Seed 최근 실행 정상</div>
+          </div>
+        </div>
+
+        <div class="ops-grid">
+          <a class="ops-card" href="ops-logs.html">
+            <div class="ops-card-title">로그 검색</div>
+            <div class="ops-card-desc">request-id·user-id·endpoint·status·level 기준으로 서버 요청 로그를 조회합니다.</div>
+            <div class="ops-card-arrow">바로가기 →</div>
+          </a>
+          <a class="ops-card" href="ops-audit.html">
+            <div class="ops-card-title">감사 로그</div>
+            <div class="ops-card-desc">운영자 조치(강제 로그아웃·정지·권한 변경 등)를 해시로 무결성 검증하며 기록합니다.</div>
+            <div class="ops-card-arrow">바로가기 →</div>
+          </a>
+          <a class="ops-card" href="ops-runbook.html">
+            <div class="ops-card-title">장애 대응 Runbook</div>
+            <div class="ops-card-desc">알람 유형별 증상과 대응 절차를 정리한 온콜 대응 매뉴얼입니다.</div>
+            <div class="ops-card-arrow">바로가기 →</div>
+          </a>
+          <a class="ops-card" href="ops-seed.html">
+            <div class="ops-card-title">Seed 상태</div>
+            <div class="ops-card-desc">개발/스테이징 환경 초기 데이터 시딩 실행 이력과 카테고리별 건수를 확인합니다.</div>
+            <div class="ops-card-arrow">바로가기 →</div>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="nav.js"></script>
+  <script>
+    renderSidebar("sidebar-mount", "ops.html");
+    renderTopbar("topbar-mount", "운영 안정성");
+  </script>
+</body>
+</html>

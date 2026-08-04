@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AS·교환 관리 — ICONIA 관리자 데모</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="demo-banner">DEMO 모드 — 실제 서버/DB 연결 없이 화면 미리보기만 제공합니다. 아래 목록은 목데이터입니다.</div>
+
+  <div class="app-shell">
+    <div class="sidebar" id="sidebar-mount"></div>
+
+    <div class="main">
+      <div class="topbar" id="topbar-mount"></div>
+
+      <div class="content">
+        <div class="toolbar">
+          <input type="text" placeholder="접수번호 · 사용자 검색 (데모에서는 비활성)" disabled />
+          <button disabled>신규 접수</button>
+          <button disabled>처리자 배정</button>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title">AS·교환 티켓 <span class="muted">최근 8건 (목데이터)</span></div>
+          <table>
+            <thead>
+              <tr><th>접수번호</th><th>사용자</th><th>유형</th><th>상태</th><th>접수일</th><th>처리자</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>AS-20260804-03</td><td>ke***@naver.com</td><td>고장</td><td><span class="badge gray">접수</span></td><td>2026-08-04</td><td>미배정</td></tr>
+              <tr><td>AS-20260803-11</td><td>pa***@gmail.com</td><td>파손</td><td><span class="badge blue">처리중</span></td><td>2026-08-03</td><td>담당자_정유진</td></tr>
+              <tr><td>AS-20260803-05</td><td>le***@naver.com</td><td>오작동</td><td><span class="badge green">완료</span></td><td>2026-08-03</td><td>담당자_서지훈</td></tr>
+              <tr><td>AS-20260802-14</td><td>ch***@daum.net</td><td>고장</td><td><span class="badge blue">처리중</span></td><td>2026-08-02</td><td>담당자_정유진</td></tr>
+              <tr><td>AS-20260801-08</td><td>jo***@gmail.com</td><td>파손</td><td><span class="badge green">완료</span></td><td>2026-08-01</td><td>담당자_서지훈</td></tr>
+              <tr><td>AS-20260731-02</td><td>yu***@naver.com</td><td>오작동</td><td><span class="badge gray">접수</span></td><td>2026-07-31</td><td>미배정</td></tr>
+              <tr><td>AS-20260729-19</td><td>ha***@nate.com</td><td>고장</td><td><span class="badge green">완료</span></td><td>2026-07-29</td><td>담당자_정유진</td></tr>
+              <tr><td>AS-20260726-07</td><td>si***@gmail.com</td><td>파손</td><td><span class="badge green">완료</span></td><td>2026-07-26</td><td>담당자_서지훈</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="demo-note" style="max-width:100%;">
+          실제 콘솔에서는 AS·교환 접수가 사용자 360 조회 및 디바이스 이력과 연동되며, 처리자 배정·상태 변경은
+          감사 로그에 기록됩니다. 이 데모에서는 접수·배정 버튼이 비활성화되어 있습니다.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="nav.js"></script>
+  <script>
+    renderSidebar("sidebar-mount", "as.html");
+    renderTopbar("topbar-mount", "AS·교환 관리");
+  </script>
+</body>
+</html>

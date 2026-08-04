@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>사용자 360 통합 관리 — ICONIA 관리자 데모</title>
+<link rel="stylesheet" href="style.css" />
+<style>
+  .profile-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin-bottom: 18px; }
+  .kv-list { font-size: 13px; }
+  .kv-list .kv-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 2px; border-bottom: 1px solid var(--hairline); }
+  .kv-list .kv-row:last-child { border-bottom: none; }
+  .kv-list .kv-key { color: var(--text-muted); font-weight: 600; }
+  .kv-list .kv-val { font-weight: 700; text-align: right; }
+  .user-id-card { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .user-id-card .uid-name { font-size: 16px; font-weight: 800; }
+  .user-id-card .uid-sub { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+</style>
+</head>
+<body>
+  <div class="demo-banner">DEMO 모드 — 실제 서버/DB 연결 없이 화면 미리보기만 제공합니다. 모든 수치는 목데이터입니다.</div>
+
+  <div class="app-shell">
+    <div class="sidebar" id="sidebar-mount"></div>
+
+    <div class="main">
+      <div class="topbar" id="topbar-mount"></div>
+
+      <div class="content">
+        <div class="toolbar">
+          <input type="text" placeholder="이메일·시리얼·UUID 검색" disabled />
+          <button disabled>검색</button>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title">조회 결과 <span class="muted">예시 사용자 1건</span></div>
+          <div class="user-id-card">
+            <div>
+              <div class="uid-name">ke***@naver.com <span class="badge blue">정상</span></div>
+              <div class="uid-sub">UUID: 8f2c19a0-44e1-4b7a-9d3e-c211a0f5e8b2 · 가입일 2026-02-14</div>
+            </div>
+            <div>
+              <span class="badge green">HW 정상</span>
+              <span class="badge green">SERVER 정상</span>
+              <span class="badge blue">AI 정상</span>
+              <span class="badge green">APP 정상</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="profile-grid">
+          <div class="panel">
+            <div class="panel-title">HW <span class="muted">페어링 디바이스</span></div>
+            <div class="kv-list">
+              <div class="kv-row"><span class="kv-key">페어링 디바이스</span><span class="kv-val">2대</span></div>
+              <div class="kv-row"><span class="kv-key">대표 시리얼</span><span class="kv-val">IC-8827A1</span></div>
+              <div class="kv-row"><span class="kv-key">보조 시리얼</span><span class="kv-val">IC-8827B2</span></div>
+              <div class="kv-row"><span class="kv-key">OTA 채널</span><span class="kv-val"><span class="badge blue">stable</span></span></div>
+              <div class="kv-row"><span class="kv-key">펌웨어 버전</span><span class="kv-val">2.4.1</span></div>
+              <div class="kv-row"><span class="kv-key">배터리</span><span class="kv-val">82%</span></div>
+              <div class="kv-row"><span class="kv-key">마지막 동기화</span><span class="kv-val">2026-08-04 09:12</span></div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-title">SERVER <span class="muted">계정 상태</span></div>
+            <div class="kv-list">
+              <div class="kv-row"><span class="kv-key">계정 상태</span><span class="kv-val"><span class="badge green">정상</span></span></div>
+              <div class="kv-row"><span class="kv-key">요금제</span><span class="kv-val">Free</span></div>
+              <div class="kv-row"><span class="kv-key">MFA</span><span class="kv-val"><span class="badge blue">설정됨</span></span></div>
+              <div class="kv-row"><span class="kv-key">로그인 실패(24h)</span><span class="kv-val">0회</span></div>
+              <div class="kv-row"><span class="kv-key">최근 IP</span><span class="kv-val">121.***.**.44</span></div>
+              <div class="kv-row"><span class="kv-key">약관 동의 버전</span><span class="kv-val">v3.2</span></div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-title">AI <span class="muted">페르소나 · Fallback</span></div>
+            <div class="kv-list">
+              <div class="kv-row"><span class="kv-key">페르소나</span><span class="kv-val">다정한 상담사 · 유형B</span></div>
+              <div class="kv-row"><span class="kv-key">기본 모델</span><span class="kv-val">Gemini 1.5 Flash</span></div>
+              <div class="kv-row"><span class="kv-key">Fallback 상태</span><span class="kv-val"><span class="badge green">정상 (미전환)</span></span></div>
+              <div class="kv-row"><span class="kv-key">최근 대화 세션</span><span class="kv-val">128건</span></div>
+              <div class="kv-row"><span class="kv-key">최근 대화일</span><span class="kv-val">2026-08-03 21:40</span></div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-title">APP <span class="muted">로그인 · 푸시</span></div>
+            <div class="kv-list">
+              <div class="kv-row"><span class="kv-key">마지막 로그인</span><span class="kv-val">2026-08-04 09:10</span></div>
+              <div class="kv-row"><span class="kv-key">앱 버전</span><span class="kv-val">3.2.0 (iOS)</span></div>
+              <div class="kv-row"><span class="kv-key">푸시 토큰</span><span class="kv-val"><span class="badge green">활성</span></span></div>
+              <div class="kv-row"><span class="kv-key">알림 수신 동의</span><span class="kv-val">Y</span></div>
+              <div class="kv-row"><span class="kv-key">최근 크래시</span><span class="kv-val">없음 (7일)</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title">이벤트 타임라인 <span class="muted">감사·운영 이벤트 최신순 8건</span></div>
+          <table>
+            <thead><tr><th>일시</th><th>이벤트</th><th>구분</th><th>처리자</th><th>비고</th></tr></thead>
+            <tbody>
+              <tr><td>2026-08-04 09:12</td><td>HW 배터리 상태 갱신</td><td><span class="badge gray">운영</span></td><td>system</td><td>82% → 정상 범위</td></tr>
+              <tr><td>2026-08-03 21:40</td><td>AI 대화 세션 종료</td><td><span class="badge gray">운영</span></td><td>system</td><td>세션 #AI-99213</td></tr>
+              <tr><td>2026-08-02 14:05</td><td>OTA 채널 변경</td><td><span class="badge blue">감사</span></td><td>admin_kim</td><td>beta → stable</td></tr>
+              <tr><td>2026-08-01 10:22</td><td>MFA 초기화</td><td><span class="badge blue">감사</span></td><td>admin_park</td><td>사용자 요청 (CS #CS-4471)</td></tr>
+              <tr><td>2026-07-29 18:47</td><td>강제 로그아웃</td><td><span class="badge blue">감사</span></td><td>admin_kim</td><td>단말 분실 신고 대응</td></tr>
+              <tr><td>2026-07-27 08:03</td><td>디바이스 재페어링</td><td><span class="badge gray">운영</span></td><td>system</td><td>IC-8827B2 추가</td></tr>
+              <tr><td>2026-07-22 19:31</td><td>결제 수단 변경</td><td><span class="badge gray">운영</span></td><td>system</td><td>카드 등록</td></tr>
+              <tr><td>2026-02-14 11:02</td><td>계정 생성</td><td><span class="badge blue">감사</span></td><td>system</td><td>이메일 가입</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="demo-note" style="max-width:100%;">
+          실제 콘솔에서는 HW/SERVER/AI/APP 4개 도메인의 데이터를 UUID 기준으로 실시간 조회하며, 강제 로그아웃·MFA 초기화 등
+          조치는 사유 입력 + 2단계 확인 후 감사 로그에 기록됩니다. 이 데모는 조회 전용이며 모든 버튼이 비활성화되어 있습니다.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="nav.js"></script>
+  <script>
+    renderSidebar("sidebar-mount", "user-360.html");
+    renderTopbar("topbar-mount", "사용자 360 통합 관리");
+  </script>
+</body>
+</html>

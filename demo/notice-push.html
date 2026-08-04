@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>공지·푸시 관리 — ICONIA 관리자 데모</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="demo-banner">DEMO 모드 — 실제 서버/DB 연결 없이 화면 미리보기만 제공합니다. 모든 수치는 목데이터입니다.</div>
+
+  <div class="app-shell">
+    <div class="sidebar" id="sidebar-mount"></div>
+
+    <div class="main">
+      <div class="topbar" id="topbar-mount"></div>
+
+      <div class="content">
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-label">노출중 공지</div>
+            <div class="kpi-value">3</div>
+            <div class="kpi-sub">전체 5건 중</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">이번 달 푸시 발송</div>
+            <div class="kpi-value">5건</div>
+            <div class="kpi-sub">평균 도달률 91.2%</div>
+          </div>
+        </div>
+
+        <div class="toolbar">
+          <input type="text" placeholder="제목 · 캠페인명 검색 (데모에서는 비활성)" disabled />
+          <button disabled>공지 등록</button>
+          <button disabled>푸시 발송</button>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title">공지사항 <span class="muted">총 5건 (목데이터)</span></div>
+          <table>
+            <thead>
+              <tr><th>제목</th><th>노출기간</th><th>상태</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>여름 휴가철 배송 지연 안내</td><td>2026-07-25 ~ 2026-08-10</td><td><span class="badge green">노출중</span></td></tr>
+              <tr><td>앱 v3.2.0 업데이트 안내</td><td>2026-07-20 ~ 2026-08-20</td><td><span class="badge green">노출중</span></td></tr>
+              <tr><td>서버 점검 안내 (8/6 02:00~04:00)</td><td>2026-08-01 ~ 2026-08-06</td><td><span class="badge green">노출중</span></td></tr>
+              <tr><td>개인정보처리방침 개정 안내</td><td>2026-06-01 ~ 2026-06-30</td><td><span class="badge gray">종료</span></td></tr>
+              <tr><td>신규 캐릭터 '구름이' 출시 안내</td><td>2026-08-15 ~ 2026-09-01</td><td><span class="badge blue">예약</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title">푸시 캠페인 <span class="muted">총 5건 (목데이터)</span></div>
+          <table>
+            <thead>
+              <tr><th>캠페인명</th><th>발송일시</th><th>대상 세그먼트</th><th>도달률</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>여름 휴가 배송 안내</td><td>2026-07-25 10:00</td><td>전체 사용자</td><td>93.1%</td></tr>
+              <tr><td>v3.2.0 업데이트 알림</td><td>2026-07-20 09:30</td><td>iOS 사용자</td><td>88.4%</td></tr>
+              <tr><td>서버 점검 사전 안내</td><td>2026-08-01 18:00</td><td>전체 사용자</td><td>90.7%</td></tr>
+              <tr><td>미접속 회원 리마인드</td><td>2026-07-10 11:00</td><td>30일 미접속</td><td>76.5%</td></tr>
+              <tr><td>신규 캐릭터 사전예약</td><td>2026-08-15 09:00</td><td>관심상품 등록자</td><td>예약됨</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="demo-note" style="max-width:100%;">
+          실제 콘솔에서는 공지 노출 우선순위 조정, 푸시 세그먼트 조건 설정, 예약 발송 취소가 가능합니다. 이 데모에서는 버튼이 비활성화되어 있습니다.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="nav.js"></script>
+  <script>
+    renderSidebar("sidebar-mount", "notice-push.html");
+    renderTopbar("topbar-mount", "공지·푸시 관리");
+  </script>
+</body>
+</html>

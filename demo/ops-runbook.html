@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>장애 대응 Runbook — ICONIA 관리자 데모</title>
+<link rel="stylesheet" href="style.css" />
+<style>
+  .runbook-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+  .runbook-card {
+    background: var(--surface); border: 1px solid var(--hairline); border-radius: 14px; padding: 18px 20px;
+    box-shadow: 0 1px 2px rgba(15,23,42,.04);
+  }
+  .runbook-title { font-size: 14px; font-weight: 800; display: flex; align-items: center; gap: 8px; }
+  .runbook-title .sev-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent-orange); flex-shrink: 0; }
+  .runbook-section { margin-top: 12px; }
+  .runbook-section-label { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: .03em; margin-bottom: 6px; }
+  .runbook-card ul { margin: 0; padding-left: 18px; font-size: 12.5px; line-height: 1.8; color: var(--text); }
+</style>
+</head>
+<body>
+  <div class="demo-banner">DEMO 모드 — 실제 서버/DB 연결 없이 화면 미리보기만 제공합니다. 절차는 예시 목데이터입니다.</div>
+
+  <div class="app-shell">
+    <div class="sidebar" id="sidebar-mount"></div>
+
+    <div class="main">
+      <div class="topbar" id="topbar-mount"></div>
+
+      <div class="content">
+        <div class="runbook-grid">
+          <div class="runbook-card">
+            <div class="runbook-title"><span class="sev-dot"></span> 5xx 급증</div>
+            <div class="runbook-section">
+              <div class="runbook-section-label">증상</div>
+              <ul>
+                <li>API 5xx 응답률이 5분간 2% 초과</li>
+                <li>로드밸런서 헬스체크 실패 급증</li>
+              </ul>
+            </div>
+            <div class="runbook-section">
+              <div class="runbook-section-label">대응 절차</div>
+              <ul>
+                <li>로그 검색에서 status≥500, 최근 15분 필터링</li>
+                <li>DB 커넥션 풀·외부 API 상태 확인</li>
+                <li>필요 시 이전 안정 배포로 롤백</li>
+                <li>온콜 채널에 상황 공유 및 감사 로그 기록</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="runbook-card">
+            <div class="runbook-title"><span class="sev-dot" style="background:#7C3AED;"></span> AI fallback 상승</div>
+            <div class="runbook-section">
+              <div class="runbook-section-label">증상</div>
+              <ul>
+                <li>Gemini API 429/5xx로 fallback 응답 비율 10% 초과</li>
+                <li>페르소나 응답 지연 시간 증가</li>
+              </ul>
+            </div>
+            <div class="runbook-section">
+              <div class="runbook-section-label">대응 절차</div>
+              <ul>
+                <li>AI Key 관리에서 쿼터 잔량 확인</li>
+                <li>보조 API 키로 라운드로빈 전환</li>
+                <li>fallback 응답 템플릿 정상 노출 여부 점검</li>
+                <li>지속 시 기능 플래그로 해당 페르소나 일시 비활성화</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="runbook-card">
+            <div class="runbook-title"><span class="sev-dot" style="background:#F59E0B;"></span> 큐 적체</div>
+            <div class="runbook-section">
+              <div class="runbook-section-label">증상</div>
+              <ul>
+                <li>푸시·알림 큐 대기 건수가 임계치(1,000건) 초과</li>
+                <li>메시지 처리 지연 알람 발생</li>
+              </ul>
+            </div>
+            <div class="runbook-section">
+              <div class="runbook-section-label">대응 절차</div>
+              <ul>
+                <li>워커 프로세스 수 확인 및 스케일 아웃</li>
+                <li>실패 재시도 루프 여부 로그로 확인</li>
+                <li>불필요한 저우선순위 작업 일시 중단</li>
+                <li>적체 해소 후 큐 길이 추이 15분 모니터링</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="runbook-card">
+            <div class="runbook-title"><span class="sev-dot" style="background:#DC2626;"></span> 디바이스 침묵</div>
+            <div class="runbook-section">
+              <div class="runbook-section-label">증상</div>
+              <ul>
+                <li>다수 디바이스에서 30분 이상 하트비트 미수신</li>
+                <li>특정 펌웨어 버전/지역에 집중되는 패턴</li>
+              </ul>
+            </div>
+            <div class="runbook-section">
+              <div class="runbook-section-label">대응 절차</div>
+              <ul>
+                <li>디바이스 모니터링에서 영향 범위(버전·지역) 확인</li>
+                <li>최근 OTA 배포 이력과 상관관계 점검</li>
+                <li>필요 시 해당 OTA 배포 중단·롤백</li>
+                <li>CS 통합 조회로 사용자 문의 유입 모니터링</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="runbook-card">
+            <div class="runbook-title"><span class="sev-dot" style="background:#14B8A6;"></span> 배터리 저전압</div>
+            <div class="runbook-section">
+              <div class="runbook-section-label">증상</div>
+              <ul>
+                <li>디바이스군 배터리 잔량 15% 미만 비율 급증</li>
+                <li>비정상 방전 패턴(단시간 급락) 리포트 발생</li>
+              </ul>
+            </div>
+            <div class="runbook-section">
+              <div class="runbook-section-label">대응 절차</div>
+              <ul>
+                <li>펌웨어 오류 추적에서 전원 관리 관련 에러 코드 확인</li>
+                <li>영향 디바이스 목록 추출 및 배치별 상관관계 분석</li>
+                <li>필요 시 저전력 모드 강제 OTA 패치 검토</li>
+                <li>AS·교환 관리 팀에 사전 공유</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="nav.js"></script>
+  <script>
+    renderSidebar("sidebar-mount", "ops-runbook.html");
+    renderTopbar("topbar-mount", "장애 대응 Runbook");
+  </script>
+</body>
+</html>

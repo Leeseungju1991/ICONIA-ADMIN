@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>피드 관리 — ICONIA 관리자 데모</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="demo-banner">DEMO 모드 — 실제 서버/DB 연결 없이 화면 미리보기만 제공합니다. 모든 수치는 목데이터입니다.</div>
+
+  <div class="app-shell">
+    <div class="sidebar" id="sidebar-mount"></div>
+
+    <div class="main">
+      <div class="topbar" id="topbar-mount"></div>
+
+      <div class="content">
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-label">전체 게시물</div>
+            <div class="kpi-value">1,204</div>
+            <div class="kpi-sub">▲ 214 (7일)</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">숨김 처리</div>
+            <div class="kpi-value">17</div>
+            <div class="kpi-sub" style="color:#F97316;">신고 누적 사유</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">오늘 신고 접수</div>
+            <div class="kpi-value">3</div>
+            <div class="kpi-sub" style="color:#6B7280;">확인 대기</div>
+          </div>
+        </div>
+
+        <div class="toolbar">
+          <input type="text" placeholder="작성자 · 본문 검색 (데모에서는 비활성)" disabled />
+          <button disabled>숨김 처리</button>
+          <button disabled>게시물 삭제</button>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title">피드 게시물 <span class="muted">총 1,204건 중 8건 표시 (목데이터)</span></div>
+          <table>
+            <thead>
+              <tr><th>작성자</th><th>본문 미리보기</th><th>미디어</th><th>댓글</th><th>신고</th><th>상태</th><th>작성일</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>user_8823</td><td>오늘 우리 아이 도담이랑 산책 다녀왔어요 🐻</td><td>사진 2장</td><td>12</td><td>0</td><td><span class="badge green">published</span></td><td>2026-08-03</td></tr>
+              <tr><td>user_1042</td><td>새로 산 옷 입혀봤는데 너무 귀여워요</td><td>사진 1장</td><td>4</td><td>0</td><td><span class="badge green">published</span></td><td>2026-08-03</td></tr>
+              <tr><td>user_5591</td><td>배터리 오래 가는 팁 공유합니다</td><td>없음</td><td>21</td><td>1</td><td><span class="badge green">published</span></td><td>2026-08-02</td></tr>
+              <tr><td>user_2201</td><td>이거 어디서 사셨어요? 링크 공유 부탁드려요</td><td>없음</td><td>2</td><td>3</td><td><span class="badge gray">hidden</span></td><td>2026-08-02</td></tr>
+              <tr><td>user_7734</td><td>도담이 첫 목욕 영상 올려요 ㅎㅎ</td><td>동영상</td><td>34</td><td>0</td><td><span class="badge green">published</span></td><td>2026-08-01</td></tr>
+              <tr><td>user_3390</td><td>[초안] 이번 주 후기 작성 중...</td><td>없음</td><td>0</td><td>0</td><td><span class="badge blue">draft</span></td><td>2026-08-01</td></tr>
+              <tr><td>user_9012</td><td>고객센터 응대가 별로였어요</td><td>없음</td><td>8</td><td>2</td><td><span class="badge gray">hidden</span></td><td>2026-07-31</td></tr>
+              <tr><td>user_4456</td><td>커스텀 액세서리 조합 추천해주세요</td><td>사진 3장</td><td>15</td><td>0</td><td><span class="badge green">published</span></td><td>2026-07-31</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="demo-note" style="max-width:100%;">
+          실제 콘솔에서는 게시물 숨김·삭제 시 사유 입력과 감사 로그 기록이 필요합니다. 이 데모에서는 버튼이 비활성화되어 있습니다.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="nav.js"></script>
+  <script>
+    renderSidebar("sidebar-mount", "feed.html");
+    renderTopbar("topbar-mount", "피드 관리");
+  </script>
+</body>
+</html>

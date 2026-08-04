@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AI Key 관리 — ICONIA 관리자 데모</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="demo-banner">DEMO 모드 — 실제 서버/DB 연결 없이 화면 미리보기만 제공합니다. 모든 수치는 목데이터입니다.</div>
+
+  <div class="app-shell">
+    <div class="sidebar" id="sidebar-mount"></div>
+
+    <div class="main">
+      <div class="topbar" id="topbar-mount"></div>
+
+      <div class="content">
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-label">등록 Key</div>
+            <div class="kpi-value">20</div>
+            <div class="kpi-sub" style="color:#6B7280;">Gemini Free Tier</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">활성 Key</div>
+            <div class="kpi-value">18</div>
+            <div class="kpi-sub">정상 로테이션 중</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">비활성 Key</div>
+            <div class="kpi-value">2</div>
+            <div class="kpi-sub" style="color:#F97316;">쿼터 소진</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">평균 사용량</div>
+            <div class="kpi-value">62%</div>
+            <div class="kpi-sub" style="color:#6B7280;">RPD 대비</div>
+          </div>
+        </div>
+
+        <div class="toolbar">
+          <input type="text" placeholder="Key 별칭 검색 (데모에서는 비활성)" disabled />
+          <button disabled>Key 등록</button>
+          <button disabled>Key 비활성화</button>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title">API Key 목록 <span class="muted">총 20건 중 6건 표시 (목데이터)</span></div>
+          <table>
+            <thead>
+              <tr><th>Key 별칭</th><th>상태</th><th>30일 사용량 (RPD 대비)</th><th>등록일</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>AIza...8f2c</td><td><span class="badge green">활성</span></td><td>74%</td><td>2026-01-12</td></tr>
+              <tr><td>AIza...19ab</td><td><span class="badge green">활성</span></td><td>58%</td><td>2026-01-12</td></tr>
+              <tr><td>AIza...c402</td><td><span class="badge green">활성</span></td><td>91%</td><td>2026-02-03</td></tr>
+              <tr><td>AIza...77de</td><td><span class="badge gray">비활성</span></td><td>100%</td><td>2026-02-03</td></tr>
+              <tr><td>AIza...e910</td><td><span class="badge green">활성</span></td><td>42%</td><td>2026-03-21</td></tr>
+              <tr><td>AIza...3bf5</td><td><span class="badge gray">비활성</span></td><td>100%</td><td>2026-04-08</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="demo-note" style="max-width:100%;">
+          실제 콘솔에서는 Key 전문이 마스킹되어 표시되며, 등록·비활성화 시 2단계 인증과 감사 로그 기록이 필요합니다.
+          이 데모에서는 버튼이 비활성화되어 있습니다.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="nav.js"></script>
+  <script>
+    renderSidebar("sidebar-mount", "gemini.html");
+    renderTopbar("topbar-mount", "AI Key 관리");
+  </script>
+</body>
+</html>

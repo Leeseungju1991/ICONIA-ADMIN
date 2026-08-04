@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>기능 플래그 — ICONIA 관리자 데모</title>
+<link rel="stylesheet" href="style.css" />
+<style>
+  .badge.on { background: #ECFDF5; color: #059669; }
+  .badge.off { background: #FEF2F2; color: #9CA3AF; }
+</style>
+</head>
+<body>
+  <div class="demo-banner">DEMO 모드 — 실제 서버/DB 연결 없이 화면 미리보기만 제공합니다. 모든 수치는 목데이터입니다.</div>
+
+  <div class="app-shell">
+    <div class="sidebar" id="sidebar-mount"></div>
+
+    <div class="main">
+      <div class="topbar" id="topbar-mount"></div>
+
+      <div class="content">
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-label">전체 플래그</div>
+            <div class="kpi-value">8</div>
+            <div class="kpi-sub" style="color:#6B7280;">전 서비스</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">ON 상태</div>
+            <div class="kpi-value">5</div>
+            <div class="kpi-sub">정상 운영중</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">부분 노출중</div>
+            <div class="kpi-value">2</div>
+            <div class="kpi-sub" style="color:#F97316;">단계적 롤아웃</div>
+          </div>
+        </div>
+
+        <div class="toolbar">
+          <input type="text" placeholder="플래그명 검색 (데모에서는 비활성)" disabled />
+          <button disabled>플래그 등록</button>
+          <button disabled>상태 변경</button>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title">기능 플래그 목록 <span class="muted">총 8건 (목데이터)</span></div>
+          <table>
+            <thead>
+              <tr><th>플래그명</th><th>설명</th><th>상태</th><th>대상</th><th>최종 변경일</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>ai_voice_clone_beta</td><td>보호자 목소리 등록 베타 기능</td><td><span class="badge on">ON</span></td><td>일부 10%</td><td>2026-07-28</td></tr>
+              <tr><td>commerce_checkout_v2</td><td>신규 결제 플로우</td><td><span class="badge on">ON</span></td><td>전체</td><td>2026-07-20</td></tr>
+              <tr><td>feed_video_upload</td><td>피드 동영상 업로드 지원</td><td><span class="badge on">ON</span></td><td>전체</td><td>2026-06-30</td></tr>
+              <tr><td>persona_curious_explorer</td><td>호기심 탐험형 페르소나 노출</td><td><span class="badge off">OFF</span></td><td>일부 0%</td><td>2026-06-15</td></tr>
+              <tr><td>device_ota_auto_update</td><td>디바이스 OTA 자동 업데이트</td><td><span class="badge on">ON</span></td><td>전체</td><td>2026-05-22</td></tr>
+              <tr><td>notice_banner_v2</td><td>공지 배너 신규 디자인</td><td><span class="badge on">ON</span></td><td>일부 40%</td><td>2026-05-10</td></tr>
+              <tr><td>catalog_ar_preview</td><td>도감 항목 AR 미리보기</td><td><span class="badge off">OFF</span></td><td>일부 0%</td><td>2026-04-18</td></tr>
+              <tr><td>cs_chatbot_handoff</td><td>CS 챗봇 → 상담원 인계</td><td><span class="badge on">ON</span></td><td>전체</td><td>2026-03-27</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="demo-note" style="max-width:100%;">
+          실제 콘솔에서는 플래그 롤아웃 비율 조정과 즉시 비활성화(킬 스위치)가 가능하며 모든 변경은 감사 로그에 기록됩니다.
+          이 데모에서는 버튼이 비활성화되어 있습니다.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="nav.js"></script>
+  <script>
+    renderSidebar("sidebar-mount", "feature-flags.html");
+    renderTopbar("topbar-mount", "기능 플래그");
+  </script>
+</body>
+</html>
