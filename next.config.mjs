@@ -13,21 +13,27 @@
 //   standalone 번들에 반영되지 않는다. 따라서 no-domain PoC CF 도메인을 빌드 타임
 //   상수로 포함시켜 재빌드 없이 SSM 패치만으로 완전 작동하지 않는 문제를 방지한다.
 //   도메인 취득 후 ADMIN_ALLOWED_ORIGIN env 를 설정하면 그쪽이 우선 적용된다.
+//
+// 2026-08 (AWS→Vercel 마이그레이션): admin 호스팅을 CloudFront/EC2 에서 Vercel 로 이전.
+//   전환 기간 중 구/신 도메인을 모두 허용해 어느 쪽으로 접속해도 Server Action CSRF 통과.
+//   Vercel 프로젝트 이름이 예정과 다르게 배정된 경우 이 상수만 실제 도메인으로 바꾸면 됨.
 const ADMIN_CF_DOMAIN_FALLBACK = "dlfp1lyn34gcj.cloudfront.net";
+const ADMIN_VERCEL_DOMAIN_FALLBACK = "leeseungju-iconia-admin.vercel.app";
+const ADMIN_DOMAIN_FALLBACKS = [ADMIN_CF_DOMAIN_FALLBACK, ADMIN_VERCEL_DOMAIN_FALLBACK];
 
 const ADMIN_ALLOWED_ORIGINS = (() => {
   const fromEnv = (process.env.ADMIN_ALLOWED_ORIGIN || "")
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
-  // 항상 dev origin + no-domain PoC CF 도메인 포함.
-  // CF 도메인은 빌드 타임 상수로 포함 (runtime env 미설정 시에도 CSRF 통과).
-  return Array.from(new Set(["localhost:3000", ADMIN_CF_DOMAIN_FALLBACK, ...fromEnv]));
+  // 항상 dev origin + no-domain PoC CF 도메인 + Vercel 도메인 포함.
+  // 도메인은 빌드 타임 상수로 포함 (runtime env 미설정 시에도 CSRF 통과).
+  return Array.from(new Set(["localhost:3000", ...ADMIN_DOMAIN_FALLBACKS, ...fromEnv]));
 })();
 const ADMIN_ALLOWED_FORWARDED_HOSTS = (() => {
   const raw = process.env.ADMIN_ALLOWED_FORWARDED_HOSTS || process.env.ADMIN_ALLOWED_ORIGIN || "";
   const fromEnv = raw.split(",").map((s) => s.trim()).filter(Boolean);
-  return Array.from(new Set(["localhost:3000", ADMIN_CF_DOMAIN_FALLBACK, ...fromEnv]));
+  return Array.from(new Set(["localhost:3000", ...ADMIN_DOMAIN_FALLBACKS, ...fromEnv]));
 })();
 
 // Content Security Policy — admin 전용 (단일 운영자 콘솔, Secure JWT cookie).
@@ -82,6 +88,8 @@ const nextConfig = {
   eslint: { ignoreDuringBuilds: true },
   // Emit a minimal self-contained server bundle (.next/standalone) for the
   // Docker image (see admin/Dockerfile). Required by the ECS Fargate deploy.
+  // NOTE: Vercel 배포에서는 이 옵션이 불필요하지만(자체 빌드 출력 사용), 무해하게
+  // 무시되므로 기존 Docker 배포 경로와 공유하기 위해 그대로 둔다.
   output: "standalone",
   // Next.js 15: serverActions 는 stable — experimental 에서 top-level 로 이동.
   serverActions: {
