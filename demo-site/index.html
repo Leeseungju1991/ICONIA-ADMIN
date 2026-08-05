@@ -6,32 +6,41 @@
 <title>ICONIA Admin | 운영 콘솔 · DEMO</title>
 <meta name="description" content="ICONIA 사용자·기기·AI·배포 운영 콘솔 데모 — Next.js 15 App Router 기반" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+KR:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="styles.css" />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%236366f1'/%3E%3Ctext x='50' y='68' font-size='48' text-anchor='middle' fill='white' font-family='Inter' font-weight='800'%3EI%3C/text%3E%3C/svg%3E" />
 </head>
 <body>
 
-<!-- ============ LOGIN ============ -->
+<!-- ============ LOGIN (terminal console) ============ -->
 <section class="login-screen" id="login-screen">
-  <div class="login-card">
-    <div class="demo-badge">● DEMO ENVIRONMENT · 더미 데이터</div>
-    <div class="login-logo">I</div>
-    <h1 class="login-title">ICONIA Admin</h1>
-    <p class="login-sub">사용자 · 기기 · AI · 배포 운영 콘솔</p>
-    <form id="login-form">
-      <div class="field">
-        <label for="u">아이디</label>
-        <input id="u" type="text" autocomplete="username" placeholder="test" />
+  <div class="terminal-window">
+    <div class="terminal-titlebar">
+      <span class="term-dot red"></span><span class="term-dot yellow"></span><span class="term-dot green"></span>
+      <span class="terminal-path">ops@iconia-admin:~ — 100x32</span>
+    </div>
+    <div class="terminal-body">
+      <div class="boot-lines" id="boot-lines"></div>
+      <div class="login-card">
+        <div class="demo-badge">● DEMO ENVIRONMENT · 더미 데이터</div>
+        <div class="login-logo">I</div>
+        <h1 class="login-title">ICONIA Admin</h1>
+        <p class="login-sub">사용자 · 기기 · AI · 배포 운영 콘솔</p>
+        <form id="login-form">
+          <div class="field">
+            <label for="u">$ operator_id</label>
+            <input id="u" type="text" autocomplete="username" placeholder="test" />
+          </div>
+          <div class="field">
+            <label for="p">$ passphrase</label>
+            <input id="p" type="password" autocomplete="current-password" placeholder="test" />
+          </div>
+          <button type="submit" class="login-btn">./authenticate --console</button>
+          <div class="login-error" id="login-error"></div>
+        </form>
+        <div class="login-hint">체험 계정 &nbsp;<b>test</b> / <b>test</b>&nbsp; 로 로그인해 보세요.</div>
       </div>
-      <div class="field">
-        <label for="p">비밀번호</label>
-        <input id="p" type="password" autocomplete="current-password" placeholder="test" />
-      </div>
-      <button type="submit" class="login-btn">로그인</button>
-      <div class="login-error" id="login-error"></div>
-    </form>
-    <div class="login-hint">체험 계정 &nbsp;<b>test</b> / <b>test</b>&nbsp; 로 로그인해 보세요.</div>
+    </div>
   </div>
 </section>
 
@@ -88,7 +97,7 @@
           </div>
           <div class="panel">
             <div class="panel-head"><span class="panel-title">최근 7일 활성 디바이스 추세</span></div>
-            <div class="bars" id="bars-devices"></div>
+            <div class="trend-chart" id="bars-devices"></div>
           </div>
         </div>
       </section>

@@ -60,12 +60,35 @@ function renderDashboard() {
     <tr><td class="strong">ADMIN</td><td>${statusBadge('ACTIVE')}</td><td>데모 모드로 실행 중</td></tr>
     <tr><td class="strong">AWS</td><td><span class="badge mute">해당없음</span></td><td>데모 환경 — AWS 미연동</td></tr>
   `;
-  const max = Math.max(...trend7d);
-  document.getElementById('bars-devices').innerHTML = trend7d.map((v, i) => `
-    <div class="bar-col">
-      <div style="width:100%;height:96px;display:flex;align-items:flex-end"><div class="bar" style="height:${(v/max*96).toFixed(0)}px"></div></div>
-      <div class="bar-label">D-${6-i}</div>
-    </div>`).join('');
+  renderTrendChart();
+}
+
+function renderTrendChart() {
+  const w = 320, h = 96, pad = 4;
+  const max = Math.max(...trend7d), min = Math.min(...trend7d);
+  const stepX = w / (trend7d.length - 1);
+  const points = trend7d.map((v, i) => {
+    const x = i * stepX;
+    const y = pad + (h - pad * 2) * (1 - (v - min) / (max - min || 1));
+    return [x, y];
+  });
+  const line = points.map(p => p.join(',')).join(' ');
+  const area = `0,${h} ${line} ${w},${h}`;
+  const dots = points.map(([x, y], i) => `<circle cx="${x}" cy="${y}" r="${i === points.length - 1 ? 3.5 : 2.5}" fill="#5b5bf0" />`).join('');
+  document.getElementById('bars-devices').innerHTML = `
+    <svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" style="width:100%;height:96px;overflow:visible">
+      <defs>
+        <linearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" style="stop-color:#5b5bf0;stop-opacity:0.32" />
+          <stop offset="100%" style="stop-color:#5b5bf0;stop-opacity:0" />
+        </linearGradient>
+      </defs>
+      <polygon points="${area}" fill="url(#trendFill)" />
+      <polyline points="${line}" fill="none" stroke="#5b5bf0" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+      ${dots}
+    </svg>
+    <div class="trend-labels">${trend7d.map((_, i) => `<span>D-${6 - i}</span>`).join('')}</div>
+  `;
 }
 
 function renderUsers(filterText = '') {
@@ -129,6 +152,33 @@ document.querySelectorAll('.nav-item').forEach(item => {
   });
 });
 document.getElementById('user-search')?.addEventListener('input', (e) => renderUsers(e.target.value));
+
+// ============== BOOT SEQUENCE ============== //
+(function renderBootSequence() {
+  const el = document.getElementById('boot-lines');
+  if (!el) return;
+  const lines = [
+    ['ok', 'iconia-admin console v2.4.1 booting…'],
+    ['ok', 'connecting to ops-gateway… OK (182ms)'],
+    ['ok', '128 devices online · DAU 342'],
+    ['warn', '2 error(s) pending review'],
+    ['ok', 'awaiting operator credentials'],
+  ];
+  lines.forEach(([kind, text], i) => {
+    setTimeout(() => {
+      const div = document.createElement('div');
+      div.className = 'boot-line';
+      div.innerHTML = `<span class="boot-${kind}">›</span> ${text}`;
+      el.appendChild(div);
+      if (i === lines.length - 1) {
+        const cursor = document.createElement('span');
+        cursor.className = 'boot-cursor';
+        div.appendChild(document.createTextNode(' '));
+        div.appendChild(cursor);
+      }
+    }, i * 220);
+  });
+})();
 
 // ============== AUTH ============== //
 const SESSION_KEY = 'iconia_admin_demo_session';
