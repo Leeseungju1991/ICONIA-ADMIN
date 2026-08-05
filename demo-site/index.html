@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ICONIA Admin | 운영 콘솔 · DEMO</title>
+<meta name="description" content="ICONIA 사용자·기기·AI·배포 운영 콘솔 데모 — Next.js 15 App Router 기반" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%236366f1'/%3E%3Ctext x='50' y='68' font-size='48' text-anchor='middle' fill='white' font-family='Inter' font-weight='800'%3EI%3C/text%3E%3C/svg%3E" />
+</head>
+<body>
+
+<!-- ============ LOGIN ============ -->
+<section class="login-screen" id="login-screen">
+  <div class="login-card">
+    <div class="demo-badge">● DEMO ENVIRONMENT · 더미 데이터</div>
+    <div class="login-logo">I</div>
+    <h1 class="login-title">ICONIA Admin</h1>
+    <p class="login-sub">사용자 · 기기 · AI · 배포 운영 콘솔</p>
+    <form id="login-form">
+      <div class="field">
+        <label for="u">아이디</label>
+        <input id="u" type="text" autocomplete="username" placeholder="test" />
+      </div>
+      <div class="field">
+        <label for="p">비밀번호</label>
+        <input id="p" type="password" autocomplete="current-password" placeholder="test" />
+      </div>
+      <button type="submit" class="login-btn">로그인</button>
+      <div class="login-error" id="login-error"></div>
+    </form>
+    <div class="login-hint">체험 계정 &nbsp;<b>test</b> / <b>test</b>&nbsp; 로 로그인해 보세요.</div>
+  </div>
+</section>
+
+<!-- ============ APP ============ -->
+<div class="app" id="app">
+  <aside class="sidebar">
+    <div class="side-brand">
+      <div class="side-logo">I</div>
+      <div class="side-brand-text">ICONIA Admin<small>Operator Console</small></div>
+    </div>
+
+    <div class="nav-group-label">개요</div>
+    <a class="nav-item is-active" data-page="dashboard"><span class="ic">▤</span>대시보드</a>
+
+    <div class="nav-group-label">사용자·디바이스</div>
+    <a class="nav-item" data-page="users"><span class="ic">◍</span>사용자 조회</a>
+    <a class="nav-item" data-page="devices"><span class="ic">▣</span>디바이스</a>
+
+    <div class="nav-group-label">AI · 콘텐츠</div>
+    <a class="nav-item" data-page="ai-usage"><span class="ic">✦</span>AI 사용량</a>
+    <a class="nav-item" data-page="moderation"><span class="ic">⛨</span>콘텐츠 모더레이션</a>
+
+    <div class="nav-group-label">운영</div>
+    <a class="nav-item" data-page="errors"><span class="ic">⚠</span>오류 추적</a>
+    <a class="nav-item" data-page="audit"><span class="ic">≡</span>감사 로그</a>
+
+    <div class="side-foot">
+      <button class="logout-btn" id="logout-btn">로그아웃</button>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-title" id="topbar-title">대시보드</div>
+      <div class="topbar-right">
+        <span class="env-pill">DEMO · READ-ONLY-ISH</span>
+        <div class="topbar-user"><div class="avatar">T</div><span id="user-name">test</span></div>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- DASHBOARD -->
+      <section class="page is-active" id="page-dashboard">
+        <div class="page-head">
+          <h2 class="page-title">전체 운영 개요</h2>
+          <p class="page-sub">디바이스·AI·오류 지표를 한눈에 확인하세요 (더미 데이터)</p>
+        </div>
+        <div class="kpi-grid" id="kpi-grid"></div>
+        <div class="grid-2">
+          <div class="panel">
+            <div class="panel-head"><span class="panel-title">6도메인 Health</span></div>
+            <table><tbody id="domain-health"></tbody></table>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><span class="panel-title">최근 7일 활성 디바이스 추세</span></div>
+            <div class="bars" id="bars-devices"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- USERS -->
+      <section class="page" id="page-users">
+        <div class="page-head"><h2 class="page-title">사용자 조회</h2><p class="page-sub">계정 상태 · 인형 연동 · 최근 로그인</p></div>
+        <div class="searchbar"><input id="user-search" placeholder="이메일로 검색" /></div>
+        <div class="panel">
+          <table>
+            <thead><tr><th>Email</th><th>표시이름</th><th>연동 인형</th><th>최근 로그인</th><th>상태</th></tr></thead>
+            <tbody id="user-rows"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- DEVICES -->
+      <section class="page" id="page-devices">
+        <div class="page-head"><h2 class="page-title">디바이스 관리</h2><p class="page-sub">인형(ICONIA-HW) 등록 현황 · 펌웨어 버전</p></div>
+        <div class="panel">
+          <table>
+            <thead><tr><th>Serial</th><th>소유자</th><th>펌웨어</th><th>배터리</th><th>연결 상태</th></tr></thead>
+            <tbody id="device-rows"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- AI USAGE -->
+      <section class="page" id="page-ai-usage">
+        <div class="page-head"><h2 class="page-title">AI 사용량</h2><p class="page-sub">모델별 호출량 · Fallback 비율 · 비용 추정</p></div>
+        <div class="kpi-grid" id="ai-kpi-grid"></div>
+        <div class="panel">
+          <table>
+            <thead><tr><th>모델</th><th>호출수 (24h)</th><th>평균 지연</th><th>Fallback</th></tr></thead>
+            <tbody id="ai-rows"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- MODERATION -->
+      <section class="page" id="page-moderation">
+        <div class="page-head"><h2 class="page-title">콘텐츠 모더레이션</h2><p class="page-sub">신고 접수 · 검토 · 조치</p></div>
+        <div class="panel">
+          <table>
+            <thead><tr><th>신고 ID</th><th>유형</th><th>대상</th><th>접수일</th><th>상태</th></tr></thead>
+            <tbody id="mod-rows"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ERRORS -->
+      <section class="page" id="page-errors">
+        <div class="page-head"><h2 class="page-title">오류 추적</h2><p class="page-sub">서버 · 앱 · 펌웨어 도메인별 24시간 오류</p></div>
+        <div class="panel">
+          <table>
+            <thead><tr><th>도메인</th><th>발생 건수 (24h)</th><th>최근 발생</th><th>상태</th></tr></thead>
+            <tbody id="error-rows"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- AUDIT -->
+      <section class="page" id="page-audit">
+        <div class="page-head"><h2 class="page-title">감사 로그</h2><p class="page-sub">운영자 행위 기록 (SHA-256 Hash Chain)</p></div>
+        <div class="panel">
+          <table>
+            <thead><tr><th>시각</th><th>운영자</th><th>액션</th></tr></thead>
+            <tbody id="audit-rows"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <div class="demo-footer-note">
+        이 사이트는 채용 지원을 위한 시연용 데모입니다 — 표시되는 데이터는 실제 운영 데이터가 아닌 더미 데이터입니다.
+        실제 소스코드는 <a href="https://github.com/Leeseungju1991/ICONIA-ADMIN" target="_blank" style="color:var(--accent-2)">GitHub</a>에서 확인할 수 있습니다 (private repos 포함 8-레포 시스템).
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>

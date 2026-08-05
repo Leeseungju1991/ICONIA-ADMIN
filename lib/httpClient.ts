@@ -13,6 +13,7 @@
 
 import { loadEnv } from "./env";
 import type { ServerEnvelope, ServerResult } from "./types";
+import { isDemoMode, DEMO_ERROR_CODE, DEMO_ERROR_MESSAGE } from "./demoMode";
 
 export type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
@@ -155,10 +156,23 @@ export type AuthedRequestArgs = {
  *   - breaker open / retries 소진 시 MSG_SERVER_TRANSIENT 한국어 메시지 포함
  *
  * never throws.
+ *
+ * 2026-08 (AWS→Vercel 마이그레이션): ADMIN_DEMO_MODE=true 인 배포에는 실제
+ * ICONIA-SERVER 가 연동되어 있지 않다. 여기서 즉시 짧게 실패시켜, 10초 타임아웃
+ * + 재시도 3회를 기다리다가 화면이 멈추는 대신 바로 "데모 환경" 안내를 띄운다.
  */
 export async function authedRequest<T>(
   args: AuthedRequestArgs,
 ): Promise<ServerResult<T>> {
+  if (isDemoMode()) {
+    return {
+      ok: false,
+      code: DEMO_ERROR_CODE,
+      message: DEMO_ERROR_MESSAGE,
+      status: 0,
+    };
+  }
+
   // ── 브레이커 확인 ────────────────────────────────────────────────────────
   if (isBreakerOpen()) {
     return {
