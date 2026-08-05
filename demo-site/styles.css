@@ -196,3 +196,77 @@ td.strong{color:var(--text);font-weight:600}
   margin-top:24px;font-size:11.5px;color:var(--text-3);text-align:center;padding:14px;
   border-top:1px solid var(--border);
 }
+
+tr.clickable{cursor:pointer}
+tr.clickable:hover td{background:var(--panel-2)}
+.row-action-btn{
+  background:none;border:1px solid var(--border-2);color:var(--text-2);font-size:11.5px;font-weight:600;
+  padding:5px 10px;border-radius:8px;cursor:pointer;
+}
+.row-action-btn:hover{border-color:var(--accent);color:var(--accent)}
+.ota-chip{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px}
+.ota-chip.canary{background:rgba(240,180,41,.14);color:#a3690a}
+.ota-chip.stable{background:rgba(31,169,122,.12);color:var(--good)}
+
+/* ---------- OTA ROLLOUT ---------- */
+.ota-rollout{display:flex;flex-direction:column;gap:14px;cursor:pointer}
+.ota-rollout-row{display:flex;align-items:center;gap:14px}
+.ota-rollout-label{width:200px;flex:none;font-size:12.5px;color:var(--text-2)}
+.ota-rollout-track{flex:1;height:14px;background:var(--bg-2);border-radius:8px;overflow:hidden;border:1px solid var(--border)}
+.ota-rollout-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent-2));border-radius:8px}
+.ota-rollout-pct{width:44px;flex:none;text-align:right;font-size:12.5px;font-weight:700;color:var(--text)}
+
+/* ---------- SNACKBAR ---------- */
+.snackbar-stack{
+  position:fixed;left:50%;bottom:26px;transform:translateX(-50%);
+  display:flex;flex-direction:column;gap:8px;z-index:80;align-items:center;pointer-events:none;
+}
+.snackbar{
+  pointer-events:auto;display:flex;align-items:center;gap:10px;
+  background:var(--side-bg);color:#fff;font-size:13px;font-weight:600;
+  padding:12px 18px;border-radius:12px;box-shadow:0 16px 34px -14px rgba(0,0,0,.5);
+  opacity:0;transform:translateY(10px);animation:snackbar-in .22s ease forwards;white-space:nowrap;
+  border:1px solid var(--side-border);
+}
+.snackbar.leaving{animation:snackbar-out .18s ease forwards}
+.snackbar .sb-dot{width:7px;height:7px;border-radius:50%;background:var(--accent-2);flex:none}
+.snackbar.warn .sb-dot{background:#f0b429}
+.snackbar.bad .sb-dot{background:var(--bad)}
+@keyframes snackbar-in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes snackbar-out{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(10px)}}
+
+/* ---------- MODAL ---------- */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(15,18,33,.6);backdrop-filter:blur(3px);
+  display:flex;align-items:center;justify-content:center;padding:24px;
+  opacity:0;pointer-events:none;transition:opacity .18s ease;z-index:90;
+}
+.modal-overlay.is-open{opacity:1;pointer-events:auto}
+.modal-box{
+  width:100%;max-width:460px;max-height:min(80vh,620px);overflow:auto;background:var(--panel);
+  border:1px solid var(--border);border-radius:18px;padding:30px 28px;position:relative;
+  box-shadow:0 40px 80px -30px rgba(15,18,33,.5);
+  transform:translateY(10px) scale(.98);transition:transform .18s ease;
+}
+.modal-overlay.is-open .modal-box{transform:translateY(0) scale(1)}
+.modal-close{
+  position:absolute;top:16px;right:16px;width:30px;height:30px;border-radius:50%;border:1px solid var(--border-2);
+  background:var(--panel-2);color:var(--text-2);font-size:13px;line-height:1;cursor:pointer;
+}
+.modal-close:hover{color:var(--bad);border-color:var(--bad)}
+.modal-title{font-size:18px;font-weight:800;margin:0 0 4px;padding-right:24px;color:var(--text)}
+.modal-sub{font-size:12.5px;color:var(--text-3);margin:0 0 18px}
+.modal-fields{display:grid;grid-template-columns:1fr 1fr;gap:12px 16px;margin-bottom:16px}
+.modal-field-label{font-size:10.5px;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px}
+.modal-field-value{font-size:13.5px;color:var(--text);font-weight:600}
+.modal-scenario{
+  font-size:12.5px;color:var(--text-2);line-height:1.6;background:var(--panel-2);border:1px solid var(--border-2);
+  border-radius:10px;padding:12px 14px;margin-bottom:16px;
+}
+.modal-actions{display:flex;gap:10px}
+.modal-action-btn{
+  flex:1;background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff;border:none;border-radius:10px;
+  padding:11px;font-size:13px;font-weight:700;cursor:pointer;
+}
+.modal-action-btn:hover{filter:brightness(1.06)}
+.modal-action-btn.secondary{background:var(--panel-2);color:var(--text);border:1px solid var(--border-2)}

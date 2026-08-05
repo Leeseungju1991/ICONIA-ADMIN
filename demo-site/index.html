@@ -90,6 +90,10 @@
           <p class="page-sub">디바이스·AI·오류 지표를 한눈에 확인하세요 (더미 데이터)</p>
         </div>
         <div class="kpi-grid" id="kpi-grid"></div>
+        <div class="panel">
+          <div class="panel-head"><span class="panel-title">펌웨어 OTA 롤아웃 현황</span><span class="panel-title n">클릭 시 상세</span></div>
+          <div class="ota-rollout" id="ota-rollout"></div>
+        </div>
         <div class="grid-2">
           <div class="panel">
             <div class="panel-head"><span class="panel-title">6도메인 Health</span></div>
@@ -116,10 +120,10 @@
 
       <!-- DEVICES -->
       <section class="page" id="page-devices">
-        <div class="page-head"><h2 class="page-title">디바이스 관리</h2><p class="page-sub">인형(ICONIA-HW) 등록 현황 · 펌웨어 버전</p></div>
+        <div class="page-head"><h2 class="page-title">디바이스 관리</h2><p class="page-sub">인형(ICONIA-HW) 등록 현황 · 펌웨어 OTA 채널 (행 클릭 시 상세 · OTA 제어)</p></div>
         <div class="panel">
           <table>
-            <thead><tr><th>Serial</th><th>소유자</th><th>펌웨어</th><th>배터리</th><th>연결 상태</th></tr></thead>
+            <thead><tr><th>Serial</th><th>소유자</th><th>펌웨어</th><th>OTA 채널</th><th>배터리</th><th>연결 상태</th></tr></thead>
             <tbody id="device-rows"></tbody>
           </table>
         </div>
@@ -127,7 +131,7 @@
 
       <!-- AI USAGE -->
       <section class="page" id="page-ai-usage">
-        <div class="page-head"><h2 class="page-title">AI 사용량</h2><p class="page-sub">모델별 호출량 · Fallback 비율 · 비용 추정</p></div>
+        <div class="page-head"><h2 class="page-title">AI 사용량</h2><p class="page-sub">모델별 호출량 · Fallback 비율 · 비용 추정 (행 클릭 시 상세)</p></div>
         <div class="kpi-grid" id="ai-kpi-grid"></div>
         <div class="panel">
           <table>
@@ -150,7 +154,7 @@
 
       <!-- ERRORS -->
       <section class="page" id="page-errors">
-        <div class="page-head"><h2 class="page-title">오류 추적</h2><p class="page-sub">서버 · 앱 · 펌웨어 도메인별 24시간 오류</p></div>
+        <div class="page-head"><h2 class="page-title">오류 추적</h2><p class="page-sub">서버 · 앱 · 펌웨어 도메인별 24시간 오류 (행 클릭 시 시나리오 · 조치)</p></div>
         <div class="panel">
           <table>
             <thead><tr><th>도메인</th><th>발생 건수 (24h)</th><th>최근 발생</th><th>상태</th></tr></thead>
@@ -175,6 +179,15 @@
         실제 소스코드는 <a href="https://github.com/Leeseungju1991/ICONIA-ADMIN" target="_blank" style="color:var(--accent-2)">GitHub</a>에서 확인할 수 있습니다 (private repos 포함 8-레포 시스템).
       </div>
     </div>
+  </div>
+</div>
+
+<!-- ============ SNACKBAR / MODAL ============ -->
+<div class="snackbar-stack" id="snackbar-stack"></div>
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal-box" id="modal-box" role="dialog" aria-modal="true">
+    <button class="modal-close" id="modal-close" aria-label="닫기">✕</button>
+    <div class="modal-body" id="modal-body"></div>
   </div>
 </div>
 

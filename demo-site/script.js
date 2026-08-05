@@ -7,15 +7,18 @@ const users = [
   { email: 'user0512@example.com', name: '사용자0512', dolls: 0, lastLogin: '2026-07-18 12:05', status: 'PENDING_DELETION' },
 ];
 const devices = [
-  { serial: 'ICN-88213', owner: 'user0231@example.com', fw: 'v2.4.1', battery: '82%', online: true },
-  { serial: 'ICN-77104', owner: 'user1042@example.com', fw: 'v2.4.1', battery: '45%', online: true },
-  { serial: 'ICN-65590', owner: 'user1042@example.com', fw: 'v2.3.8', battery: '12%', online: false },
-  { serial: 'ICN-90871', owner: 'user2091@example.com', fw: 'v2.4.1', battery: '97%', online: true },
+  { serial: 'ICN-88213', owner: 'user0231@example.com', fw: 'v2.4.1', ota: 'STABLE', battery: '82%', online: true },
+  { serial: 'ICN-77104', owner: 'user1042@example.com', fw: 'v2.4.2', ota: 'CANARY', battery: '45%', online: true },
+  { serial: 'ICN-65590', owner: 'user1042@example.com', fw: 'v2.3.8', ota: 'STABLE', battery: '12%', online: false },
+  { serial: 'ICN-90871', owner: 'user2091@example.com', fw: 'v2.4.1', ota: 'STABLE', battery: '97%', online: true },
 ];
 const aiModels = [
-  { model: 'Gemini Flash', calls: 8420, latency: '620ms', fallback: '0.8%' },
-  { model: 'Gemini Pro', calls: 1120, latency: '1.4s', fallback: '1.9%' },
-  { model: 'Claude (fallback)', calls: 94, latency: '2.1s', fallback: '—' },
+  { model: 'Gemini Flash', calls: 8420, latency: '620ms', fallback: '0.8%',
+    scenario: '동화 생성 · 일상 대화 등 저지연 요청을 처리하는 기본 모델입니다. 24시간 내 8,420건 호출, fallback 0.8%로 안정적입니다.' },
+  { model: 'Gemini Pro', calls: 1120, latency: '1.4s', fallback: '1.9%',
+    scenario: '복잡한 추론이 필요한 학습 콘텐츠 생성에 사용됩니다. 평균 지연 1.4s로 Flash 대비 느리지만 응답 품질이 높습니다.' },
+  { model: 'Claude (fallback)', calls: 94, latency: '2.1s', fallback: '—',
+    scenario: 'Gemini 계열 장애 또는 안전 필터 거부 시 대체 호출되는 fallback 모델입니다. 24시간 94건 — 정상 범위 내 fallback 비율입니다.' },
 ];
 const moderation = [
   { id: 'RPT-1042', type: '부적절 발화', target: 'ICN-65590', date: '2026-08-04', status: 'PENDING' },
@@ -24,10 +27,14 @@ const moderation = [
   { id: 'RPT-1015', type: '부적절 발화', target: 'ICN-90871', date: '2026-07-22', status: 'PENDING' },
 ];
 const errorDomains = [
-  { domain: 'SERVER', count: 2, last: '2026-08-05 03:12', status: 'ok' },
-  { domain: 'APP', count: 5, last: '2026-08-05 06:40', status: 'warn' },
-  { domain: 'FIRMWARE', count: 0, last: '—', status: 'ok' },
-  { domain: 'AI', count: 3, last: '2026-08-04 22:01', status: 'ok' },
+  { domain: 'SERVER', count: 2, last: '2026-08-05 03:12', status: 'ok',
+    scenario: 'API 서버 p99 지연 순간 스파이크(320ms) 2건 감지. 오토스케일링으로 자동 회복되어 현재 정상입니다.', action: '인시던트 종료 확인' },
+  { domain: 'APP', count: 5, last: '2026-08-05 06:40', status: 'warn',
+    scenario: '모바일 앱에서 인형 연동 화면 크래시 5건 접수 (iOS 17.4, 특정 기기군). 크래시프리율 99.7% — 주의 관찰 필요.', action: '핫픽스 배포 요청' },
+  { domain: 'FIRMWARE', count: 0, last: '—', status: 'ok',
+    scenario: 'v2.4.2 Canary 채널 10% 배포 중이나 펌웨어 관련 오류 보고는 없습니다.', action: '모니터링 계속' },
+  { domain: 'AI', count: 3, last: '2026-08-04 22:01', status: 'ok',
+    scenario: 'Gemini Pro 타임아웃 3건 — Claude fallback으로 정상 전환되어 사용자 영향은 없었습니다.', action: '로그 아카이브' },
 ];
 const audit = [
   { at: '2026-08-05 09:10', op: 'test@demo', action: '로그인 (superadmin)' },
@@ -36,6 +43,10 @@ const audit = [
   { at: '2026-08-01 14:47', op: 'ops1@soomkorea.com', action: '펌웨어 v2.4.1 Canary 10% 배포' },
 ];
 const trend7d = [101, 108, 112, 119, 121, 125, 128];
+const otaRollout = [
+  { version: 'v2.4.2', channel: 'Canary', pct: 10, detail: 'v2.4.2는 배터리 소모 개선 및 음성 인식 지연 최적화를 포함합니다. Canary 10% 그룹 대상 배포 중이며 크래시율·배터리 지표 이상 없을 시 25%로 확대 예정입니다.' },
+  { version: 'v2.4.1', channel: 'Stable', pct: 100, detail: 'v2.4.1은 전체 디바이스에 안정적으로 배포 완료된 버전입니다. 알려진 이슈 없음.' },
+];
 
 function statusBadge(s) {
   const map = { ACTIVE: ['활성','ok'], PAUSED: ['일시정지','warn'], PENDING_DELETION: ['삭제대기','bad'],
@@ -61,6 +72,16 @@ function renderDashboard() {
     <tr><td class="strong">AWS</td><td><span class="badge mute">해당없음</span></td><td>데모 환경 — AWS 미연동</td></tr>
   `;
   renderTrendChart();
+  renderOtaRollout();
+}
+
+function renderOtaRollout() {
+  document.getElementById('ota-rollout').innerHTML = otaRollout.map((r, i) => `
+    <div class="ota-rollout-row" data-idx="${i}">
+      <div class="ota-rollout-label">${r.version} <span class="ota-chip ${r.channel === 'Canary' ? 'canary' : 'stable'}">${r.channel}</span></div>
+      <div class="ota-rollout-track"><div class="ota-rollout-fill" style="width:${r.pct}%"></div></div>
+      <div class="ota-rollout-pct">${r.pct}%</div>
+    </div>`).join('');
 }
 
 function renderTrendChart() {
@@ -101,7 +122,9 @@ function renderUsers(filterText = '') {
 
 function renderDevices() {
   document.getElementById('device-rows').innerHTML = devices.map(d => `
-    <tr><td class="strong">${d.serial}</td><td>${d.owner}</td><td>${d.fw}</td><td>${d.battery}</td>
+    <tr class="clickable" data-serial="${d.serial}"><td class="strong">${d.serial}</td><td>${d.owner}</td><td>${d.fw}</td>
+    <td><span class="ota-chip ${d.ota === 'CANARY' ? 'canary' : 'stable'}">${d.ota}</span></td>
+    <td>${d.battery}</td>
     <td><span class="badge ${d.online ? 'ok' : 'mute'}">${d.online ? '온라인' : '오프라인'}</span></td></tr>`).join('');
 }
 
@@ -112,8 +135,8 @@ function renderAiUsage() {
     <div class="kpi-card"><div class="kpi-label">평균 Fallback율</div><div class="kpi-value">1.2%</div></div>
     <div class="kpi-card"><div class="kpi-label">추정 일일 비용</div><div class="kpi-value" style="font-size:18px">$18.40</div></div>
   `;
-  document.getElementById('ai-rows').innerHTML = aiModels.map(m => `
-    <tr><td class="strong">${m.model}</td><td>${m.calls.toLocaleString()}</td><td>${m.latency}</td><td>${m.fallback}</td></tr>`).join('');
+  document.getElementById('ai-rows').innerHTML = aiModels.map((m, i) => `
+    <tr class="clickable" data-idx="${i}"><td class="strong">${m.model}</td><td>${m.calls.toLocaleString()}</td><td>${m.latency}</td><td>${m.fallback}</td></tr>`).join('');
 }
 
 function renderModeration() {
@@ -122,8 +145,8 @@ function renderModeration() {
 }
 
 function renderErrors() {
-  document.getElementById('error-rows').innerHTML = errorDomains.map(e => `
-    <tr><td class="strong">${e.domain}</td><td>${e.count}</td><td>${e.last}</td>
+  document.getElementById('error-rows').innerHTML = errorDomains.map((e, i) => `
+    <tr class="clickable" data-idx="${i}"><td class="strong">${e.domain}</td><td>${e.count}</td><td>${e.last}</td>
     <td><span class="badge ${e.status === 'ok' ? 'ok' : 'warn'}">${e.status === 'ok' ? '양호' : '주의'}</span></td></tr>`).join('');
 }
 
@@ -135,6 +158,119 @@ function renderAudit() {
 function renderAll() {
   renderDashboard(); renderUsers(); renderDevices(); renderAiUsage(); renderModeration(); renderErrors(); renderAudit();
 }
+
+// ============== SNACKBAR ============== //
+function showSnackbar(message, type = 'ok') {
+  const stack = document.getElementById('snackbar-stack');
+  if (!stack) return;
+  const el = document.createElement('div');
+  el.className = `snackbar ${type}`;
+  el.innerHTML = `<span class="sb-dot"></span>${message}`;
+  stack.appendChild(el);
+  setTimeout(() => {
+    el.classList.add('leaving');
+    setTimeout(() => el.remove(), 200);
+  }, 2400);
+}
+
+// ============== MODAL ============== //
+function openModal(html) {
+  document.getElementById('modal-body').innerHTML = html;
+  document.getElementById('modal-overlay').classList.add('is-open');
+}
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('is-open');
+}
+document.getElementById('modal-close')?.addEventListener('click', closeModal);
+document.getElementById('modal-overlay')?.addEventListener('click', (e) => {
+  if (e.target.id === 'modal-overlay') closeModal();
+});
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
+
+function openDeviceModal(serial) {
+  const d = devices.find(x => x.serial === serial);
+  if (!d) return;
+  openModal(`
+    <h3 class="modal-title">${d.serial}</h3>
+    <p class="modal-sub">소유자 ${d.owner}</p>
+    <div class="modal-fields">
+      <div><div class="modal-field-label">펌웨어</div><div class="modal-field-value">${d.fw}</div></div>
+      <div><div class="modal-field-label">OTA 채널</div><div class="modal-field-value">${d.ota}</div></div>
+      <div><div class="modal-field-label">배터리</div><div class="modal-field-value">${d.battery}</div></div>
+      <div><div class="modal-field-label">연결 상태</div><div class="modal-field-value">${d.online ? '온라인' : '오프라인'}</div></div>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-action-btn" id="modal-ota-push" data-serial="${d.serial}">펌웨어 OTA 강제 푸시</button>
+      <button class="modal-action-btn secondary" id="modal-reboot" data-serial="${d.serial}">디바이스 재부팅 명령</button>
+    </div>
+  `);
+  document.getElementById('modal-ota-push')?.addEventListener('click', () => {
+    d.fw = 'v2.4.2'; d.ota = 'CANARY';
+    renderDevices();
+    closeModal();
+    showSnackbar(`${d.serial}에 펌웨어 v2.4.2 OTA 푸시 요청이 전송되었습니다.`);
+  });
+  document.getElementById('modal-reboot')?.addEventListener('click', () => {
+    closeModal();
+    showSnackbar(`${d.serial} 재부팅 명령이 전송되었습니다. (데모 환경)`, 'warn');
+  });
+}
+
+function openErrorModal(idx) {
+  const e = errorDomains[idx];
+  if (!e) return;
+  openModal(`
+    <h3 class="modal-title">${e.domain} 도메인 오류</h3>
+    <p class="modal-sub">24h 발생 ${e.count}건 · 최근 발생 ${e.last} · <span class="badge ${e.status === 'ok' ? 'ok' : 'warn'}">${e.status === 'ok' ? '양호' : '주의'}</span></p>
+    <div class="modal-scenario">${e.scenario}</div>
+    <div class="modal-actions">
+      <button class="modal-action-btn" id="modal-error-action">${e.action}</button>
+    </div>
+  `);
+  document.getElementById('modal-error-action')?.addEventListener('click', () => {
+    e.status = 'ok'; e.count = 0;
+    renderErrors();
+    closeModal();
+    showSnackbar(`${e.domain} 도메인: "${e.action}" 처리되었습니다.`);
+  });
+}
+
+function openAiModal(idx) {
+  const m = aiModels[idx];
+  if (!m) return;
+  openModal(`
+    <h3 class="modal-title">${m.model}</h3>
+    <p class="modal-sub">24h 호출 ${m.calls.toLocaleString()}건 · 평균 지연 ${m.latency} · Fallback ${m.fallback}</p>
+    <div class="modal-scenario">${m.scenario}</div>
+  `);
+}
+
+function openOtaModal(idx) {
+  const r = otaRollout[idx];
+  if (!r) return;
+  openModal(`
+    <h3 class="modal-title">${r.version} · ${r.channel} 배포</h3>
+    <p class="modal-sub">현재 ${r.pct}% 디바이스에 적용됨</p>
+    <div class="modal-scenario">${r.detail}</div>
+  `);
+}
+
+document.getElementById('device-rows')?.addEventListener('click', (e) => {
+  const row = e.target.closest('tr[data-serial]');
+  if (row) openDeviceModal(row.dataset.serial);
+});
+document.getElementById('error-rows')?.addEventListener('click', (e) => {
+  const row = e.target.closest('tr[data-idx]');
+  if (row) openErrorModal(Number(row.dataset.idx));
+});
+document.getElementById('ai-rows')?.addEventListener('click', (e) => {
+  const row = e.target.closest('tr[data-idx]');
+  if (row) openAiModal(Number(row.dataset.idx));
+});
+document.getElementById('ota-rollout')?.addEventListener('click', (e) => {
+  const row = e.target.closest('.ota-rollout-row');
+  if (row) openOtaModal(Number(row.dataset.idx));
+});
 
 // ============== NAV ============== //
 const pageTitles = {
@@ -199,11 +335,13 @@ document.getElementById('login-form').addEventListener('submit', (e) => {
   err.textContent = '';
   sessionStorage.setItem(SESSION_KEY, u);
   showApp(u);
+  showSnackbar(`인증 성공 · ${u} 세션이 시작되었습니다.`);
 });
 document.getElementById('logout-btn').addEventListener('click', () => {
   sessionStorage.removeItem(SESSION_KEY);
   document.getElementById('app').classList.remove('is-active');
   document.getElementById('login-screen').classList.remove('hidden');
+  showSnackbar('세션이 종료되었습니다.');
 });
 (function initSession() {
   const u = sessionStorage.getItem(SESSION_KEY);
