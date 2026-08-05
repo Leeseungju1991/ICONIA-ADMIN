@@ -59,7 +59,9 @@ export async function loginAction(
   const rawId = parsed.data.username.trim().toLowerCase();
 
   if (isDemoMode() && DEMO_CREDENTIALS[rawId] === parsed.data.password) {
-    const { jwt, expiresAt } = mintDemoJwt({ role: "admin", sub: rawId });
+    // role 은 lib/operatorRoles.ts 의 OperatorRole 이어야 한다 (admin 은 유효값이 아님) —
+    // 데모 계정은 모든 대시보드 경로를 볼 수 있어야 하므로 최고 권한(superadmin) 부여.
+    const { jwt, expiresAt } = mintDemoJwt({ role: "superadmin", sub: rawId });
     await writeSession({ jwt, expiresAt });
     redirect("/dashboard");
   }
