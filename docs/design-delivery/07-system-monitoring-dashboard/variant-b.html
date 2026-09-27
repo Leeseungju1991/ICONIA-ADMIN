@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>시스템 모니터링 — 시안 B</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+<style>
+  .vtimeline { position:relative; padding-left:24px; }
+  .vtimeline::before { content:""; position:absolute; left:6px; top:6px; bottom:6px; width:2px; background:var(--hairline); }
+  .vt-item { position:relative; margin-bottom:16px; }
+  .vt-item .dot { position:absolute; left:-24px; top:2px; width:12px; height:12px; border-radius:999px; }
+</style>
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 전체 목록</a> · <a href="./README.md">시스템 모니터링 폴더</a></div>
+    <h1>시스템 성능·운영 모니터링 대시보드 — 시안 B</h1>
+  </header>
+
+  <div class="page-frame">
+    <div class="brief-box">
+      <h4>기능</h4>
+      <ul><li>장애·경고 이력을 발생 시각순으로 표시</li><li>심각도별 색상 구분</li></ul>
+      <h4>UI/UX</h4>
+      <ul><li>"지금 상태"보다 "무슨 일이 있었고 어떻게 대응했는지" 이력 추적이 중요한 장애 리뷰·포스트모템용</li></ul>
+    </div>
+
+    <div class="page-title-row"><h2>인시던트 이력</h2><span class="chip chip-muted">최근 7일</span></div>
+
+    <div class="glass-panel">
+      <div class="vtimeline">
+        <div class="vt-item"><span class="dot" style="background:var(--rose-500)"></span><div style="font-size:11px;color:var(--slate-400)">09-27 09:12 · 진행중</div><div style="font-size:13px;font-weight:600;margin-top:2px">배치 작업 서버 응답 없음 <span class="chip chip-error" style="margin-left:6px">심각</span></div></div>
+        <div class="vt-item"><span class="dot" style="background:var(--amber-600)"></span><div style="font-size:11px;color:var(--slate-400)">09-25 14:30 · 해결됨 (32분)</div><div style="font-size:13px;font-weight:600;margin-top:2px">결제 게이트웨이 응답 지연 <span class="chip chip-warn" style="margin-left:6px">경고</span></div></div>
+        <div class="vt-item"><span class="dot" style="background:var(--emerald-600)"></span><div style="font-size:11px;color:var(--slate-400)">09-22 03:00 · 계획된 점검</div><div style="font-size:13px;font-weight:600;margin-top:2px">DB 정기 백업 및 인덱스 재구성</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+</body>
+</html>

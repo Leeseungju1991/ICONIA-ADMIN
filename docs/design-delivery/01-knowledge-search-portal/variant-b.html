@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>지식 검색 포털 — 시안 B</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 전체 목록</a> · <a href="./README.md">지식 검색 포털 폴더</a></div>
+    <h1>사내 통합 지식 검색 포털 — 시안 B</h1>
+  </header>
+
+  <div class="page-frame">
+    <div class="brief-box">
+      <h4>기능</h4>
+      <ul><li>부서/카테고리 트리 구조로 문서함 탐색</li><li>선택한 카테고리의 문서를 표로 조회</li></ul>
+      <h4>UI/UX</h4>
+      <ul><li>검색보다 "찾아 들어가는" 탐색이 익숙한 사용자를 위한 트리+표 레이아웃</li><li>카테고리를 클릭하면 우측 표가 즉시 갱신</li></ul>
+    </div>
+
+    <div class="detail-grid" style="grid-template-columns:220px 1fr">
+      <div class="glass-panel">
+        <div class="u-label">카테고리</div>
+        <nav style="display:flex;flex-direction:column;gap:2px">
+          <button class="nav-mock-item" onclick="pickNavItem2(this)" data-active="true" style="text-align:left;background:rgba(109,93,254,.1);color:var(--accent);font-weight:700;border:none;padding:8px 10px;border-radius:8px;font-size:12.5px;cursor:pointer;font-family:inherit">인사</button>
+          <button class="nav-mock-item" onclick="pickNavItem2(this)" data-active="false" style="text-align:left;background:none;border:none;padding:8px 10px;border-radius:8px;font-size:12.5px;cursor:pointer;color:var(--slate-600);font-family:inherit">IT</button>
+          <button class="nav-mock-item" onclick="pickNavItem2(this)" data-active="false" style="text-align:left;background:none;border:none;padding:8px 10px;border-radius:8px;font-size:12.5px;cursor:pointer;color:var(--slate-600);font-family:inherit">총무</button>
+          <button class="nav-mock-item" onclick="pickNavItem2(this)" data-active="false" style="text-align:left;background:none;border:none;padding:8px 10px;border-radius:8px;font-size:12.5px;cursor:pointer;color:var(--slate-600);font-family:inherit">보안</button>
+        </nav>
+      </div>
+      <div class="glass-panel">
+        <div class="panel-head"><div><h3 id="cat-title">인사 문서함</h3></div></div>
+        <div class="table-scroll">
+          <table class="data-table">
+            <thead><tr><th>문서명</th><th>유형</th><th>갱신일</th></tr></thead>
+            <tbody>
+              <tr><td>연차 신청 방법 안내</td><td>위키</td><td>2026-08-11</td></tr>
+              <tr><td>인사 규정 전문</td><td>규정</td><td>2026-05-02</td></tr>
+              <tr><td>신규 입사자 온보딩 가이드</td><td>매뉴얼</td><td>2026-07-20</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+<script>
+  const CAT_LABEL = { 0: '인사 문서함', 1: 'IT 문서함', 2: '총무 문서함', 3: '보안 문서함' };
+  function pickNavItem2(btn) {
+    const items = [...btn.parentElement.children];
+    items.forEach((b) => { b.dataset.active = 'false'; b.style.background = 'none'; b.style.color = 'var(--slate-600)'; b.style.fontWeight = '400'; });
+    btn.dataset.active = 'true'; btn.style.background = 'rgba(109,93,254,.1)'; btn.style.color = 'var(--accent)'; btn.style.fontWeight = '700';
+    document.getElementById('cat-title').textContent = CAT_LABEL[items.indexOf(btn)];
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>SOP·매뉴얼 포털 — 시안 C</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 전체 목록</a> · <a href="./README.md">SOP·매뉴얼 포털 폴더</a></div>
+    <h1>표준 업무 절차(SOP) · 매뉴얼 공유 포털 — 시안 C</h1>
+  </header>
+
+  <div class="page-frame">
+    <div class="brief-box">
+      <h4>기능</h4>
+      <ul><li>절차를 단계별 체크리스트로 표시 — 완료한 단계를 체크하며 진행</li></ul>
+      <h4>UI/UX</h4>
+      <ul><li>문서가 아니라 "지금 실제로 이 절차를 수행 중"인 사람을 위한 실행형 레이아웃</li><li>진행률이 눈에 보여 어디까지 했는지 헷갈리지 않음</li></ul>
+    </div>
+
+    <div class="page-title-row"><h2>신규 입사자 온보딩 절차</h2><span class="chip chip-muted">3/6 완료</span></div>
+    <div class="progress-track" style="height:10px;margin-bottom:16px"><div class="progress-fill" style="width:50%"></div></div>
+
+    <div class="glass-panel">
+      <div class="checklist-item"><span class="status-icon pass">✓</span><span class="label">계정 및 사내 시스템 접근 권한 발급</span><span class="owner">IT팀</span></div>
+      <div class="checklist-item"><span class="status-icon pass">✓</span><span class="label">근로계약서 및 서류 제출</span><span class="owner">인사팀</span></div>
+      <div class="checklist-item"><span class="status-icon pass">✓</span><span class="label">사내 필수 교육(윤리·보안) 이수</span><span class="owner">본인</span></div>
+      <div class="checklist-item"><span class="status-icon pending">4</span><span class="label">부서 배치 및 멘토 지정</span><span class="owner">소속팀장</span></div>
+      <div class="checklist-item"><span class="status-icon pending">5</span><span class="label">업무용 장비 수령</span><span class="owner">총무팀</span></div>
+      <div class="checklist-item"><span class="status-icon pending">6</span><span class="label">1개월 수습 평가 면담</span><span class="owner">소속팀장</span></div>
+    </div>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+</body>
+</html>

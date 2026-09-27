@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>RPA 자동화 대시보드 — 시안 B</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 전체 목록</a> · <a href="./README.md">RPA 자동화 대시보드 폴더</a></div>
+    <h1>RPA 기반 반복 업무 자동화 대시보드 — 시안 B</h1>
+  </header>
+
+  <div class="page-frame">
+    <div class="brief-box">
+      <h4>기능</h4>
+      <ul><li>각 자동화를 카드로 보여주고 즉시 켜고 끄기</li><li>마지막 실행 결과를 카드 안에서 바로 확인</li></ul>
+      <h4>UI/UX</h4>
+      <ul><li>표보다 카드+토글이 "내가 담당하는 자동화 몇 개를 관리"하는 현업 담당자에게 더 직관적</li></ul>
+    </div>
+
+    <div class="page-title-row"><h2>내 자동화</h2><button class="btn-primary btn-sm">+ 새 자동화 등록</button></div>
+
+    <div class="grid">
+      <div class="glass-panel">
+        <div class="panel-head"><div><h3>일일 매출 집계</h3><p>매일 07:00 실행</p></div><button class="switch" data-on="true" role="switch" aria-checked="true" onclick="toggleSwitch(this)"><span class="knob"></span></button></div>
+        <span class="chip chip-success">최근 실행 성공</span>
+      </div>
+      <div class="glass-panel">
+        <div class="panel-head"><div><h3>신규 발주서 ERP 입력</h3><p>10분마다 실행</p></div><button class="switch" data-on="true" role="switch" aria-checked="true" onclick="toggleSwitch(this)"><span class="knob"></span></button></div>
+        <span class="chip chip-success">최근 실행 성공</span>
+      </div>
+      <div class="glass-panel">
+        <div class="panel-head"><div><h3>세금계산서 발행</h3><p>매일 18:00 실행</p></div><button class="switch" data-on="false" role="switch" aria-checked="false" onclick="toggleSwitch(this)"><span class="knob"></span></button></div>
+        <span class="chip chip-error">최근 실행 실패 — 점검 필요</span>
+      </div>
+      <div class="glass-panel">
+        <div class="panel-head"><div><h3>급여 데이터 검증</h3><p>매월 25일 실행</p></div><button class="switch" data-on="false" role="switch" aria-checked="false" onclick="toggleSwitch(this)"><span class="knob"></span></button></div>
+        <span class="chip chip-muted">일시중지됨</span>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+</body>
+</html>

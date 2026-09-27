@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>브랜드 에셋 라이브러리 — 시안 C</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+<style>.coll-card .thumb{height:64px;border-radius:10px 10px 0 0}</style>
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 전체 목록</a> · <a href="./README.md">브랜드 에셋 라이브러리 폴더</a></div>
+    <h1>마케팅 콘텐츠·브랜드 에셋 라이브러리 — 시안 C</h1>
+  </header>
+
+  <div class="page-frame">
+    <div class="brief-box">
+      <h4>기능</h4>
+      <ul><li>에셋을 개별 파일이 아니라 "컬렉션"(캠페인·시즌별 묶음)으로 큐레이션</li><li>즐겨찾기한 컬렉션을 상단에 고정</li></ul>
+      <h4>UI/UX</h4>
+      <ul><li>파일 수가 아주 많을 때(수천 개+) 개별 탐색 대신 담당자가 미리 묶어둔 컬렉션으로 진입 — 외부 협력사 공유용으로도 적합</li></ul>
+    </div>
+
+    <div class="u-label">⭐ 즐겨찾기</div>
+    <div class="grid" style="margin-bottom:16px">
+      <div class="glass-card coll-card"><div class="thumb" style="background:linear-gradient(135deg,var(--accent),#8b7cff)"></div><div style="padding-top:8px"><b style="font-size:12.5px">2026 가을 캠페인</b><div style="font-size:11px;color:var(--slate-400)">에셋 24개</div></div></div>
+      <div class="glass-card coll-card"><div class="thumb" style="background:linear-gradient(135deg,#EC4899,#f472b6)"></div><div style="padding-top:8px"><b style="font-size:12.5px">브랜드 기본 키트</b><div style="font-size:11px;color:var(--slate-400)">에셋 12개</div></div></div>
+    </div>
+
+    <div class="u-label">전체 컬렉션</div>
+    <div class="grid">
+      <div class="glass-card coll-card"><div class="thumb" style="background:linear-gradient(135deg,#60A5FA,#93c5fd)"></div><div style="padding-top:8px"><b style="font-size:12.5px">제품 카탈로그 사진</b><div style="font-size:11px;color:var(--slate-400)">에셋 48개</div></div></div>
+      <div class="glass-card coll-card"><div class="thumb" style="background:linear-gradient(135deg,#14B8A6,#5eead4)"></div><div style="padding-top:8px"><b style="font-size:12.5px">SNS 템플릿</b><div style="font-size:11px;color:var(--slate-400)">에셋 18개</div></div></div>
+      <div class="glass-card coll-card"><div class="thumb" style="background:linear-gradient(135deg,#f59e0b,#fbbf24)"></div><div style="padding-top:8px"><b style="font-size:12.5px">외부 협력사 배포용</b><div style="font-size:11px;color:var(--slate-400)">에셋 9개</div></div></div>
+    </div>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+</body>
+</html>

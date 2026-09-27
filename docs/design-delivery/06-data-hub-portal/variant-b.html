@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>데이터 허브 포털 — 시안 B</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 전체 목록</a> · <a href="./README.md">데이터 허브 포털 폴더</a></div>
+    <h1>사내 데이터 허브·정제 관리 포털 — 시안 B</h1>
+  </header>
+
+  <div class="page-frame">
+    <div class="brief-box">
+      <h4>기능</h4>
+      <ul><li>데이터셋의 스키마(컬럼 구조), 샘플 데이터, 계보(어디서 와서 어디로 가는지)를 확인</li></ul>
+      <h4>UI/UX</h4>
+      <ul><li>하나의 데이터셋을 깊이 파악해야 하는 상황 — 탭으로 관점을 전환하는 상세 페이지형</li></ul>
+    </div>
+
+    <div class="page-title-row"><h2>고객 주문 이력 <span class="chip chip-success" style="margin-left:8px">품질 98점</span></h2></div>
+
+    <div class="tabs" role="tablist" style="margin-bottom:14px">
+      <button class="tab" role="tab" aria-selected="true" onclick="switchTab(this,'schema')">스키마</button>
+      <button class="tab" role="tab" aria-selected="false" onclick="switchTab(this,'sample')">샘플 데이터</button>
+      <button class="tab" role="tab" aria-selected="false" onclick="switchTab(this,'lineage')">계보</button>
+    </div>
+
+    <div class="tab-panel" data-panel="schema">
+      <div class="glass-panel kv-list">
+        <div class="kv-row"><span class="k">order_id</span><span class="v">string · PK</span></div>
+        <div class="kv-row"><span class="k">customer_id</span><span class="v">string</span></div>
+        <div class="kv-row"><span class="k">order_amount</span><span class="v">integer</span></div>
+        <div class="kv-row"><span class="k">created_at</span><span class="v">timestamp</span></div>
+      </div>
+    </div>
+    <div class="tab-panel" data-panel="sample" hidden>
+      <div class="table-scroll"><table class="data-table">
+        <thead><tr><th>order_id</th><th>customer_id</th><th>order_amount</th></tr></thead>
+        <tbody><tr><td>ORD-2026091</td><td>CUS-4821</td><td>89,000</td></tr><tr><td>ORD-2026092</td><td>CUS-1092</td><td>124,000</td></tr></tbody>
+      </table></div>
+    </div>
+    <div class="tab-panel" data-panel="lineage" hidden>
+      <div class="glass-panel"><b style="font-size:12.5px">서비스 DB (주문 테이블)</b> → <span style="color:var(--accent)">일 배치 ETL</span> → <b style="font-size:12.5px">이 데이터셋</b> → <span style="color:var(--accent)">대시보드(경영/영업)</span></div>
+    </div>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+</body>
+</html>

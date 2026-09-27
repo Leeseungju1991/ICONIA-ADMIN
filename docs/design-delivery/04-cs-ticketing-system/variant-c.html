@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>CS 티켓팅 — 시안 C</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 전체 목록</a> · <a href="./README.md">CS 티켓팅 폴더</a></div>
+    <h1>CS 티켓팅·응대 관리 시스템 — 시안 C</h1>
+  </header>
+
+  <div class="page-frame">
+    <div class="brief-box">
+      <h4>기능</h4>
+      <ul><li>고객-상담사 대화를 채팅 형태로 주고받기</li><li>고객에게는 보이지 않는 내부 메모 남기기</li></ul>
+      <h4>UI/UX</h4>
+      <ul><li>카카오톡·문자와 닮은 대화형 UI — 실시간 채팅 상담(라이브챗)에 가장 자연스러운 형태</li></ul>
+    </div>
+
+    <div class="page-title-row"><h2>배송 지연 문의 <span class="chip chip-warn" style="margin-left:8px">처리중</span></h2><span style="font-size:12px;color:var(--slate-400)">김하나 고객</span></div>
+
+    <div class="glass-panel">
+      <div class="msg-thread" style="margin-bottom:16px">
+        <div class="msg-bubble customer">안녕하세요, 주문한 지 5일이 지났는데 배송이 시작 안 됐어요.<span class="meta">14:02</span></div>
+        <div class="msg-bubble internal">🔒 내부 메모: 물류센터 확인 결과 재고 부족으로 지연 — 09-29 입고 예정</div>
+        <div class="msg-bubble agent">불편을 드려 죄송합니다. 확인해보니 재고 입고 지연으로 09월 29일 출고 예정입니다.<span class="meta">14:05</span></div>
+        <div class="msg-bubble customer">알겠습니다, 그럼 그때까지 기다릴게요.<span class="meta">14:06</span></div>
+      </div>
+      <div class="row"><input class="input grow" placeholder="답변을 입력하세요" /><button class="btn-primary btn-sm" onclick="showSnack('success','전송되었습니다.')">전송</button></div>
+    </div>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+</body>
+</html>

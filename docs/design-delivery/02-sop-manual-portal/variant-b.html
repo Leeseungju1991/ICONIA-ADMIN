@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>SOP·매뉴얼 포털 — 시안 B</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 전체 목록</a> · <a href="./README.md">SOP·매뉴얼 포털 폴더</a></div>
+    <h1>표준 업무 절차(SOP) · 매뉴얼 공유 포털 — 시안 B</h1>
+  </header>
+
+  <div class="page-frame">
+    <div class="brief-box">
+      <h4>기능</h4>
+      <ul><li>문서 본문 · 버전 이력 · 승인 상태를 한 화면에서 확인</li><li>이전 버전과 무엇이 바뀌었는지 추적</li></ul>
+      <h4>UI/UX</h4>
+      <ul><li>탭으로 "지금 볼 것"과 "필요할 때만 볼 것"을 분리 — 본문에 집중하되 이력은 언제든 확인 가능</li></ul>
+    </div>
+
+    <div class="page-title-row"><h2>CS 응대 표준 스크립트 <span class="chip chip-success" style="margin-left:8px">승인됨 v3.2</span></h2><button class="btn-outline btn-sm">PDF로 내보내기</button></div>
+
+    <div class="tabs" role="tablist" style="margin-bottom:14px">
+      <button class="tab" role="tab" aria-selected="true" onclick="switchTab(this,'body')">본문</button>
+      <button class="tab" role="tab" aria-selected="false" onclick="switchTab(this,'hist')">버전 이력</button>
+      <button class="tab" role="tab" aria-selected="false" onclick="switchTab(this,'approve')">승인 상태</button>
+    </div>
+
+    <div class="tab-panel" data-panel="body">
+      <div class="glass-panel">
+        <p style="font-size:13px;color:var(--slate-700);line-height:1.7">1. 고객 응대 시 반드시 본인 소속과 이름을 먼저 밝힌다.<br/>2. 고객의 문의를 끝까지 경청한 뒤 요약해 재확인한다.<br/>3. 해결 불가한 문의는 담당 부서로 즉시 이관한다.</p>
+      </div>
+    </div>
+    <div class="tab-panel" data-panel="hist" hidden>
+      <div class="expand-row"><div class="head"><div>v3.2 — 2026-09-27 · 김민지</div><button class="toggle-btn" onclick="toggleAccordion(this)">펼침</button></div><div class="detail" hidden>3항 "담당 부서로 즉시 이관" 문구 추가</div></div>
+      <div class="expand-row"><div class="head"><div>v3.1 — 2026-07-10 · 박서준</div><button class="toggle-btn" onclick="toggleAccordion(this)">펼침</button></div><div class="detail" hidden>1항 소속 명시 규정 추가</div></div>
+    </div>
+    <div class="tab-panel" data-panel="approve" hidden>
+      <div class="glass-panel kv-list">
+        <div class="kv-row"><span class="k">작성자</span><span class="v">김민지 (CS팀)</span></div>
+        <div class="kv-row"><span class="k">승인자</span><span class="v">이하늘 (CS팀장)</span></div>
+        <div class="kv-row"><span class="k">승인일</span><span class="v">2026-09-27</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+</body>
+</html>

@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>CS 티켓팅 — 시안 A</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 전체 목록</a> · <a href="./README.md">CS 티켓팅 폴더</a></div>
+    <h1>CS 티켓팅·응대 관리 시스템 — 시안 A</h1>
+  </header>
+
+  <div class="page-frame">
+    <div class="brief-box">
+      <h4>기능</h4>
+      <ul><li>좌측 티켓 목록에서 선택하면 우측에 상세 표시</li><li>우선순위·상태별 필터링</li></ul>
+      <h4>UI/UX</h4>
+      <ul><li>이메일 클라이언트와 같은 목록+상세 분할 — 하루 종일 여러 티켓을 넘겨가며 처리하는 CS 상담사에게 가장 빠른 패턴</li></ul>
+    </div>
+
+    <div class="detail-grid" style="grid-template-columns:280px 1fr">
+      <div class="glass-panel" style="padding:8px">
+        <div style="padding:10px 12px;border-bottom:1px solid var(--hairline);background:rgba(109,93,254,.06);border-radius:8px"><b style="font-size:12.5px">배송 지연 문의</b><div style="font-size:11px;color:var(--slate-400);margin-top:2px">김하나 · 5분 전</div></div>
+        <div style="padding:10px 12px;border-bottom:1px solid var(--hairline)"><b style="font-size:12.5px">환불 요청</b><div style="font-size:11px;color:var(--slate-400);margin-top:2px">이도윤 · 1시간 전</div></div>
+        <div style="padding:10px 12px"><b style="font-size:12.5px">제품 사용법 문의</b><div style="font-size:11px;color:var(--slate-400);margin-top:2px">최서연 · 어제</div></div>
+      </div>
+      <div class="glass-panel">
+        <div class="panel-head"><div><h3>배송 지연 문의 <span class="chip chip-warn" style="margin-left:6px">처리중</span></h3><p>김하나 · #TK-20260927-01</p></div><button class="btn-outline btn-sm">담당자 변경</button></div>
+        <p style="font-size:13px;color:var(--slate-700);margin-bottom:16px">"주문한 지 5일이 지났는데 아직 배송 시작 전이라고 나옵니다. 확인 부탁드려요."</p>
+        <div class="field"><textarea rows="3" placeholder="답변 작성"></textarea></div>
+        <button class="btn-primary btn-sm" onclick="showSnack('success','답변이 발송되었습니다.')">답변 발송</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+</body>
+</html>

@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>임직원 서비스 포털 — 시안 C</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 전체 목록</a> · <a href="./README.md">임직원 서비스 포털 폴더</a></div>
+    <h1>사내 통합 임직원 서비스 포털 — 시안 C</h1>
+  </header>
+
+  <div class="page-frame">
+    <div class="brief-box">
+      <h4>기능</h4>
+      <ul><li>내 정보(잔여 연차 등)를 카드로 우선 노출</li><li>자주 쓰는 신청은 원클릭 버튼으로, 공지는 아코디언으로 정리</li></ul>
+      <h4>UI/UX</h4>
+      <ul><li>매일 로그인해 "내 상태"부터 확인하는 개인화 대시보드형 — 카탈로그(A)보다 "나"를 중심에 둠</li></ul>
+    </div>
+
+    <div class="detail-grid">
+      <div class="glass-panel">
+        <div class="u-label">내 정보</div>
+        <div class="kv-list" style="margin-bottom:16px">
+          <div class="kv-row"><span class="k">잔여 연차</span><span class="v">8.5일</span></div>
+          <div class="kv-row"><span class="k">이번달 정산 예정</span><span class="v">124,000원</span></div>
+        </div>
+        <div class="u-label">빠른 신청</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <button class="btn-outline btn-sm btn-block">연차 신청</button>
+          <button class="btn-outline btn-sm btn-block">회의실 예약</button>
+          <button class="btn-outline btn-sm btn-block">IT 장애 접수</button>
+        </div>
+      </div>
+      <div class="glass-panel">
+        <div class="u-label">공지사항</div>
+        <div class="expand-row"><div class="head"><div>10월 정기 건강검진 신청 안내</div><button class="toggle-btn" onclick="toggleAccordion(this)">펼침</button></div><div class="detail" hidden>10/15까지 사내 포털에서 신청 바랍니다. 대상: 전 직원.</div></div>
+        <div class="expand-row"><div class="head"><div>사내 와이파이 점검 안내</div><button class="toggle-btn" onclick="toggleAccordion(this)">펼침</button></div><div class="detail" hidden>09-29 02:00~04:00 일시 중단 예정.</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+</body>
+</html>

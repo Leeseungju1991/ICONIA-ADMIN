@@ -1,7 +1,7 @@
 /*
  * ICONIA 디자인 시안 — 공용 토큰 · 베이스 컴포넌트 스타일시트.
  * 10개 주제 폴더(01~10)의 모든 시안(variant-*.html)이 이 파일 하나를 공유합니다.
- * 근거: app/globals.css, tailwind.config.js (docs/design-delivery/README.md §1 참고).
+ * 근거: app/globals.css, tailwind.config.js (docs/design-delivery/components/ICONIA-ADMIN-CONSOLE.md §1 참고).
  * 다크모드는 실제 앱에 없는 이 문서군 전용 제안 레이어입니다 (헤더 토글로 전환).
  */
 
@@ -243,4 +243,29 @@ table.data-table { width:100%; border-collapse:collapse; background:var(--surfac
 
 /* ── 랭킹 메달 표기 (표 셀 안에서 사용) ── */
 .rank-medal { font-size:13px; }
+
+/* ── 핵심 요약 박스 (기능 + UI/UX 설명) — 모든 variant 페이지 상단 공통 ── */
+.brief-box { background:var(--surface); border-left:3px solid var(--accent); border-radius:0 12px 12px 0; box-shadow:var(--shadow-card); padding:14px 16px; margin-bottom:18px; }
+.brief-box h4 { font-size:11px; font-weight:700; color:var(--slate-400); text-transform:uppercase; letter-spacing:.04em; margin:0 0 6px; }
+.brief-box ul { margin:0 0 12px; padding-left:18px; font-size:12.5px; color:var(--slate-700); line-height:1.6; }
+.brief-box ul:last-child { margin-bottom:0; }
+.brief-box li { margin-bottom:2px; }
+
+/* ── 채팅/스레드 말풍선 (CS 티켓 응대 등) ── */
+.msg-thread { display:flex; flex-direction:column; gap:10px; }
+.msg-bubble { max-width:78%; padding:9px 13px; border-radius:14px; font-size:12.5px; line-height:1.5; }
+.msg-bubble.customer { align-self:flex-start; background:var(--surface-3); border-radius:4px 14px 14px 14px; }
+.msg-bubble.agent { align-self:flex-end; background:var(--accent); color:#fff; border-radius:14px 4px 14px 14px; }
+.msg-bubble .meta { display:block; font-size:10px; opacity:.7; margin-top:4px; }
+.msg-bubble.internal { align-self:stretch; background:rgba(217,119,6,.1); border:1px dashed var(--amber-600); color:var(--slate-700); border-radius:8px; }
+
+/* ── 체크리스트 항목 (컴플라이언스 등) ── */
+.checklist-item { display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid var(--hairline); font-size:13px; }
+.checklist-item:last-child { border-bottom:none; }
+.checklist-item .status-icon { width:22px; height:22px; border-radius:999px; display:flex; align-items:center; justify-content:center; font-size:12px; flex-shrink:0; color:#fff; }
+.checklist-item .status-icon.pass { background:var(--emerald-600); }
+.checklist-item .status-icon.fail { background:var(--rose-500); }
+.checklist-item .status-icon.pending { background:var(--slate-300); color:var(--slate-600); }
+.checklist-item .label { flex:1; }
+.checklist-item .owner { font-size:11px; color:var(--slate-400); }
 

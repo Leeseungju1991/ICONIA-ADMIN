@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>데이터 허브 포털 — 시안 C</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 전체 목록</a> · <a href="./README.md">데이터 허브 포털 폴더</a></div>
+    <h1>사내 데이터 허브·정제 관리 포털 — 시안 C</h1>
+  </header>
+
+  <div class="page-frame">
+    <div class="brief-box">
+      <h4>기능</h4>
+      <ul><li>전사 데이터 품질을 점수로 요약</li><li>정합성 검사 항목별 통과/실패 확인</li></ul>
+      <h4>UI/UX</h4>
+      <ul><li>데이터 자체보다 "품질이 괜찮은지"가 우선 관심사인 데이터 거버넌스 담당자용 체크리스트+지표 조합</li></ul>
+    </div>
+
+    <div class="grid" style="margin-bottom:16px">
+      <div class="stat-card"><div class="blob" style="background:radial-gradient(circle,var(--accent),transparent)"></div><div class="label">평균 품질 점수</div><div class="value">82점</div><div class="delta"><span class="up">▲3점</span></div></div>
+      <div class="stat-card"><div class="blob" style="background:radial-gradient(circle,#f43f5e,transparent)"></div><div class="label">품질 이슈 데이터셋</div><div class="value">4건</div></div>
+      <div class="stat-card"><div class="blob" style="background:radial-gradient(circle,#059669,transparent)"></div><div class="label">정합성 통과율</div><div class="value">94%</div></div>
+    </div>
+
+    <div class="glass-panel">
+      <div class="u-label">정합성 검사 항목 — 디바이스 원격 로그</div>
+      <div class="checklist-item"><span class="status-icon pass">✓</span><span class="label">필수 컬럼 누락 없음</span><span class="owner">자동</span></div>
+      <div class="checklist-item"><span class="status-icon fail">✕</span><span class="label">중복 레코드 5,200건 발견</span><span class="owner">자동</span></div>
+      <div class="checklist-item"><span class="status-icon fail">✕</span><span class="label">타임스탬프 형식 불일치 구간 존재</span><span class="owner">자동</span></div>
+      <div class="checklist-item"><span class="status-icon pending">?</span><span class="label">이상치 값 수동 검토 필요</span><span class="owner">데이터팀</span></div>
+    </div>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+</body>
+</html>
