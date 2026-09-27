@@ -17,7 +17,7 @@
   <div class="page-frame">
     <div class="brief-box">
       <h4>방향성 — 서비스 타일 그리드형(전 직원 진입점)</h4>
-      <ul><li>전 직원이 매일 들어오는 진입점 — 아이콘 타일 그리드로 "어디서 뭘 신청하는지" 직관적으로</li><li>타일을 누르면 서비스 상세에서 바로 신청할 수 있고, 신청 여부가 실제로 저장됩니다</li></ul>
+      <ul><li>전 직원이 매일 들어오는 진입점 — 아이콘 타일 그리드로 "어디서 뭘 신청하는지" 직관적으로</li><li>타일을 누르면 서비스 상세에서 바로 신청</li></ul>
     </div>
 
     <div class="banner info" style="margin-bottom:16px"><span class="icon">📢</span><div><p class="title">10월 정기 건강검진 신청 안내</p><p class="desc">10/15까지 사내 포털에서 신청해주세요.</p></div></div>
@@ -39,7 +39,7 @@
   ];
   document.getElementById('tile-grid').innerHTML = SERVICES.map((s) => {
     const applied = sgGetJSON(NS + '-applied-' + s.id, false);
-    return '<a href="./variant-a-detail.html?id=' + s.id + '" style="text-decoration:none;color:inherit"><div class="pick-card" data-selected="false"><b>' + s.icon + ' ' + s.name + '</b>' + (applied ? ' <span class="chip chip-success">신청됨</span>' : '') + '<div style="font-size:11.5px;color:var(--slate-500);margin-top:4px">' + s.desc + '</div></div></a>';
+    return '<a href="./variant-a-detail.html?id=' + s.id + '" class="text-plain"><div class="pick-card" data-selected="false"><b>' + s.icon + ' ' + s.name + '</b>' + (applied ? ' <span class="chip chip-success">신청됨</span>' : '') + '<div style="font-size:11.5px;color:var(--slate-500);margin-top:4px">' + s.desc + '</div></div></a>';
   }).join('');
 </script>
 </body>

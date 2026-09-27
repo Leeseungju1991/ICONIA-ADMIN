@@ -17,7 +17,7 @@
   <div class="page-frame">
     <div class="brief-box">
       <h4>방향성 — 서비스 카탈로그 선택 카드형(도입 검토용)</h4>
-      <ul><li>가격·플랜 비교가 핵심인 도입 검토 단계 — 선택 카드 그리드가 가장 익숙한 SaaS 랜딩 패턴</li><li>카드를 누르면 서비스 상세에서 PoC를 신청할 수 있고, 신청 여부가 실제로 저장됩니다</li></ul>
+      <ul><li>가격·플랜 비교가 핵심인 도입 검토 단계 — 선택 카드 그리드가 가장 익숙한 SaaS 랜딩 패턴</li><li>카드를 누르면 서비스 상세에서 PoC를 바로 신청</li></ul>
     </div>
 
     <div class="page-title-row"><h2>서비스 카탈로그</h2></div>
@@ -35,7 +35,7 @@
   ];
   document.getElementById('svc-grid').innerHTML = SERVICES.map((s) => {
     const applied = sgGetJSON(NS + '-applied-' + s.id, false);
-    return '<a href="./variant-a-detail.html?id=' + s.id + '" style="text-decoration:none;color:inherit"><div class="glass-card">' +
+    return '<a href="./variant-a-detail.html?id=' + s.id + '" class="text-plain"><div class="glass-card">' +
       '<b style="font-size:13px">' + s.name + '</b>' + (applied ? ' <span class="chip chip-success">신청됨</span>' : '') +
       '<div style="font-size:11.5px;color:var(--slate-500);margin-top:4px">' + s.price + ' · ' + s.poc + '</div></div></a>';
   }).join('');

@@ -86,7 +86,7 @@
   document.getElementById('doc-body').innerHTML = doc.body;
   const related = DOCS.filter((d) => d.id !== doc.id && d.cat === doc.cat).slice(0, 3);
   document.getElementById('related-grid').innerHTML = related.map((d) => (
-    '<a href="./variant-b-detail.html?id=' + d.id + '" style="text-decoration:none;color:inherit"><div class="glass-card"><b style="font-size:12.5px">' + d.title + '</b><div style="font-size:11px;color:var(--slate-400);margin-top:4px">' + d.date + '</div></div></a>'
+    '<a href="./variant-b-detail.html?id=' + d.id + '" class="text-plain"><div class="glass-card"><b style="font-size:12.5px">' + d.title + '</b><div style="font-size:11px;color:var(--slate-400);margin-top:4px">' + d.date + '</div></div></a>'
   )).join('') || '<div class="state-box">같은 카테고리의 다른 문서가 없습니다.</div>';
 </script>
 </body>
