@@ -8,7 +8,7 @@
 <style>
   .vtimeline { position:relative; padding-left:24px; }
   .vtimeline::before { content:""; position:absolute; left:6px; top:6px; bottom:6px; width:2px; background:var(--hairline); }
-  .vt-item { position:relative; margin-bottom:16px; }
+  .vt-item { position:relative; margin-bottom:16px; cursor:pointer; }
   .vt-item .dot { position:absolute; left:-24px; top:2px; width:12px; height:12px; border-radius:999px; }
 </style>
 </head>
@@ -22,24 +22,32 @@
 
   <div class="page-frame">
     <div class="brief-box">
-      <h4>기능</h4>
-      <ul><li>장애·경고 이력을 발생 시각순으로 표시</li><li>심각도별 색상 구분</li></ul>
-      <h4>UI/UX</h4>
-      <ul><li>"지금 상태"보다 "무슨 일이 있었고 어떻게 대응했는지" 이력 추적이 중요한 장애 리뷰·포스트모템용</li></ul>
+      <h4>방향성 — 인시던트 이력 타임라인형(포스트모템용)</h4>
+      <ul><li>"지금 상태"보다 "무슨 일이 있었고 어떻게 대응했는지" 이력 추적이 중요한 장애 리뷰용</li><li>항목을 눌러 상세에서 원인·조치를 기록하고 "해결 처리"할 수 있으며, 실제로 저장됩니다</li></ul>
     </div>
 
     <div class="page-title-row"><h2>인시던트 이력</h2><span class="chip chip-muted">최근 7일</span></div>
-
-    <div class="glass-panel">
-      <div class="vtimeline">
-        <div class="vt-item"><span class="dot" style="background:var(--rose-500)"></span><div style="font-size:11px;color:var(--slate-400)">09-27 09:12 · 진행중</div><div style="font-size:13px;font-weight:600;margin-top:2px">배치 작업 서버 응답 없음 <span class="chip chip-error" style="margin-left:6px">심각</span></div></div>
-        <div class="vt-item"><span class="dot" style="background:var(--amber-600)"></span><div style="font-size:11px;color:var(--slate-400)">09-25 14:30 · 해결됨 (32분)</div><div style="font-size:13px;font-weight:600;margin-top:2px">결제 게이트웨이 응답 지연 <span class="chip chip-warn" style="margin-left:6px">경고</span></div></div>
-        <div class="vt-item"><span class="dot" style="background:var(--emerald-600)"></span><div style="font-size:11px;color:var(--slate-400)">09-22 03:00 · 계획된 점검</div><div style="font-size:13px;font-weight:600;margin-top:2px">DB 정기 백업 및 인덱스 재구성</div></div>
-      </div>
-    </div>
+    <div class="glass-panel"><div class="vtimeline" id="incident-timeline"></div></div>
   </div>
 </div>
 <div id="snackbar-stack"></div>
 <script src="../components/interactions.js"></script>
+<script>
+  const NS = '07b';
+  const INCIDENTS = [
+    { id:'i1', time:'09-27 09:12', title:'배치 작업 서버 응답 없음', sev:'심각', resolved:false },
+    { id:'i2', time:'09-25 14:30', title:'결제 게이트웨이 응답 지연', sev:'경고', resolved:true },
+    { id:'i3', time:'09-22 03:00', title:'DB 정기 백업 및 인덱스 재구성', sev:'점검', resolved:true },
+  ];
+  function isResolved(inc) { return sgGetJSON(NS + '-resolved-' + inc.id, inc.resolved); }
+  function dotColor(sev) { return sev === '심각' ? 'var(--rose-500)' : sev === '경고' ? 'var(--amber-600)' : 'var(--emerald-600)'; }
+  document.getElementById('incident-timeline').innerHTML = INCIDENTS.map((inc) => {
+    const resolved = isResolved(inc);
+    return '<div class="vt-item" onclick="location.href=\'./variant-b-detail.html?id=' + inc.id + '\'">' +
+      '<span class="dot" style="background:' + dotColor(inc.sev) + '"></span>' +
+      '<div style="font-size:11px;color:var(--slate-400)">' + inc.time + ' · ' + (resolved ? '해결됨' : '진행중') + '</div>' +
+      '<div style="font-size:13px;font-weight:600;margin-top:2px">' + inc.title + ' <span class="chip ' + (inc.sev === '심각' ? 'chip-error' : inc.sev === '경고' ? 'chip-warn' : 'chip-muted') + '" style="margin-left:6px">' + inc.sev + '</span></div></div>';
+  }).join('');
+</script>
 </body>
 </html>

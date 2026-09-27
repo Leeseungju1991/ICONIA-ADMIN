@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>서비스 상세 — 시스템 모니터링 시안 A</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 전체 목록</a> · <a href="./README.md">시스템 모니터링 폴더</a> · <a href="./variant-a.html">시안 A 홈</a></div>
+    <h1 id="svc-title">서비스 상세 — 시안 A</h1>
+  </header>
+
+  <div class="page-frame">
+    <div class="page-title-row">
+      <span class="chip" id="svc-status-chip"></span>
+      <button type="button" class="btn-primary btn-sm" id="ack-btn" onclick="ack()">✓ 확인 처리</button>
+    </div>
+    <div class="glass-panel kv-list">
+      <div class="kv-row"><span class="k">현재 가동률</span><span class="v" id="svc-uptime"></span></div>
+      <div class="kv-row"><span class="k">장애 발생 시각</span><span class="v" id="svc-since"></span></div>
+    </div>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+<script>
+  const NS = '07a';
+  const SERVICES = {
+    s1:{ name:'API 서버', uptime:'99.98%', status:'정상', since:'-' },
+    s2:{ name:'결제 게이트웨이', uptime:'98.2%', status:'지연 감지', since:'08:40' },
+    s3:{ name:'푸시 알림 서버', uptime:'100%', status:'정상', since:'-' },
+    s4:{ name:'배치 작업 서버', uptime:'92.1%', status:'장애', since:'09:12' },
+  };
+  const id = new URLSearchParams(window.location.search).get('id') || 's4';
+  const s = SERVICES[id] || SERVICES.s4;
+  document.title = s.name + ' — 시안 A';
+  document.getElementById('svc-title').textContent = s.name;
+  document.getElementById('svc-uptime').textContent = s.uptime;
+  document.getElementById('svc-since').textContent = s.since;
+
+  function render() {
+    const ackd = sgGetJSON(NS + '-ack-' + id, false);
+    document.getElementById('svc-status-chip').className = 'chip ' + (s.status === '정상' ? 'chip-success' : ackd ? 'chip-success' : s.status === '지연 감지' ? 'chip-warn' : 'chip-error');
+    document.getElementById('svc-status-chip').textContent = s.status === '정상' ? '정상' : ackd ? '확인됨' : s.status;
+    const btn = document.getElementById('ack-btn');
+    if (s.status === '정상' || ackd) { btn.style.display = 'none'; } else { btn.style.display = ''; }
+  }
+  function ack() {
+    sgSetJSON(NS + '-ack-' + id, true);
+    render();
+    showSnack('success', '확인 처리되었습니다.');
+  }
+  render();
+</script>
+</body>
+</html>

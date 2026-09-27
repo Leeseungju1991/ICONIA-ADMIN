@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>인시던트 상세 — 시스템 모니터링 시안 B</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 전체 목록</a> · <a href="./README.md">시스템 모니터링 폴더</a> · <a href="./variant-b.html">시안 B 홈</a></div>
+    <h1 id="inc-title">인시던트 상세 — 시안 B</h1>
+  </header>
+
+  <div class="page-frame">
+    <div class="page-title-row">
+      <span class="chip" id="inc-status-chip"></span>
+      <button type="button" class="btn-primary btn-sm" id="resolve-btn" onclick="resolve()">해결 처리</button>
+    </div>
+    <div class="glass-panel kv-list" style="margin-bottom:16px">
+      <div class="kv-row"><span class="k">발생 시각</span><span class="v" id="inc-time"></span></div>
+      <div class="kv-row"><span class="k">원인</span><span class="v" id="inc-cause"></span></div>
+      <div class="kv-row"><span class="k">조치</span><span class="v" id="inc-action"></span></div>
+    </div>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+<script>
+  const NS = '07b';
+  const INCIDENTS = {
+    i1:{ title:'배치 작업 서버 응답 없음', time:'09-27 09:12', sev:'심각', cause:'디스크 용량 부족으로 프로세스 강제 종료', action:'디스크 정리 후 서비스 재기동 진행 중', resolved:false },
+    i2:{ title:'결제 게이트웨이 응답 지연', time:'09-25 14:30', sev:'경고', cause:'외부 PG사 API 응답 지연', action:'PG사 확인 후 32분 만에 정상화', resolved:true },
+    i3:{ title:'DB 정기 백업 및 인덱스 재구성', time:'09-22 03:00', sev:'점검', cause:'계획된 정기 점검', action:'점검 완료, 이상 없음', resolved:true },
+  };
+  const id = new URLSearchParams(window.location.search).get('id') || 'i1';
+  const inc = INCIDENTS[id] || INCIDENTS.i1;
+  document.title = inc.title + ' — 시안 B';
+  document.getElementById('inc-title').textContent = inc.title;
+  document.getElementById('inc-time').textContent = inc.time;
+  document.getElementById('inc-cause').textContent = inc.cause;
+  document.getElementById('inc-action').textContent = inc.action;
+
+  function render() {
+    const resolved = sgGetJSON(NS + '-resolved-' + id, inc.resolved);
+    document.getElementById('inc-status-chip').className = 'chip ' + (resolved ? 'chip-success' : 'chip-error');
+    document.getElementById('inc-status-chip').textContent = resolved ? '해결됨' : '진행중';
+    document.getElementById('resolve-btn').style.display = resolved ? 'none' : '';
+  }
+  function resolve() {
+    sgSetJSON(NS + '-resolved-' + id, true);
+    render();
+    showSnack('success', '인시던트가 해결 처리되었습니다.');
+  }
+  render();
+</script>
+</body>
+</html>
