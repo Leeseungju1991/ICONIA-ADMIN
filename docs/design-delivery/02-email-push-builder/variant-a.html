@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>이메일/푸시 빌더 — 시안 A (2단 분할)</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+<style>
+  .split { display:grid; grid-template-columns:1.2fr 1fr; gap:16px; align-items:start; }
+  @media (max-width:760px) { .split { grid-template-columns:1fr; } }
+  .phone-preview { background:#0f172a; border-radius:20px; padding:16px; }
+  .push-card { background:var(--surface); border-radius:12px; padding:12px 14px; box-shadow:0 8px 20px rgba(0,0,0,.35); }
+  .push-card .app { display:flex; align-items:center; gap:8px; font-size:11px; color:var(--slate-400); margin-bottom:6px; }
+  .push-card .app .dot { width:16px; height:16px; border-radius:5px; background:var(--accent); }
+  .push-card .title { font-size:13px; font-weight:700; margin-bottom:2px; }
+  .push-card .body { font-size:12px; color:var(--slate-600); }
+</style>
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 시안 목록</a> · <a href="./README.md">이메일/푸시 빌더 폴더</a></div>
+    <h1>이메일/푸시 빌더 — 시안 A</h1>
+    <p>좌측에서 작성하며 우측 미리보기로 실시간 확인하는 2단 분할 레이아웃. 콘텐츠팀이 가장 빠르게 감을 잡는 방식.</p>
+  </header>
+
+  <div class="page-frame">
+    <div class="page-title-row"><h2>새 푸시 알림 작성</h2><span class="chip chip-muted">임시저장됨</span></div>
+    <div class="split">
+      <div class="glass-panel">
+        <div class="form-section">
+          <div class="fs-title">콘텐츠</div>
+          <div class="field"><label>제목<span class="req">*</span></label><input class="input" value="가을맞이 신규가입 혜택 안내" /></div>
+          <div class="field"><label>본문<span class="req">*</span></label><textarea rows="3">지금 가입하면 첫 구매 15% 할인 쿠폰을 드려요. 이번 주말까지만 진행돼요!</textarea></div>
+        </div>
+        <div class="form-section">
+          <div class="fs-title">발송 대상</div>
+          <div class="dropdown"><button class="btn-outline btn-sm" onclick="toggleDropdown(event,this)">대상 세그먼트 (2) ▾</button>
+            <div class="dropdown-menu" hidden onclick="event.stopPropagation()">
+              <label class="item"><input type="checkbox" checked /> 신규 가입자 (7일 이내)</label>
+              <label class="item"><input type="checkbox" checked /> 휴면 사용자 (30일 이상 미접속)</label>
+              <label class="item"><input type="checkbox" /> 전체 사용자</label>
+              <hr /><button class="item" onclick="closeDropdown()">적용</button>
+            </div>
+          </div>
+        </div>
+        <div class="form-section">
+          <div class="fs-title">발송 시점</div>
+          <div class="row"><button class="switch" data-on="true" role="switch" aria-checked="true" onclick="toggleSwitch(this)"><span class="knob"></span></button><span style="font-size:13px">예약 발송 (09.28 10:00)</span></div>
+        </div>
+        <div class="row" style="justify-content:flex-end"><button class="btn-outline btn-sm">임시저장</button><button class="btn-primary btn-sm" onclick="showSnack('success','예약 발송이 설정되었습니다.')">예약하기</button></div>
+      </div>
+
+      <div class="phone-preview">
+        <div class="push-card">
+          <div class="app"><span class="dot"></span> ICONIA · 방금</div>
+          <div class="title">가을맞이 신규가입 혜택 안내</div>
+          <div class="body">지금 가입하면 첫 구매 15% 할인 쿠폰을 드려요. 이번 주말까지만...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+</body>
+</html>

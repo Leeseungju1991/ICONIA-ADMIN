@@ -5,12 +5,43 @@
 > 나누는 하이브리드 구조**를 따릅니다 — 실제 사이드바 메뉴 구조(`app/dashboard/Sidebar.tsx`)를
 > 그대로 섹션 순서로 사용해, 개발 구조와 전달 문서 구조가 어긋나지 않도록 했습니다.
 >
-> 함께 보면 좋은 자료: [`style-guide.html`](./style-guide.html) — **20개 카테고리**로 정리한
-> 인터랙티브 스타일 가이드. 이 웹앱이 실제로 쓰는 전역 유틸리티 클래스(`.btn-*` / `.input` /
-> `.chip-*` / `.glass-*` 등)와 컴포넌트 14종에, 아직 앱엔 없지만 일반 웹앱에서 널리 쓰이는
-> 패턴 6종(브레드크럼·드롭다운·툴팁·스켈레톤/시머·진행바+스텝퍼·스낵바 로딩/실행취소 변형)을
-> 더했습니다. 프레임워크 없이 바닐라 JS ~120줄로 대부분 실제 클릭 가능한 동작 데모입니다
+> 함께 보면 좋은 자료: [`components/style-guide.html`](./components/style-guide.html) —
+> **20개 카테고리**로 정리한 인터랙티브 스타일 가이드 + 완성 페이지 예시(P1~P5). 프레임워크
+> 없이 바닐라 JS로 대부분 실제 클릭 가능한 동작 데모이며, 다크모드 토글을 지원합니다
 > (브라우저에서 바로 열람 가능, 빌드 불필요). 자세한 20종 목록은 §1.4 참고.
+
+---
+
+## 폴더 구성 (총 6개) — 어디부터 볼지
+
+이 저장소는 **부품 폴더 1개 + 주제(시안) 폴더 5개**, 총 6개 폴더로 구성됩니다. 순서는
+**components → 관심 있는 주제 폴더** 입니다: 부품을 먼저 보면 주제 폴더의 화면이 어떤
+조각으로 조립됐는지 바로 이해가 됩니다.
+
+### 📦 부품 (1개 폴더)
+
+| 폴더 | 내용 |
+|---|---|
+| [`components/`](./components/) | 20개 카테고리 인터랙티브 카탈로그 + 5개 주제 폴더가 공유하는 `tokens.css`/`interactions.js` |
+
+### 🎨 주제별 시안 (5개 폴더 · 폴더당 2개 시안)
+
+| 폴더 | 주제 | 시안 A | 시안 B |
+|---|---|---|---|
+| [`01-campaign-list/`](./01-campaign-list/) | 마케팅 · 캠페인 목록 | ![A](./01-campaign-list/preview-a.svg) 표 중심 | ![B](./01-campaign-list/preview-b.svg) 카드 그리드 |
+| [`02-email-push-builder/`](./02-email-push-builder/) | 마케팅 · 이메일/푸시 빌더 | ![A](./02-email-push-builder/preview-a.svg) 2단 분할형 | ![B](./02-email-push-builder/preview-b.svg) 3단계 위저드 |
+| [`03-lead-list/`](./03-lead-list/) | 영업 · 리드/고객 목록 | ![A](./03-lead-list/preview-a.svg) 파이프라인 필터+표 | ![B](./03-lead-list/preview-b.svg) 단계별 그룹 리스트 |
+| [`04-sales-goal-dashboard/`](./04-sales-goal-dashboard/) | 영업 · 목표 달성 현황 | ![A](./04-sales-goal-dashboard/preview-a.svg) 개인 중심 | ![B](./04-sales-goal-dashboard/preview-b.svg) 팀 비교 중심 |
+| [`05-executive-dashboard/`](./05-executive-dashboard/) | 대시보드 · 경영 종합 | ![A](./05-executive-dashboard/preview-a.svg) KPI 그리드형 | ![B](./05-executive-dashboard/preview-b.svg) 탭 분할형 |
+
+각 폴더를 열면 `README.md`에 두 시안의 미리보기와 "언제 어떤 시안을 쓰면 좋은지"가 정리돼
+있고, `variant-a.html`/`variant-b.html`을 브라우저로 직접 열면 실제 동작(클릭 가능한 버튼,
+탭, 드롭다운 등)까지 확인할 수 있습니다. 미리보기 이미지는 실제 화면을 렌더링한 스크린샷이
+아니라 레이아웃을 요약한 와이어프레임 SVG입니다 — 정확한 모습은 반드시 `.html` 파일을 열어
+확인하세요.
+
+> 남은 10개 주제(P6 이후, 결제·리포트 등)는 아직 시안을 만들지 않았습니다. 다음 배치로
+> 진행할 주제를 알려주시면 같은 방식(폴더 + 시안 2개 + README + 미리보기)으로 추가합니다.
 
 ---
 
@@ -400,7 +431,7 @@ function Toggle({ on, onChange }: { on: boolean; onChange: (next: boolean) => vo
 |---|---|---|
 | **Figma 역변환** | 디자이너가 직접 수정까지 해야 할 때 | `html.to.design` 플러그인으로 실제 페이지를 Figma 레이어로 가져온 뒤, 위 사이트맵대로 Page/Frame 정리 |
 | **Playwright 전 화면 캡처** | 확인만 하면 될 때, 빠르게 스냅샷 공유 | `tests/` 의 기존 Playwright 설정을 재사용해 라우트별 스크린샷 자동화 (로그인 세션 고정 필요) |
-| **정적 스타일 가이드** | 컬러/컴포넌트 토큰만 빠르게 보여줄 때 | 본 폴더의 [`style-guide.html`](./style-guide.html) — 빌드 없이 브라우저로 바로 확인 |
+| **정적 스타일 가이드** | 컬러/컴포넌트 토큰만 빠르게 보여줄 때 | [`components/style-guide.html`](./components/style-guide.html) — 빌드 없이 브라우저로 바로 확인 |
 | **Storybook** | 컴포넌트 상태를 인터랙티브하게 공유할 때 | 현재 레포엔 미도입 — 필요 시 `app/dashboard/_components/*` 대상으로 추가 검토 |
 
 ---
@@ -429,3 +460,9 @@ function Toggle({ on, onChange }: { on: boolean; onChange: (next: boolean) => vo
   `--surface-2`/`--surface-3`/`--track` 토큰으로 통합, ID 하드코딩 함수 일반화), 완성된
   페이지 조합 예시 5종(P1 목록/P2 상세/P3 폼/P4 대시보드/P5 온보딩 위저드) 추가, 헤더 토글로
   전체 페이지를 켜볼 수 있는 다크모드 제안 레이어 추가.
+- 2026-09-27: 저장소를 **6개 폴더** 구조로 재편. `style-guide.html`을 `components/`로 이동하고
+  그 폴더의 스타일·스크립트를 `tokens.css`/`interactions.js`로 분리해 다른 폴더가 공유하도록
+  정리. 마케팅·영업·대시보드 주제로 첫 5개 시안 폴더 추가 — `01-campaign-list`,
+  `02-email-push-builder`, `03-lead-list`, `04-sales-goal-dashboard`,
+  `05-executive-dashboard`. 폴더마다 시안 2종(`variant-a.html`/`variant-b.html`) + 와이어프레임
+  SVG 미리보기 2장 + README. 이 README 상단에 6개 폴더를 미리보기와 함께 보여주는 목차 추가.

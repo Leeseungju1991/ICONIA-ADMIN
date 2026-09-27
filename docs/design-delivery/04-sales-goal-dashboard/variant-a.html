@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>영업 목표 현황 — 시안 A (개인 중심)</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 시안 목록</a> · <a href="./README.md">영업 목표 현황 폴더</a></div>
+    <h1>영업 목표 현황 — 시안 A</h1>
+    <p>개인 목표 달성률과 최근 활동에 집중한 레이아웃. 매일 로그인해 "나는 지금 어디쯤인지" 확인하는 영업 담당자용.</p>
+  </header>
+
+  <div class="page-frame">
+    <div class="glass-panel" style="margin-bottom:16px">
+      <div class="panel-head"><div><h3>이번 분기 내 목표</h3><p>목표 매출 2억 4천만원 중 진행률</p></div><span class="chip chip-success">순항중</span></div>
+      <div class="progress-track" style="height:12px;margin-bottom:8px"><div class="progress-fill" style="width:63%"></div></div>
+      <div class="row" style="justify-content:space-between"><span style="font-size:12.5px;color:var(--slate-600)">1억 5,120만원 달성</span><span style="font-size:12.5px;font-weight:700">63%</span></div>
+    </div>
+
+    <div class="grid" style="margin-bottom:16px">
+      <div class="stat-card"><div class="blob" style="background:radial-gradient(circle,var(--accent),transparent)"></div><div class="label">이번달 매출</div><div class="value">5,240만원</div><div class="delta"><span class="up">▲18%</span> 전월 대비</div></div>
+      <div class="stat-card"><div class="blob" style="background:radial-gradient(circle,#EC4899,transparent)"></div><div class="label">신규 계약</div><div class="value">7건</div><div class="delta"><span class="up">▲2건</span></div></div>
+      <div class="stat-card"><div class="blob" style="background:radial-gradient(circle,#14B8A6,transparent)"></div><div class="label">평균 계약 단가</div><div class="value">748만원</div><div class="delta"><span class="flat">전월과 비슷</span></div></div>
+    </div>
+
+    <div class="glass-panel">
+      <div class="u-label">최근 활동</div>
+      <div class="expand-row"><div class="head"><div>그린라이트 · 계약서 서명 완료</div><button class="toggle-btn" onclick="toggleAccordion(this)">펼침</button></div><div class="detail" hidden>계약금 8,200만원 · 2026-09-25 서명 · 담당 정영업</div></div>
+      <div class="expand-row"><div class="head"><div>테크스퀘어 · 2차 미팅 진행</div><button class="toggle-btn" onclick="toggleAccordion(this)">펼침</button></div><div class="detail" hidden>제안서 피드백 반영 중 · 다음 미팅 09-30</div></div>
+      <div class="expand-row"><div class="head"><div>숨코리아 · 첫 통화 완료</div><button class="toggle-btn" onclick="toggleAccordion(this)">펼침</button></div><div class="detail" hidden>관심도 높음 · 다음 액션: 제안서 발송 예정</div></div>
+    </div>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+</body>
+</html>
