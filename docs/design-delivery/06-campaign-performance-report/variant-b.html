@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>캠페인 성과 리포트 — 시안 B (캠페인별 탭)</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 시안 목록</a> · <a href="./README.md">캠페인 성과 리포트 폴더</a></div>
+    <h1>캠페인 성과 리포트 — 시안 B</h1>
+    <p>캠페인별로 탭을 나눠 하나씩 깊게 들여다보는 구성. 캠페인 수는 적지만(3~5개) 각각을 상세히 봐야 할 때.</p>
+  </header>
+
+  <div class="page-frame">
+    <div class="page-title-row"><h2>캠페인별 성과</h2></div>
+
+    <div class="tabs" role="tablist" style="margin-bottom:16px">
+      <button class="tab" role="tab" aria-selected="true" onclick="switchTab(this,'c1')">9월 신규가입</button>
+      <button class="tab" role="tab" aria-selected="false" onclick="switchTab(this,'c2')">추석 알림톡</button>
+      <button class="tab" role="tab" aria-selected="false" onclick="switchTab(this,'c3')">리텐션 A/B</button>
+    </div>
+
+    <div class="tab-panel" data-panel="c1">
+      <div class="grid" style="margin-bottom:16px">
+        <div class="stat-card"><div class="blob" style="background:radial-gradient(circle,var(--accent),transparent)"></div><div class="label">노출</div><div class="value">210,000</div></div>
+        <div class="stat-card"><div class="blob" style="background:radial-gradient(circle,#EC4899,transparent)"></div><div class="label">클릭</div><div class="value">5,900</div></div>
+        <div class="stat-card"><div class="blob" style="background:radial-gradient(circle,#60A5FA,transparent)"></div><div class="label">CTR</div><div class="value">2.8%</div></div>
+      </div>
+      <div class="banner success"><span class="icon">✓</span><div><p class="title">목표 CTR(2.5%) 초과 달성</p></div></div>
+    </div>
+    <div class="tab-panel" data-panel="c2" hidden>
+      <div class="grid" style="margin-bottom:16px">
+        <div class="stat-card"><div class="blob" style="background:radial-gradient(circle,#EC4899,transparent)"></div><div class="label">노출</div><div class="value">62,000</div></div>
+        <div class="stat-card"><div class="blob" style="background:radial-gradient(circle,#60A5FA,transparent)"></div><div class="label">클릭</div><div class="value">3,800</div></div>
+        <div class="stat-card"><div class="blob" style="background:radial-gradient(circle,#059669,transparent)"></div><div class="label">CTR</div><div class="value">6.1%</div></div>
+      </div>
+      <div class="banner success"><span class="icon">✓</span><div><p class="title">이번 분기 최고 CTR 캠페인</p></div></div>
+    </div>
+    <div class="tab-panel" data-panel="c3" hidden>
+      <div class="banner warn"><span class="icon">⚠</span><div><p class="title">아직 시작 전 (10.01 예정)</p></div></div>
+    </div>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+</body>
+</html>

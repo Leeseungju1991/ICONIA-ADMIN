@@ -122,3 +122,53 @@ function toggleTheme() {
     });
   }
 })();
+
+/* 카드 그리드 중 하나만 선택 (템플릿/플랜 선택 등) — 같은 부모 안 형제 카드는 선택 해제 */
+function selectOnlyCard(el) {
+  el.parentElement.querySelectorAll('.pick-card').forEach((c) => { c.dataset.selected = 'false'; });
+  el.dataset.selected = 'true';
+}
+
+/* 칸반 보드 — 카드를 다음/이전 컬럼으로 이동 (드래그 없이 버튼으로) */
+function moveKanbanCard(btn, dir) {
+  const card = btn.closest('.kanban-card');
+  const col = card.closest('.kanban-col');
+  const board = col.closest('.kanban-board');
+  const target = dir === 'next' ? col.nextElementSibling : col.previousElementSibling;
+  if (!target) return;
+  target.querySelector('.kanban-col-body').appendChild(card);
+  board.querySelectorAll('.kanban-col').forEach((c) => {
+    const countEl = c.querySelector('.count');
+    if (countEl) countEl.textContent = c.querySelectorAll('.kanban-card').length;
+  });
+}
+
+/* 반복 입력 행 (견적서 품목 등) — 추가/삭제 + 합계 자동 계산 */
+function addItemRow(containerId) {
+  const container = document.getElementById(containerId);
+  const rows = container.querySelectorAll('.item-row:not(.head)');
+  const clone = rows[rows.length - 1].cloneNode(true);
+  clone.querySelectorAll('input').forEach((i) => { i.value = i.type === 'number' ? '1' : ''; });
+  clone.querySelectorAll('.line-total').forEach((t) => { t.textContent = '0원'; });
+  container.appendChild(clone);
+  recalcItemTotal(containerId);
+}
+function removeItemRow(btn, containerId) {
+  const rows = document.querySelectorAll('#' + containerId + ' .item-row:not(.head)');
+  if (rows.length <= 1) return;
+  btn.closest('.item-row').remove();
+  recalcItemTotal(containerId);
+}
+function recalcItemTotal(containerId) {
+  let sum = 0;
+  document.querySelectorAll('#' + containerId + ' .item-row:not(.head)').forEach((row) => {
+    const qty = parseFloat(row.querySelector('.qty-input')?.value || '0') || 0;
+    const price = parseFloat(row.querySelector('.price-input')?.value || '0') || 0;
+    const total = qty * price;
+    const totalEl = row.querySelector('.line-total');
+    if (totalEl) totalEl.textContent = total.toLocaleString() + '원';
+    sum += total;
+  });
+  const sumEl = document.getElementById(containerId + '-sum');
+  if (sumEl) sumEl.textContent = sum.toLocaleString() + '원';
+}

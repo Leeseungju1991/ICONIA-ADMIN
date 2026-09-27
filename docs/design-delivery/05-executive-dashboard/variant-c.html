@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>경영 종합 대시보드 — 시안 C (모니터링 콘솔형)</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+<style>
+  .console-row { display:grid; grid-template-columns:1fr 90px 110px; gap:10px; align-items:center; padding:9px 0; border-bottom:1px solid var(--hairline); font-family:ui-monospace,monospace; font-size:12px; }
+  .console-row:last-child { border-bottom:none; }
+  .spark { display:flex; align-items:flex-end; gap:2px; height:20px; }
+  .spark span { width:4px; border-radius:1px; background:var(--accent); }
+</style>
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 시안 목록</a> · <a href="./README.md">경영 종합 대시보드 폴더</a></div>
+    <h1>경영 종합 대시보드 — 시안 C</h1>
+    <p>운영 모니터링 콘솔형. 숫자를 조밀하게, 모노스페이스로 정렬해 이상 수치를 빠르게 스캔하는 담당자용 (다크모드로 열면 더 어울립니다).</p>
+  </header>
+
+  <div class="page-frame">
+    <div class="page-title-row"><h2>실시간 지표 콘솔</h2><span class="chip chip-success">● LIVE</span></div>
+
+    <div class="glass-panel">
+      <div class="console-row" style="font-family:inherit;font-weight:700;color:var(--slate-400);font-size:11px;text-transform:uppercase">
+        <span>지표</span><span style="text-align:right">현재값</span><span style="text-align:right">추이 (7일)</span>
+      </div>
+      <div class="console-row">
+        <span>revenue.today</span><span style="text-align:right;color:var(--emerald-600)">₩274M</span>
+        <span class="spark" style="justify-content:flex-end"><span style="height:8px"></span><span style="height:12px"></span><span style="height:10px"></span><span style="height:16px"></span><span style="height:14px"></span><span style="height:18px"></span><span style="height:20px"></span></span>
+      </div>
+      <div class="console-row">
+        <span>signup.count</span><span style="text-align:right">3,240</span>
+        <span class="spark" style="justify-content:flex-end"><span style="height:10px"></span><span style="height:9px"></span><span style="height:11px"></span><span style="height:10px"></span><span style="height:12px"></span><span style="height:11px"></span><span style="height:13px"></span></span>
+      </div>
+      <div class="console-row">
+        <span>mau.active</span><span style="text-align:right">42,100</span>
+        <span class="spark" style="justify-content:flex-end"><span style="height:14px"></span><span style="height:14px"></span><span style="height:13px"></span><span style="height:15px"></span><span style="height:14px"></span><span style="height:14px"></span><span style="height:14px"></span></span>
+      </div>
+      <div class="console-row" style="color:#f43f5e">
+        <span>cs.response_time</span><span style="text-align:right">3.2h ▲</span>
+        <span class="spark" style="justify-content:flex-end"><span style="height:8px;background:#f43f5e"></span><span style="height:10px;background:#f43f5e"></span><span style="height:9px;background:#f43f5e"></span><span style="height:14px;background:#f43f5e"></span><span style="height:16px;background:#f43f5e"></span><span style="height:18px;background:#f43f5e"></span><span style="height:20px;background:#f43f5e"></span></span>
+      </div>
+      <div class="console-row">
+        <span>churn.risk_users</span><span style="text-align:right;color:var(--emerald-600)">86 ▼</span>
+        <span class="spark" style="justify-content:flex-end"><span style="height:20px;background:#059669"></span><span style="height:17px;background:#059669"></span><span style="height:15px;background:#059669"></span><span style="height:13px;background:#059669"></span><span style="height:11px;background:#059669"></span><span style="height:9px;background:#059669"></span><span style="height:8px;background:#059669"></span></span>
+      </div>
+    </div>
+
+    <div class="banner warn" style="margin-top:12px"><span class="icon">⚠</span><div><p class="title">cs.response_time 임계치 접근 (3.0h → 3.2h)</p><p class="desc">지난 2시간 동안 3건의 알림이 발생했습니다.</p></div></div>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+</body>
+</html>
