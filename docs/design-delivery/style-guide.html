@@ -6,22 +6,32 @@
 <title>ICONIA Admin — 스타일 가이드 (20종)</title>
 <style>
   :root {
+    color-scheme: light;
     --accent:#6D5DFE; --accent-hover:#5B4BE6; --accent-pink:#EC4899; --accent-blue:#60A5FA; --accent-orange:#F97316; --accent-teal:#14B8A6;
-    --canvas:#F5F6F8; --surface:#FFFFFF; --hairline:#E5E7EB;
+    --canvas:#F5F6F8; --surface:#FFFFFF; --surface-2:#f8fafc; --surface-3:#f1f5f9; --hairline:#E5E7EB; --track:#e2e8f0;
     --slate-900:#0f172a; --slate-700:#334155; --slate-600:#475569; --slate-400:#94a3b8; --slate-300:#cbd5e1;
     --rose-500:#f43f5e; --red-600:#dc2626; --emerald-600:#059669; --amber-600:#d97706; --blue-600:#2563eb;
     --shadow-card:0 1px 2px rgba(15,23,42,.04),0 1px 3px rgba(15,23,42,.06);
     --shadow-soft:0 6px 18px rgba(109,93,254,.18); --shadow-pop:0 12px 28px rgba(15,23,42,.16);
   }
+  /* 다크 테마 — 제안 레이어. 실제 ICONIA Admin은 라이트 전용이며, 이 토글은
+     사내 AX팀이 다크 버전 검토용으로 켜볼 수 있도록 이 문서에서만 추가한 것. */
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --canvas:#0f1115; --surface:#1a1d23; --surface-2:#20242c; --surface-3:#262b34; --hairline:#2a2f3a; --track:#333a46;
+    --slate-900:#f1f5f9; --slate-700:#cbd5e1; --slate-600:#94a3b8; --slate-400:#64748b; --slate-300:#3a4150;
+    --shadow-card:0 1px 2px rgba(0,0,0,.4),0 2px 6px rgba(0,0,0,.35);
+    --shadow-soft:0 6px 18px rgba(109,93,254,.28); --shadow-pop:0 16px 32px rgba(0,0,0,.55);
+  }
   * { box-sizing:border-box; }
-  body { margin:0; background:var(--canvas); color:var(--slate-900);
+  body { margin:0; background:var(--canvas); color:var(--slate-900); transition:background .15s,color .15s;
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Apple SD Gothic Neo","Noto Sans KR",sans-serif; padding:0 0 100px; }
   a { color:inherit; }
-  .wrap { max-width:1080px; margin:0 auto; padding:32px 20px 0; }
-  header.page-head { margin-bottom:24px; }
+  .wrap { max-width:1080px; margin:0 auto; padding:32px 16px 0; }
+  header.page-head { position:relative; margin-bottom:24px; padding-right:120px; }
   header.page-head h1 { font-size:24px; font-weight:800; margin:0 0 6px; }
   header.page-head p { color:var(--slate-600); margin:0; font-size:13px; line-height:1.6; }
-  header.page-head code { background:#eef1f5; padding:1px 6px; border-radius:4px; font-size:12px; }
+  header.page-head code { background:var(--surface-3); padding:1px 6px; border-radius:4px; font-size:12px; }
 
   nav.toc { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:6px; margin-bottom:32px; }
   nav.toc a { font-size:11.5px; font-weight:600; padding:7px 10px; border-radius:10px; background:var(--surface); box-shadow:var(--shadow-card); color:var(--slate-600); text-decoration:none; }
@@ -56,7 +66,7 @@
   .btn-primary,.btn-outline,.btn-danger,.btn-ghost,.btn-link { display:inline-flex; align-items:center; gap:6px; border-radius:8px; padding:10px 16px; font-weight:600; font-size:13.5px; cursor:pointer; border:none; }
   .btn-primary { color:#fff; background:var(--accent); } .btn-primary:hover { background:var(--accent-hover); }
   .btn-primary:disabled { opacity:.5; cursor:not-allowed; }
-  .btn-outline { background:#fff; border:1px solid var(--slate-300); color:var(--slate-700); } .btn-outline:hover { background:#f8fafc; }
+  .btn-outline { background:var(--surface); border:1px solid var(--slate-300); color:var(--slate-700); } .btn-outline:hover { background:var(--surface-2); }
   .btn-danger { color:#fff; background:#EF4444; } .btn-danger:hover { background:var(--red-600); }
   .btn-ghost { background:transparent; color:var(--slate-600); } .btn-ghost:hover { background:#eef2f6; }
   .btn-link { background:none; color:var(--accent); text-decoration:underline; padding:4px 2px; }
@@ -66,7 +76,7 @@
   .btn-lg { padding:13px 22px; font-size:15px; border-radius:10px; }
   .btn-block { width:100%; justify-content:center; }
   .btn-group { display:inline-flex; border-radius:8px; overflow:hidden; border:1px solid var(--slate-300); }
-  .btn-group button { border:none; border-right:1px solid var(--slate-300); background:#fff; padding:8px 14px; font-size:12.5px; cursor:pointer; color:var(--slate-700); }
+  .btn-group button { border:none; border-right:1px solid var(--slate-300); background:var(--surface); padding:8px 14px; font-size:12.5px; cursor:pointer; color:var(--slate-700); }
   .btn-group button:last-child { border-right:none; }
   .btn-group button[aria-pressed="true"] { background:var(--accent); color:#fff; }
   .spinner { display:inline-block; width:13px; height:13px; border:2px solid currentColor; border-top-color:transparent; border-radius:50%; animation:spin .7s linear infinite; }
@@ -76,16 +86,16 @@
   .field { margin-bottom:14px; } .field label { display:block; font-size:12px; font-weight:600; color:var(--slate-700); margin-bottom:6px; }
   .field label .req { color:var(--rose-500); margin-left:2px; } .field .hint { font-size:11px; color:var(--slate-400); margin-top:4px; }
   .field .err { font-size:11.5px; color:var(--red-600); margin-top:4px; }
-  .input,.select,textarea { width:100%; border-radius:8px; padding:9px 12px; background:#fff; border:1px solid var(--slate-300); outline:none; font-size:13.5px; font-family:inherit; transition:border-color .15s,box-shadow .15s; }
+  .input,.select,textarea { width:100%; border-radius:8px; padding:9px 12px; background:var(--surface); border:1px solid var(--slate-300); outline:none; font-size:13.5px; font-family:inherit; transition:border-color .15s,box-shadow .15s; }
   .input:focus,.select:focus,textarea:focus { border-color:var(--accent); box-shadow:0 0 0 3px rgba(109,93,254,.18); }
   .input.err-border { border-color:#fca5a5; }
-  .input[readonly],.input:disabled { background:#f8fafc; color:var(--slate-400); }
+  .input[readonly],.input:disabled { background:var(--surface-2); color:var(--slate-400); }
   .input-wrap { position:relative; }
-  .input-wrap .reveal,.input-wrap .clear-btn { position:absolute; right:8px; top:50%; transform:translateY(-50%); font-size:11px; padding:3px 8px; border-radius:6px; background:rgba(255,255,255,.7); border:1px solid #e2e8f0; color:var(--slate-600); cursor:pointer; }
+  .input-wrap .reveal,.input-wrap .clear-btn { position:absolute; right:8px; top:50%; transform:translateY(-50%); font-size:11px; padding:3px 8px; border-radius:6px; background:rgba(255,255,255,.7); border:1px solid var(--track); color:var(--slate-600); cursor:pointer; }
   .input-wrap .clear-btn { display:none; width:20px; height:20px; padding:0; text-align:center; line-height:18px; }
   .input-wrap.has-value .clear-btn { display:block; }
   .stepper-input { display:inline-flex; align-items:center; border:1px solid var(--slate-300); border-radius:8px; overflow:hidden; }
-  .stepper-input button { width:32px; height:34px; border:none; background:#f8fafc; font-size:15px; cursor:pointer; color:var(--slate-700); }
+  .stepper-input button { width:32px; height:34px; border:none; background:var(--surface-2); font-size:15px; cursor:pointer; color:var(--slate-700); }
   .stepper-input span { width:40px; text-align:center; font-size:13.5px; font-weight:700; }
   .dropzone { border:2px dashed var(--slate-300); border-radius:12px; padding:20px; text-align:center; font-size:12.5px; color:var(--slate-500); cursor:pointer; transition:border-color .15s,background .15s; }
   .dropzone.drag { border-color:var(--accent); background:#f5f4ff; color:var(--accent); }
@@ -99,7 +109,7 @@
   .tri-box[data-state="indeterminate"] { background:var(--accent); border-color:var(--accent); }
   .switch { position:relative; display:inline-flex; height:20px; width:36px; align-items:center; border-radius:999px; border:none; cursor:pointer; transition:background .15s; }
   .switch[data-on="true"] { background:var(--emerald-600); } .switch[data-on="false"] { background:var(--slate-300); }
-  .switch .knob { display:block; height:16px; width:16px; border-radius:999px; background:#fff; box-shadow:0 1px 2px rgba(0,0,0,.2); transition:transform .15s; }
+  .switch .knob { display:block; height:16px; width:16px; border-radius:999px; background:var(--surface); box-shadow:0 1px 2px rgba(0,0,0,.2); transition:transform .15s; }
   .switch[data-on="true"] .knob { transform:translateX(18px); } .switch[data-on="false"] .knob { transform:translateX(2px); }
 
   /* 6. chips */
@@ -108,27 +118,27 @@
   .chip-warn { background:#fffbeb; color:var(--amber-600); border:1px solid #fef3c7; }
   .chip-error { background:#fff1f2; color:#be123c; border:1px solid #fecdd3; }
   .chip-success { background:#ecfdf5; color:var(--emerald-600); border:1px solid #d1fae5; }
-  .chip-muted { background:#f1f5f9; color:var(--slate-600); border:1px solid #e2e8f0; }
-  .chip-outline { background:#fff; color:var(--slate-700); border:1px solid var(--slate-300); }
+  .chip-muted { background:var(--surface-3); color:var(--slate-600); border:1px solid var(--track); }
+  .chip-outline { background:var(--surface); color:var(--slate-700); border:1px solid var(--slate-300); }
   .chip .x { cursor:pointer; opacity:.6; font-weight:800; } .chip .x:hover { opacity:1; }
   .dot-badge { display:inline-flex; align-items:center; justify-content:center; min-width:20px; height:20px; border-radius:999px; background:var(--rose-500); color:#fff; font-size:10px; font-weight:700; padding:0 5px; }
 
   /* 7. cards */
-  .glass-card { background:#fff; border:1px solid var(--slate-300); border-radius:12px; box-shadow:var(--shadow-card); padding:16px; }
-  .glass-panel { background:#fff; border:1px solid var(--slate-300); border-radius:16px; box-shadow:var(--shadow-card); padding:18px; }
+  .glass-card { background:var(--surface); border:1px solid var(--slate-300); border-radius:12px; box-shadow:var(--shadow-card); padding:16px; }
+  .glass-panel { background:var(--surface); border:1px solid var(--slate-300); border-radius:16px; box-shadow:var(--shadow-card); padding:18px; }
   .panel-card-head { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:10px; flex-wrap:wrap; }
   .panel-card-head h3 { font-size:15px; font-weight:700; margin:0; } .panel-card-head p { font-size:11px; color:var(--slate-600); margin:2px 0 0; }
-  .stat-card { position:relative; overflow:hidden; border-radius:20px; background:#fff; box-shadow:var(--shadow-card); padding:16px; }
+  .stat-card { position:relative; overflow:hidden; border-radius:20px; background:var(--surface); box-shadow:var(--shadow-card); padding:16px; }
   .stat-card .blob { position:absolute; top:-40px; right:-32px; height:110px; width:110px; border-radius:999px; filter:blur(26px); opacity:.55; }
   .stat-card .label { font-size:11px; color:var(--slate-400); position:relative; }
   .stat-card .value { font-size:22px; font-weight:800; margin-top:6px; position:relative; }
   .stat-card .delta { font-size:11.5px; margin-top:4px; position:relative; }
   .up { color:var(--emerald-600); font-weight:700; } .down { color:var(--rose-500); font-weight:700; } .flat { color:var(--slate-600); }
-  .pick-card { border:2px solid var(--slate-300); border-radius:14px; padding:14px; cursor:pointer; background:#fff; position:relative; }
+  .pick-card { border:2px solid var(--slate-300); border-radius:14px; padding:14px; cursor:pointer; background:var(--surface); position:relative; }
   .pick-card[data-selected="true"] { border-color:var(--accent); background:#f5f4ff; }
-  .pick-card .check { position:absolute; top:10px; right:10px; width:18px; height:18px; border-radius:999px; border:1.5px solid var(--slate-300); background:#fff; display:flex; align-items:center; justify-content:center; font-size:11px; color:#fff; }
+  .pick-card .check { position:absolute; top:10px; right:10px; width:18px; height:18px; border-radius:999px; border:1.5px solid var(--slate-300); background:var(--surface); display:flex; align-items:center; justify-content:center; font-size:11px; color:#fff; }
   .pick-card[data-selected="true"] .check { background:var(--accent); border-color:var(--accent); }
-  .img-card { border-radius:14px; overflow:hidden; background:#fff; border:1px solid var(--slate-300); }
+  .img-card { border-radius:14px; overflow:hidden; background:var(--surface); border:1px solid var(--slate-300); }
   .img-card .thumb { height:70px; background:linear-gradient(135deg,var(--accent-blue),var(--accent)); }
   .img-card .body { padding:12px; font-size:12.5px; }
 
@@ -138,7 +148,7 @@
   .tab[aria-selected="true"] { color:var(--accent); border-bottom-color:var(--accent); }
   .tab-panel { padding:14px 4px 0; font-size:12.5px; color:var(--slate-600); } .tab-panel[hidden] { display:none; }
   .pill-tabs { display:flex; gap:6px; flex-wrap:wrap; }
-  .pill-tab { padding:7px 14px; border-radius:999px; font-size:12px; font-weight:600; background:#f1f5f9; color:var(--slate-600); border:none; cursor:pointer; }
+  .pill-tab { padding:7px 14px; border-radius:999px; font-size:12px; font-weight:600; background:var(--surface-3); color:var(--slate-600); border:none; cursor:pointer; }
   .pill-tab[aria-selected="true"] { background:var(--accent); color:#fff; }
   .vtabs { display:flex; gap:14px; }
   .vtabs .vlist { display:flex; flex-direction:column; gap:2px; width:110px; flex-shrink:0; }
@@ -146,10 +156,10 @@
   .vtabs .vtab[aria-selected="true"] { background:rgba(109,93,254,.1); color:var(--accent); }
 
   /* 9. accordion */
-  .expand-row { border:1px solid var(--slate-300); border-radius:12px; background:#fff; padding:10px 12px; margin-bottom:8px; }
+  .expand-row { border:1px solid var(--slate-300); border-radius:12px; background:var(--surface); padding:10px 12px; margin-bottom:8px; }
   .expand-row .head { display:flex; justify-content:space-between; align-items:flex-start; gap:8px; flex-wrap:wrap; }
-  .expand-row .toggle-btn { border-radius:8px; border:1px solid var(--slate-300); background:#fff; padding:4px 10px; font-size:12px; cursor:pointer; }
-  .expand-row .detail { margin-top:12px; border:1px solid #f1f5f9; border-radius:8px; background:#f8fafc; padding:12px; font-size:12.5px; color:var(--slate-600); }
+  .expand-row .toggle-btn { border-radius:8px; border:1px solid var(--slate-300); background:var(--surface); padding:4px 10px; font-size:12px; cursor:pointer; }
+  .expand-row .detail { margin-top:12px; border:1px solid #f1f5f9; border-radius:8px; background:var(--surface-2); padding:12px; font-size:12.5px; color:var(--slate-600); }
   .expand-row .detail[hidden] { display:none; }
   .faq-row { border-bottom:1px solid var(--hairline); padding:10px 0; }
   .faq-q { display:flex; justify-content:space-between; align-items:center; cursor:pointer; font-size:13px; font-weight:600; }
@@ -165,13 +175,13 @@
 
   /* 11. dropdown */
   .dropdown { position:relative; display:inline-block; }
-  .dropdown-menu { position:absolute; top:calc(100% + 6px); left:0; min-width:190px; background:#fff; border:1px solid var(--slate-300); border-radius:10px; box-shadow:var(--shadow-pop); padding:6px; z-index:10; }
+  .dropdown-menu { position:absolute; top:calc(100% + 6px); left:0; min-width:190px; background:var(--surface); border:1px solid var(--slate-300); border-radius:10px; box-shadow:var(--shadow-pop); padding:6px; z-index:10; }
   .dropdown-menu.right { left:auto; right:0; }
   .dropdown-menu[hidden] { display:none; }
   .dropdown-menu button.item { display:block; width:100%; text-align:left; padding:8px 10px; border-radius:6px; border:none; background:none; font-size:12.5px; color:var(--slate-700); cursor:pointer; }
-  .dropdown-menu button.item:hover { background:#f1f5f9; } .dropdown-menu button.item.danger { color:#be123c; }
+  .dropdown-menu button.item:hover { background:var(--surface-3); } .dropdown-menu button.item.danger { color:#be123c; }
   .dropdown-menu label.item { display:flex; align-items:center; gap:8px; padding:7px 10px; font-size:12.5px; border-radius:6px; cursor:pointer; }
-  .dropdown-menu label.item:hover { background:#f1f5f9; }
+  .dropdown-menu label.item:hover { background:var(--surface-3); }
   .dropdown-menu hr { border:none; border-top:1px solid var(--hairline); margin:6px 0; }
   .dropdown-menu .apply { margin-top:4px; }
   .avatar-btn { width:34px; height:34px; border-radius:999px; background:var(--accent); color:#fff; border:none; font-weight:700; font-size:12.5px; cursor:pointer; }
@@ -193,10 +203,10 @@
   .nav-mock .item { display:flex; align-items:center; gap:8px; padding:8px 10px; border-radius:8px; font-size:12.5px; color:var(--slate-600); margin-bottom:2px; cursor:pointer; border:none; background:none; width:100%; text-align:left; font-family:inherit; }
   .nav-mock .item[data-active="true"] { background:rgba(109,93,254,.1); color:var(--accent); font-weight:700; }
   .nav-mock .body { flex:1; padding:18px; color:var(--slate-400); font-size:12px; }
-  .top-nav { display:flex; gap:4px; background:#fff; border-radius:14px; padding:5px; box-shadow:var(--shadow-card); }
+  .top-nav { display:flex; gap:4px; background:var(--surface); border-radius:14px; padding:5px; box-shadow:var(--shadow-card); }
   .top-nav button { flex:1; padding:9px; border-radius:10px; border:none; background:none; font-size:12.5px; font-weight:600; color:var(--slate-600); cursor:pointer; }
   .top-nav button[data-active="true"] { background:var(--accent); color:#fff; }
-  .bottom-nav { display:flex; background:#fff; border-radius:16px; box-shadow:var(--shadow-card); overflow:hidden; }
+  .bottom-nav { display:flex; background:var(--surface); border-radius:16px; box-shadow:var(--shadow-card); overflow:hidden; }
   .bottom-nav button { flex:1; padding:10px 4px; border:none; background:none; display:flex; flex-direction:column; align-items:center; gap:2px; font-size:10.5px; color:var(--slate-400); cursor:pointer; }
   .bottom-nav button[data-active="true"] { color:var(--accent); font-weight:700; }
   .bottom-nav .ic { font-size:16px; }
@@ -232,7 +242,7 @@
   /* 16. modal */
   .modal-overlay { position:fixed; inset:0; z-index:90; display:flex; align-items:center; justify-content:center; padding:16px; background:rgba(15,23,42,.5); }
   .modal-overlay[hidden] { display:none; }
-  .modal { width:100%; max-width:380px; border-radius:16px; background:#fff; box-shadow:var(--shadow-pop); overflow:hidden; border:2px solid #fecdd3; }
+  .modal { width:100%; max-width:380px; border-radius:16px; background:var(--surface); box-shadow:var(--shadow-pop); overflow:hidden; border:2px solid #fecdd3; }
   .modal.primary { border-color:#bfdbfe; } .modal.plain { border-color:var(--slate-300); }
   .modal header { color:#fff; padding:12px 16px; display:flex; align-items:center; gap:8px; background:#dc2626; }
   .modal.primary header { background:var(--blue-600); } .modal.plain header { background:var(--slate-700); }
@@ -240,9 +250,9 @@
   .modal .body { padding:16px; font-size:13px; color:var(--slate-700); }
   .modal .body .detail-box { border-radius:8px; border:1px solid #fecaca; background:#fef2f2; color:#b91c1c; padding:8px 10px; font-size:11.5px; margin-top:8px; }
   .modal .body p.small { font-size:11px; color:var(--slate-400); margin-top:10px; }
-  .modal footer { display:flex; justify-content:flex-end; gap:8px; padding:12px 16px; background:#f8fafc; border-top:1px solid var(--hairline); }
+  .modal footer { display:flex; justify-content:flex-end; gap:8px; padding:12px 16px; background:var(--surface-2); border-top:1px solid var(--hairline); }
   .modal-overlay.right { justify-content:flex-end; padding:0; align-items:stretch; }
-  .drawer { width:100%; max-width:320px; height:100%; background:#fff; box-shadow:var(--shadow-pop); display:flex; flex-direction:column; transform:translateX(20px); animation:drawer-in .18s ease-out forwards; }
+  .drawer { width:100%; max-width:320px; height:100%; background:var(--surface); box-shadow:var(--shadow-pop); display:flex; flex-direction:column; transform:translateX(20px); animation:drawer-in .18s ease-out forwards; }
   @keyframes drawer-in { to { transform:translateX(0); } }
   .drawer header { padding:16px; border-bottom:1px solid var(--hairline); display:flex; justify-content:space-between; align-items:center; }
   .drawer header h4 { font-size:14px; margin:0; }
@@ -250,7 +260,7 @@
 
   /* 17. table */
   table.data-table { width:100%; border-collapse:collapse; background:var(--surface); border-radius:16px; overflow:hidden; box-shadow:var(--shadow-card); }
-  .data-table thead th { text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:var(--slate-400); padding:11px 14px; background:#f8fafc; border-bottom:1px solid var(--hairline); cursor:pointer; user-select:none; }
+  .data-table thead th { text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:var(--slate-400); padding:11px 14px; background:var(--surface-2); border-bottom:1px solid var(--hairline); cursor:pointer; user-select:none; }
   .data-table thead th.sortable:hover { color:var(--slate-700); }
   .data-table thead th .arrow { font-size:9px; margin-left:2px; opacity:.5; }
   .data-table thead th[data-dir]:not([data-dir="none"]) .arrow { opacity:1; color:var(--accent); }
@@ -262,53 +272,124 @@
   .select-bar.show { display:flex; }
   .pagination { margin-top:10px; display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:8px; font-size:11.5px; color:var(--slate-600); }
   .pagination .controls { display:flex; align-items:center; gap:4px; }
-  .pagination button { border-radius:8px; padding:5px 10px; background:rgba(255,255,255,.7); border:1px solid #e2e8f0; font-size:11.5px; cursor:pointer; }
+  .pagination button { border-radius:8px; padding:5px 10px; background:rgba(255,255,255,.7); border:1px solid var(--track); font-size:11.5px; cursor:pointer; }
   .pagination button:disabled { opacity:.4; cursor:not-allowed; }
   .pagination .page-num { padding:0 6px; color:var(--slate-700); }
 
   /* 18. skeleton */
-  .skeleton { position:relative; overflow:hidden; background:#e2e8f0; border-radius:8px; }
+  .skeleton { position:relative; overflow:hidden; background:var(--track); border-radius:8px; }
   .skeleton::after { content:""; position:absolute; inset:0; transform:translateX(-100%); background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent); animation:shimmer 1.4s infinite; }
   @keyframes shimmer { 100% { transform:translateX(100%); } }
   .sk-line { height:12px; margin-bottom:8px; } .sk-line.w60 { width:60%; } .sk-line.w40 { width:40%; } .sk-line.w90 { width:90%; }
   .sk-avatar { width:40px; height:40px; border-radius:999px; }
   .sk-row { display:flex; gap:12px; align-items:center; }
-  .sk-card { border-radius:14px; padding:14px; background:#fff; box-shadow:var(--shadow-card); }
+  .sk-card { border-radius:14px; padding:14px; background:var(--surface); box-shadow:var(--shadow-card); }
   .sk-block { height:60px; margin-bottom:10px; border-radius:10px; }
 
   /* 19. progress/stepper */
-  .progress-track { height:8px; border-radius:999px; background:#e2e8f0; overflow:hidden; position:relative; }
+  .progress-track { height:8px; border-radius:999px; background:var(--track); overflow:hidden; position:relative; }
   .progress-fill { height:100%; border-radius:999px; background:var(--accent); transition:width .5s ease; width:0%; }
   .progress-fill.indet { width:34%; position:absolute; animation:indet 1.1s ease-in-out infinite; }
   @keyframes indet { 0% { left:-34%; } 100% { left:100%; } }
   .stepper { display:flex; align-items:center; }
   .step { display:flex; align-items:center; gap:8px; cursor:pointer; background:none; border:none; padding:0; font-family:inherit; }
-  .step .circle { width:26px; height:26px; border-radius:999px; display:flex; align-items:center; justify-content:center; font-size:11.5px; font-weight:700; background:#e2e8f0; color:var(--slate-500); flex-shrink:0; }
+  .step .circle { width:26px; height:26px; border-radius:999px; display:flex; align-items:center; justify-content:center; font-size:11.5px; font-weight:700; background:var(--track); color:var(--slate-500); flex-shrink:0; }
   .step[data-done="true"] .circle { background:var(--emerald-600); color:#fff; }
   .step[data-active="true"] .circle { background:var(--accent); color:#fff; }
   .step .label { font-size:11.5px; color:var(--slate-600); white-space:nowrap; }
   .step[data-active="true"] .label { color:var(--slate-900); font-weight:700; }
-  .step-line { flex:1; height:2px; background:#e2e8f0; margin:0 8px; min-width:20px; }
+  .step-line { flex:1; height:2px; background:var(--track); margin:0 8px; min-width:20px; }
   .step-line.done { background:var(--emerald-600); }
 
   /* 20. states/misc */
   .state-box { background:var(--surface); border-radius:16px; box-shadow:var(--shadow-card); padding:26px; text-align:center; color:var(--slate-600); font-size:13px; }
   .state-box.error { color:#be123c; }
-  code.inline { background:#eef1f5; padding:1px 6px; border-radius:4px; font-size:11.5px; }
+  code.inline { background:var(--surface-3); padding:1px 6px; border-radius:4px; font-size:11.5px; }
   .focus-demo:focus-visible { outline:3px solid var(--accent); outline-offset:2px; }
 
   footer.print-note { font-size:11.5px; color:var(--slate-400); border-top:1px solid var(--hairline); padding-top:16px; margin-top:8px; }
+
+  /* ── 다크 테마 — 채도 있는 파스텔(칩/배너/모달 헤더 흰 텍스트)은 토큰만으로
+       자동 대응되지 않으므로 컴포넌트별로 별도 값을 지정. ── */
+  :root[data-theme="dark"] .chip-info { background:rgba(59,130,246,.16); color:#93c5fd; border-color:rgba(59,130,246,.35); }
+  :root[data-theme="dark"] .chip-warn { background:rgba(217,119,6,.18); color:#fbbf24; border-color:rgba(217,119,6,.4); }
+  :root[data-theme="dark"] .chip-error { background:rgba(190,18,60,.2); color:#fda4af; border-color:rgba(190,18,60,.45); }
+  :root[data-theme="dark"] .chip-success { background:rgba(5,150,105,.2); color:#6ee7b7; border-color:rgba(5,150,105,.45); }
+  :root[data-theme="dark"] .banner.info { background:rgba(37,99,235,.14); border-color:rgba(37,99,235,.35); color:#93c5fd; }
+  :root[data-theme="dark"] .banner.success { background:rgba(5,150,105,.14); border-color:rgba(5,150,105,.35); color:#6ee7b7; }
+  :root[data-theme="dark"] .banner.warn { background:rgba(217,119,6,.14); border-color:rgba(217,119,6,.4); color:#fbbf24; }
+  :root[data-theme="dark"] .banner.error { background:rgba(190,18,60,.16); border-color:rgba(190,18,60,.45); color:#fda4af; }
+  :root[data-theme="dark"] .state-box.error { color:#fda4af; }
+  :root[data-theme="dark"] .dropdown-menu button.item.danger { color:#fda4af; }
+  :root[data-theme="dark"] .modal .body .detail-box { background:rgba(190,18,60,.14); border-color:rgba(190,18,60,.4); color:#fda4af; }
+  :root[data-theme="dark"] .input.err-border { border-color:#7f1d2e; }
+  :root[data-theme="dark"] .tag.live { background:rgba(139,124,255,.18); }
+  :root[data-theme="dark"] .tag.new { background:rgba(16,185,129,.16); }
+  :root[data-theme="dark"] .dropzone.drag { background:rgba(109,93,254,.12); }
+  :root[data-theme="dark"] .dropzone.filled { background:rgba(5,150,105,.14); }
+  :root[data-theme="dark"] .pick-card[data-selected="true"] { background:rgba(109,93,254,.12); }
+  :root[data-theme="dark"] .select-bar { background:rgba(109,93,254,.14); border-color:rgba(109,93,254,.35); }
+
+  /* ── 테마 토글 버튼 ── */
+  .theme-toggle { position:absolute; top:0; right:0; display:inline-flex; align-items:center; gap:6px; padding:8px 12px; border-radius:999px; border:1px solid var(--slate-300); background:var(--surface); color:var(--slate-700); font-size:12px; font-weight:600; cursor:pointer; box-shadow:var(--shadow-card); }
+
+  /* ── 반응형 (웹 + 모바일 앱뷰 공통 최적화) ── */
+  .table-scroll { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  @media (max-width:640px) {
+    .input,.select,textarea { font-size:16px; } /* iOS 자동 확대 방지 */
+    header.page-head { padding-right:96px; }
+    .theme-toggle { padding:7px 10px; font-size:11px; }
+    nav.toc { grid-template-columns:repeat(auto-fill,minmax(108px,1fr)); }
+    .nav-mock { flex-direction:column; }
+    .nav-mock .side { width:100%; border-right:none; border-bottom:1px solid var(--hairline); }
+    .vtabs { flex-direction:column; }
+    .vtabs .vlist { flex-direction:row; width:100%; overflow-x:auto; gap:4px; }
+    .stepper { overflow-x:auto; padding-bottom:2px; }
+    .dash-grid,.detail-grid { grid-template-columns:1fr !important; }
+    #snackbar-stack { left:12px; right:12px; align-items:stretch; }
+    .snackbar { max-width:none; }
+  }
+
+  /* ── 페이지 조합 예시 (P1~P5) 레이아웃 전용 클래스 ── */
+  .page-frame { background:var(--surface-2); border:1px solid var(--hairline); border-radius:20px; padding:20px; }
+  .page-toolbar { display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin-bottom:14px; }
+  .page-toolbar .grow { flex:1; min-width:160px; }
+  .page-title-row { display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:14px; }
+  .page-title-row h3 { font-size:18px; font-weight:800; margin:0; }
+  .detail-grid { display:grid; grid-template-columns:2fr 1fr; gap:16px; align-items:start; }
+  .dash-grid { display:grid; grid-template-columns:2fr 1fr; gap:16px; align-items:start; }
+  .kv-list { display:flex; flex-direction:column; gap:10px; }
+  .kv-row { display:flex; justify-content:space-between; gap:12px; padding:9px 0; border-bottom:1px solid var(--hairline); font-size:13px; }
+  .kv-row:last-child { border-bottom:none; }
+  .kv-row .k { color:var(--slate-600); }
+  .kv-row .v { font-weight:600; text-align:right; }
+  .danger-zone { border:1px solid rgba(190,18,60,.3); background:rgba(190,18,60,.05); border-radius:14px; padding:14px; display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; }
+  .form-section { margin-bottom:20px; } .form-section:last-child { margin-bottom:0; }
+  .form-section .fs-title { font-size:12px; font-weight:700; color:var(--slate-600); text-transform:uppercase; letter-spacing:.04em; margin-bottom:10px; }
+  .form-row2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .sticky-footer { position:sticky; bottom:0; margin:20px -20px -20px; padding:14px 20px; padding-bottom:calc(14px + env(safe-area-inset-bottom,0px)); background:var(--surface); border-top:1px solid var(--hairline); display:flex; justify-content:flex-end; gap:8px; border-radius:0 0 20px 20px; }
+  .wizard-shell { max-width:520px; margin:0 auto; }
+  .wizard-card { background:var(--surface); border-radius:16px; box-shadow:var(--shadow-card); padding:24px; }
+  @media (max-width:720px) { .form-row2 { grid-template-columns:1fr; } }
+
+  /* ── 모션 감소 대응 ── */
+  @media (prefers-reduced-motion:reduce) {
+    .spinner, .skeleton::after, .snackbar, .drawer, .progress-fill.indet, .snack-in { animation:none !important; }
+    body, .switch .knob, .switch, .btn-primary, .btn-outline, .btn-danger { transition:none !important; }
+  }
 </style>
 </head>
 <body>
 <div class="wrap">
 
   <header class="page-head">
-    <h1>ICONIA Admin — 스타일 가이드 (20종)</h1>
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <h1>ICONIA 스타일 가이드</h1>
     <p><code>app/globals.css</code> · <code>app/dashboard/_components/</code> 기준 실사용 패턴 +
       일반 웹앱 제안 패턴. 각 번호 아래 여러 세부 항목이 있고, 클릭 가능한 것은 실제로 동작합니다.
       이 페이지 자체는 빌드 없는 미리보기용 순수 HTML/CSS/바닐라 JS이며, 실제 구현 언어 기준은
-      <b>TypeScript(.tsx) + Tailwind CSS + HTML(JSX)</b>입니다 — <code>README.md</code> §1.5 참고.</p>
+      <b>TypeScript(.tsx) + Tailwind CSS + HTML(JSX)</b>입니다 — <code>README.md</code> §1.5 참고.
+      다크모드 토글은 실제 앱(라이트 전용)에는 없는, 이 문서만의 <b>제안 레이어</b>입니다.</p>
   </header>
 
   <nav class="toc">
@@ -319,6 +400,8 @@
     <a href="#s13"><b>13</b>내비게이션</a><a href="#s14"><b>14</b>배너</a><a href="#s15"><b>15</b>스낵바</a>
     <a href="#s16"><b>16</b>모달</a><a href="#s17"><b>17</b>표·페이지</a><a href="#s18"><b>18</b>스켈레톤</a>
     <a href="#s19"><b>19</b>진행·스텝</a><a href="#s20"><b>20</b>상태·유틸</a>
+    <a href="#p1"><b>P1</b>목록 페이지</a><a href="#p2"><b>P2</b>상세 페이지</a><a href="#p3"><b>P3</b>폼 페이지</a>
+    <a href="#p4"><b>P4</b>대시보드</a><a href="#p5"><b>P5</b>온보딩</a>
   </nav>
 
   <!-- 1 컬러 -->
@@ -345,7 +428,7 @@
     <div class="unit"><div class="u-label">텍스트 대비 페어</div>
       <div class="swatch-grid">
         <div class="swatch"><div class="contrast-pair" style="background:var(--accent); color:#fff">accent 위 흰 텍스트</div></div>
-        <div class="swatch"><div class="contrast-pair" style="background:#fff; color:var(--slate-900)">surface 위 slate-900</div></div>
+        <div class="swatch"><div class="contrast-pair" style="background:var(--surface); color:var(--slate-900)">surface 위 slate-900</div></div>
         <div class="swatch"><div class="contrast-pair" style="background:#fff1f2; color:#be123c">chip-error 배경/글자</div></div>
       </div>
     </div>
@@ -402,7 +485,7 @@
     <div class="sec-head"><span class="num">04</span><h2>폼 입력</h2><span class="tag live">적용중</span></div>
     <div class="grid">
       <div class="panel"><div class="unit"><div class="u-label">검색 + Clear(X) 버튼</div>
-        <div class="input-wrap" id="search-wrap"><input class="input" placeholder="이메일 또는 UUID" id="search-input" oninput="onSearchInput(this)" style="padding-right:34px" /><button type="button" class="clear-btn" onclick="clearSearch()">✕</button></div>
+        <div class="input-wrap"><input class="input" placeholder="이메일 또는 UUID" oninput="onSearchInput(this)" style="padding-right:34px" /><button type="button" class="clear-btn" onclick="clearSearch(this)">✕</button></div>
       </div>
       <div class="unit"><div class="u-label">비밀번호 보기/숨기기</div>
         <div class="input-wrap"><input class="input err-border" type="password" id="pw-input" value="1234" /><button type="button" class="reveal" onclick="togglePw()">보기</button></div>
@@ -734,7 +817,180 @@
     </div>
   </section>
 
-  <footer class="print-note">최종 갱신: 2026-09-27 · 근거: <code class="inline">app/globals.css</code>, <code class="inline">tailwind.config.js</code>, <code class="inline">app/dashboard/_components/*</code></footer>
+  <div class="sec-head" style="margin-bottom:20px"><h2 style="font-size:16px;color:var(--slate-900)">페이지 조합 예시 — 부품(1~20)을 실제 화면으로 조립하면</h2></div>
+
+  <!-- P1 목록 페이지 -->
+  <section id="p1">
+    <div class="sec-head"><span class="num">P1</span><h2>목록 페이지</h2><span class="tag new">조합 예시</span></div>
+    <div class="page-frame">
+      <div class="breadcrumb" style="margin-bottom:14px"><a href="#">대시보드</a><span class="sep">›</span><span class="current">회원 관리</span></div>
+      <div class="page-title-row"><h3>회원 관리</h3><button class="btn-primary btn-sm">+ 회원 추가</button></div>
+      <div class="page-toolbar">
+        <div class="input-wrap grow"><input class="input" placeholder="이메일 또는 UUID 검색" oninput="onSearchInput(this)" style="padding-right:34px" /><button type="button" class="clear-btn" onclick="clearSearch(this)">✕</button></div>
+        <div class="dropdown"><button class="btn-outline btn-sm" onclick="toggleDropdown(event,this)">상태 필터 ▾</button>
+          <div class="dropdown-menu" hidden onclick="event.stopPropagation()">
+            <label class="item"><input type="checkbox" /> 정상</label>
+            <label class="item"><input type="checkbox" /> 경고</label>
+            <label class="item"><input type="checkbox" /> 비활성</label>
+            <hr /><button class="item apply" onclick="closeDropdown()">적용</button>
+          </div>
+        </div>
+        <button class="btn-outline btn-sm">CSV 내보내기</button>
+      </div>
+      <div class="table-scroll">
+        <table class="data-table">
+          <thead><tr><th style="width:32px"><input type="checkbox" /></th><th>이메일</th><th>가입일</th><th>상태</th><th>최근 접속</th><th></th></tr></thead>
+          <tbody>
+            <tr><td><input type="checkbox" /></td><td>user01@example.com</td><td>2026-03-11</td><td><span class="chip chip-success">정상</span></td><td>2시간 전</td><td><button class="btn-ghost btn-xs">상세 →</button></td></tr>
+            <tr><td><input type="checkbox" /></td><td>user02@example.com</td><td>2026-04-02</td><td><span class="chip chip-warn">경고</span></td><td>3일 전</td><td><button class="btn-ghost btn-xs">상세 →</button></td></tr>
+            <tr><td><input type="checkbox" /></td><td>user03@example.com</td><td>2026-05-19</td><td><span class="chip chip-muted">비활성</span></td><td>—</td><td><button class="btn-ghost btn-xs">상세 →</button></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="pagination"><span>전체 128건 중 1–25</span><div class="controls"><button disabled>«</button><button disabled>이전</button><span class="page-num">1 / 6</span><button>다음</button><button>»</button></div></div>
+    </div>
+  </section>
+
+  <!-- P2 상세 페이지 -->
+  <section id="p2">
+    <div class="sec-head"><span class="num">P2</span><h2>상세 페이지</h2><span class="tag new">조합 예시</span></div>
+    <div class="page-frame">
+      <div class="breadcrumb" style="margin-bottom:14px"><a href="#">회원 관리</a><span class="sep">›</span><span class="current">user01@example.com</span></div>
+      <div class="page-title-row">
+        <h3>user01@example.com <span class="chip chip-success" style="margin-left:8px">정상</span></h3>
+        <div class="dropdown"><button class="btn-outline btn-sm" onclick="toggleDropdown(event,this)">작업 ▾</button>
+          <div class="dropdown-menu right" hidden><button class="item" onclick="closeDropdown()">비밀번호 재설정</button><button class="item danger" onclick="closeDropdown(); openModal('modal-danger')">계정 잠금</button></div>
+        </div>
+      </div>
+      <div class="tabs" role="tablist" style="margin-bottom:14px">
+        <button class="tab" role="tab" aria-selected="true" onclick="switchTab(this,'d1')">기본 정보</button>
+        <button class="tab" role="tab" aria-selected="false" onclick="switchTab(this,'d2')">디바이스</button>
+        <button class="tab" role="tab" aria-selected="false" onclick="switchTab(this,'d3')">감사 로그</button>
+      </div>
+      <div class="tab-panel" data-panel="d1" style="padding:0">
+        <div class="detail-grid">
+          <div class="glass-panel"><div class="kv-list">
+            <div class="kv-row"><span class="k">UUID</span><span class="v">a1b2c3d4-...</span></div>
+            <div class="kv-row"><span class="k">가입일</span><span class="v">2026-03-11</span></div>
+            <div class="kv-row"><span class="k">최근 접속</span><span class="v">2시간 전</span></div>
+            <div class="kv-row"><span class="k">연결 디바이스</span><span class="v">2대</span></div>
+          </div></div>
+          <div class="glass-panel">
+            <div class="u-label">위험 구역</div>
+            <div class="danger-zone">
+              <div style="font-size:12.5px;color:var(--slate-600)">계정을 잠그면 즉시 로그아웃됩니다.</div>
+              <button class="btn-danger btn-sm" onclick="openModal('modal-danger')">계정 잠금</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="tab-panel" data-panel="d2" hidden style="padding:0"><div class="glass-panel">디바이스 목록 — ESP32 #4821, #5910</div></div>
+      <div class="tab-panel" data-panel="d3" hidden style="padding:0"><div class="glass-panel">감사 로그 — 최근 변경 3건</div></div>
+    </div>
+  </section>
+
+  <!-- P3 폼 페이지 -->
+  <section id="p3">
+    <div class="sec-head"><span class="num">P3</span><h2>폼 페이지</h2><span class="tag new">조합 예시</span></div>
+    <div class="page-frame">
+      <div class="breadcrumb" style="margin-bottom:14px"><a href="#">회원 관리</a><span class="sep">›</span><span class="current">회원 추가</span></div>
+      <div class="page-title-row"><h3>회원 추가</h3></div>
+      <div class="glass-panel">
+        <div class="form-section">
+          <div class="fs-title">계정 정보</div>
+          <div class="form-row2">
+            <div class="field"><label>이메일<span class="req">*</span></label><input class="input" placeholder="user@example.com" /></div>
+            <div class="field"><label>임시 비밀번호<span class="req">*</span></label><input class="input" type="password" value="********" /></div>
+          </div>
+        </div>
+        <div class="form-section">
+          <div class="fs-title">권한</div>
+          <div class="field"><label>역할</label><select class="select"><option>운영자</option><option>최고관리자</option><option>뷰어</option></select></div>
+          <div class="row" style="margin-top:4px"><button class="switch" data-on="false" role="switch" aria-checked="false" onclick="toggleSwitch(this)"><span class="knob"></span></button><span style="font-size:13px">가입 즉시 알림 발송</span></div>
+        </div>
+        <div class="form-section">
+          <div class="fs-title">메모</div>
+          <textarea rows="3" placeholder="운영 메모 (선택)"></textarea>
+        </div>
+      </div>
+      <div class="sticky-footer"><button class="btn-outline btn-sm">취소</button><button class="btn-primary btn-sm" data-action="btn-loading">저장</button></div>
+    </div>
+  </section>
+
+  <!-- P4 대시보드 -->
+  <section id="p4">
+    <div class="sec-head"><span class="num">P4</span><h2>대시보드</h2><span class="tag new">조합 예시</span></div>
+    <div class="page-frame">
+      <div class="page-title-row"><h3>운영 대시보드</h3><span class="chip chip-muted">마지막 갱신 2분 전</span></div>
+      <div class="grid" style="margin-bottom:16px">
+        <div class="stat-card"><div class="blob" style="background:radial-gradient(circle,var(--accent-blue),transparent)"></div><div class="label">오늘 신규 가입</div><div class="value">128</div><div class="delta"><span class="up">▲12%</span></div></div>
+        <div class="stat-card"><div class="blob" style="background:radial-gradient(circle,var(--accent-pink),transparent)"></div><div class="label">미해결 신고</div><div class="value">7건</div><div class="delta"><span class="down">▼3건</span></div></div>
+        <div class="stat-card"><div class="blob" style="background:radial-gradient(circle,var(--accent-orange),transparent)"></div><div class="label">디바이스 오프라인</div><div class="value">42대</div><div class="delta"><span class="flat">변동없음</span></div></div>
+        <div class="stat-card"><div class="blob" style="background:radial-gradient(circle,var(--accent-teal),transparent)"></div><div class="label">AI Key 사용률</div><div class="value">68%</div><div class="delta"><span class="up">▲5%p</span></div></div>
+      </div>
+      <div class="dash-grid">
+        <div class="glass-panel">
+          <div class="panel-card-head"><div><h3>최근 가입</h3></div><button class="btn-link">전체 보기 →</button></div>
+          <div class="table-scroll">
+            <table class="data-table">
+              <thead><tr><th>이메일</th><th>가입일</th><th>상태</th></tr></thead>
+              <tbody>
+                <tr><td>user01@example.com</td><td>2026-03-11</td><td><span class="chip chip-success">정상</span></td></tr>
+                <tr><td>user02@example.com</td><td>2026-04-02</td><td><span class="chip chip-warn">경고</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="glass-panel">
+          <div class="u-label">모더레이션 미해결</div>
+          <div class="banner error" style="margin-bottom:10px"><span class="icon">✕</span><div><p class="title">7건 대기중</p></div></div>
+          <div class="u-label">빠른 링크</div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <button class="btn-outline btn-sm btn-block">모더레이션 큐 열기</button>
+            <button class="btn-outline btn-sm btn-block">감사 로그 보기</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- P5 온보딩 위저드 -->
+  <section id="p5">
+    <div class="sec-head"><span class="num">P5</span><h2>온보딩 위저드</h2><span class="tag new">조합 예시</span></div>
+    <div class="page-frame">
+      <div class="wizard-shell">
+        <div class="progress-track" style="margin-bottom:16px"><div class="progress-fill" id="wiz-progress" style="width:33%"></div></div>
+        <div class="stepper" id="wiz-stepper" style="margin-bottom:20px">
+          <div class="step" data-done="false" data-active="true" style="cursor:default"><span class="circle">1</span><span class="label">서비스 정보</span></div>
+          <div class="step-line"></div>
+          <div class="step" data-done="false" data-active="false" style="cursor:default"><span class="circle">2</span><span class="label">AI Key 등록</span></div>
+          <div class="step-line"></div>
+          <div class="step" data-done="false" data-active="false" style="cursor:default"><span class="circle">3</span><span class="label">완료</span></div>
+        </div>
+        <div class="wizard-card">
+          <div class="wiz-panel" data-step="0">
+            <div class="fs-title" style="margin-bottom:10px">서비스 정보를 입력하세요</div>
+            <div class="field"><label>서비스명</label><input class="input" placeholder="ICONIA" /></div>
+            <div class="field"><label>운영 환경</label><select class="select"><option>Production</option><option>Staging</option></select></div>
+          </div>
+          <div class="wiz-panel" data-step="1" hidden>
+            <div class="fs-title" style="margin-bottom:10px">AI Key를 등록하세요</div>
+            <div class="field"><label>Gemini API Key</label><input class="input" type="password" placeholder="AIza..." /></div>
+          </div>
+          <div class="wiz-panel" data-step="2" hidden style="text-align:center;padding:20px 0">
+            <div style="font-size:32px;margin-bottom:8px">✓</div>
+            <div style="font-weight:700">설정이 완료되었습니다</div>
+          </div>
+          <div class="row" style="justify-content:flex-end;margin-top:20px">
+            <button class="btn-outline btn-sm" id="wiz-prev" onclick="wizPrev()" disabled>이전</button>
+            <button class="btn-primary btn-sm" id="wiz-next" onclick="wizNext()">다음</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="print-note">최종 갱신: 2026-09-27 · 근거: <code class="inline">app/globals.css</code>, <code class="inline">tailwind.config.js</code>, <code class="inline">app/dashboard/_components/*</code> · P1~P5는 부품 20종을 조합한 신규 제안 페이지 예시.</footer>
 </div>
 
 <div id="snackbar-stack"></div>
@@ -750,8 +1006,8 @@ document.addEventListener('click', (e) => {
 function pickSegment(btn) { btn.parentElement.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed','false')); btn.setAttribute('aria-pressed','true'); }
 
 // ── 4. 폼 ──
-function onSearchInput(input) { document.getElementById('search-wrap').classList.toggle('has-value', input.value.length > 0); }
-function clearSearch() { const i = document.getElementById('search-input'); i.value=''; i.focus(); document.getElementById('search-wrap').classList.remove('has-value'); }
+function onSearchInput(input) { const wrap = input.closest('.input-wrap'); if (wrap) wrap.classList.toggle('has-value', input.value.length > 0); }
+function clearSearch(btn) { const wrap = btn.closest('.input-wrap'); const input = wrap.querySelector('input'); input.value = ''; input.focus(); wrap.classList.remove('has-value'); }
 function togglePw() { const i = document.getElementById('pw-input'); i.type = i.type === 'password' ? 'text' : 'password'; }
 let stepVal = 1;
 function stepNumber(d) { stepVal = Math.max(0, stepVal + d); document.getElementById('step-value').textContent = stepVal; }
@@ -864,7 +1120,44 @@ function toggleSkeleton() {
 
 // ── 19. 진행률 / 스텝퍼 ──
 function runProgress(pct) { document.getElementById('progress-fill').style.width = pct + '%'; }
-function jumpStep(i) { const steps = document.querySelectorAll('#stepper .step'); steps.forEach((s, idx) => { s.dataset.done = idx < i ? 'true' : 'false'; s.dataset.active = idx === i ? 'true' : 'false'; s.querySelector('.circle').textContent = idx < i ? '✓' : String(idx + 1); }); }
+function setStepper(containerId, i) {
+  document.querySelectorAll('#' + containerId + ' .step').forEach((s, idx) => {
+    s.dataset.done = idx < i ? 'true' : 'false';
+    s.dataset.active = idx === i ? 'true' : 'false';
+    s.querySelector('.circle').textContent = idx < i ? '✓' : String(idx + 1);
+  });
+}
+function jumpStep(i) { setStepper('stepper', i); }
+
+// ── P5. 온보딩 위저드 ──
+const WIZ_TOTAL = 3;
+let wizStep = 0;
+function wizRender() {
+  setStepper('wiz-stepper', wizStep);
+  document.querySelectorAll('.wiz-panel').forEach(p => { p.hidden = Number(p.dataset.step) !== wizStep; });
+  document.getElementById('wiz-prev').disabled = wizStep === 0;
+  document.getElementById('wiz-next').textContent = wizStep === WIZ_TOTAL - 1 ? '완료' : '다음';
+  document.getElementById('wiz-progress').style.width = Math.round(((wizStep + 1) / WIZ_TOTAL) * 100) + '%';
+}
+function wizNext() { if (wizStep < WIZ_TOTAL - 1) { wizStep++; wizRender(); } else { showSnack('success', '설정이 완료되었습니다.'); } }
+function wizPrev() { if (wizStep > 0) { wizStep--; wizRender(); } }
+
+// ── 다크모드 토글 ──
+function toggleTheme() {
+  const root = document.documentElement;
+  const next = root.dataset.theme === 'dark' ? 'light' : 'dark';
+  root.dataset.theme = next;
+  document.getElementById('theme-toggle').textContent = next === 'dark' ? '☀ 라이트모드' : '🌙 다크모드';
+  try { localStorage.setItem('sg-theme', next); } catch (e) { /* 프라이빗 브라우징 등 — 세션 내 토글은 계속 동작 */ }
+}
+(function initTheme() {
+  let saved = null;
+  try { saved = localStorage.getItem('sg-theme'); } catch (e) { /* storage 접근 불가 시 기본(라이트) 유지 */ }
+  if (saved === 'dark') {
+    document.documentElement.dataset.theme = 'dark';
+    document.getElementById('theme-toggle').textContent = '☀ 라이트모드';
+  }
+})();
 
 // ── 20. 유틸 ──
 function copyToClipboard() {
