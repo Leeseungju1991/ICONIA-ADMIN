@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>내 신청 내역 — B2B PoC 샌드박스 포털 시안 C</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 전체 목록</a> · <a href="./README.md">B2B PoC 샌드박스 포털 폴더</a> · <a href="./variant-c.html">시안 C 위저드</a></div>
+    <h1>내 신청 내역 — 시안 C</h1>
+  </header>
+
+  <div class="page-frame">
+    <div class="page-title-row"><h2 style="margin:0">신청 내역</h2><a href="./variant-c.html" class="btn-primary btn-sm">+ 새 PoC 신청</a></div>
+    <div class="glass-panel" id="req-list"></div>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+<script>
+  const NS = '09c';
+  const list = sgGetJSON('sg-poc-requests-' + NS, []);
+  document.getElementById('req-list').innerHTML = list.length ? list.map((r, i) => (
+    '<div style="padding:12px 0;' + (i < list.length - 1 ? 'border-bottom:1px solid var(--hairline)' : '') + '">' +
+    '<b style="font-size:13px">' + r.service + '</b> <span class="chip chip-warn" style="margin-left:6px">승인 대기</span>' +
+    '<div style="font-size:12px;color:var(--slate-500);margin-top:4px">환경: ' + r.env + ' · 예상 호출량: ' + r.volume + '</div>' +
+    '<div style="font-size:12px;color:var(--slate-500);margin-top:2px">' + r.company + ' · ' + r.email + ' · ' + new Date(r.ts).toLocaleString('ko-KR') + '</div></div>'
+  )).join('') : '<div class="state-box">아직 신청한 PoC가 없습니다. "+ 새 PoC 신청"으로 시작해보세요.</div>';
+</script>
+</body>
+</html>

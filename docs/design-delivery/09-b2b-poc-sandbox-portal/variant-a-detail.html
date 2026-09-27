@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>서비스 상세 — B2B PoC 샌드박스 포털 시안 A</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 전체 목록</a> · <a href="./README.md">B2B PoC 샌드박스 포털 폴더</a> · <a href="./variant-a.html">시안 A 홈</a></div>
+    <h1 id="svc-title">서비스 상세 — 시안 A</h1>
+  </header>
+
+  <div class="page-frame">
+    <div class="glass-panel kv-list" style="margin-bottom:16px">
+      <div class="kv-row"><span class="k">가격</span><span class="v" id="svc-price"></span></div>
+      <div class="kv-row"><span class="k">PoC 기간</span><span class="v" id="svc-poc"></span></div>
+      <div class="kv-row"><span class="k">설명</span><span class="v" id="svc-desc"></span></div>
+    </div>
+    <button type="button" class="btn-primary" id="apply-btn" onclick="apply()">이 서비스로 PoC 신청</button>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+<script>
+  const NS = '09a';
+  const SERVICES = {
+    sv1:{ name:'AI Key 관리 API', price:'월 30만원', poc:'30일 무료 PoC', desc:'API 키 발급·회전·폐기를 자동화하는 키 관리 서비스' },
+    sv2:{ name:'디바이스 원격 모니터링', price:'월 50만원', poc:'14일 무료 PoC', desc:'현장 디바이스 상태를 실시간으로 원격 모니터링' },
+    sv3:{ name:'CS 자동응대 봇', price:'월 20만원', poc:'30일 무료 PoC', desc:'자주 묻는 질문에 대해 자동으로 1차 응대하는 챗봇' },
+  };
+  const id = new URLSearchParams(window.location.search).get('id') || 'sv1';
+  const s = SERVICES[id] || SERVICES.sv1;
+  document.title = s.name + ' — 시안 A';
+  document.getElementById('svc-title').textContent = s.name;
+  document.getElementById('svc-price').textContent = s.price;
+  document.getElementById('svc-poc').textContent = s.poc;
+  document.getElementById('svc-desc').textContent = s.desc;
+
+  function render() {
+    const applied = sgGetJSON(NS + '-applied-' + id, false);
+    const btn = document.getElementById('apply-btn');
+    if (applied) { btn.textContent = '신청 완료'; btn.disabled = true; btn.className = 'btn-outline'; }
+  }
+  function apply() {
+    sgSetJSON(NS + '-applied-' + id, true);
+    render();
+    showSnack('success', 'PoC 신청이 접수되었습니다.');
+  }
+  render();
+</script>
+</body>
+</html>

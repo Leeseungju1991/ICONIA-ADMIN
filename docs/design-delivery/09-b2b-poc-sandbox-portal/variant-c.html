@@ -17,10 +17,8 @@
 
   <div class="page-frame">
     <div class="brief-box">
-      <h4>기능</h4>
-      <ul><li>서비스 선택 → 환경 설정 → 승인 요청 순서로 PoC 신청</li></ul>
-      <h4>UI/UX</h4>
-      <ul><li>계약·승인이 필요한 B2B 신청 절차를 단계별 위저드로 안내해 누락 없이 접수</li></ul>
+      <h4>방향성 — 3단계 신청 위저드형</h4>
+      <ul><li>계약·승인이 필요한 B2B 신청 절차를 단계별 위저드로 안내해 누락 없이 접수</li><li>제출한 신청 내역은 실제로 저장되어 <a href="./variant-c-list.html">내 신청 내역</a>에서 확인할 수 있습니다</li></ul>
     </div>
 
     <div class="wizard-shell">
@@ -35,17 +33,17 @@
       <div class="wizard-card">
         <div class="wiz-panel" data-step="0">
           <div class="fs-title" style="margin-bottom:10px">어떤 서비스를 PoC 하시겠어요?</div>
-          <div class="field"><label>서비스</label><select class="select"><option>AI Key 관리 API</option><option>디바이스 원격 모니터링</option><option>CS 자동응대 봇</option></select></div>
+          <div class="field"><label>서비스</label><select class="select" id="f-service"><option>AI Key 관리 API</option><option>디바이스 원격 모니터링</option><option>CS 자동응대 봇</option></select></div>
         </div>
         <div class="wiz-panel" data-step="1" hidden>
           <div class="fs-title" style="margin-bottom:10px">샌드박스 환경을 설정하세요</div>
-          <div class="field"><label>환경 이름</label><input class="input" placeholder="sandbox-01" /></div>
-          <div class="field"><label>예상 호출량(월)</label><input class="input" type="number" placeholder="100000" /></div>
+          <div class="field"><label>환경 이름</label><input class="input" id="f-env" placeholder="sandbox-01" /></div>
+          <div class="field"><label>예상 호출량(월)</label><input class="input" id="f-volume" type="number" placeholder="100000" /></div>
         </div>
         <div class="wiz-panel" data-step="2" hidden>
           <div class="fs-title" style="margin-bottom:10px">승인 요청 정보</div>
-          <div class="field"><label>회사명</label><input class="input" placeholder="파트너사명" /></div>
-          <div class="field"><label>담당자 이메일</label><input class="input" placeholder="partner@company.com" /></div>
+          <div class="field"><label>회사명</label><input class="input" id="f-company" placeholder="파트너사명" /></div>
+          <div class="field"><label>담당자 이메일</label><input class="input" id="f-email" placeholder="partner@company.com" /></div>
         </div>
         <div class="row" style="justify-content:flex-end;margin-top:20px">
           <button class="btn-outline btn-sm" id="wiz-prev" onclick="wizPrev()" disabled>이전</button>
@@ -67,7 +65,23 @@
     document.getElementById('wiz-next').textContent = wizStep === WIZ_TOTAL - 1 ? '승인 요청' : '다음';
     document.getElementById('wiz-progress').style.width = Math.round(((wizStep + 1) / WIZ_TOTAL) * 100) + '%';
   }
-  function wizNext() { if (wizStep < WIZ_TOTAL - 1) { wizStep++; wizRender(); } else { showSnack('success', '승인 요청이 접수되었습니다.'); } }
+  const NS = '09c';
+  function wizNext() {
+    if (wizStep < WIZ_TOTAL - 1) { wizStep++; wizRender(); return; }
+    const company = document.getElementById('f-company').value.trim();
+    if (!company) { showSnack('warning', '회사명을 입력해주세요.'); return; }
+    const list = sgGetJSON('sg-poc-requests-' + NS, []);
+    list.unshift({
+      service: document.getElementById('f-service').value,
+      env: document.getElementById('f-env').value.trim() || '(미입력)',
+      volume: document.getElementById('f-volume').value || '(미입력)',
+      company, email: document.getElementById('f-email').value.trim() || '(미입력)',
+      ts: Date.now(),
+    });
+    sgSetJSON('sg-poc-requests-' + NS, list);
+    showSnack('success', '승인 요청이 접수되었습니다.');
+    setTimeout(() => { window.location.href = './variant-c-list.html'; }, 700);
+  }
   function wizPrev() { if (wizStep > 0) { wizStep--; wizRender(); } }
 </script>
 </body>

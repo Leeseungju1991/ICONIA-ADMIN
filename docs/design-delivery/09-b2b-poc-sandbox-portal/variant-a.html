@@ -16,24 +16,29 @@
 
   <div class="page-frame">
     <div class="brief-box">
-      <h4>기능</h4>
-      <ul><li>B2B 파트너사가 사용 가능한 서비스를 카탈로그로 탐색</li><li>서비스 선택 후 바로 구독/PoC 신청</li></ul>
-      <h4>UI/UX</h4>
-      <ul><li>가격·플랜 비교가 핵심인 도입 검토 단계 — 선택 카드 그리드가 가장 익숙한 SaaS 랜딩 패턴</li></ul>
+      <h4>방향성 — 서비스 카탈로그 선택 카드형(도입 검토용)</h4>
+      <ul><li>가격·플랜 비교가 핵심인 도입 검토 단계 — 선택 카드 그리드가 가장 익숙한 SaaS 랜딩 패턴</li><li>카드를 누르면 서비스 상세에서 PoC를 신청할 수 있고, 신청 여부가 실제로 저장됩니다</li></ul>
     </div>
 
     <div class="page-title-row"><h2>서비스 카탈로그</h2></div>
-
-    <div class="grid">
-      <div class="pick-card" data-selected="true" onclick="selectOnlyCard(this)"><span class="check">✓</span><b>AI Key 관리 API</b><div style="font-size:11.5px;color:var(--slate-500);margin-top:4px">월 30만원 · 30일 무료 PoC</div></div>
-      <div class="pick-card" data-selected="false" onclick="selectOnlyCard(this)"><span class="check">✓</span><b>디바이스 원격 모니터링</b><div style="font-size:11.5px;color:var(--slate-500);margin-top:4px">월 50만원 · 14일 무료 PoC</div></div>
-      <div class="pick-card" data-selected="false" onclick="selectOnlyCard(this)"><span class="check">✓</span><b>CS 자동응대 봇</b><div style="font-size:11.5px;color:var(--slate-500);margin-top:4px">월 20만원 · 30일 무료 PoC</div></div>
-    </div>
-
-    <div class="row" style="justify-content:flex-end;margin-top:16px"><button class="btn-primary btn-sm" onclick="showSnack('success','PoC 신청이 접수되었습니다.')">선택한 서비스로 PoC 신청</button></div>
+    <div class="grid" id="svc-grid"></div>
   </div>
 </div>
 <div id="snackbar-stack"></div>
 <script src="../components/interactions.js"></script>
+<script>
+  const NS = '09a';
+  const SERVICES = [
+    { id:'sv1', name:'AI Key 관리 API', price:'월 30만원', poc:'30일 무료 PoC' },
+    { id:'sv2', name:'디바이스 원격 모니터링', price:'월 50만원', poc:'14일 무료 PoC' },
+    { id:'sv3', name:'CS 자동응대 봇', price:'월 20만원', poc:'30일 무료 PoC' },
+  ];
+  document.getElementById('svc-grid').innerHTML = SERVICES.map((s) => {
+    const applied = sgGetJSON(NS + '-applied-' + s.id, false);
+    return '<a href="./variant-a-detail.html?id=' + s.id + '" style="text-decoration:none;color:inherit"><div class="glass-card">' +
+      '<b style="font-size:13px">' + s.name + '</b>' + (applied ? ' <span class="chip chip-success">신청됨</span>' : '') +
+      '<div style="font-size:11.5px;color:var(--slate-500);margin-top:4px">' + s.price + ' · ' + s.poc + '</div></div></a>';
+  }).join('');
+</script>
 </body>
 </html>

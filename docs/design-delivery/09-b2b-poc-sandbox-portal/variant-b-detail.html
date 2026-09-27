@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>환경 상세 — B2B PoC 샌드박스 포털 시안 B</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 전체 목록</a> · <a href="./README.md">B2B PoC 샌드박스 포털 폴더</a> · <a href="./variant-b.html">시안 B 홈</a></div>
+    <h1 id="env-title">환경 상세 — 시안 B</h1>
+  </header>
+
+  <div class="page-frame">
+    <div class="page-title-row">
+      <span class="chip" id="env-status-chip"></span>
+      <button type="button" class="btn-primary btn-sm" id="extend-btn" onclick="extend()">PoC 연장 요청</button>
+    </div>
+    <div class="glass-panel kv-list">
+      <div class="kv-row"><span class="k">서비스</span><span class="v" id="env-service"></span></div>
+      <div class="kv-row"><span class="k">만료일</span><span class="v" id="env-expiry"></span></div>
+      <div class="kv-row"><span class="k">이번달 호출량</span><span class="v">128,400 / 500,000</span></div>
+    </div>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+<script>
+  const NS = '09b';
+  const ENVS = {
+    env1:{ name:'sandbox-01', service:'AI Key 관리 API', status:'정상', expiry:'2026-10-03' },
+    env2:{ name:'sandbox-02', service:'디바이스 원격 모니터링', status:'만료 임박', expiry:'2026-09-30' },
+  };
+  const id = new URLSearchParams(window.location.search).get('id') || 'env1';
+  const e = ENVS[id] || ENVS.env1;
+  document.title = e.name + ' — 시안 B';
+  document.getElementById('env-title').textContent = e.name;
+  document.getElementById('env-service').textContent = e.service;
+
+  function render() {
+    const extended = sgGetJSON(NS + '-extended-' + id, false);
+    document.getElementById('env-status-chip').className = 'chip ' + (extended || e.status === '정상' ? 'chip-success' : 'chip-warn');
+    document.getElementById('env-status-chip').textContent = extended ? '연장됨' : e.status;
+    document.getElementById('env-expiry').textContent = extended ? '2026-10-31 (연장됨)' : e.expiry;
+    document.getElementById('extend-btn').style.display = extended ? 'none' : '';
+  }
+  function extend() {
+    sgSetJSON(NS + '-extended-' + id, true);
+    render();
+    showSnack('success', 'PoC 연장 요청이 접수되어 만료일이 연장되었습니다.');
+  }
+  render();
+</script>
+</body>
+</html>
