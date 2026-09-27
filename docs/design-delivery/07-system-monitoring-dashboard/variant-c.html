@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>시스템 모니터링 — 시안 C</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+<style>
+  .console-row { display:grid; grid-template-columns:1fr 90px 110px; gap:10px; align-items:center; padding:9px 0; border-bottom:1px solid var(--hairline); font-family:ui-monospace,monospace; font-size:12px; }
+  .console-row:last-child { border-bottom:none; }
+  .spark { display:flex; align-items:flex-end; gap:2px; height:20px; }
+  .spark span { width:4px; border-radius:1px; background:var(--accent); }
+</style>
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 전체 목록</a> · <a href="./README.md">시스템 모니터링 폴더</a></div>
+    <h1>시스템 성능·운영 모니터링 대시보드 — 시안 C</h1>
+  </header>
+
+  <div class="page-frame">
+    <div class="brief-box">
+      <h4>기능</h4>
+      <ul><li>CPU·메모리·응답시간 등 저수준 지표를 조밀하게 나열</li></ul>
+      <h4>UI/UX</h4>
+      <ul><li>모노스페이스 숫자 + 미니 스파크라인으로 이상 수치를 빠르게 스캔 — SRE·인프라 담당자용 (다크모드로 보면 더 어울립니다)</li></ul>
+    </div>
+
+    <div class="page-title-row"><h2>인프라 지표</h2><span class="chip chip-success">● LIVE</span></div>
+
+    <div class="glass-panel">
+      <div class="console-row" style="font-family:inherit;font-weight:700;color:var(--slate-400);font-size:11px;text-transform:uppercase">
+        <span>지표</span><span style="text-align:right">현재값</span><span style="text-align:right">추이 (1h)</span>
+      </div>
+      <div class="console-row"><span>cpu.usage.avg</span><span style="text-align:right">42%</span>
+        <span class="spark" style="justify-content:flex-end"><span style="height:10px"></span><span style="height:12px"></span><span style="height:9px"></span><span style="height:14px"></span><span style="height:11px"></span><span style="height:13px"></span><span style="height:12px"></span></span>
+      </div>
+      <div class="console-row"><span>mem.usage.avg</span><span style="text-align:right">68%</span>
+        <span class="spark" style="justify-content:flex-end"><span style="height:14px"></span><span style="height:15px"></span><span style="height:14px"></span><span style="height:16px"></span><span style="height:15px"></span><span style="height:16px"></span><span style="height:17px"></span></span>
+      </div>
+      <div class="console-row" style="color:#f43f5e"><span>api.p99_latency_ms</span><span style="text-align:right">842 ▲</span>
+        <span class="spark" style="justify-content:flex-end"><span style="height:8px;background:#f43f5e"></span><span style="height:9px;background:#f43f5e"></span><span style="height:10px;background:#f43f5e"></span><span style="height:14px;background:#f43f5e"></span><span style="height:17px;background:#f43f5e"></span><span style="height:19px;background:#f43f5e"></span><span style="height:20px;background:#f43f5e"></span></span>
+      </div>
+      <div class="console-row"><span>queue.depth</span><span style="text-align:right;color:var(--emerald-600)">12 ▼</span>
+        <span class="spark" style="justify-content:flex-end"><span style="height:18px;background:#059669"></span><span style="height:15px;background:#059669"></span><span style="height:13px;background:#059669"></span><span style="height:10px;background:#059669"></span><span style="height:8px;background:#059669"></span><span style="height:7px;background:#059669"></span><span style="height:6px;background:#059669"></span></span>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+</body>
+</html>

@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>B2B PoC 샌드박스 포털 — 시안 B</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 전체 목록</a> · <a href="./README.md">B2B PoC 샌드박스 포털 폴더</a></div>
+    <h1>B2B 서비스 구독·PoC 샌드박스 포털 — 시안 B</h1>
+  </header>
+
+  <div class="page-frame">
+    <div class="brief-box">
+      <h4>기능</h4>
+      <ul><li>이미 신청한 PoC 환경의 사용량·남은 기간 확인</li><li>환경별 상태를 표로 관리</li></ul>
+      <h4>UI/UX</h4>
+      <ul><li>이미 도입을 진행 중인 파트너사가 "내 샌드박스가 잘 돌아가는지" 확인하는 운영 대시보드형</li></ul>
+    </div>
+
+    <div class="grid" style="margin-bottom:16px">
+      <div class="stat-card"><div class="blob" style="background:radial-gradient(circle,var(--accent),transparent)"></div><div class="label">API 호출량(이번달)</div><div class="value">128,400</div><div class="delta"><span class="flat">쿼터 500,000 중</span></div></div>
+      <div class="stat-card"><div class="blob" style="background:radial-gradient(circle,#f59e0b,transparent)"></div><div class="label">PoC 만료까지</div><div class="value">D-6</div></div>
+    </div>
+    <div class="progress-track" style="height:10px;margin-bottom:16px"><div class="progress-fill" style="width:26%"></div></div>
+
+    <div class="table-scroll"><table class="data-table">
+      <thead><tr><th>환경</th><th>서비스</th><th>상태</th><th>만료일</th></tr></thead>
+      <tbody>
+        <tr><td>sandbox-01</td><td>AI Key 관리 API</td><td><span class="chip chip-success">정상</span></td><td>2026-10-03</td></tr>
+        <tr><td>sandbox-02</td><td>디바이스 원격 모니터링</td><td><span class="chip chip-warn">만료 임박</span></td><td>2026-09-30</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+</body>
+</html>

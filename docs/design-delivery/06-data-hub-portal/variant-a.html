@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>데이터 허브 포털 — 시안 A</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 전체 목록</a> · <a href="./README.md">데이터 허브 포털 폴더</a></div>
+    <h1>사내 데이터 허브·정제 관리 포털 — 시안 A</h1>
+  </header>
+
+  <div class="page-frame">
+    <div class="brief-box">
+      <h4>기능</h4>
+      <ul><li>전사 데이터셋을 카탈로그 표로 검색</li><li>소유 부서, 품질 점수, 갱신 주기 확인</li></ul>
+      <h4>UI/UX</h4>
+      <ul><li>데이터 분석가가 "어떤 데이터가 있는지" 탐색하는 카탈로그형 — 검색+표가 가장 빠른 진입</li></ul>
+    </div>
+
+    <div class="page-toolbar">
+      <div class="input-wrap grow"><input class="input" placeholder="데이터셋 검색" oninput="onSearchInput(this)" style="padding-right:34px" /><button type="button" class="clear-btn" onclick="clearSearch(this)">✕</button></div>
+      <div class="dropdown"><button class="btn-outline btn-sm" onclick="toggleDropdown(event,this)">소유 부서 ▾</button>
+        <div class="dropdown-menu" hidden><button class="item" onclick="closeDropdown()">영업</button><button class="item" onclick="closeDropdown()">마케팅</button><button class="item" onclick="closeDropdown()">CS</button></div>
+      </div>
+    </div>
+
+    <div class="table-scroll"><table class="data-table">
+      <thead><tr><th>데이터셋</th><th>소유 부서</th><th>품질 점수</th><th>갱신 주기</th></tr></thead>
+      <tbody>
+        <tr><td>고객 주문 이력</td><td>영업</td><td><span class="chip chip-success">98점</span></td><td>매일</td></tr>
+        <tr><td>캠페인 클릭 로그</td><td>마케팅</td><td><span class="chip chip-warn">76점</span></td><td>매시간</td></tr>
+        <tr><td>CS 문의 원문</td><td>CS</td><td><span class="chip chip-success">91점</span></td><td>실시간</td></tr>
+        <tr><td>디바이스 원격 로그</td><td>운영</td><td><span class="chip chip-error">54점</span></td><td>매일</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+</body>
+</html>

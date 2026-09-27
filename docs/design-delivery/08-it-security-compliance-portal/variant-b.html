@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>IT·보안 컴플라이언스 포털 — 시안 B</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 전체 목록</a> · <a href="./README.md">IT·보안 컴플라이언스 포털 폴더</a></div>
+    <h1>IT 서비스·보안 컴플라이언스 체크리스트 포털 — 시안 B</h1>
+  </header>
+
+  <div class="page-frame">
+    <div class="brief-box">
+      <h4>기능</h4>
+      <ul><li>부서별 컴플라이언스 준수율을 카드로 비교</li></ul>
+      <h4>UI/UX</h4>
+      <ul><li>실행보다 "어느 부서가 취약한지" 파악이 우선인 경영진·감사팀 보고용 요약 대시보드</li></ul>
+    </div>
+
+    <div class="grid" style="margin-bottom:16px">
+      <div class="stat-card"><div class="blob" style="background:radial-gradient(circle,var(--accent),transparent)"></div><div class="label">전사 준수율</div><div class="value">87%</div></div>
+      <div class="stat-card"><div class="blob" style="background:radial-gradient(circle,#f43f5e,transparent)"></div><div class="label">미조치 항목</div><div class="value">6건</div></div>
+    </div>
+
+    <div class="grid">
+      <div class="glass-panel"><div class="panel-head"><div><h3>IT팀</h3></div><span class="chip chip-success">96%</span></div><div class="progress-track" style="height:8px"><div class="progress-fill" style="width:96%"></div></div></div>
+      <div class="glass-panel"><div class="panel-head"><div><h3>보안팀</h3></div><span class="chip chip-warn">82%</span></div><div class="progress-track" style="height:8px"><div class="progress-fill" style="width:82%"></div></div></div>
+      <div class="glass-panel"><div class="panel-head"><div><h3>인프라팀</h3></div><span class="chip chip-error">61%</span></div><div class="progress-track" style="height:8px"><div class="progress-fill" style="width:61%"></div></div></div>
+      <div class="glass-panel"><div class="panel-head"><div><h3>영업팀</h3></div><span class="chip chip-success">100%</span></div><div class="progress-track" style="height:8px"><div class="progress-fill" style="width:100%"></div></div></div>
+    </div>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+</body>
+</html>

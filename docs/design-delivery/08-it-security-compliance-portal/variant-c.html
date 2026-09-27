@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>IT·보안 컴플라이언스 포털 — 시안 C</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 전체 목록</a> · <a href="./README.md">IT·보안 컴플라이언스 포털 폴더</a></div>
+    <h1>IT 서비스·보안 컴플라이언스 체크리스트 포털 — 시안 C</h1>
+  </header>
+
+  <div class="page-frame">
+    <div class="brief-box">
+      <h4>기능</h4>
+      <ul><li>점검 항목별 최근 점검일과 증적 파일을 표로 관리</li></ul>
+      <h4>UI/UX</h4>
+      <ul><li>외부 감사 대응처럼 "증거 자료가 있는지"가 핵심인 상황을 위한 감사증적 표 레이아웃</li></ul>
+    </div>
+
+    <div class="page-title-row"><h2>감사 증적 관리</h2><button class="btn-outline btn-sm">감사 리포트 내보내기</button></div>
+
+    <div class="table-scroll"><table class="data-table">
+      <thead><tr><th>점검 항목</th><th>최근 점검일</th><th>증적 파일</th><th>상태</th></tr></thead>
+      <tbody>
+        <tr><td>비밀번호 정책 준수</td><td>2026-09-20</td><td><a href="#" style="color:var(--accent)">password-audit-q3.pdf</a></td><td><span class="chip chip-success">완료</span></td></tr>
+        <tr><td>2FA 적용 현황</td><td>2026-09-18</td><td><a href="#" style="color:var(--accent)">2fa-status-q3.xlsx</a></td><td><span class="chip chip-success">완료</span></td></tr>
+        <tr><td>VPN 접속 로그 검토</td><td>—</td><td>—</td><td><span class="chip chip-error">미제출</span></td></tr>
+        <tr><td>협력사 접근권한 재검토</td><td>2026-08-30</td><td><a href="#" style="color:var(--accent)">vendor-access-q2.pdf</a></td><td><span class="chip chip-warn">보완 필요</span></td></tr>
+      </tbody>
+    </table></div>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+</body>
+</html>

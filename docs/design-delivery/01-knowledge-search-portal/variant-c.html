@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>지식 검색 포털 — 시안 C</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 전체 목록</a> · <a href="./README.md">지식 검색 포털 폴더</a></div>
+    <h1>사내 통합 지식 검색 포털 — 시안 C</h1>
+  </header>
+
+  <div class="page-frame">
+    <div class="brief-box">
+      <h4>기능</h4>
+      <ul><li>질문을 그대로 입력하면 AI가 문서를 근거로 답변 요약</li><li>답변 아래 실제 출처 문서를 카드로 함께 제시</li></ul>
+      <h4>UI/UX</h4>
+      <ul><li>목록 대신 "질문 → 답 요약" 우선 배치 — 결과를 훑기보다 바로 답을 얻고 싶을 때</li><li>출처를 항상 함께 보여줘 신뢰도를 유지</li></ul>
+    </div>
+
+    <div class="input-wrap" style="margin-bottom:16px"><input class="input" value="연차는 최대 며칠까지 이월할 수 있나요?" style="padding-right:34px" /><button type="button" class="clear-btn" style="display:block">✕</button></div>
+
+    <div class="banner info" style="margin-bottom:16px">
+      <span class="icon">✨</span>
+      <div><p class="title">AI 요약 답변</p><p class="desc">인사 규정 제12조에 따라 미사용 연차는 최대 5일까지 다음 해로 이월할 수 있습니다. 5일을 초과하는 연차는 회계연도 말 자동 소멸됩니다.</p></div>
+    </div>
+
+    <div class="u-label">출처 문서</div>
+    <div class="grid">
+      <div class="glass-card"><b style="font-size:12.5px">인사 규정 제12조 (연차 이월)</b><div style="font-size:11px;color:var(--slate-400);margin-top:4px">인사팀 · 2026-05-02</div></div>
+      <div class="glass-card"><b style="font-size:12.5px">연차 신청 방법 안내</b><div style="font-size:11px;color:var(--slate-400);margin-top:4px">인사팀 · 2026-08-11</div></div>
+    </div>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+</body>
+</html>

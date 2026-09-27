@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>RPA 자동화 대시보드 — 시안 C</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+<style>
+  .vtimeline { position:relative; padding-left:24px; }
+  .vtimeline::before { content:""; position:absolute; left:6px; top:6px; bottom:6px; width:2px; background:var(--hairline); }
+  .vt-item { position:relative; margin-bottom:16px; }
+  .vt-item .dot { position:absolute; left:-24px; top:2px; width:12px; height:12px; border-radius:999px; display:flex; align-items:center; justify-content:center; font-size:8px; color:#fff; }
+  .vt-item .when { font-size:11px; color:var(--slate-400); }
+  .vt-item .what { font-size:13px; font-weight:600; margin-top:2px; }
+</style>
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 전체 목록</a> · <a href="./README.md">RPA 자동화 대시보드 폴더</a></div>
+    <h1>RPA 기반 반복 업무 자동화 대시보드 — 시안 C</h1>
+  </header>
+
+  <div class="page-frame">
+    <div class="brief-box">
+      <h4>기능</h4>
+      <ul><li>모든 자동화의 실행 기록을 시간순으로 표시</li><li>실패한 실행만 필터링해서 원인 확인</li></ul>
+      <h4>UI/UX</h4>
+      <ul><li>"방금 무슨 일이 있었는지" 순서가 중요한 운영/장애 대응 상황에 적합한 타임라인형</li></ul>
+    </div>
+
+    <div class="page-toolbar">
+      <div class="page-title-row grow" style="margin-bottom:0"><h2>실행 로그</h2></div>
+      <button class="btn-outline btn-sm">실패만 보기</button>
+    </div>
+
+    <div class="glass-panel">
+      <div class="vtimeline">
+        <div class="vt-item"><span class="dot" style="background:var(--emerald-600)">✓</span><div class="when">방금 · 09:02:14</div><div class="what">일일 매출 집계 → 엑셀 발송 — 성공</div></div>
+        <div class="vt-item"><span class="dot" style="background:var(--rose-500)">✕</span><div class="when">08:58:03</div><div class="what">세금계산서 발행 — 실패 (로그인 세션 만료)</div></div>
+        <div class="vt-item"><span class="dot" style="background:var(--emerald-600)">✓</span><div class="when">08:50:00</div><div class="what">신규 발주서 ERP 입력 — 성공 (12건 처리)</div></div>
+        <div class="vt-item"><span class="dot" style="background:var(--emerald-600)">✓</span><div class="when">08:40:00</div><div class="what">신규 발주서 ERP 입력 — 성공 (8건 처리)</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+</body>
+</html>

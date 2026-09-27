@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>브랜드 에셋 라이브러리 — 시안 B</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 전체 목록</a> · <a href="./README.md">브랜드 에셋 라이브러리 폴더</a></div>
+    <h1>마케팅 콘텐츠·브랜드 에셋 라이브러리 — 시안 B</h1>
+  </header>
+
+  <div class="page-frame">
+    <div class="brief-box">
+      <h4>기능</h4>
+      <ul><li>파일 목록을 표로 정리 — 파일명, 크기, 최종 수정자</li><li>목록에서 선택하면 우측에 큰 미리보기</li></ul>
+      <h4>UI/UX</h4>
+      <ul><li>파일 관리자(Finder/탐색기)와 닮은 목록+미리보기 분할 — 파일명·용량 등 메타데이터를 정확히 확인해야 하는 실무자에게 적합</li></ul>
+    </div>
+
+    <div class="detail-grid">
+      <div class="glass-panel">
+        <div class="table-scroll"><table class="data-table">
+          <thead><tr><th>파일명</th><th>크기</th><th>수정자</th></tr></thead>
+          <tbody>
+            <tr style="background:rgba(109,93,254,.06)"><td>logo-primary-color.png</td><td>1.2MB</td><td>디자인팀</td></tr>
+            <tr><td>campaign-autumn-2026-kv.jpg</td><td>4.8MB</td><td>디자인팀</td></tr>
+            <tr><td>brand-intro-30s.mp4</td><td>82MB</td><td>영상팀</td></tr>
+            <tr><td>icon-set-v2.svg</td><td>340KB</td><td>디자인팀</td></tr>
+          </tbody>
+        </table></div>
+      </div>
+      <div class="glass-panel">
+        <div style="height:160px;border-radius:12px;background:linear-gradient(135deg,var(--accent),#8b7cff);margin-bottom:12px"></div>
+        <div class="kv-list">
+          <div class="kv-row"><span class="k">파일명</span><span class="v">logo-primary-color.png</span></div>
+          <div class="kv-row"><span class="k">크기</span><span class="v">1.2MB</span></div>
+          <div class="kv-row"><span class="k">해상도</span><span class="v">2400×2400</span></div>
+        </div>
+        <button class="btn-primary btn-sm btn-block" style="margin-top:12px">다운로드</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+</body>
+</html>

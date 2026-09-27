@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>IT·보안 컴플라이언스 포털 — 시안 A</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 전체 목록</a> · <a href="./README.md">IT·보안 컴플라이언스 포털 폴더</a></div>
+    <h1>IT 서비스·보안 컴플라이언스 체크리스트 포털 — 시안 A</h1>
+  </header>
+
+  <div class="page-frame">
+    <div class="brief-box">
+      <h4>기능</h4>
+      <ul><li>보안 점검 항목을 체크리스트로 표시</li><li>담당자와 진행률 함께 확인</li></ul>
+      <h4>UI/UX</h4>
+      <ul><li>점검·감사 실무자가 "오늘 뭘 확인해야 하는지" 순서대로 처리하는 실행형 체크리스트</li></ul>
+    </div>
+
+    <div class="page-title-row"><h2>2026년 3분기 보안 점검</h2><span class="chip chip-warn">6/9 완료</span></div>
+    <div class="progress-track" style="height:10px;margin-bottom:16px"><div class="progress-fill" style="width:67%"></div></div>
+
+    <div class="glass-panel">
+      <div class="checklist-item"><span class="status-icon pass">✓</span><span class="label">전 직원 비밀번호 정책 준수 점검</span><span class="owner">IT팀</span></div>
+      <div class="checklist-item"><span class="status-icon pass">✓</span><span class="label">퇴사자 계정 회수 여부 확인</span><span class="owner">IT팀</span></div>
+      <div class="checklist-item"><span class="status-icon pass">✓</span><span class="label">2FA 미적용 계정 조치</span><span class="owner">보안팀</span></div>
+      <div class="checklist-item"><span class="status-icon fail">✕</span><span class="label">외부 접속 VPN 로그 이상 여부</span><span class="owner">보안팀</span></div>
+      <div class="checklist-item"><span class="status-icon pending">?</span><span class="label">협력사 접근권한 재검토</span><span class="owner">IT팀</span></div>
+      <div class="checklist-item"><span class="status-icon pending">?</span><span class="label">백업 복구 테스트</span><span class="owner">인프라팀</span></div>
+    </div>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+</body>
+</html>

@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>B2B PoC 샌드박스 포털 — 시안 C</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+<style>.wizard-shell{max-width:520px;margin:0 auto}.wizard-card{background:var(--surface);border-radius:16px;box-shadow:var(--shadow-card);padding:24px}</style>
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 전체 목록</a> · <a href="./README.md">B2B PoC 샌드박스 포털 폴더</a></div>
+    <h1>B2B 서비스 구독·PoC 샌드박스 포털 — 시안 C</h1>
+  </header>
+
+  <div class="page-frame">
+    <div class="brief-box">
+      <h4>기능</h4>
+      <ul><li>서비스 선택 → 환경 설정 → 승인 요청 순서로 PoC 신청</li></ul>
+      <h4>UI/UX</h4>
+      <ul><li>계약·승인이 필요한 B2B 신청 절차를 단계별 위저드로 안내해 누락 없이 접수</li></ul>
+    </div>
+
+    <div class="wizard-shell">
+      <div class="progress-track" style="margin-bottom:16px"><div class="progress-fill" id="wiz-progress" style="width:33%"></div></div>
+      <div class="stepper" id="wiz-stepper" style="margin-bottom:20px">
+        <div class="step" data-done="false" data-active="true"><span class="circle">1</span><span class="label">서비스 선택</span></div>
+        <div class="step-line"></div>
+        <div class="step" data-done="false" data-active="false"><span class="circle">2</span><span class="label">환경 설정</span></div>
+        <div class="step-line"></div>
+        <div class="step" data-done="false" data-active="false"><span class="circle">3</span><span class="label">승인 요청</span></div>
+      </div>
+      <div class="wizard-card">
+        <div class="wiz-panel" data-step="0">
+          <div class="fs-title" style="margin-bottom:10px">어떤 서비스를 PoC 하시겠어요?</div>
+          <div class="field"><label>서비스</label><select class="select"><option>AI Key 관리 API</option><option>디바이스 원격 모니터링</option><option>CS 자동응대 봇</option></select></div>
+        </div>
+        <div class="wiz-panel" data-step="1" hidden>
+          <div class="fs-title" style="margin-bottom:10px">샌드박스 환경을 설정하세요</div>
+          <div class="field"><label>환경 이름</label><input class="input" placeholder="sandbox-01" /></div>
+          <div class="field"><label>예상 호출량(월)</label><input class="input" type="number" placeholder="100000" /></div>
+        </div>
+        <div class="wiz-panel" data-step="2" hidden>
+          <div class="fs-title" style="margin-bottom:10px">승인 요청 정보</div>
+          <div class="field"><label>회사명</label><input class="input" placeholder="파트너사명" /></div>
+          <div class="field"><label>담당자 이메일</label><input class="input" placeholder="partner@company.com" /></div>
+        </div>
+        <div class="row" style="justify-content:flex-end;margin-top:20px">
+          <button class="btn-outline btn-sm" id="wiz-prev" onclick="wizPrev()" disabled>이전</button>
+          <button class="btn-primary btn-sm" id="wiz-next" onclick="wizNext()">다음</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+<script>
+  const WIZ_TOTAL = 3;
+  let wizStep = 0;
+  function wizRender() {
+    setStepper('wiz-stepper', wizStep);
+    document.querySelectorAll('.wiz-panel').forEach((p) => { p.hidden = Number(p.dataset.step) !== wizStep; });
+    document.getElementById('wiz-prev').disabled = wizStep === 0;
+    document.getElementById('wiz-next').textContent = wizStep === WIZ_TOTAL - 1 ? '승인 요청' : '다음';
+    document.getElementById('wiz-progress').style.width = Math.round(((wizStep + 1) / WIZ_TOTAL) * 100) + '%';
+  }
+  function wizNext() { if (wizStep < WIZ_TOTAL - 1) { wizStep++; wizRender(); } else { showSnack('success', '승인 요청이 접수되었습니다.'); } }
+  function wizPrev() { if (wizStep > 0) { wizStep--; wizRender(); } }
+</script>
+</body>
+</html>

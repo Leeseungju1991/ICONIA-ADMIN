@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>CS 티켓팅 — 시안 B</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 전체 목록</a> · <a href="./README.md">CS 티켓팅 폴더</a></div>
+    <h1>CS 티켓팅·응대 관리 시스템 — 시안 B</h1>
+  </header>
+
+  <div class="page-frame">
+    <div class="brief-box">
+      <h4>기능</h4>
+      <ul><li>컬럼 = 처리 단계, 카드 = 티켓 — 버튼으로 다음 단계로 이동</li></ul>
+      <h4>UI/UX</h4>
+      <ul><li>여러 상담사가 함께 일하는 CS팀에서 "지금 뭐가 어디 단계인지" 전체를 보고 관리하는 팀장/매니저용 보드</li></ul>
+    </div>
+
+    <div class="page-title-row"><h2>티켓 보드</h2></div>
+
+    <div class="kanban-board">
+      <div class="kanban-col">
+        <div class="kanban-col-head">신규 <span class="count">2</span></div>
+        <div class="kanban-col-body">
+          <div class="kanban-card"><div class="name">배송 지연 문의</div><div class="meta">김하나 · 5분 전</div><div class="move-row"><button onclick="moveKanbanCard(this,'next')">›</button></div></div>
+          <div class="kanban-card"><div class="name">제품 파손 신고</div><div class="meta">한지민 · 20분 전</div><div class="move-row"><button onclick="moveKanbanCard(this,'next')">›</button></div></div>
+        </div>
+      </div>
+      <div class="kanban-col">
+        <div class="kanban-col-head">처리중 <span class="count">1</span></div>
+        <div class="kanban-col-body">
+          <div class="kanban-card"><div class="name">환불 요청</div><div class="meta">이도윤 · 1시간 전</div><div class="move-row"><button onclick="moveKanbanCard(this,'prev')">‹</button><button onclick="moveKanbanCard(this,'next')">›</button></div></div>
+        </div>
+      </div>
+      <div class="kanban-col">
+        <div class="kanban-col-head">고객 확인 대기 <span class="count">1</span></div>
+        <div class="kanban-col-body">
+          <div class="kanban-card"><div class="name">교환 배송지 확인 요청</div><div class="meta">박준서 · 3시간 전</div><div class="move-row"><button onclick="moveKanbanCard(this,'prev')">‹</button><button onclick="moveKanbanCard(this,'next')">›</button></div></div>
+        </div>
+      </div>
+      <div class="kanban-col">
+        <div class="kanban-col-head">완료 <span class="count">1</span></div>
+        <div class="kanban-col-body">
+          <div class="kanban-card"><div class="name">제품 사용법 문의</div><div class="meta">최서연 · 어제</div><div class="move-row"><button onclick="moveKanbanCard(this,'prev')">‹</button></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+</body>
+</html>

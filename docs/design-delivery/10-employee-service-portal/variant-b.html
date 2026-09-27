@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>임직원 서비스 포털 — 시안 B</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 전체 목록</a> · <a href="./README.md">임직원 서비스 포털 폴더</a></div>
+    <h1>사내 통합 임직원 서비스 포털 — 시안 B</h1>
+  </header>
+
+  <div class="page-frame">
+    <div class="brief-box">
+      <h4>기능</h4>
+      <ul><li>내가 신청한 내역과 처리 상태를 표로 확인</li><li>새 신청은 모달로 빠르게</li></ul>
+      <h4>UI/UX</h4>
+      <ul><li>이미 여러 건을 신청해본 직원이 "내 신청이 어떻게 됐는지" 추적하는 데 최적화된 목록형</li></ul>
+    </div>
+
+    <div class="page-title-row"><h2>내 신청 내역</h2><button class="btn-primary btn-sm" onclick="openModal('modal-new-req')">+ 새 신청</button></div>
+
+    <div class="table-scroll"><table class="data-table">
+      <thead><tr><th>신청 항목</th><th>신청일</th><th>처리 상태</th></tr></thead>
+      <tbody>
+        <tr><td>연차 신청 (10/2~10/4)</td><td>09-25</td><td><span class="chip chip-success">승인됨</span></td></tr>
+        <tr><td>모니터 추가 신청</td><td>09-20</td><td><span class="chip chip-warn">검토중</span></td></tr>
+        <tr><td>출장비 정산 (부산 출장)</td><td>09-15</td><td><span class="chip chip-success">지급완료</span></td></tr>
+      </tbody>
+    </table></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-new-req" hidden onclick="if(event.target===this)closeModal('modal-new-req')">
+  <div class="modal plain">
+    <header><h4>새 신청</h4></header>
+    <div class="body">
+      <div class="field"><label>신청 유형</label><select class="select"><option>연차</option><option>장비 신청</option><option>경비 정산</option></select></div>
+      <div class="field"><label>사유</label><textarea rows="2" placeholder="간단히 입력하세요"></textarea></div>
+    </div>
+    <footer><button class="btn-outline btn-sm" onclick="closeModal('modal-new-req')">취소</button><button class="btn-primary btn-sm" onclick="closeModal('modal-new-req'); showSnack('success','신청이 접수되었습니다.')">신청</button></footer>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+</body>
+</html>
