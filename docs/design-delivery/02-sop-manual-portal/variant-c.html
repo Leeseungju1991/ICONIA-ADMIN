@@ -16,26 +16,36 @@
 
   <div class="page-frame">
     <div class="brief-box">
-      <h4>기능</h4>
-      <ul><li>절차를 단계별 체크리스트로 표시 — 완료한 단계를 체크하며 진행</li></ul>
-      <h4>UI/UX</h4>
-      <ul><li>문서가 아니라 "지금 실제로 이 절차를 수행 중"인 사람을 위한 실행형 레이아웃</li><li>진행률이 눈에 보여 어디까지 했는지 헷갈리지 않음</li></ul>
+      <h4>방향성 — 절차 실행·체크리스트형</h4>
+      <ul><li>문서를 읽는 화면이 아니라 "지금 실제로 이 절차를 수행 중"인 사람을 위한 실행형 레이아웃</li><li>단계를 체크하면 진행률이 실시간으로 갱신되고 저장되어, 나중에 다시 와도 이어서 진행할 수 있습니다</li></ul>
     </div>
 
-    <div class="page-title-row"><h2>신규 입사자 온보딩 절차</h2><span class="chip chip-muted">3/6 완료</span></div>
-    <div class="progress-track" style="height:10px;margin-bottom:16px"><div class="progress-fill" style="width:50%"></div></div>
-
-    <div class="glass-panel">
-      <div class="checklist-item"><span class="status-icon pass">✓</span><span class="label">계정 및 사내 시스템 접근 권한 발급</span><span class="owner">IT팀</span></div>
-      <div class="checklist-item"><span class="status-icon pass">✓</span><span class="label">근로계약서 및 서류 제출</span><span class="owner">인사팀</span></div>
-      <div class="checklist-item"><span class="status-icon pass">✓</span><span class="label">사내 필수 교육(윤리·보안) 이수</span><span class="owner">본인</span></div>
-      <div class="checklist-item"><span class="status-icon pending">4</span><span class="label">부서 배치 및 멘토 지정</span><span class="owner">소속팀장</span></div>
-      <div class="checklist-item"><span class="status-icon pending">5</span><span class="label">업무용 장비 수령</span><span class="owner">총무팀</span></div>
-      <div class="checklist-item"><span class="status-icon pending">6</span><span class="label">1개월 수습 평가 면담</span><span class="owner">소속팀장</span></div>
-    </div>
+    <div class="page-title-row"><h2 style="margin:0">내가 수행 중인 절차</h2></div>
+    <div class="grid" id="proc-grid"></div>
   </div>
 </div>
 <div id="snackbar-stack"></div>
 <script src="../components/interactions.js"></script>
+<script>
+  const NS = '02c';
+  const PROCS = [
+    { id:'proc1', title:'신규 입사자 온보딩 절차', steps:6 },
+    { id:'proc2', title:'보안 사고 대응 절차', steps:4 },
+    { id:'proc3', title:'출고 검수 절차', steps:3 },
+  ];
+  function getProgress(procId, total) {
+    const done = sgGetJSON('sg-checklist-' + NS + '-' + procId, []);
+    const count = done.filter(Boolean).length;
+    return { count, total, pct: Math.round((count / total) * 100) };
+  }
+  document.getElementById('proc-grid').innerHTML = PROCS.map((p) => {
+    const prog = getProgress(p.id, p.steps);
+    return '<a href="./variant-c-run.html?id=' + p.id + '" style="text-decoration:none;color:inherit"><div class="glass-card">' +
+      '<b style="font-size:13px">' + p.title + '</b>' +
+      '<div class="progress-track" style="margin-top:10px"><div class="progress-fill" style="width:' + prog.pct + '%"></div></div>' +
+      '<div style="font-size:11.5px;color:var(--slate-500);margin-top:6px">' + prog.count + '/' + prog.total + ' 완료 (' + prog.pct + '%)' + (prog.pct === 100 ? ' <span class="chip chip-success">완료</span>' : '') + '</div>' +
+      '</div></a>';
+  }).join('');
+</script>
 </body>
 </html>

@@ -16,32 +16,57 @@
 
   <div class="page-frame">
     <div class="brief-box">
-      <h4>기능</h4>
-      <ul><li>부서별 SOP·매뉴얼 문서 수와 최신 갱신일 한눈에 확인</li><li>카드를 눌러 해당 부서 문서함으로 진입</li></ul>
-      <h4>UI/UX</h4>
-      <ul><li>진입점을 부서 카드 그리드로 크게 배치 — 처음 오는 사람도 "어디부터 볼지" 헷갈리지 않게</li></ul>
+      <h4>방향성 — 부서별 문서함 탐색형</h4>
+      <ul><li>처음 오는 사람도 "어디부터 볼지" 헷갈리지 않도록 부서 카드를 큰 진입점으로 배치</li><li>카드를 누르면 아래 표가 그 부서 문서로 실제 전환되고, 문서를 누르면 상세 페이지로 이동합니다</li></ul>
     </div>
 
-    <div class="grid">
-      <div class="pick-card" data-selected="false" onclick="selectOnlyCard(this)"><span class="check">✓</span><b>인사·총무</b><div style="font-size:11.5px;color:var(--slate-500);margin-top:4px">SOP 24건 · 3일 전 갱신</div></div>
-      <div class="pick-card" data-selected="false" onclick="selectOnlyCard(this)"><span class="check">✓</span><b>IT·보안</b><div style="font-size:11.5px;color:var(--slate-500);margin-top:4px">SOP 18건 · 1주 전 갱신</div></div>
-      <div class="pick-card" data-selected="false" onclick="selectOnlyCard(this)"><span class="check">✓</span><b>영업·CS</b><div style="font-size:11.5px;color:var(--slate-500);margin-top:4px">SOP 31건 · 오늘 갱신</div></div>
-      <div class="pick-card" data-selected="false" onclick="selectOnlyCard(this)"><span class="check">✓</span><b>생산·물류</b><div style="font-size:11.5px;color:var(--slate-500);margin-top:4px">SOP 42건 · 2주 전 갱신</div></div>
-    </div>
+    <div class="grid" id="dept-cards"></div>
 
     <div class="glass-panel" style="margin-top:16px">
-      <div class="panel-head"><div><h3>영업·CS — 최근 갱신 문서</h3></div></div>
+      <div class="panel-head"><div><h3 id="dept-title">영업·CS — 최근 갱신 문서</h3></div></div>
       <div class="table-scroll"><table class="data-table">
         <thead><tr><th>문서명</th><th>버전</th><th>갱신일</th><th>승인 상태</th></tr></thead>
-        <tbody>
-          <tr><td>CS 응대 표준 스크립트</td><td>v3.2</td><td>오늘</td><td><span class="chip chip-success">승인됨</span></td></tr>
-          <tr><td>반품·교환 처리 절차</td><td>v2.0</td><td>3일 전</td><td><span class="chip chip-warn">검토중</span></td></tr>
-        </tbody>
+        <tbody id="dept-tbody"></tbody>
       </table></div>
     </div>
   </div>
 </div>
 <div id="snackbar-stack"></div>
 <script src="../components/interactions.js"></script>
+<script>
+  const DEPTS = [
+    { key:'sales', label:'영업·CS', docs:[
+      { id:'p1', title:'CS 응대 표준 스크립트', ver:'v3.2', date:'오늘', status:'승인됨' },
+      { id:'p2', title:'반품·교환 처리 절차', ver:'v2.0', date:'3일 전', status:'검토중' },
+    ]},
+    { key:'hr', label:'인사·총무', docs:[
+      { id:'p3', title:'신규 입사자 온보딩 절차', ver:'v1.4', date:'1주 전', status:'승인됨' },
+      { id:'p4', title:'연차·경조사 신청 매뉴얼', ver:'v2.1', date:'2주 전', status:'승인됨' },
+    ]},
+    { key:'it', label:'IT·보안', docs:[
+      { id:'p5', title:'사내 계정 발급 절차', ver:'v1.0', date:'1주 전', status:'승인됨' },
+      { id:'p6', title:'보안 사고 대응 매뉴얼', ver:'v3.0', date:'어제', status:'검토중' },
+    ]},
+    { key:'ops', label:'생산·물류', docs:[
+      { id:'p7', title:'출고 검수 표준 절차', ver:'v2.2', date:'2주 전', status:'승인됨' },
+    ]},
+  ];
+  function statusChip(s) { return s === '승인됨' ? 'chip-success' : s === '검토중' ? 'chip-warn' : 'chip-muted'; }
+  function renderDept(key) {
+    const dept = DEPTS.find((d) => d.key === key);
+    document.getElementById('dept-title').textContent = dept.label + ' — 최근 갱신 문서';
+    document.getElementById('dept-tbody').innerHTML = dept.docs.map((d) => (
+      '<tr style="cursor:pointer" onclick="location.href=\'./variant-a-detail.html?id=' + d.id + '\'"><td>' + d.title + '</td><td>' + d.ver + '</td><td>' + d.date + '</td><td><span class="chip ' + statusChip(d.status) + '">' + d.status + '</span></td></tr>'
+    )).join('');
+  }
+  document.getElementById('dept-cards').innerHTML = DEPTS.map((d, i) => (
+    '<div class="pick-card" data-selected="' + (i === 0) + '" onclick="selectDept(this,\'' + d.key + '\')"><span class="check">✓</span><b>' + d.label + '</b><div style="font-size:11.5px;color:var(--slate-500);margin-top:4px">SOP ' + d.docs.length + '건</div></div>'
+  )).join('');
+  function selectDept(el, key) {
+    selectOnlyCard(el);
+    renderDept(key);
+  }
+  renderDept('sales');
+</script>
 </body>
 </html>

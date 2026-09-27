@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>개정 요청 — SOP·매뉴얼 포털 시안 B</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 전체 목록</a> · <a href="./README.md">SOP·매뉴얼 포털 폴더</a> · <a href="./variant-b.html">시안 B 홈</a></div>
+    <h1 id="page-title">개정 요청 — 시안 B</h1>
+  </header>
+
+  <div class="page-frame">
+    <form onsubmit="return submitRevision(event)">
+      <div class="field"><label>요청자</label><input class="input" id="f-requester" value="나" /></div>
+      <div class="field"><label>개정이 필요한 이유<span class="req">*</span></label><textarea class="input" id="f-reason" rows="4" required placeholder="예: 3항 절차가 실제 운영과 달라 확인이 필요합니다"></textarea></div>
+      <div class="sticky-footer">
+        <button type="button" class="btn-outline" onclick="history.back()">취소</button>
+        <button type="submit" class="btn-primary" id="submit-btn">요청 접수</button>
+      </div>
+    </form>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+<script>
+  const NS = '02b';
+  const DOC_TITLES = { p1:'CS 응대 표준 스크립트', p2:'반품·교환 처리 절차', p3:'신규 입사자 온보딩 절차', p4:'연차·경조사 신청 매뉴얼', p5:'사내 계정 발급 절차', p6:'보안 사고 대응 매뉴얼', p7:'출고 검수 표준 절차' };
+  const id = new URLSearchParams(window.location.search).get('id') || 'p1';
+  document.getElementById('page-title').textContent = '개정 요청 — ' + (DOC_TITLES[id] || '');
+
+  function submitRevision(e) {
+    e.preventDefault();
+    const reason = document.getElementById('f-reason').value.trim();
+    if (!reason) { showSnack('warning', '개정 이유를 입력해주세요.'); return false; }
+    const all = sgGetJSON('sg-revisions-' + NS, []);
+    all.unshift({ docId:id, requester:document.getElementById('f-requester').value.trim() || '나', reason, ts:Date.now(), status:'검토중' });
+    sgSetJSON('sg-revisions-' + NS, all);
+    const btn = document.getElementById('submit-btn');
+    btn.innerHTML = '<span class="spinner spin"></span> 접수 중...';
+    btn.disabled = true;
+    setTimeout(() => { window.location.href = './variant-b-detail.html?id=' + id; }, 600);
+    return false;
+  }
+</script>
+</body>
+</html>
