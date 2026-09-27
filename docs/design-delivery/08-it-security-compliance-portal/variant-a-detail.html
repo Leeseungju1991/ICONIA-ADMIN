@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>점검 항목 코멘트 — IT·보안 컴플라이언스 포털 시안 A</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 전체 목록</a> · <a href="./README.md">IT·보안 컴플라이언스 포털 폴더</a> · <a href="./variant-a.html">시안 A 홈</a></div>
+    <h1 id="item-title">점검 항목 — 시안 A</h1>
+  </header>
+
+  <div class="page-frame">
+    <div class="glass-panel">
+      <div class="u-label">코멘트</div>
+      <div class="field"><textarea class="input" id="comment-input" rows="4" placeholder="점검 결과나 특이사항을 기록하세요"></textarea></div>
+      <button class="btn-primary btn-sm" onclick="saveComment()">저장</button>
+    </div>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+<script>
+  const NS = '08a';
+  const ITEMS = {
+    c1:'전 직원 비밀번호 정책 준수 점검', c2:'퇴사자 계정 회수 여부 확인', c3:'2FA 미적용 계정 조치',
+    c4:'외부 접속 VPN 로그 이상 여부', c5:'협력사 접근권한 재검토', c6:'백업 복구 테스트',
+  };
+  const id = new URLSearchParams(window.location.search).get('id') || 'c1';
+  document.getElementById('item-title').textContent = ITEMS[id] || '점검 항목';
+  document.getElementById('comment-input').value = sgGetJSON(NS + '-comment-' + id, '');
+  function saveComment() {
+    sgSetJSON(NS + '-comment-' + id, document.getElementById('comment-input').value.trim());
+    showSnack('success', '코멘트가 저장되었습니다.');
+  }
+</script>
+</body>
+</html>

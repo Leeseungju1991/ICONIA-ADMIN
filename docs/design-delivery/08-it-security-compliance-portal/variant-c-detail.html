@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>증적 상세 — IT·보안 컴플라이언스 포털 시안 C</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 전체 목록</a> · <a href="./README.md">IT·보안 컴플라이언스 포털 폴더</a> · <a href="./variant-c.html">시안 C 홈</a></div>
+    <h1 id="item-title">증적 상세 — 시안 C</h1>
+  </header>
+
+  <div class="page-frame">
+    <div class="page-title-row"><span class="chip" id="status-chip"></span></div>
+    <div class="glass-panel">
+      <div class="u-label">증적 등록</div>
+      <div class="field"><input class="input" id="file-input" placeholder="예: vpn-log-review-q3.pdf" /></div>
+      <button class="btn-primary btn-sm" onclick="upload()">등록</button>
+    </div>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+<script>
+  const NS = '08c';
+  const ITEMS = { a1:'비밀번호 정책 준수', a2:'2FA 적용 현황', a3:'VPN 접속 로그 검토', a4:'협력사 접근권한 재검토' };
+  const id = new URLSearchParams(window.location.search).get('id') || 'a3';
+  document.title = (ITEMS[id] || '') + ' — 시안 C';
+  document.getElementById('item-title').textContent = ITEMS[id] || '증적 상세';
+
+  function render() {
+    const uploaded = sgGetJSON(NS + '-file-' + id, null);
+    document.getElementById('status-chip').className = 'chip ' + (uploaded ? 'chip-success' : 'chip-error');
+    document.getElementById('status-chip').textContent = uploaded ? '완료 — ' + uploaded : '미제출';
+  }
+  function upload() {
+    const v = document.getElementById('file-input').value.trim();
+    if (!v) { showSnack('warning', '파일명을 입력해주세요.'); return; }
+    sgSetJSON(NS + '-file-' + id, v);
+    render();
+    showSnack('success', '증적이 등록되어 상태가 완료로 변경되었습니다.');
+  }
+  render();
+</script>
+</body>
+</html>
