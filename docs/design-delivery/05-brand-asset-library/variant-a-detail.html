@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>에셋 상세 — 브랜드 에셋 라이브러리 시안 A</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 전체 목록</a> · <a href="./README.md">브랜드 에셋 라이브러리 폴더</a> · <a href="./variant-a.html">시안 A 홈</a></div>
+    <h1 id="asset-title">에셋 상세 — 시안 A</h1>
+  </header>
+
+  <div class="page-frame">
+    <div style="height:220px;border-radius:14px;margin-bottom:16px" id="asset-thumb"></div>
+    <div class="page-title-row">
+      <div id="asset-meta" style="font-size:12.5px;color:var(--slate-600)"></div>
+      <button class="btn-primary btn-sm" onclick="download()">⬇ 다운로드</button>
+    </div>
+    <div class="glass-panel kv-list">
+      <div class="kv-row"><span class="k">해상도</span><span class="v" id="asset-res"></span></div>
+      <div class="kv-row"><span class="k">파일 크기</span><span class="v" id="asset-size"></span></div>
+      <div class="kv-row"><span class="k">다운로드 수</span><span class="v" id="asset-downloads"></span></div>
+    </div>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+<script>
+  const NS = '05a';
+  const ASSETS = {
+    as1:{ title:'로고 — 기본형(컬러)', type:'로고', fmt:'PNG', color:'linear-gradient(135deg,var(--accent),#8b7cff)', res:'2400×2400', size:'1.2MB' },
+    as2:{ title:'2026 가을 캠페인 키비주얼', type:'사진', fmt:'JPG', color:'linear-gradient(135deg,#EC4899,#f472b6)', res:'3840×2160', size:'4.8MB' },
+    as3:{ title:'브랜드 소개 영상 (30초)', type:'영상', fmt:'MP4', color:'linear-gradient(135deg,#60A5FA,#93c5fd)', res:'1920×1080', size:'82MB' },
+    as4:{ title:'제품 아이콘 세트', type:'로고', fmt:'SVG', color:'linear-gradient(135deg,#14B8A6,#5eead4)', res:'벡터', size:'340KB' },
+  };
+  const id = new URLSearchParams(window.location.search).get('id') || 'as1';
+  const a = ASSETS[id] || ASSETS.as1;
+  document.title = a.title + ' — 시안 A';
+  document.getElementById('asset-title').textContent = a.title;
+  document.getElementById('asset-thumb').style.background = a.color;
+  document.getElementById('asset-meta').innerHTML = '<span class="chip chip-info">' + a.type + '</span> <span class="chip chip-muted">' + a.fmt + '</span>';
+  document.getElementById('asset-res').textContent = a.res;
+  document.getElementById('asset-size').textContent = a.size;
+
+  function getDownloads() { return sgGetJSON(NS + '-downloads-' + id, 0); }
+  document.getElementById('asset-downloads').textContent = getDownloads() + '회';
+  function download() {
+    const n = getDownloads() + 1;
+    sgSetJSON(NS + '-downloads-' + id, n);
+    document.getElementById('asset-downloads').textContent = n + '회';
+    showSnack('success', '다운로드를 시작합니다.');
+  }
+</script>
+</body>
+</html>

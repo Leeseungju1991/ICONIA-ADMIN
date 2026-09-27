@@ -16,37 +16,56 @@
 
   <div class="page-frame">
     <div class="brief-box">
-      <h4>기능</h4>
-      <ul><li>파일 목록을 표로 정리 — 파일명, 크기, 최종 수정자</li><li>목록에서 선택하면 우측에 큰 미리보기</li></ul>
-      <h4>UI/UX</h4>
-      <ul><li>파일 관리자(Finder/탐색기)와 닮은 목록+미리보기 분할 — 파일명·용량 등 메타데이터를 정확히 확인해야 하는 실무자에게 적합</li></ul>
+      <h4>방향성 — 파일 표·미리보기 분할형</h4>
+      <ul><li>파일 관리자(Finder/탐색기)와 닮은 목록+미리보기 분할 — 파일명·용량 등 메타데이터를 정확히 확인해야 하는 실무자에게 적합</li><li>행을 누르면 우측 미리보기가 실제로 전환되고, 새 파일을 업로드하면 목록에 바로 추가됩니다</li></ul>
     </div>
 
+    <div class="page-title-row"><h2 style="margin:0"></h2><a href="./variant-b-upload.html" class="btn-primary btn-sm">+ 파일 업로드</a></div>
+
     <div class="detail-grid">
-      <div class="glass-panel">
-        <div class="table-scroll"><table class="data-table">
-          <thead><tr><th>파일명</th><th>크기</th><th>수정자</th></tr></thead>
-          <tbody>
-            <tr style="background:rgba(109,93,254,.06)"><td>logo-primary-color.png</td><td>1.2MB</td><td>디자인팀</td></tr>
-            <tr><td>campaign-autumn-2026-kv.jpg</td><td>4.8MB</td><td>디자인팀</td></tr>
-            <tr><td>brand-intro-30s.mp4</td><td>82MB</td><td>영상팀</td></tr>
-            <tr><td>icon-set-v2.svg</td><td>340KB</td><td>디자인팀</td></tr>
-          </tbody>
-        </table></div>
-      </div>
-      <div class="glass-panel">
-        <div style="height:160px;border-radius:12px;background:linear-gradient(135deg,var(--accent),#8b7cff);margin-bottom:12px"></div>
-        <div class="kv-list">
-          <div class="kv-row"><span class="k">파일명</span><span class="v">logo-primary-color.png</span></div>
-          <div class="kv-row"><span class="k">크기</span><span class="v">1.2MB</span></div>
-          <div class="kv-row"><span class="k">해상도</span><span class="v">2400×2400</span></div>
-        </div>
-        <button class="btn-primary btn-sm btn-block" style="margin-top:12px">다운로드</button>
-      </div>
+      <div class="glass-panel"><div class="table-scroll"><table class="data-table">
+        <thead><tr><th>파일명</th><th>크기</th><th>수정자</th></tr></thead>
+        <tbody id="file-tbody"></tbody>
+      </table></div></div>
+      <div class="glass-panel" id="file-preview"></div>
     </div>
   </div>
 </div>
 <div id="snackbar-stack"></div>
 <script src="../components/interactions.js"></script>
+<script>
+  const NS = '05b';
+  const SEED = [
+    { id:'f1', name:'logo-primary-color.png', size:'1.2MB', editor:'디자인팀', res:'2400×2400', color:'linear-gradient(135deg,var(--accent),#8b7cff)' },
+    { id:'f2', name:'campaign-autumn-2026-kv.jpg', size:'4.8MB', editor:'디자인팀', res:'3840×2160', color:'linear-gradient(135deg,#EC4899,#f472b6)' },
+    { id:'f3', name:'brand-intro-30s.mp4', size:'82MB', editor:'영상팀', res:'1920×1080', color:'linear-gradient(135deg,#60A5FA,#93c5fd)' },
+    { id:'f4', name:'icon-set-v2.svg', size:'340KB', editor:'디자인팀', res:'벡터', color:'linear-gradient(135deg,#14B8A6,#5eead4)' },
+  ];
+  function loadFiles() {
+    let list = sgGetJSON('sg-files-' + NS, null);
+    if (!list) { list = SEED; sgSetJSON('sg-files-' + NS, list); }
+    return list;
+  }
+  const files = loadFiles();
+  let selectedId = files[0].id;
+
+  function renderTable() {
+    document.getElementById('file-tbody').innerHTML = files.map((f) => (
+      '<tr style="cursor:pointer;' + (f.id === selectedId ? 'background:rgba(109,93,254,.06)' : '') + '" onclick="selectFile(\'' + f.id + '\')"><td>' + f.name + '</td><td>' + f.size + '</td><td>' + f.editor + '</td></tr>'
+    )).join('');
+  }
+  function renderPreview() {
+    const f = files.find((x) => x.id === selectedId);
+    document.getElementById('file-preview').innerHTML =
+      '<div style="height:160px;border-radius:12px;background:' + f.color + ';margin-bottom:12px"></div>' +
+      '<div class="kv-list"><div class="kv-row"><span class="k">파일명</span><span class="v">' + f.name + '</span></div>' +
+      '<div class="kv-row"><span class="k">크기</span><span class="v">' + f.size + '</span></div>' +
+      '<div class="kv-row"><span class="k">해상도</span><span class="v">' + f.res + '</span></div></div>' +
+      '<button class="btn-primary btn-sm btn-block" style="margin-top:12px" onclick="showSnack(\'success\',\'다운로드를 시작합니다.\')">다운로드</button>';
+  }
+  function selectFile(id) { selectedId = id; renderTable(); renderPreview(); }
+  renderTable();
+  renderPreview();
+</script>
 </body>
 </html>

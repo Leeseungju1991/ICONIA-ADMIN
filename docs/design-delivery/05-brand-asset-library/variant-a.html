@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>브랜드 에셋 라이브러리 — 시안 A</title>
 <link rel="stylesheet" href="../components/tokens.css" />
-<style>.asset-card{border-radius:14px;overflow:hidden;background:var(--surface);border:1px solid var(--hairline)}.asset-card .thumb{height:96px}.asset-card .body{padding:10px}</style>
+<style>.asset-card{border-radius:14px;overflow:hidden;background:var(--surface);border:1px solid var(--hairline);cursor:pointer}.asset-card .thumb{height:96px}.asset-card .body{padding:10px}</style>
 </head>
 <body>
 <div class="app-shell">
@@ -17,28 +17,44 @@
 
   <div class="page-frame">
     <div class="brief-box">
-      <h4>기능</h4>
-      <ul><li>로고·이미지·영상 등 에셋을 썸네일로 탐색</li><li>태그로 필터링, 클릭 한 번에 다운로드</li></ul>
-      <h4>UI/UX</h4>
-      <ul><li>이미지 중심 콘텐츠는 텍스트 표보다 썸네일 그리드가 훨씬 빠르게 훑힘 — 사진·디자인 자산 탐색의 표준 패턴</li></ul>
+      <h4>방향성 — 썸네일 그리드·태그 필터형</h4>
+      <ul><li>이미지 중심 콘텐츠는 텍스트 표보다 썸네일 그리드가 훨씬 빠르게 훑힘 — 사진·디자인 자산 탐색의 표준 패턴</li><li>검색·유형 필터가 실제로 목록에 반영되고, 카드를 누르면 큰 미리보기 상세로 이동합니다</li></ul>
     </div>
 
     <div class="page-toolbar">
-      <div class="input-wrap grow"><input class="input" placeholder="에셋 검색" oninput="onSearchInput(this)" style="padding-right:34px" /><button type="button" class="clear-btn" onclick="clearSearch(this)">✕</button></div>
+      <div class="input-wrap grow"><input class="input" id="q-input" placeholder="에셋 검색" oninput="renderGrid()" style="padding-right:34px" /><button type="button" class="clear-btn" onclick="clearSearch(this)">✕</button></div>
       <div class="dropdown"><button class="btn-outline btn-sm" onclick="toggleDropdown(event,this)">유형 ▾</button>
-        <div class="dropdown-menu" hidden><button class="item" onclick="closeDropdown()">로고</button><button class="item" onclick="closeDropdown()">사진</button><button class="item" onclick="closeDropdown()">영상</button></div>
+        <div class="dropdown-menu" hidden>
+          <button class="item" onclick="setType('');closeDropdown()">전체</button>
+          <button class="item" onclick="setType('로고');closeDropdown()">로고</button>
+          <button class="item" onclick="setType('사진');closeDropdown()">사진</button>
+          <button class="item" onclick="setType('영상');closeDropdown()">영상</button>
+        </div>
       </div>
     </div>
 
-    <div class="grid">
-      <div class="asset-card"><div class="thumb" style="background:linear-gradient(135deg,var(--accent),#8b7cff)"></div><div class="body"><b style="font-size:12.5px">로고 — 기본형(컬러)</b><div class="row" style="margin-top:6px"><span class="chip chip-info">로고</span><span class="chip chip-muted">PNG</span></div></div></div>
-      <div class="asset-card"><div class="thumb" style="background:linear-gradient(135deg,#EC4899,#f472b6)"></div><div class="body"><b style="font-size:12.5px">2026 가을 캠페인 키비주얼</b><div class="row" style="margin-top:6px"><span class="chip chip-success">사진</span><span class="chip chip-muted">JPG</span></div></div></div>
-      <div class="asset-card"><div class="thumb" style="background:linear-gradient(135deg,#60A5FA,#93c5fd)"></div><div class="body"><b style="font-size:12.5px">브랜드 소개 영상 (30초)</b><div class="row" style="margin-top:6px"><span class="chip chip-warn">영상</span><span class="chip chip-muted">MP4</span></div></div></div>
-      <div class="asset-card"><div class="thumb" style="background:linear-gradient(135deg,#14B8A6,#5eead4)"></div><div class="body"><b style="font-size:12.5px">제품 아이콘 세트</b><div class="row" style="margin-top:6px"><span class="chip chip-info">로고</span><span class="chip chip-muted">SVG</span></div></div></div>
-    </div>
+    <div class="grid" id="asset-grid"></div>
   </div>
 </div>
 <div id="snackbar-stack"></div>
 <script src="../components/interactions.js"></script>
+<script>
+  const ASSETS = [
+    { id:'as1', title:'로고 — 기본형(컬러)', type:'로고', fmt:'PNG', color:'linear-gradient(135deg,var(--accent),#8b7cff)' },
+    { id:'as2', title:'2026 가을 캠페인 키비주얼', type:'사진', fmt:'JPG', color:'linear-gradient(135deg,#EC4899,#f472b6)' },
+    { id:'as3', title:'브랜드 소개 영상 (30초)', type:'영상', fmt:'MP4', color:'linear-gradient(135deg,#60A5FA,#93c5fd)' },
+    { id:'as4', title:'제품 아이콘 세트', type:'로고', fmt:'SVG', color:'linear-gradient(135deg,#14B8A6,#5eead4)' },
+  ];
+  let typeFilter = '';
+  function setType(t) { typeFilter = t; renderGrid(); }
+  function renderGrid() {
+    const q = document.getElementById('q-input').value.trim().toLowerCase();
+    const items = ASSETS.filter((a) => (!q || a.title.toLowerCase().includes(q)) && (!typeFilter || a.type === typeFilter));
+    document.getElementById('asset-grid').innerHTML = items.length ? items.map((a) => (
+      '<div class="asset-card" onclick="location.href=\'./variant-a-detail.html?id=' + a.id + '\'"><div class="thumb" style="background:' + a.color + '"></div><div class="body"><b style="font-size:12.5px">' + a.title + '</b><div class="row" style="margin-top:6px"><span class="chip chip-info">' + a.type + '</span><span class="chip chip-muted">' + a.fmt + '</span></div></div></div>'
+    )).join('') : '<div class="state-box">조건에 맞는 에셋이 없습니다.</div>';
+  }
+  renderGrid();
+</script>
 </body>
 </html>

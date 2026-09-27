@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>파일 업로드 — 브랜드 에셋 라이브러리 시안 B</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 전체 목록</a> · <a href="./README.md">브랜드 에셋 라이브러리 폴더</a> · <a href="./variant-b.html">시안 B 홈</a></div>
+    <h1>파일 업로드 — 시안 B</h1>
+  </header>
+
+  <div class="page-frame">
+    <form onsubmit="return submitUpload(event)">
+      <div class="field"><label>파일명<span class="req">*</span></label><input class="input" id="f-name" required placeholder="예: brand-guideline-2026.pdf" /></div>
+      <div class="field"><label>크기(예시 입력)</label><input class="input" id="f-size" placeholder="예: 2.1MB" /></div>
+      <div class="hint" style="margin-bottom:14px">실제 파일 업로드 대신 목업 데이터를 목록에 추가하는 화면입니다.</div>
+      <div class="sticky-footer">
+        <button type="button" class="btn-outline" onclick="location.href='./variant-b.html'">취소</button>
+        <button type="submit" class="btn-primary" id="submit-btn">업로드</button>
+      </div>
+    </form>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+<script>
+  const NS = '05b';
+  function submitUpload(e) {
+    e.preventDefault();
+    const name = document.getElementById('f-name').value.trim();
+    if (!name) { showSnack('warning', '파일명을 입력해주세요.'); return false; }
+    const list = sgGetJSON('sg-files-' + NS, []);
+    const id = 'f' + Date.now();
+    list.push({ id, name, size: document.getElementById('f-size').value.trim() || '-', editor:'나', res:'-', color:'linear-gradient(135deg,#94a3b8,#cbd5e1)' });
+    sgSetJSON('sg-files-' + NS, list);
+    const btn = document.getElementById('submit-btn');
+    btn.innerHTML = '<span class="spinner spin"></span> 업로드 중...';
+    btn.disabled = true;
+    setTimeout(() => { window.location.href = './variant-b.html'; }, 600);
+    return false;
+  }
+</script>
+</body>
+</html>
