@@ -208,3 +208,15 @@ function sgClearHistory(ns, onDone) {
   try { localStorage.removeItem(sgHistKey(ns)); } catch (e) {}
   if (onDone) onDone();
 }
+
+/* 범용 JSON 저장소 (localStorage) — 커뮤니티 Q&A, 신청 목록 등 임의의 구조를
+   실제로 저장·조회해야 하는 화면에서 공용으로 사용 */
+function sgGetJSON(key, fallback) {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw === null ? fallback : JSON.parse(raw);
+  } catch (e) { return fallback; }
+}
+function sgSetJSON(key, value) {
+  try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) { /* 저장 불가 시 화면 갱신만 진행 */ }
+}

@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>질문상세 — 지식 검색 포털 시안 C</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 전체 목록</a> · <a href="./README.md">지식 검색 포털 폴더</a> · <a href="./variant-c.html">시안 C 홈</a></div>
+    <h1 id="q-title">질문 상세 — 시안 C</h1>
+  </header>
+
+  <div class="page-frame">
+    <div class="page-title-row">
+      <div id="q-meta" style="font-size:12.5px;color:var(--slate-600)"></div>
+      <button type="button" class="btn-outline btn-sm" id="vote-btn">👍 도움됨 <span id="vote-count"></span></button>
+    </div>
+
+    <div class="u-label" id="answer-count-label">답변</div>
+    <div id="answer-list" style="margin-bottom:20px"></div>
+
+    <div class="glass-panel">
+      <div class="u-label">답변 작성하기</div>
+      <div class="field"><textarea class="input" id="answer-input" rows="3" placeholder="아는 내용을 공유해주세요"></textarea></div>
+      <button class="btn-primary btn-sm" onclick="submitAnswer()">답변 등록</button>
+    </div>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+<script>
+  const NS = '01c';
+  const SEED = [
+    { id:'q1', title:'연차는 최대 며칠까지 이월할 수 있나요?', dept:'인사', votes:12, ts:Date.parse('2026-09-20'),
+      answers:[{ author:'이하늘(인사팀)', text:'인사 규정 제12조에 따라 최대 5일까지 이월 가능하고, 초과분은 회계연도 말 소멸됩니다.', ts:Date.parse('2026-09-20T10:00:00'), accepted:true }] },
+    { id:'q2', title:'재택근무 중에도 VPN을 꼭 연결해야 하나요?', dept:'IT', votes:8, ts:Date.parse('2026-09-18'),
+      answers:[{ author:'정민수(IT팀)', text:'네, 사내망 리소스 접근 시 VPN 연결이 필수입니다. 공용 와이파이에서는 특히 더 필요해요.', ts:Date.parse('2026-09-18T14:00:00'), accepted:true }] },
+    { id:'q3', title:'법인카드로 팀 회식비 결제해도 되나요? 한도가 궁금합니다', dept:'총무', votes:5, ts:Date.parse('2026-09-22'), answers:[] },
+    { id:'q4', title:'신규 입사자 장비 신청은 언제까지 해야 하나요?', dept:'인사', votes:3, ts:Date.parse('2026-09-15'),
+      answers:[{ author:'한지민(총무팀)', text:'입사 5영업일 전까지 신청하면 첫날 수령 가능합니다.', ts:Date.parse('2026-09-15T09:30:00'), accepted:false }] },
+    { id:'q5', title:'회의실 예약 취소는 어디서 하나요?', dept:'총무', votes:1, ts:Date.parse('2026-09-24'), answers:[] },
+  ];
+  function loadQuestions() {
+    let list = sgGetJSON('sg-community-' + NS, null);
+    if (!list) { list = SEED; sgSetJSON('sg-community-' + NS, list); }
+    return list;
+  }
+  function saveQuestions(list) { sgSetJSON('sg-community-' + NS, list); }
+
+  const id = new URLSearchParams(window.location.search).get('id');
+  let questions = loadQuestions();
+  let q = questions.find((x) => x.id === id) || questions[0];
+
+  function render() {
+    document.title = q.title + ' — 시안 C';
+    document.getElementById('q-title').textContent = q.title;
+    document.getElementById('q-meta').innerHTML = '<span class="chip chip-muted">' + q.dept + '</span> ' + new Date(q.ts).toLocaleDateString('ko-KR') + ' 등록';
+    document.getElementById('vote-count').textContent = q.votes;
+    document.getElementById('answer-count-label').textContent = '답변 ' + q.answers.length + '건';
+
+    document.getElementById('answer-list').innerHTML = q.answers.length ? q.answers.map((a, i) => (
+      '<div class="glass-card" style="margin-bottom:10px' + (a.accepted ? ';border-color:var(--emerald-600)' : '') + '">' +
+      (a.accepted ? '<span class="chip chip-success" style="margin-bottom:8px;display:inline-block">✓ 채택된 답변</span><br/>' : '') +
+      '<p style="font-size:13px;line-height:1.7;color:var(--slate-700);margin:0 0 8px">' + a.text + '</p>' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--slate-400)">' +
+      '<span>' + a.author + ' · ' + new Date(a.ts).toLocaleString('ko-KR') + '</span>' +
+      (a.accepted ? '' : '<button class="btn-ghost btn-xs" onclick="acceptAnswer(' + i + ')">이 답변 채택</button>') +
+      '</div></div>'
+    )).join('') : '<div class="state-box">아직 답변이 없습니다. 첫 답변을 남겨보세요.</div>';
+  }
+
+  document.getElementById('vote-btn').addEventListener('click', function () {
+    q.votes += 1;
+    saveQuestions(questions);
+    render();
+    showSnack('success', '도움됨으로 표시했습니다.');
+  });
+
+  function acceptAnswer(idx) {
+    q.answers.forEach((a, i) => { a.accepted = i === idx; });
+    saveQuestions(questions);
+    render();
+    showSnack('success', '답변을 채택했습니다.');
+  }
+
+  function submitAnswer() {
+    const input = document.getElementById('answer-input');
+    const text = input.value.trim();
+    if (!text) { showSnack('warning', '답변 내용을 입력해주세요.'); return; }
+    q.answers.push({ author:'나', text, ts:Date.now(), accepted:false });
+    saveQuestions(questions);
+    input.value = '';
+    render();
+    showSnack('success', '답변이 등록되었습니다.');
+  }
+
+  render();
+</script>
+</body>
+</html>
