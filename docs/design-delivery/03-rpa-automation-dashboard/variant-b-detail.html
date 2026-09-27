@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>자동화 상세 — RPA 대시보드 시안 B</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 전체 목록</a> · <a href="./README.md">RPA 자동화 대시보드 폴더</a> · <a href="./variant-b.html">시안 B 홈</a></div>
+    <h1 id="auto-title">자동화 상세 — 시안 B</h1>
+  </header>
+
+  <div class="page-frame">
+    <div class="page-title-row">
+      <span class="chip" id="auto-status-chip"></span>
+      <button type="button" class="btn-primary btn-sm" id="run-btn" onclick="runNow()">▶ 지금 바로 실행</button>
+    </div>
+    <div class="glass-panel kv-list">
+      <div class="kv-row"><span class="k">실행 주기</span><span class="v" id="auto-freq"></span></div>
+      <div class="kv-row"><span class="k">마지막 실행 결과</span><span class="v" id="auto-result"></span></div>
+      <div class="kv-row"><span class="k">마지막 실행 시각</span><span class="v" id="auto-lastrun"></span></div>
+    </div>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+<script>
+  const NS = '03b';
+  function loadAutos() { return sgGetJSON('sg-automations-' + NS, []); }
+  function saveAutos(list) { sgSetJSON('sg-automations-' + NS, list); }
+
+  const id = new URLSearchParams(window.location.search).get('id');
+  let list = loadAutos();
+  let auto = list.find((a) => a.id === id) || list[0];
+
+  function render() {
+    document.title = auto.name + ' — 시안 B';
+    document.getElementById('auto-title').textContent = auto.name;
+    document.getElementById('auto-status-chip').className = 'chip ' + (auto.status ? 'chip-success' : 'chip-muted');
+    document.getElementById('auto-status-chip').textContent = auto.status ? '활성' : '일시중지';
+    document.getElementById('auto-freq').textContent = auto.freq;
+    document.getElementById('auto-result').textContent = auto.lastResult;
+    document.getElementById('auto-lastrun').textContent = auto.lastRunAt ? new Date(auto.lastRunAt).toLocaleString('ko-KR') : '기록 없음';
+  }
+  function runNow() {
+    const btn = document.getElementById('run-btn');
+    btn.innerHTML = '<span class="spinner spin"></span> 실행 중...';
+    btn.disabled = true;
+    setTimeout(() => {
+      auto.lastResult = '성공';
+      auto.lastRunAt = Date.now();
+      saveAutos(list);
+      btn.innerHTML = '▶ 지금 바로 실행';
+      btn.disabled = false;
+      render();
+      showSnack('success', '자동화 실행이 완료되었습니다.');
+    }, 900);
+  }
+  render();
+</script>
+</body>
+</html>

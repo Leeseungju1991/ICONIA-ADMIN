@@ -8,7 +8,7 @@
 <style>
   .vtimeline { position:relative; padding-left:24px; }
   .vtimeline::before { content:""; position:absolute; left:6px; top:6px; bottom:6px; width:2px; background:var(--hairline); }
-  .vt-item { position:relative; margin-bottom:16px; }
+  .vt-item { position:relative; margin-bottom:16px; cursor:pointer; }
   .vt-item .dot { position:absolute; left:-24px; top:2px; width:12px; height:12px; border-radius:999px; display:flex; align-items:center; justify-content:center; font-size:8px; color:#fff; }
   .vt-item .when { font-size:11px; color:var(--slate-400); }
   .vt-item .what { font-size:13px; font-weight:600; margin-top:2px; }
@@ -24,28 +24,51 @@
 
   <div class="page-frame">
     <div class="brief-box">
-      <h4>기능</h4>
-      <ul><li>모든 자동화의 실행 기록을 시간순으로 표시</li><li>실패한 실행만 필터링해서 원인 확인</li></ul>
-      <h4>UI/UX</h4>
-      <ul><li>"방금 무슨 일이 있었는지" 순서가 중요한 운영/장애 대응 상황에 적합한 타임라인형</li></ul>
+      <h4>방향성 — 실행로그 타임라인형(운영/장애 대응)</h4>
+      <ul><li>"방금 무슨 일이 있었는지" 순서가 중요한 운영 담당자를 위한 타임라인</li><li>항목을 누르면 상세에서 실패 원인을 확인하고 실제로 재시도할 수 있습니다 — 재시도 결과가 이 목록에도 반영됩니다</li></ul>
     </div>
 
     <div class="page-toolbar">
       <div class="page-title-row grow" style="margin-bottom:0"><h2>실행 로그</h2></div>
-      <button class="btn-outline btn-sm">실패만 보기</button>
+      <button class="btn-outline btn-sm" id="filter-btn" onclick="toggleFilter()">실패만 보기</button>
     </div>
 
-    <div class="glass-panel">
-      <div class="vtimeline">
-        <div class="vt-item"><span class="dot" style="background:var(--emerald-600)">✓</span><div class="when">방금 · 09:02:14</div><div class="what">일일 매출 집계 → 엑셀 발송 — 성공</div></div>
-        <div class="vt-item"><span class="dot" style="background:var(--rose-500)">✕</span><div class="when">08:58:03</div><div class="what">세금계산서 발행 — 실패 (로그인 세션 만료)</div></div>
-        <div class="vt-item"><span class="dot" style="background:var(--emerald-600)">✓</span><div class="when">08:50:00</div><div class="what">신규 발주서 ERP 입력 — 성공 (12건 처리)</div></div>
-        <div class="vt-item"><span class="dot" style="background:var(--emerald-600)">✓</span><div class="when">08:40:00</div><div class="what">신규 발주서 ERP 입력 — 성공 (8건 처리)</div></div>
-      </div>
-    </div>
+    <div class="glass-panel"><div class="vtimeline" id="log-timeline"></div></div>
   </div>
 </div>
 <div id="snackbar-stack"></div>
 <script src="../components/interactions.js"></script>
+<script>
+  const NS = '03c';
+  const SEED = [
+    { id:'l1', time:'09:02:14', name:'일일 매출 집계 → 엑셀 발송', result:'성공', detail:'1건 처리, 소요 4초', retried:false },
+    { id:'l2', time:'08:58:03', name:'세금계산서 발행', result:'실패', detail:'로그인 세션이 만료되어 처리하지 못했습니다.', retried:false },
+    { id:'l3', time:'08:50:00', name:'신규 발주서 ERP 입력', result:'성공', detail:'12건 처리, 소요 32초', retried:false },
+    { id:'l4', time:'08:40:00', name:'신규 발주서 ERP 입력', result:'성공', detail:'8건 처리, 소요 21초', retried:false },
+  ];
+  function loadLog() {
+    let list = sgGetJSON('sg-rpalog-' + NS, null);
+    if (!list) { list = SEED; sgSetJSON('sg-rpalog-' + NS, list); }
+    return list;
+  }
+  let filterFail = false;
+  function toggleFilter() {
+    filterFail = !filterFail;
+    document.getElementById('filter-btn').textContent = filterFail ? '전체 보기' : '실패만 보기';
+    render();
+  }
+  function render() {
+    let list = loadLog();
+    if (filterFail) list = list.filter((l) => l.result === '실패');
+    document.getElementById('log-timeline').innerHTML = list.length ? list.map((l) => (
+      '<div class="vt-item" onclick="location.href=\'./variant-c-detail.html?id=' + l.id + '\'">' +
+      '<span class="dot" style="background:' + (l.result === '성공' ? 'var(--emerald-600)' : 'var(--rose-500)') + '">' + (l.result === '성공' ? '✓' : '✕') + '</span>' +
+      '<div class="when">' + l.time + (l.retried ? ' · 재시도됨' : '') + '</div>' +
+      '<div class="what">' + l.name + ' — ' + l.result + '</div>' +
+      '</div>'
+    )).join('') : '<div class="state-box">실패 항목이 없습니다.</div>';
+  }
+  render();
+</script>
 </body>
 </html>

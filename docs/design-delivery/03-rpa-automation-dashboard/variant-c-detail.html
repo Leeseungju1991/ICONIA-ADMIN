@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>실행 로그 상세 — RPA 대시보드 시안 C</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 전체 목록</a> · <a href="./README.md">RPA 자동화 대시보드 폴더</a> · <a href="./variant-c.html">시안 C 홈</a></div>
+    <h1 id="log-title">실행 로그 상세 — 시안 C</h1>
+  </header>
+
+  <div class="page-frame">
+    <div class="page-title-row"><span class="chip" id="log-status-chip"></span><button class="btn-primary btn-sm" id="retry-btn" onclick="retry()">↻ 재시도</button></div>
+    <div class="glass-panel kv-list" style="margin-bottom:16px">
+      <div class="kv-row"><span class="k">실행 시각</span><span class="v" id="log-time"></span></div>
+      <div class="kv-row"><span class="k">상세 내용</span><span class="v" id="log-detail"></span></div>
+    </div>
+    <div id="retry-banner"></div>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+<script>
+  const NS = '03c';
+  function loadLog() { return sgGetJSON('sg-rpalog-' + NS, []); }
+  function saveLog(list) { sgSetJSON('sg-rpalog-' + NS, list); }
+
+  const id = new URLSearchParams(window.location.search).get('id');
+  let list = loadLog();
+  let entry = list.find((l) => l.id === id) || list[0];
+
+  function render() {
+    document.title = entry.name + ' — 시안 C';
+    document.getElementById('log-title').textContent = entry.name;
+    document.getElementById('log-status-chip').className = 'chip ' + (entry.result === '성공' ? 'chip-success' : 'chip-error');
+    document.getElementById('log-status-chip').textContent = entry.result;
+    document.getElementById('log-time').textContent = entry.time;
+    document.getElementById('log-detail').textContent = entry.detail;
+    document.getElementById('retry-btn').style.display = entry.result === '실패' ? '' : 'none';
+    document.getElementById('retry-banner').innerHTML = entry.retried ? '<div class="banner success" style="margin-top:12px"><span class="icon">✓</span><div><p class="title">재시도 완료</p><p class="desc">재시도가 성공적으로 처리되어 로그가 갱신되었습니다.</p></div></div>' : '';
+  }
+  function retry() {
+    const btn = document.getElementById('retry-btn');
+    btn.innerHTML = '<span class="spinner spin"></span> 재시도 중...';
+    btn.disabled = true;
+    setTimeout(() => {
+      entry.result = '성공';
+      entry.detail = '재시도로 정상 처리되었습니다.';
+      entry.retried = true;
+      saveLog(list);
+      render();
+      showSnack('success', '재시도가 완료되었습니다.');
+    }, 900);
+  }
+  render();
+</script>
+</body>
+</html>
