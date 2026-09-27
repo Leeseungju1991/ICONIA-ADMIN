@@ -1,12 +1,8 @@
 # 사내 UI/UX 시안 갤러리
 
-부품 20종(1개 폴더) + 사내 대주제 10개(폴더당 시안 4종 A/B/C/D), 총 11개 폴더입니다.
-각 폴더에 들어가면 시안별 미리보기 이미지와 한 줄 설명이 있고, 시안(`variant-*.html`)을
-열면 상단에 기능·UI/UX 핵심 요약이 있습니다.
-
 | 폴더 | 설명 |
 |---|---|
-| [`components/`](./components/) | 부품 20종 인터랙티브 카탈로그 (컬러·버튼·폼·카드·탭·모달·스낵바 등) |
+| [`components/`](./components/) | 화면 구성에 쓰이는 부품 20종 모음 — 컬러·버튼·폼·카드·탭·모달·알림 등 |
 | [`01-knowledge-search-portal/`](./01-knowledge-search-portal/) | 사내 통합 지식 검색 포털 |
 | [`02-sop-manual-portal/`](./02-sop-manual-portal/) | 표준 업무 절차(SOP) · 매뉴얼 공유 포털 |
 | [`03-rpa-automation-dashboard/`](./03-rpa-automation-dashboard/) | RPA 기반 반복 업무 자동화 대시보드 |
@@ -17,9 +13,3 @@
 | [`08-it-security-compliance-portal/`](./08-it-security-compliance-portal/) | IT 서비스·보안 컴플라이언스 체크리스트 포털 |
 | [`09-b2b-poc-sandbox-portal/`](./09-b2b-poc-sandbox-portal/) | B2B 서비스 구독·PoC 샌드박스 포털 |
 | [`10-employee-service-portal/`](./10-employee-service-portal/) | 사내 통합 임직원 서비스 포털 |
-
-10개 대주제는 모두 [`components/tokens.css`](./components/tokens.css) ·
-[`components/interactions.js`](./components/interactions.js)를 공유합니다.
-
-> 참고: ICONIA 운영 콘솔 자체의 UI/UX 전달 문서(실제 앱 사이트맵·디자인 토큰 근거)는
-> [`components/ICONIA-ADMIN-CONSOLE.md`](./components/ICONIA-ADMIN-CONSOLE.md)에 있습니다.

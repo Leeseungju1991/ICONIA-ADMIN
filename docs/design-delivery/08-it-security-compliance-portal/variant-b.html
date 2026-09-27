@@ -39,7 +39,7 @@
   ];
   function rateChip(r) { return r >= 90 ? 'chip-success' : r >= 70 ? 'chip-warn' : 'chip-error'; }
   document.getElementById('dept-grid').innerHTML = DEPTS.map((d) => (
-    '<a href="./variant-b-detail.html?id=' + d.id + '" style="text-decoration:none;color:inherit"><div class="glass-panel"><div class="panel-head"><div><h3>' + d.name + '</h3></div><span class="chip ' + rateChip(d.rate) + '">' + d.rate + '%</span></div><div class="progress-track" style="height:8px"><div class="progress-fill" style="width:' + d.rate + '%"></div></div></div></a>'
+    '<a href="./variant-b-detail.html?id=' + d.id + '" class="text-plain"><div class="glass-panel"><div class="panel-head"><div><h3>' + d.name + '</h3></div><span class="chip ' + rateChip(d.rate) + '">' + d.rate + '%</span></div><div class="progress-track" style="height:8px"><div class="progress-fill" style="width:' + d.rate + '%"></div></div></div></a>'
   )).join('');
 </script>
 </body>

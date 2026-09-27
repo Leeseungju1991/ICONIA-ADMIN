@@ -17,7 +17,7 @@
   <div class="page-frame">
     <div class="brief-box">
       <h4>기능</h4>
-      <ul><li>문서 상세에서 ☆ 즐겨찾기를 누르면 이 목록에 실제로 저장됩니다(브라우저 localStorage) — 새로고침해도 유지됩니다</li></ul>
+      <ul><li>문서 상세에서 ☆ 즐겨찾기를 누른 문서들이 이 목록에 모입니다</li></ul>
     </div>
     <div class="page-title-row"><h2>즐겨찾기한 문서</h2><a href="./variant-a.html" class="btn-outline btn-sm">검색으로 돌아가기</a></div>
     <div class="glass-panel" id="fav-list"></div>
@@ -43,7 +43,7 @@
     const favDocs = DOCS.filter((d) => favIds.includes(d.id));
     document.getElementById('fav-list').innerHTML = favDocs.length ? favDocs.map((d, i) => (
       '<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;' + (i < favDocs.length - 1 ? 'border-bottom:1px solid var(--hairline)' : '') + '">' +
-      '<a href="./variant-a-detail.html?id=' + d.id + '" style="text-decoration:none;color:inherit"><b style="font-size:13px">' + d.title + '</b> <span class="chip chip-info" style="margin-left:6px">' + d.type + '</span>' +
+      '<a href="./variant-a-detail.html?id=' + d.id + '" class="text-plain"><b style="font-size:13px">' + d.title + '</b> <span class="chip chip-info" style="margin-left:6px">' + d.type + '</span>' +
       '<div style="font-size:12px;color:var(--slate-500);margin-top:4px">' + d.dept + ' · ' + d.date + ' 갱신</div></a>' +
       '<button class="btn-ghost btn-xs" onclick="removeFav(\'' + d.id + '\')">제거</button>' +
       '</div>'
