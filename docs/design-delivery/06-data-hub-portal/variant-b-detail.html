@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>데이터셋 상세 — 데이터 허브 포털 시안 B</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 전체 목록</a> · <a href="./README.md">데이터 허브 포털 폴더</a> · <a href="./variant-b.html">시안 B 홈</a></div>
+    <h1 id="ds-title">데이터셋 상세 — 시안 B</h1>
+  </header>
+
+  <div class="page-frame">
+    <div class="page-title-row"><h2 id="ds-title2" style="margin:0"></h2><span class="chip" id="ds-score-chip"></span></div>
+
+    <div class="tabs" role="tablist" style="margin-bottom:14px">
+      <button class="tab" role="tab" aria-selected="true" onclick="switchTab(this,'schema')">스키마</button>
+      <button class="tab" role="tab" aria-selected="false" onclick="switchTab(this,'sample')">샘플 데이터</button>
+      <button class="tab" role="tab" aria-selected="false" onclick="switchTab(this,'lineage')">계보</button>
+    </div>
+
+    <div class="tab-panel" data-panel="schema">
+      <div class="glass-panel kv-list" id="schema-list"></div>
+    </div>
+    <div class="tab-panel" data-panel="sample" hidden>
+      <div class="table-scroll"><table class="data-table" id="sample-table"></table></div>
+    </div>
+    <div class="tab-panel" data-panel="lineage" hidden>
+      <div class="glass-panel" id="lineage-box"></div>
+    </div>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+<script>
+  const DATASETS = {
+    ds1:{ name:'고객 주문 이력', score:98, schema:[['order_id','string · PK'],['customer_id','string'],['order_amount','integer'],['created_at','timestamp']], sampleCols:['order_id','customer_id','order_amount'], sampleRows:[['ORD-2026091','CUS-4821','89,000'],['ORD-2026092','CUS-1092','124,000']], lineage:'서비스 DB (주문 테이블) → 일 배치 ETL → 이 데이터셋 → 대시보드(경영/영업)', related:null },
+    ds2:{ name:'캠페인 클릭 로그', score:76, schema:[['event_id','string · PK'],['campaign_id','string'],['clicked_at','timestamp']], sampleCols:['event_id','campaign_id','clicked_at'], sampleRows:[['EV-88213','CMP-042','2026-09-27 09:00']], lineage:'광고 플랫폼 API → 실시간 스트리밍 ETL → 이 데이터셋 → 마케팅 대시보드', related:'ds1' },
+    ds3:{ name:'CS 문의 원문', score:91, schema:[['ticket_id','string · PK'],['content','text'],['created_at','timestamp']], sampleCols:['ticket_id','content'], sampleRows:[['TK-2026-01','배송이 늦어요']], lineage:'CS 시스템 DB → 실시간 CDC → 이 데이터셋 → CS 분석 대시보드', related:null },
+    ds4:{ name:'디바이스 원격 로그', score:54, schema:[['device_id','string'],['status','string'],['logged_at','timestamp (형식 불일치 존재)']], sampleCols:['device_id','status'], sampleRows:[['DEV-001','OK']], lineage:'디바이스 게이트웨이 → 배치 수집 → 이 데이터셋 (정제 필요)', related:null },
+  };
+  const id = new URLSearchParams(window.location.search).get('id') || 'ds1';
+  const d = DATASETS[id] || DATASETS.ds1;
+  document.title = d.name + ' — 시안 B';
+  document.getElementById('ds-title').textContent = d.name;
+  document.getElementById('ds-title2').textContent = d.name;
+  document.getElementById('ds-score-chip').className = 'chip ' + (d.score >= 90 ? 'chip-success' : d.score >= 70 ? 'chip-warn' : 'chip-error');
+  document.getElementById('ds-score-chip').textContent = '품질 ' + d.score + '점';
+
+  document.getElementById('schema-list').innerHTML = d.schema.map((s) => (
+    '<div class="kv-row"><span class="k">' + s[0] + '</span><span class="v">' + s[1] + '</span></div>'
+  )).join('');
+  document.getElementById('sample-table').innerHTML =
+    '<thead><tr>' + d.sampleCols.map((c) => '<th>' + c + '</th>').join('') + '</tr></thead>' +
+    '<tbody>' + d.sampleRows.map((r) => '<tr>' + r.map((v) => '<td>' + v + '</td>').join('') + '</tr>').join('') + '</tbody>';
+  document.getElementById('lineage-box').innerHTML = d.lineage + (d.related ? '<div style="margin-top:10px"><a class="btn-outline btn-sm" href="./variant-b-detail.html?id=' + d.related + '">관련 데이터셋 보기 →</a></div>' : '');
+</script>
+</body>
+</html>

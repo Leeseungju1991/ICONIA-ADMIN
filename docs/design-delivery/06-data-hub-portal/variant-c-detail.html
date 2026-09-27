@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>정합성 검사 — 데이터 허브 포털 시안 C</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 전체 목록</a> · <a href="./README.md">데이터 허브 포털 폴더</a> · <a href="./variant-c.html">시안 C 홈</a></div>
+    <h1 id="ds-title">정합성 검사 — 시안 C</h1>
+  </header>
+
+  <div class="page-frame">
+    <div class="page-title-row"><h2 id="ds-title2" style="margin:0"></h2><span class="chip chip-muted" id="ds-count"></span></div>
+    <div class="glass-panel" id="check-list"></div>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+<script>
+  const NS = '06c';
+  const DATASETS = {
+    ds1:{ name:'고객 주문 이력', checks:[], owners:[] },
+    ds2:{ name:'캠페인 클릭 로그', checks:['이상치 값 수동 검토 필요'], owners:['데이터팀'] },
+    ds4:{ name:'디바이스 원격 로그', checks:['중복 레코드 5,200건 발견','타임스탬프 형식 불일치 구간 존재','이상치 값 수동 검토 필요'], owners:['자동','자동','데이터팀'] },
+  };
+  const id = new URLSearchParams(window.location.search).get('id') || 'ds4';
+  const d = DATASETS[id] || DATASETS.ds4;
+  document.title = d.name + ' — 시안 C';
+  document.getElementById('ds-title').textContent = d.name;
+  document.getElementById('ds-title2').textContent = d.name;
+
+  function getDone() { return sgGetJSON(NS + '-checks-' + id, new Array(d.checks.length).fill(false)); }
+  function saveDone(arr) { sgSetJSON(NS + '-checks-' + id, arr); }
+  function render() {
+    const done = getDone();
+    const resolved = done.filter(Boolean).length;
+    document.getElementById('ds-count').textContent = resolved + '/' + d.checks.length + ' 해결';
+    document.getElementById('check-list').innerHTML = d.checks.length ? d.checks.map((label, i) => (
+      '<div class="checklist-item" style="cursor:pointer" onclick="toggle(' + i + ')">' +
+      '<span class="status-icon ' + (done[i] ? 'pass' : 'fail') + '">' + (done[i] ? '✓' : '✕') + '</span>' +
+      '<span class="label">' + label + (done[i] ? ' (해결됨)' : '') + '</span><span class="owner">' + d.owners[i] + '</span>' +
+      '</div>'
+    )).join('') : '<div class="state-box">이 데이터셋은 정합성 이슈가 없습니다.</div>';
+  }
+  function toggle(i) {
+    const done = getDone();
+    done[i] = !done[i];
+    saveDone(done);
+    render();
+    showSnack('success', done[i] ? '해결 처리되었습니다.' : '미해결로 되돌렸습니다.');
+  }
+  render();
+</script>
+</body>
+</html>
