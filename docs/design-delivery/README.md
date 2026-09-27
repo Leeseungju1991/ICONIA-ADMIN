@@ -3,6 +3,7 @@
 | 폴더 | 설명 |
 |---|---|
 | [`components/`](./components/) | 화면 구성에 쓰이는 부품 20종 모음 — 컬러·버튼·폼·카드·탭·모달·알림 등 |
+| [`components/theme-generator.html`](./components/theme-generator.html) | 색상 팔레트·대주제·화면 구성요소를 직접 골라 화면을 즉시 조합해 보는 도구 |
 | [`01-knowledge-search-portal/`](./01-knowledge-search-portal/) | 사내 통합 지식 검색 포털 |
 | [`02-sop-manual-portal/`](./02-sop-manual-portal/) | 표준 업무 절차(SOP) · 매뉴얼 공유 포털 |
 | [`03-rpa-automation-dashboard/`](./03-rpa-automation-dashboard/) | RPA 기반 반복 업무 자동화 대시보드 |
