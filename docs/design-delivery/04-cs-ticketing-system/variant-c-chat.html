@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>대화 — CS 티켓팅 시안 C</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 전체 목록</a> · <a href="./README.md">CS 티켓팅 폴더</a> · <a href="./variant-c.html">시안 C 홈</a></div>
+    <h1 id="chat-title">대화 — 시안 C</h1>
+  </header>
+
+  <div class="page-frame">
+    <div class="page-title-row"><h2 id="chat-title2" style="margin:0"></h2><span id="chat-customer" style="font-size:12px;color:var(--slate-400)"></span></div>
+
+    <div class="glass-panel">
+      <div class="msg-thread" style="margin-bottom:16px" id="msg-thread"></div>
+      <div class="row"><input class="input grow" id="msg-input" placeholder="답변을 입력하세요" /><button class="btn-outline btn-sm" onclick="sendMsg('internal')">🔒 메모</button><button class="btn-primary btn-sm" onclick="sendMsg('agent')">전송</button></div>
+    </div>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+<script>
+  const NS = '04c';
+  function loadChats() { return sgGetJSON('sg-chats-' + NS, []); }
+  function saveChats(list) { sgSetJSON('sg-chats-' + NS, list); }
+
+  const id = new URLSearchParams(window.location.search).get('id');
+  let chats = loadChats();
+  let chat = chats.find((c) => c.id === id) || chats[0];
+
+  function render() {
+    document.title = chat.subject + ' — 시안 C';
+    document.getElementById('chat-title').textContent = chat.subject;
+    document.getElementById('chat-title2').textContent = chat.subject;
+    document.getElementById('chat-customer').textContent = chat.customer + ' 고객';
+    document.getElementById('msg-thread').innerHTML = chat.messages.map((m) => (
+      '<div class="msg-bubble ' + m.who + '">' + m.text + '<span class="meta">' + m.time + '</span></div>'
+    )).join('');
+  }
+  function sendMsg(who) {
+    const input = document.getElementById('msg-input');
+    const text = input.value.trim();
+    if (!text) { showSnack('warning', '내용을 입력해주세요.'); return; }
+    chat.messages.push({ who, text, time: new Date().toLocaleTimeString('ko-KR', { hour:'2-digit', minute:'2-digit' }) });
+    saveChats(chats);
+    input.value = '';
+    render();
+    showSnack('success', who === 'internal' ? '내부 메모가 저장되었습니다.' : '전송되었습니다.');
+  }
+  render();
+</script>
+</body>
+</html>

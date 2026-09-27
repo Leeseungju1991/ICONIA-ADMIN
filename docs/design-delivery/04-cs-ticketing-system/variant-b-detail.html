@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>티켓 상세 — CS 티켓팅 시안 B</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 전체 목록</a> · <a href="./README.md">CS 티켓팅 폴더</a> · <a href="./variant-b.html">시안 B 홈</a></div>
+    <h1 id="ticket-title">티켓 상세 — 시안 B</h1>
+  </header>
+
+  <div class="page-frame">
+    <div id="ticket-meta" style="font-size:12.5px;color:var(--slate-600);margin-bottom:14px"></div>
+    <div class="form-row2" style="margin-bottom:16px">
+      <div class="field"><label>담당자</label>
+        <select class="select" id="f-owner" onchange="updateField('owner', this.value)">
+          <option>미배정</option><option>박상담</option><option>이상담</option><option>김상담</option>
+        </select>
+      </div>
+      <div class="field"><label>우선순위</label>
+        <select class="select" id="f-priority" onchange="updateField('priority', this.value)">
+          <option>낮음</option><option>보통</option><option>높음</option>
+        </select>
+      </div>
+    </div>
+    <div class="glass-panel"><p style="font-size:13px;color:var(--slate-700);margin:0" id="ticket-note">담당자·우선순위를 지정하면 즉시 저장됩니다.</p></div>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+<script>
+  const NS = '04b';
+  let cols = sgGetJSON('sg-board-' + NS, []);
+  const id = new URLSearchParams(window.location.search).get('id');
+  let col, ticket;
+  cols.forEach((c) => { const t = c.tickets.find((x) => x.id === id); if (t) { ticket = t; col = c; } });
+  if (!ticket) { ticket = { id, name:'티켓', meta:'' }; col = { label:'-' }; }
+
+  document.title = ticket.name + ' — 시안 B';
+  document.getElementById('ticket-title').textContent = ticket.name;
+  document.getElementById('ticket-meta').innerHTML = '<span class="chip chip-muted">' + col.label + '</span> ' + ticket.meta;
+  document.getElementById('f-owner').value = ticket.owner || '미배정';
+  document.getElementById('f-priority').value = ticket.priority || '보통';
+
+  function updateField(key, value) {
+    ticket[key] = value;
+    sgSetJSON('sg-board-' + NS, cols);
+    document.getElementById('ticket-note').textContent = (key === 'owner' ? '담당자가 ' : '우선순위가 ') + value + '(으)로 변경되어 저장되었습니다.';
+    showSnack('success', '저장되었습니다.');
+  }
+</script>
+</body>
+</html>
