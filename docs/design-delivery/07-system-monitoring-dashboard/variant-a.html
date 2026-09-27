@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>시스템 모니터링 — 시안 A</title>
 <link rel="stylesheet" href="../components/tokens.css" />
-<style>.svc-card{border-radius:14px;padding:14px;background:var(--surface);box-shadow:var(--shadow-card);border-top:3px solid var(--emerald-600)}.svc-card.warn{border-top-color:var(--amber-600)}.svc-card.down{border-top-color:var(--rose-500)}</style>
+<style>.svc-card{border-radius:14px;padding:14px;background:var(--surface);box-shadow:var(--shadow-card);border-top:3px solid var(--emerald-600);cursor:pointer}.svc-card.warn{border-top-color:var(--amber-600)}.svc-card.down{border-top-color:var(--rose-500)}</style>
 </head>
 <body>
 <div class="app-shell">
@@ -17,23 +17,32 @@
 
   <div class="page-frame">
     <div class="brief-box">
-      <h4>기능</h4>
-      <ul><li>서비스별 상태(정상/경고/장애)와 가동시간(%)을 카드로 요약</li></ul>
-      <h4>UI/UX</h4>
-      <ul><li>상단 색 바로 상태를 즉시 구분 — 여러 서비스를 동시에 감시하는 상황판형</li></ul>
+      <h4>방향성 — 서비스 상태 상황판형</h4>
+      <ul><li>상단 색 바로 상태를 즉시 구분 — 여러 서비스를 동시에 감시하는 상황판형</li><li>카드를 누르면 서비스 상세에서 장애를 "확인 처리"할 수 있고, 처리 결과가 실제로 저장됩니다</li></ul>
     </div>
 
-    <div class="grid">
-      <div class="svc-card"><b style="font-size:13px">API 서버</b><div style="font-size:22px;font-weight:800;margin-top:6px">99.98%</div><span class="chip chip-success" style="margin-top:6px;display:inline-block">정상</span></div>
-      <div class="svc-card warn"><b style="font-size:13px">결제 게이트웨이</b><div style="font-size:22px;font-weight:800;margin-top:6px">98.2%</div><span class="chip chip-warn" style="margin-top:6px;display:inline-block">지연 감지</span></div>
-      <div class="svc-card"><b style="font-size:13px">푸시 알림 서버</b><div style="font-size:22px;font-weight:800;margin-top:6px">100%</div><span class="chip chip-success" style="margin-top:6px;display:inline-block">정상</span></div>
-      <div class="svc-card down"><b style="font-size:13px">배치 작업 서버</b><div style="font-size:22px;font-weight:800;margin-top:6px">92.1%</div><span class="chip chip-error" style="margin-top:6px;display:inline-block">장애</span></div>
-    </div>
-
-    <div class="banner error" style="margin-top:16px"><span class="icon">✕</span><div><p class="title">배치 작업 서버 — 응답 없음</p><p class="desc">09:12부터 발생, 담당팀에 자동 알림 발송됨.</p></div></div>
+    <div class="grid" id="svc-grid"></div>
+    <div id="alert-banner"></div>
   </div>
 </div>
 <div id="snackbar-stack"></div>
 <script src="../components/interactions.js"></script>
+<script>
+  const NS = '07a';
+  const SERVICES = [
+    { id:'s1', name:'API 서버', uptime:'99.98%', status:'정상', cls:'' },
+    { id:'s2', name:'결제 게이트웨이', uptime:'98.2%', status:'지연 감지', cls:'warn' },
+    { id:'s3', name:'푸시 알림 서버', uptime:'100%', status:'정상', cls:'' },
+    { id:'s4', name:'배치 작업 서버', uptime:'92.1%', status:'장애', cls:'down' },
+  ];
+  function statusChip(s) { return s === '정상' ? 'chip-success' : s === '지연 감지' ? 'chip-warn' : 'chip-error'; }
+  document.getElementById('svc-grid').innerHTML = SERVICES.map((s) => (
+    '<div class="svc-card ' + s.cls + '" onclick="location.href=\'./variant-a-detail.html?id=' + s.id + '\'"><b style="font-size:13px">' + s.name + '</b><div style="font-size:22px;font-weight:800;margin-top:6px">' + s.uptime + '</div><span class="chip ' + statusChip(s.status) + '" style="margin-top:6px;display:inline-block">' + s.status + '</span></div>'
+  )).join('');
+  const ackd = sgGetJSON(NS + '-ack-s4', false);
+  document.getElementById('alert-banner').innerHTML = ackd
+    ? '<div class="banner success" style="margin-top:16px"><span class="icon">✓</span><div><p class="title">배치 작업 서버 장애 — 확인됨</p><p class="desc">담당자가 확인 처리했습니다.</p></div></div>'
+    : '<div class="banner error" style="margin-top:16px"><span class="icon">✕</span><div><p class="title">배치 작업 서버 — 응답 없음</p><p class="desc">09:12부터 발생, 담당팀에 자동 알림 발송됨.</p></div></div>';
+</script>
 </body>
 </html>

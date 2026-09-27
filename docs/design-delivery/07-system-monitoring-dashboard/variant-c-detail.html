@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>지표 상세 — 시스템 모니터링 시안 C</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+<style>.spark-lg{display:flex;align-items:flex-end;gap:4px;height:60px}.spark-lg span{width:14px;border-radius:2px;background:var(--accent)}</style>
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 전체 목록</a> · <a href="./README.md">시스템 모니터링 폴더</a> · <a href="./variant-c.html">시안 C 홈</a></div>
+    <h1 id="metric-title">지표 상세 — 시안 C</h1>
+  </header>
+
+  <div class="page-frame">
+    <div class="page-title-row"><h2 id="metric-title2" style="margin:0"></h2><span style="font-family:ui-monospace,monospace;font-size:18px;font-weight:700" id="metric-value"></span></div>
+    <div class="glass-panel" style="margin-bottom:16px"><div class="spark-lg" id="spark-lg"></div></div>
+
+    <div class="glass-panel">
+      <div class="u-label">알림 임계치 설정</div>
+      <div class="row"><input class="input" id="threshold-input" placeholder="예: 80%" style="max-width:160px" /><button class="btn-primary btn-sm" onclick="saveThreshold()">저장</button></div>
+      <div class="hint" style="margin-top:8px" id="threshold-current"></div>
+    </div>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+<script>
+  const NS = '07c';
+  const METRICS = {
+    m1:{ name:'cpu.usage.avg', value:'42%', spark:[10,12,9,14,11,13,12] },
+    m2:{ name:'mem.usage.avg', value:'68%', spark:[14,15,14,16,15,16,17] },
+    m3:{ name:'api.p99_latency_ms', value:'842 ▲', spark:[8,9,10,14,17,19,20] },
+    m4:{ name:'queue.depth', value:'12 ▼', spark:[18,15,13,10,8,7,6] },
+  };
+  const id = new URLSearchParams(window.location.search).get('id') || 'm1';
+  const m = METRICS[id] || METRICS.m1;
+  document.title = m.name + ' — 시안 C';
+  document.getElementById('metric-title').textContent = m.name;
+  document.getElementById('metric-title2').textContent = m.name;
+  document.getElementById('metric-value').textContent = m.value;
+  document.getElementById('spark-lg').innerHTML = m.spark.map((h) => '<span style="height:' + (h * 2) + 'px"></span>').join('');
+
+  function render() {
+    const th = sgGetJSON(NS + '-threshold-' + id, null);
+    document.getElementById('threshold-current').textContent = th ? '현재 설정된 임계치: ' + th + ' (초과 시 알림)' : '설정된 임계치가 없습니다.';
+    if (th) document.getElementById('threshold-input').value = th;
+  }
+  function saveThreshold() {
+    const v = document.getElementById('threshold-input').value.trim();
+    if (!v) { showSnack('warning', '임계치 값을 입력해주세요.'); return; }
+    sgSetJSON(NS + '-threshold-' + id, v);
+    render();
+    showSnack('success', '임계치가 저장되었습니다.');
+  }
+  render();
+</script>
+</body>
+</html>
