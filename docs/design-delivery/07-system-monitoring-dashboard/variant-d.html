@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>시스템 모니터링 — 시안 D</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+<style>
+  .sla-bar { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
+  .sla-bar .name { width:120px; font-size:12.5px; font-weight:600; flex-shrink:0; }
+</style>
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 전체 목록</a> · <a href="./README.md">시스템 모니터링 폴더</a></div>
+    <h1>시스템 성능·운영 모니터링 대시보드 — 시안 D</h1>
+  </header>
+
+  <div class="page-frame">
+    <div class="brief-box">
+      <h4>기능</h4>
+      <ul><li>월간 서비스별 가동률을 SLA 목표와 비교</li></ul>
+      <h4>UI/UX</h4>
+      <ul><li>실시간 상태보다 "이번 달 약속한 가동률을 지켰는지" 월간 리포트/회의 자료용 요약</li></ul>
+    </div>
+
+    <div class="page-title-row"><h2>9월 SLA 리포트</h2><span class="chip chip-muted">목표 99.9%</span></div>
+
+    <div class="glass-panel">
+      <div class="sla-bar"><span class="name">API 서버</span><div class="progress-track" style="flex:1"><div class="progress-fill" style="width:99.98%;background:var(--emerald-600)"></div></div><span class="chip chip-success">99.98%</span></div>
+      <div class="sla-bar"><span class="name">결제 게이트웨이</span><div class="progress-track" style="flex:1"><div class="progress-fill" style="width:98.2%;background:var(--amber-600)"></div></div><span class="chip chip-warn">98.2%</span></div>
+      <div class="sla-bar"><span class="name">푸시 알림 서버</span><div class="progress-track" style="flex:1"><div class="progress-fill" style="width:100%;background:var(--emerald-600)"></div></div><span class="chip chip-success">100%</span></div>
+      <div class="sla-bar"><span class="name">배치 작업 서버</span><div class="progress-track" style="flex:1"><div class="progress-fill" style="width:92.1%;background:var(--rose-500)"></div></div><span class="chip chip-error">92.1%</span></div>
+    </div>
+
+    <div class="banner warn" style="margin-top:12px"><span class="icon">⚠</span><div><p class="title">배치 작업 서버 SLA 미달</p><p class="desc">목표 99.9% 대비 7.8%p 부족 — 원인 분석 리포트 별도 첨부 필요.</p></div></div>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+</body>
+</html>

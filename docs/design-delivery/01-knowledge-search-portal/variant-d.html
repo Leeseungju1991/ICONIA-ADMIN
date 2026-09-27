@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>지식 검색 포털 — 시안 D</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 전체 목록</a> · <a href="./README.md">지식 검색 포털 폴더</a></div>
+    <h1>사내 통합 지식 검색 포털 — 시안 D</h1>
+  </header>
+
+  <div class="page-frame">
+    <div class="brief-box">
+      <h4>기능</h4>
+      <ul><li>최근 조회 문서와 즐겨찾기를 진입 즉시 노출</li><li>부서 공지·인기 문서를 함께 추천</li></ul>
+      <h4>UI/UX</h4>
+      <ul><li>검색 자체보다 "매일 자주 찾는 문서"에 빠르게 재접근하는 개인화 랜딩 — 자주 쓰는 사람에게 검색창보다 빠름</li></ul>
+    </div>
+
+    <div class="page-title-row"><h2>내 지식 홈</h2><div class="input-wrap" style="width:220px"><input class="input" placeholder="검색..." oninput="onSearchInput(this)" style="padding-right:34px" /><button type="button" class="clear-btn" onclick="clearSearch(this)">✕</button></div></div>
+
+    <div class="two-col">
+      <div class="glass-panel">
+        <div class="u-label">⭐ 즐겨찾기</div>
+        <div class="kv-list">
+          <div class="kv-row"><span class="k">연차 신청 방법 안내</span><span class="v">위키</span></div>
+          <div class="kv-row"><span class="k">인사 규정 전문</span><span class="v">규정</span></div>
+        </div>
+      </div>
+      <div class="glass-panel">
+        <div class="u-label">🕓 최근 본 문서</div>
+        <div class="kv-list">
+          <div class="kv-row"><span class="k">신규 입사자 온보딩 가이드</span><span class="v">2시간 전</span></div>
+          <div class="kv-row"><span class="k">보안 정책 v2.1</span><span class="v">어제</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="glass-panel" style="margin-top:16px">
+      <div class="u-label">🔥 이번 주 인기 문서</div>
+      <div class="table-scroll"><table class="data-table">
+        <thead><tr><th>문서명</th><th>조회수</th></tr></thead>
+        <tbody><tr><td>2026년 하반기 연차 사용 독려 공지</td><td>1,204</td></tr><tr><td>사내 와이파이 점검 안내</td><td>862</td></tr></tbody>
+      </table></div>
+    </div>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+</body>
+</html>

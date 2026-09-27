@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>브랜드 에셋 라이브러리 — 시안 D</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 전체 목록</a> · <a href="./README.md">브랜드 에셋 라이브러리 폴더</a></div>
+    <h1>마케팅 콘텐츠·브랜드 에셋 라이브러리 — 시안 D</h1>
+  </header>
+
+  <div class="page-frame">
+    <div class="brief-box">
+      <h4>기능</h4>
+      <ul><li>업로드된 에셋이 검수를 거쳐 승인되는 흐름 관리</li></ul>
+      <h4>UI/UX</h4>
+      <ul><li>파일 탐색이 아니라 "지금 검수 대기 중인 게 뭔지" 운영 담당자가 처리해야 하는 워크플로우형 — 03 리드 목록의 칸반과 같은 패턴을 재사용</li></ul>
+    </div>
+
+    <div class="page-title-row"><h2>에셋 승인 워크플로우</h2><button class="btn-primary btn-sm">+ 업로드</button></div>
+
+    <div class="kanban-board">
+      <div class="kanban-col">
+        <div class="kanban-col-head">업로드됨 <span class="count">2</span></div>
+        <div class="kanban-col-body">
+          <div class="kanban-card"><div class="name">겨울 캠페인 배너 시안</div><div class="meta">디자인팀 · 방금</div><div class="move-row"><button onclick="moveKanbanCard(this,'next')">›</button></div></div>
+          <div class="kanban-card"><div class="name">신제품 소개 영상 초안</div><div class="meta">영상팀 · 1시간 전</div><div class="move-row"><button onclick="moveKanbanCard(this,'next')">›</button></div></div>
+        </div>
+      </div>
+      <div class="kanban-col">
+        <div class="kanban-col-head">검수중 <span class="count">1</span></div>
+        <div class="kanban-col-body">
+          <div class="kanban-card"><div class="name">SNS 템플릿 v2</div><div class="meta">마케팅팀 · 어제</div><div class="move-row"><button onclick="moveKanbanCard(this,'prev')">‹</button><button onclick="moveKanbanCard(this,'next')">›</button></div></div>
+        </div>
+      </div>
+      <div class="kanban-col">
+        <div class="kanban-col-head">승인됨 <span class="count">1</span></div>
+        <div class="kanban-col-body">
+          <div class="kanban-card"><div class="name">로고 — 기본형(컬러)</div><div class="meta">디자인팀 · 3일 전</div><div class="move-row"><button onclick="moveKanbanCard(this,'prev')">‹</button></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+</body>
+</html>

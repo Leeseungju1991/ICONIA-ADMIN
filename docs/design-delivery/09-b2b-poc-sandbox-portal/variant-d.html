@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>B2B PoC 샌드박스 포털 — 시안 D</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 전체 목록</a> · <a href="./README.md">B2B PoC 샌드박스 포털 폴더</a></div>
+    <h1>B2B 서비스 구독·PoC 샌드박스 포털 — 시안 D</h1>
+  </header>
+
+  <div class="page-frame">
+    <div class="brief-box">
+      <h4>기능</h4>
+      <ul><li>구독 중인 서비스별 청구 금액과 다음 결제일 확인</li></ul>
+      <h4>UI/UX</h4>
+      <ul><li>PoC 이후 정식 계약 단계의 파트너사가 "얼마를 언제 내는지" 확인하는 청구·정산 표</li></ul>
+    </div>
+
+    <div class="page-title-row"><h2>구독·청구 내역</h2></div>
+
+    <div class="grid" style="margin-bottom:16px">
+      <div class="stat-card"><div class="blob" style="background:radial-gradient(circle,var(--accent),transparent)"></div><div class="label">이번달 청구 예정액</div><div class="value">70만원</div></div>
+      <div class="stat-card"><div class="blob" style="background:radial-gradient(circle,#059669,transparent)"></div><div class="label">활성 구독</div><div class="value">2건</div></div>
+    </div>
+
+    <div class="table-scroll"><table class="data-table">
+      <thead><tr><th>서비스</th><th>플랜</th><th>월 요금</th><th>다음 결제일</th></tr></thead>
+      <tbody>
+        <tr><td>AI Key 관리 API</td><td>정식 구독</td><td>30만원</td><td>2026-10-05</td></tr>
+        <tr><td>디바이스 원격 모니터링</td><td>정식 구독</td><td>50만원</td><td>2026-10-12</td></tr>
+        <tr><td>CS 자동응대 봇</td><td>PoC (무료)</td><td>—</td><td>2026-10-27 만료</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+</body>
+</html>

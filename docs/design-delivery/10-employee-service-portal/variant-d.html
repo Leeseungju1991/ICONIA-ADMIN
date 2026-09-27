@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>임직원 서비스 포털 — 시안 D</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 전체 목록</a> · <a href="./README.md">임직원 서비스 포털 폴더</a></div>
+    <h1>사내 통합 임직원 서비스 포털 — 시안 D</h1>
+  </header>
+
+  <div class="page-frame">
+    <div class="brief-box">
+      <h4>기능</h4>
+      <ul><li>부서·이름으로 담당자를 검색해 연락처 확인</li></ul>
+      <h4>UI/UX</h4>
+      <ul><li>서비스 신청이 아니라 "이 일은 누구한테 물어봐야 하는지" 담당자를 찾는 조직도형 — 검색+카드 리스트</li></ul>
+    </div>
+
+    <div class="page-title-row"><h2>담당자 찾기</h2></div>
+    <div class="input-wrap" style="margin-bottom:16px"><input class="input" placeholder="이름, 부서로 검색" oninput="onSearchInput(this)" style="padding-right:34px" /><button type="button" class="clear-btn" onclick="clearSearch(this)">✕</button></div>
+
+    <div class="grid">
+      <div class="glass-card"><b style="font-size:13px">이하늘</b><div style="font-size:11.5px;color:var(--slate-500);margin-top:2px">CS팀장</div><div style="font-size:11.5px;color:var(--slate-400);margin-top:6px">내선 1204 · haneul.lee@iconia.com</div></div>
+      <div class="glass-card"><b style="font-size:13px">정민수</b><div style="font-size:11.5px;color:var(--slate-500);margin-top:2px">IT팀 · 계정 발급 담당</div><div style="font-size:11.5px;color:var(--slate-400);margin-top:6px">내선 1088 · minsu.jung@iconia.com</div></div>
+      <div class="glass-card"><b style="font-size:13px">한지민</b><div style="font-size:11.5px;color:var(--slate-500);margin-top:2px">총무팀 · 회의실·비품</div><div style="font-size:11.5px;color:var(--slate-400);margin-top:6px">내선 1150 · jimin.han@iconia.com</div></div>
+    </div>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+</body>
+</html>
