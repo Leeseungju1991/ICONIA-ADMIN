@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>질문하기 — 지식 검색 포털 시안 C</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 전체 목록</a> · <a href="./README.md">지식 검색 포털 폴더</a> · <a href="./variant-c.html">시안 C 홈</a></div>
+    <h1>질문하기 — 시안 C</h1>
+  </header>
+
+  <div class="page-frame">
+    <form onsubmit="return submitQuestion(event)">
+      <div class="form-section">
+        <div class="field"><label>질문 제목<span class="req">*</span></label><input class="input" id="f-title" required placeholder="예: 반차 신청도 인사 시스템에서 하나요?" /></div>
+        <div class="field"><label>관련 부서</label>
+          <select class="select" id="f-dept"><option>인사</option><option>IT</option><option>총무</option><option>보안</option><option>기타</option></select>
+        </div>
+        <div class="field"><label>내용</label><textarea class="input" id="f-body" rows="4" placeholder="상황을 조금 더 자세히 적어주시면 더 정확한 답변을 받을 수 있어요"></textarea></div>
+      </div>
+      <div class="sticky-footer">
+        <button type="button" class="btn-outline" onclick="location.href='./variant-c.html'">취소</button>
+        <button type="submit" class="btn-primary" id="submit-btn">질문 등록</button>
+      </div>
+    </form>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+<script>
+  const NS = '01c';
+  function submitQuestion(e) {
+    e.preventDefault();
+    const title = document.getElementById('f-title').value.trim();
+    if (!title) { showSnack('warning', '질문 제목을 입력해주세요.'); return false; }
+    const list = sgGetJSON('sg-community-' + NS, []);
+    const id = 'q' + Date.now();
+    list.unshift({ id, title, dept: document.getElementById('f-dept').value, votes:0, ts:Date.now(), answers:[] });
+    sgSetJSON('sg-community-' + NS, list);
+    const btn = document.getElementById('submit-btn');
+    btn.innerHTML = '<span class="spinner spin"></span> 등록 중...';
+    btn.disabled = true;
+    setTimeout(() => { window.location.href = './variant-c-detail.html?id=' + id; }, 500);
+    return false;
+  }
+</script>
+</body>
+</html>

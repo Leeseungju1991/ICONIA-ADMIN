@@ -16,48 +16,62 @@
 
   <div class="page-frame">
     <div class="brief-box">
-      <h4>방향성 — AI 어시스턴트형</h4>
-      <ul><li>목록을 훑기보다 "질문 → 답" 바로 얻고 싶을 때를 위한 대화형 진입. 질문을 입력하면 AI 요약 답변 + 출처 문서를 함께 제시합니다</li><li>최근 질문 기록이 브라우저에 실제로 저장되어(localStorage) 다시 방문해도 이어볼 수 있습니다</li></ul>
+      <h4>방향성 — 동료 Q&A 커뮤니티형</h4>
+      <ul><li>문서를 찾는 대신 "아는 사람에게 직접 물어보는" 사내 질문·답변 게시판. 검색으로 안 나오는 애매한 질문에 강함</li><li>질문 등록·답변 작성·도움됨 추천·답변 채택이 모두 실제로 동작하고 브라우저에 저장되어(localStorage) 유지됩니다</li></ul>
     </div>
 
-    <div class="page-title-row"><h2 style="margin:0">무엇이든 물어보세요</h2></div>
-    <form id="ask-form" style="margin-bottom:20px" onsubmit="return submitAsk(event)">
-      <div class="input-wrap"><input class="input" id="ask-input" placeholder="예: 연차는 최대 며칠까지 이월할 수 있나요?" oninput="onSearchInput(this)" style="padding-right:34px" /><button type="button" class="clear-btn" onclick="clearSearch(this)">✕</button></div>
-    </form>
+    <div class="page-title-row"><h2 style="margin:0">사내 Q&A</h2><a href="./variant-c-new.html" class="btn-primary btn-sm">+ 질문하기</a></div>
 
-    <div class="u-label">추천 질문</div>
-    <div class="row" style="margin-bottom:24px">
-      <button type="button" class="pill-tab" onclick="askQuick('연차는 최대 며칠까지 이월할 수 있나요?')">연차 이월 한도는?</button>
-      <button type="button" class="pill-tab" onclick="askQuick('VPN 접속은 어떻게 하나요?')">VPN 접속 방법</button>
-      <button type="button" class="pill-tab" onclick="askQuick('법인카드 정산 기한은?')">법인카드 정산 기한</button>
-      <button type="button" class="pill-tab" onclick="askQuick('신규 입사자 체크리스트는?')">온보딩 체크리스트</button>
+    <div class="pill-tabs" style="margin-bottom:16px" id="sort-tabs">
+      <button class="pill-tab" aria-selected="true" onclick="setSort('hot',this)">인기순</button>
+      <button class="pill-tab" aria-selected="false" onclick="setSort('new',this)">최신순</button>
+      <button class="pill-tab" aria-selected="false" onclick="setSort('unanswered',this)">미답변만</button>
     </div>
 
-    <div class="page-title-row"><div class="u-label" style="margin:0">최근 질문</div><button class="btn-ghost btn-xs" onclick="clearHist()">기록 지우기</button></div>
-    <div class="glass-panel" id="history-list"></div>
+    <div class="glass-panel" id="q-list"></div>
   </div>
 </div>
 <div id="snackbar-stack"></div>
 <script src="../components/interactions.js"></script>
 <script>
   const NS = '01c';
-  function askQuick(q) { window.location.href = './variant-c-answer.html?q=' + encodeURIComponent(q); }
-  document.getElementById('ask-form').addEventListener('submit', function (e) {
-    e.preventDefault();
-    const q = document.getElementById('ask-input').value.trim();
-    if (q) window.location.href = './variant-c-answer.html?q=' + encodeURIComponent(q);
-  });
-  function renderHistory() {
-    const hist = sgGetHistory(NS);
-    document.getElementById('history-list').innerHTML = hist.length ? hist.map((h, i) => (
-      '<a href="./variant-c-answer.html?q=' + encodeURIComponent(h.text) + '" style="text-decoration:none;color:inherit;display:block;padding:10px 0;' + (i < hist.length - 1 ? 'border-bottom:1px solid var(--hairline)' : '') + '">' +
-      '<span style="font-size:13px">💬 ' + h.text + '</span>' +
-      '<div style="font-size:11px;color:var(--slate-400);margin-top:2px">' + new Date(h.ts).toLocaleString('ko-KR') + '</div>' +
-      '</a>'
-    )).join('') : '<div class="state-box">아직 질문 기록이 없습니다. 위에서 질문을 입력해 보세요.</div>';
+  const SEED = [
+    { id:'q1', title:'연차는 최대 며칠까지 이월할 수 있나요?', dept:'인사', votes:12, ts:Date.parse('2026-09-20'),
+      answers:[{ author:'이하늘(인사팀)', text:'인사 규정 제12조에 따라 최대 5일까지 이월 가능하고, 초과분은 회계연도 말 소멸됩니다.', ts:Date.parse('2026-09-20T10:00:00'), accepted:true }] },
+    { id:'q2', title:'재택근무 중에도 VPN을 꼭 연결해야 하나요?', dept:'IT', votes:8, ts:Date.parse('2026-09-18'),
+      answers:[{ author:'정민수(IT팀)', text:'네, 사내망 리소스 접근 시 VPN 연결이 필수입니다. 공용 와이파이에서는 특히 더 필요해요.', ts:Date.parse('2026-09-18T14:00:00'), accepted:true }] },
+    { id:'q3', title:'법인카드로 팀 회식비 결제해도 되나요? 한도가 궁금합니다', dept:'총무', votes:5, ts:Date.parse('2026-09-22'), answers:[] },
+    { id:'q4', title:'신규 입사자 장비 신청은 언제까지 해야 하나요?', dept:'인사', votes:3, ts:Date.parse('2026-09-15'),
+      answers:[{ author:'한지민(총무팀)', text:'입사 5영업일 전까지 신청하면 첫날 수령 가능합니다.', ts:Date.parse('2026-09-15T09:30:00'), accepted:false }] },
+    { id:'q5', title:'회의실 예약 취소는 어디서 하나요?', dept:'총무', votes:1, ts:Date.parse('2026-09-24'), answers:[] },
+  ];
+  function loadQuestions() {
+    let list = sgGetJSON('sg-community-' + NS, null);
+    if (!list) { list = SEED; sgSetJSON('sg-community-' + NS, list); }
+    return list;
   }
-  function clearHist() { sgClearHistory(NS, () => { renderHistory(); showSnack('info', '질문 기록을 지웠습니다.'); }); }
-  renderHistory();
+  let sortMode = 'hot';
+  function setSort(mode, btn) {
+    sortMode = mode;
+    document.querySelectorAll('#sort-tabs .pill-tab').forEach((b) => b.setAttribute('aria-selected', String(b === btn)));
+    render();
+  }
+  function render() {
+    let list = loadQuestions().slice();
+    if (sortMode === 'hot') list.sort((a, b) => b.votes - a.votes);
+    else if (sortMode === 'new') list.sort((a, b) => b.ts - a.ts);
+    else if (sortMode === 'unanswered') list = list.filter((q) => q.answers.length === 0).sort((a, b) => b.ts - a.ts);
+
+    document.getElementById('q-list').innerHTML = list.length ? list.map((q, i) => (
+      '<a href="./variant-c-detail.html?id=' + q.id + '" style="text-decoration:none;color:inherit;display:flex;gap:14px;padding:12px 0;' + (i < list.length - 1 ? 'border-bottom:1px solid var(--hairline)' : '') + '">' +
+      '<div style="text-align:center;min-width:40px"><b style="font-size:14px;color:var(--accent)">' + q.votes + '</b><div style="font-size:10px;color:var(--slate-400)">도움됨</div></div>' +
+      '<div style="flex:1"><b style="font-size:13px">' + q.title + '</b> <span class="chip chip-muted" style="margin-left:6px">' + q.dept + '</span>' +
+      (q.answers.length ? ' <span class="chip chip-success">답변 ' + q.answers.length + '</span>' : ' <span class="chip chip-warn">미답변</span>') +
+      '<div style="font-size:11px;color:var(--slate-400);margin-top:4px">' + new Date(q.ts).toLocaleDateString('ko-KR') + '</div></div>' +
+      '</a>'
+    )).join('') : '<div class="state-box">조건에 맞는 질문이 없습니다.</div>';
+  }
+  render();
 </script>
 </body>
 </html>
