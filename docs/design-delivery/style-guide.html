@@ -7,6 +7,7 @@
 <style>
   :root {
     --accent: #6D5DFE;
+    --accent-hover: #5B4BE6;
     --accent-pink: #EC4899;
     --accent-blue: #60A5FA;
     --accent-orange: #F97316;
@@ -15,11 +16,15 @@
     --surface: #FFFFFF;
     --hairline: #E5E7EB;
     --slate-900: #0f172a;
+    --slate-700: #334155;
     --slate-600: #475569;
     --slate-400: #94a3b8;
+    --slate-300: #cbd5e1;
     --rose-500: #f43f5e;
-    --rose-50: #fff1f2;
+    --red-600: #dc2626;
     --emerald-600: #059669;
+    --amber-600: #d97706;
+    --blue-600: #2563eb;
     --shadow-card: 0 1px 2px rgba(15,23,42,.04), 0 1px 3px rgba(15,23,42,.06);
     --shadow-soft: 0 6px 18px rgba(109,93,254,.18);
   }
@@ -29,58 +34,108 @@
     background: var(--canvas);
     color: var(--slate-900);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
-    padding: 32px 20px 80px;
+    padding: 0 0 100px;
   }
-  .wrap { max-width: 980px; margin: 0 auto; }
-  header.page-head { margin-bottom: 40px; }
+  a { color: inherit; }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 32px 20px 0; }
+
+  header.page-head { margin-bottom: 36px; }
   header.page-head h1 { font-size: 24px; font-weight: 800; margin: 0 0 6px; }
-  header.page-head p { color: var(--slate-600); margin: 0; font-size: 14px; }
+  header.page-head p { color: var(--slate-600); margin: 0; font-size: 13.5px; line-height: 1.6; }
+  header.page-head code { background: #eef1f5; padding: 1px 6px; border-radius: 4px; font-size: 12px; }
 
-  section { margin-bottom: 48px; }
-  section > h2 {
-    font-size: 13px;
-    font-weight: 700;
-    letter-spacing: .08em;
-    text-transform: uppercase;
-    color: var(--slate-400);
-    margin: 0 0 16px;
-    padding-bottom: 8px;
-    border-bottom: 1px solid var(--hairline);
+  /* TOC */
+  nav.toc { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 40px; }
+  nav.toc a {
+    font-size: 12px; font-weight: 600; padding: 6px 12px; border-radius: 999px;
+    background: var(--surface); box-shadow: var(--shadow-card); color: var(--slate-600); text-decoration: none;
   }
 
-  /* Color swatches */
+  section { margin-bottom: 52px; scroll-margin-top: 16px; }
+  section > .sec-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid var(--hairline); }
+  section > .sec-head h2 { font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--slate-400); margin: 0; }
+  section > .sec-head .badge-kind { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
+  .badge-kind.core { background: #eef2ff; color: var(--accent); }
+  .badge-kind.aux { background: #f1f5f9; color: var(--slate-600); }
+  section > p.note { font-size: 12.5px; color: var(--slate-600); margin: -8px 0 16px; }
+  section > p.note code { background: #eef1f5; padding: 1px 6px; border-radius: 4px; font-size: 11.5px; }
+
+  .subhead { font-size: 11.5px; font-weight: 700; color: var(--slate-600); margin: 20px 0 10px; }
+  .subhead:first-child { margin-top: 0; }
+
+  /* generic surfaces */
+  .panel { background: var(--surface); border-radius: 16px; box-shadow: var(--shadow-card); padding: 20px; }
+  .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px,1fr)); gap: 14px; }
+
+  /* 1. Color swatches */
   .swatch-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px,1fr)); gap: 12px; }
-  .swatch {
-    background: var(--surface);
-    border-radius: 12px;
-    box-shadow: var(--shadow-card);
-    overflow: hidden;
-  }
-  .swatch .fill { height: 64px; }
-  .swatch .meta { padding: 10px 12px; }
-  .swatch .meta .name { font-size: 12.5px; font-weight: 700; }
-  .swatch .meta .hex { font-size: 11px; color: var(--slate-400); font-family: ui-monospace, monospace; }
+  .swatch { background: var(--surface); border-radius: 12px; box-shadow: var(--shadow-card); overflow: hidden; }
+  .swatch .fill { height: 56px; }
+  .swatch .meta { padding: 9px 12px; }
+  .swatch .meta .name { font-size: 12px; font-weight: 700; }
+  .swatch .meta .hex { font-size: 10.5px; color: var(--slate-400); font-family: ui-monospace, monospace; }
 
-  /* Cards */
-  .card-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px,1fr)); gap: 14px; }
-  .panel {
-    background: var(--surface);
-    border-radius: 16px;
-    box-shadow: var(--shadow-card);
-    padding: 20px;
+  /* 2. Typography */
+  .type-row { display: flex; align-items: baseline; gap: 16px; padding: 10px 0; border-bottom: 1px dashed var(--hairline); }
+  .type-row:last-child { border-bottom: none; }
+  .type-row .tag { width: 120px; flex-shrink: 0; font-size: 11px; color: var(--slate-400); font-family: ui-monospace, monospace; }
+
+  /* 3. Buttons (real .btn-* classes) */
+  .btn-primary { display: inline-flex; align-items: center; gap: 6px; border-radius: 8px; padding: 10px 16px; font-weight: 600; font-size: 13.5px; color: #fff; background: var(--accent); border: none; cursor: pointer; transition: background .15s; }
+  .btn-primary:hover { background: var(--accent-hover); }
+  .btn-primary:disabled { opacity: .5; cursor: not-allowed; }
+  .btn-outline { display: inline-flex; align-items: center; gap: 6px; border-radius: 8px; padding: 10px 16px; font-weight: 600; font-size: 13.5px; background: #fff; border: 1px solid var(--slate-300); color: var(--slate-700); cursor: pointer; }
+  .btn-outline:hover { background: #f8fafc; }
+  .btn-danger { display: inline-flex; align-items: center; gap: 6px; border-radius: 8px; padding: 10px 16px; font-weight: 600; font-size: 13.5px; color: #fff; background: #EF4444; border: none; cursor: pointer; }
+  .btn-danger:hover { background: var(--red-600); }
+  .btn-sm { padding: 6px 10px; font-size: 12px; border-radius: 8px; }
+
+  /* 4. Form elements (.input / .select) */
+  .field { margin-bottom: 16px; }
+  .field label { display: block; font-size: 12.5px; font-weight: 600; color: var(--slate-700); margin-bottom: 6px; }
+  .field label .req { color: var(--rose-500); margin-left: 2px; }
+  .field .hint { font-size: 11px; color: var(--slate-400); margin-top: 4px; }
+  .field .err { font-size: 11.5px; color: var(--red-600); margin-top: 4px; }
+  .input, .select, textarea {
+    width: 100%; border-radius: 8px; padding: 9px 12px; background: #fff;
+    border: 1px solid var(--slate-300); outline: none; font-size: 13.5px; transition: border-color .15s, box-shadow .15s;
   }
-  .stat-card {
-    position: relative;
-    overflow: hidden;
-    border-radius: 20px;
-    background: var(--surface);
-    box-shadow: var(--shadow-card);
-    padding: 18px;
-  }
-  .stat-card .blob {
-    position: absolute; top: -40px; right: -32px; height: 120px; width: 120px;
-    border-radius: 999px; filter: blur(28px); opacity: .55;
-  }
+  .input:focus, .select:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(109,93,254,.18); }
+  .input.err-border { border-color: #fca5a5; }
+  .input-wrap { position: relative; }
+  .input-wrap .reveal { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); font-size: 11px; padding: 3px 8px; border-radius: 6px; background: rgba(255,255,255,.7); border: 1px solid #e2e8f0; color: var(--slate-600); cursor: pointer; }
+
+  /* checkbox / radio */
+  .check-row, .radio-row { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--slate-700); margin-bottom: 8px; }
+  .check-row input, .radio-row input { width: 16px; height: 16px; accent-color: var(--accent); }
+
+  /* toggle switch (role=switch) */
+  .switch { position: relative; display: inline-flex; height: 20px; width: 36px; align-items: center; border-radius: 999px; border: none; cursor: pointer; transition: background .15s; }
+  .switch.on { background: var(--emerald-600); }
+  .switch.off { background: var(--slate-300); }
+  .switch .knob { display: block; height: 16px; width: 16px; border-radius: 999px; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.2); transition: transform .15s; }
+  .switch.on .knob { transform: translateX(18px); }
+  .switch.off .knob { transform: translateX(2px); }
+
+  /* 5. Chips / badges (.chip-*) */
+  .chip { display: inline-flex; align-items: center; gap: 5px; border-radius: 999px; padding: 2px 10px; font-size: 11px; font-weight: 600; }
+  .chip-info { background: #eff6ff; color: var(--blue-600); border: 1px solid #dbeafe; }
+  .chip-warn { background: #fffbeb; color: var(--amber-600); border: 1px solid #fef3c7; }
+  .chip-error { background: #fff1f2; color: #be123c; border: 1px solid #fecdd3; }
+  .chip-success { background: #ecfdf5; color: var(--emerald-600); border: 1px solid #d1fae5; }
+  .chip-muted { background: #f1f5f9; color: var(--slate-600); border: 1px solid #e2e8f0; }
+  .dot-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 20px; height: 20px; border-radius: 999px; background: var(--rose-500); color: #fff; font-size: 10px; font-weight: 700; padding: 0 5px; }
+
+  /* 6. Cards */
+  .glass-card { background: #fff; border: 1px solid var(--slate-300); border-radius: 12px; box-shadow: var(--shadow-card); padding: 16px; }
+  .glass-panel { background: #fff; border: 1px solid var(--slate-300); border-radius: 16px; box-shadow: var(--shadow-card); padding: 20px; }
+  .panel-card-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+  .panel-card-head h3 { font-size: 15px; font-weight: 700; margin: 0; }
+  .panel-card-head p { font-size: 11.5px; color: var(--slate-600); margin: 2px 0 0; }
+
+  .stat-card { position: relative; overflow: hidden; border-radius: 20px; background: #fff; box-shadow: var(--shadow-card); padding: 18px; }
+  .stat-card .blob { position: absolute; top: -40px; right: -32px; height: 120px; width: 120px; border-radius: 999px; filter: blur(28px); opacity: .55; }
   .stat-card .label { font-size: 11.5px; color: var(--slate-400); position: relative; }
   .stat-card .value { font-size: 24px; font-weight: 800; margin-top: 8px; position: relative; }
   .stat-card .delta { font-size: 12px; margin-top: 4px; position: relative; }
@@ -88,42 +143,79 @@
   .down { color: var(--rose-500); font-weight: 700; }
   .flat { color: var(--slate-600); }
 
-  /* Buttons */
-  .btn-row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
-  .btn {
-    display: inline-flex; align-items: center; gap: 6px;
-    padding: 10px 16px; border-radius: 10px; font-size: 13.5px; font-weight: 600;
-    border: 1px solid transparent; cursor: pointer;
-  }
-  .btn-primary { background: var(--accent); color: #fff; box-shadow: var(--shadow-soft); }
-  .btn-secondary { background: var(--surface); color: var(--slate-600); border-color: #cbd5e1; }
-  .btn-danger { background: #fff; color: #be123c; border-color: #fecdd3; }
-  .btn-disabled { background: #e2e8f0; color: #94a3b8; cursor: not-allowed; }
+  /* 7. Tabs (role=tablist) */
+  .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--hairline); padding: 0 4px; }
+  .tab { padding: 8px 14px; font-size: 12.5px; font-weight: 600; color: var(--slate-600); border-bottom: 2px solid transparent; cursor: pointer; }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab-body { padding: 14px 4px 0; font-size: 12.5px; color: var(--slate-600); }
 
-  /* Table */
-  table { width: 100%; border-collapse: collapse; background: var(--surface); border-radius: 16px; overflow: hidden; box-shadow: var(--shadow-card); }
-  thead th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--slate-400); padding: 12px 16px; border-bottom: 1px solid var(--hairline); }
-  tbody td { padding: 12px 16px; font-size: 13.5px; border-bottom: 1px solid #f1f5f9; }
-  tbody tr:last-child td { border-bottom: none; }
-  .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; }
-  .badge-ok { background: #ecfdf5; color: #047857; }
-  .badge-warn { background: #fff7ed; color: #c2410c; }
-  .badge-off { background: #f1f5f9; color: #64748b; }
+  /* 8. Accordion / expandable row */
+  .expand-row { border: 1px solid var(--slate-300); border-radius: 12px; background: #fff; padding: 10px 12px; margin-bottom: 8px; }
+  .expand-row .head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; flex-wrap: wrap; }
+  .expand-row .toggle-btn { border-radius: 8px; border: 1px solid var(--slate-300); background: #fff; padding: 4px 10px; font-size: 12px; cursor: pointer; }
+  .expand-row .detail { margin-top: 12px; border: 1px solid #f1f5f9; border-radius: 8px; background: #f8fafc; padding: 12px; font-size: 12.5px; color: var(--slate-600); }
 
-  /* Empty / states */
-  .state-box { background: var(--surface); border-radius: 16px; box-shadow: var(--shadow-card); padding: 32px; text-align: center; color: var(--slate-600); font-size: 13.5px; }
-  .state-box.error { color: #be123c; }
-
-  /* Nav mock */
+  /* sidebar accordion nav */
   .nav-mock { display: flex; border-radius: 16px; overflow: hidden; box-shadow: var(--shadow-card); background: var(--surface); }
-  .nav-mock .side { width: 190px; padding: 14px 10px; border-right: 1px solid var(--hairline); }
+  .nav-mock .side { width: 200px; padding: 14px 10px; border-right: 1px solid var(--hairline); }
   .nav-mock .group-label { font-size: 9.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #94a3b8; padding: 8px 10px 4px; }
-  .nav-mock .item { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 8px; font-size: 12.5px; color: var(--slate-600); margin-bottom: 2px; }
+  .nav-mock .item { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 8px; font-size: 12.5px; color: var(--slate-600); margin-bottom: 2px; cursor: pointer; }
   .nav-mock .item.active { background: rgba(109,93,254,.1); color: var(--accent); font-weight: 700; }
-  .nav-mock .item .dot { width: 6px; height: 6px; border-radius: 999px; background: var(--rose-500); margin-left: auto; }
+  .nav-mock .child { padding: 6px 10px 6px 24px; font-size: 12px; color: var(--slate-600); border-radius: 8px; }
+  .nav-mock .child.active { background: rgba(109,93,254,.1); color: var(--accent); font-weight: 700; }
   .nav-mock .body { flex: 1; padding: 20px; color: var(--slate-400); font-size: 12.5px; }
 
-  code { background: #eef1f5; padding: 1px 6px; border-radius: 4px; font-size: 12px; }
+  /* 9. Alerts / banners */
+  .banner { display: flex; align-items: flex-start; gap: 10px; border-radius: 16px; padding: 12px 16px; font-size: 12.5px; }
+  .banner .icon { font-size: 16px; line-height: 1; }
+  .banner .title { font-weight: 700; margin: 0; }
+  .banner .desc { margin: 2px 0 0; font-size: 11.5px; }
+  .banner.warn { background: rgba(255,251,235,.85); border: 1px solid #fde68a; color: #92400e; }
+  .banner.warn .desc { color: #b45309; }
+  .banner.error { border: 1px solid #fecaca; background: #fef2f2; color: #b91c1c; }
+  .banner.forbidden { border: 1px solid #fde68a; background: rgba(255,251,235,.85); color: #92400e; }
+  .banner .dismiss { margin-left: auto; font-size: 11px; text-decoration: underline; color: inherit; background: none; border: none; cursor: pointer; }
+
+  /* toast */
+  .toast { display: inline-flex; align-items: center; gap: 8px; border-radius: 10px; padding: 10px 14px; font-size: 12.5px; font-weight: 600; box-shadow: 0 8px 20px rgba(15,23,42,.12); }
+  .toast.success { background: #059669; color: #fff; }
+  .toast.error { background: #dc2626; color: #fff; }
+
+  /* 10. Modal / dialog */
+  .modal-demo { position: relative; background: #0f172a11; border-radius: 16px; padding: 40px 16px; display: flex; justify-content: center; }
+  .modal { width: 100%; max-width: 380px; border-radius: 16px; background: #fff; box-shadow: 0 20px 40px rgba(15,23,42,.18); overflow: hidden; border: 2px solid #fecdd3; }
+  .modal.primary { border-color: #bfdbfe; }
+  .modal header { color: #fff; padding: 12px 16px; display: flex; align-items: center; gap: 8px; background: #dc2626; }
+  .modal.primary header { background: var(--blue-600); }
+  .modal header h4 { font-size: 14px; font-weight: 700; margin: 0; }
+  .modal .body { padding: 16px; font-size: 13px; color: var(--slate-700); }
+  .modal .body .detail-box { border-radius: 8px; border: 1px solid #fecaca; background: #fef2f2; color: #b91c1c; padding: 8px 10px; font-size: 11.5px; margin-top: 8px; }
+  .modal .body p.small { font-size: 11px; color: var(--slate-400); margin-top: 10px; }
+  .modal footer { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 16px; background: #f8fafc; border-top: 1px solid var(--hairline); }
+
+  /* 11. Table + pagination */
+  table.data-table { width: 100%; border-collapse: collapse; background: var(--surface); border-radius: 16px; overflow: hidden; box-shadow: var(--shadow-card); }
+  .data-table thead th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--slate-400); padding: 12px 16px; background: #f8fafc; border-bottom: 1px solid var(--hairline); }
+  .data-table tbody td { padding: 12px 16px; font-size: 13.5px; border-bottom: 1px solid #f1f5f9; }
+  .data-table tbody tr:last-child td { border-bottom: none; }
+  .data-table tbody tr.highlight td { animation: rowhi 1.4s ease-out; }
+  @keyframes rowhi { 0% { background-color: rgba(253,230,138,.85); } 100% { background-color: transparent; } }
+
+  .pagination { margin-top: 10px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; font-size: 11.5px; color: var(--slate-600); }
+  .pagination .controls { display: flex; align-items: center; gap: 4px; }
+  .pagination button { border-radius: 8px; padding: 5px 10px; background: rgba(255,255,255,.7); border: 1px solid #e2e8f0; font-size: 11.5px; cursor: pointer; }
+  .pagination button:disabled { opacity: .4; cursor: not-allowed; }
+  .pagination .page-num { padding: 0 6px; color: var(--slate-700); }
+
+  /* 12. States: empty / loading / error / forbidden */
+  .state-box { background: var(--surface); border-radius: 16px; box-shadow: var(--shadow-card); padding: 32px; text-align: center; color: var(--slate-600); font-size: 13.5px; }
+  .state-box.error { color: #be123c; }
+  .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: spin .7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  code.inline { background: #eef1f5; padding: 1px 6px; border-radius: 4px; font-size: 11.5px; }
+
+  footer.print-note { font-size: 11.5px; color: var(--slate-400); border-top: 1px solid var(--hairline); padding-top: 16px; margin-top: 8px; }
 </style>
 </head>
 <body>
@@ -131,12 +223,35 @@
 
   <header class="page-head">
     <h1>ICONIA Admin — 스타일 가이드</h1>
-    <p>실제 <code>tailwind.config.js</code> 토큰 + <code>app/dashboard/_components/</code> 기준. 빌드 없이 브라우저에서 바로 확인용.
-      전체 사이트맵/페이지 목록은 <a href="./README.md">README.md</a> 참고.</p>
+    <p>
+      <code>app/globals.css</code>의 전역 유틸리티 클래스와 <code>app/dashboard/_components/</code>의
+      실제 컴포넌트를 기준으로 만든 정적 스타일 가이드입니다. 빌드 없이 브라우저로 바로 확인할 수
+      있고, 핵심 기능(표·폼·카드·모달)뿐 아니라 부기능(토글·탭·아코디언·배지·인쇄)까지 웹앱이
+      실제로 쓰는 스타일을 전부 담았습니다. 전체 사이트맵/페이지 목록은
+      <a href="./README.md">README.md</a> 참고.
+    </p>
   </header>
 
-  <section>
-    <h2>1. 컬러 토큰</h2>
+  <nav class="toc">
+    <a href="#colors">1. 컬러</a>
+    <a href="#typo">2. 타이포그래피</a>
+    <a href="#buttons">3. 버튼</a>
+    <a href="#forms">4. 폼 요소</a>
+    <a href="#chips">5. 배지·칩</a>
+    <a href="#cards">6. 카드</a>
+    <a href="#tabs">7. 탭</a>
+    <a href="#accordion">8. 아코디언</a>
+    <a href="#nav">9. 내비게이션</a>
+    <a href="#banners">10. 배너·토스트</a>
+    <a href="#modal">11. 모달</a>
+    <a href="#table">12. 표·페이지네이션</a>
+    <a href="#states">13. 상태</a>
+    <a href="#misc">14. 기타 규칙</a>
+  </nav>
+
+  <section id="colors">
+    <div class="sec-head"><h2>1. 컬러 토큰</h2><span class="badge-kind core">핵심</span></div>
+    <p class="note"><code>tailwind.config.js</code> 그대로 — 색만 5개가 아니라 canvas/surface/hairline까지 포함한 실제 팔레트.</p>
     <div class="swatch-grid">
       <div class="swatch"><div class="fill" style="background:var(--accent)"></div><div class="meta"><div class="name">accent</div><div class="hex">#6D5DFE</div></div></div>
       <div class="swatch"><div class="fill" style="background:var(--accent-pink)"></div><div class="meta"><div class="name">accentPink</div><div class="hex">#EC4899</div></div></div>
@@ -146,12 +261,122 @@
       <div class="swatch"><div class="fill" style="background:var(--canvas); border-bottom:1px solid var(--hairline)"></div><div class="meta"><div class="name">canvas</div><div class="hex">#F5F6F8</div></div></div>
       <div class="swatch"><div class="fill" style="background:var(--surface); border-bottom:1px solid var(--hairline)"></div><div class="meta"><div class="name">surface</div><div class="hex">#FFFFFF</div></div></div>
       <div class="swatch"><div class="fill" style="background:var(--hairline)"></div><div class="meta"><div class="name">hairline</div><div class="hex">#E5E7EB</div></div></div>
+      <div class="swatch"><div class="fill" style="background:var(--emerald-600)"></div><div class="meta"><div class="name">success</div><div class="hex">emerald-600</div></div></div>
+      <div class="swatch"><div class="fill" style="background:var(--amber-600)"></div><div class="meta"><div class="name">warning</div><div class="hex">amber-600</div></div></div>
+      <div class="swatch"><div class="fill" style="background:#be123c"></div><div class="meta"><div class="name">danger</div><div class="hex">rose-700</div></div></div>
+      <div class="swatch"><div class="fill" style="background:var(--blue-600)"></div><div class="meta"><div class="name">info</div><div class="hex">blue-600</div></div></div>
     </div>
   </section>
 
-  <section>
-    <h2>2. StatCard — 5색 accent × delta tone</h2>
-    <div class="card-row">
+  <section id="typo">
+    <div class="sec-head"><h2>2. 타이포그래피 &amp; 형태</h2><span class="badge-kind core">핵심</span></div>
+    <div class="panel">
+      <div class="type-row"><span class="tag">text-2xl / 800</span><span style="font-size:24px;font-weight:800">페이지 타이틀 / StatCard 값</span></div>
+      <div class="type-row"><span class="tag">text-lg / 700</span><span style="font-size:18px;font-weight:700">PanelCard 제목</span></div>
+      <div class="type-row"><span class="tag">text-sm / 400</span><span style="font-size:14px">본문 텍스트 (text-slate-700)</span></div>
+      <div class="type-row"><span class="tag">text-xs / text-muted</span><span style="font-size:12px;color:var(--slate-400)">보조 설명 (text-slate-500)</span></div>
+      <div class="type-row"><span class="tag">radius xl/2xl</span><span style="font-size:12.5px">카드 12px / 16px, 버튼 8px</span></div>
+      <div class="type-row"><span class="tag">shadow-card</span><span style="font-size:12.5px">0 1px 2px rgba(15,23,42,.04), 0 1px 3px rgba(15,23,42,.06)</span></div>
+      <div class="type-row"><span class="tag">shadow-soft</span><span style="font-size:12.5px">0 6px 18px rgba(109,93,254,.18) — 프라이머리 버튼 글로우</span></div>
+    </div>
+  </section>
+
+  <section id="buttons">
+    <div class="sec-head"><h2>3. 버튼</h2><span class="badge-kind core">핵심</span></div>
+    <p class="note"><code>.btn-primary</code> / <code>.btn-outline</code> / <code>.btn-danger</code> — 전 페이지 공통, 새 버튼 스타일을 만들지 않고 이 3종만 사용.</p>
+    <div class="panel">
+      <div class="row">
+        <button class="btn-primary">저장</button>
+        <button class="btn-outline">취소</button>
+        <button class="btn-danger">삭제</button>
+        <button class="btn-primary" disabled><span class="spinner"></span> 처리 중...</button>
+        <button class="btn-outline btn-sm">← 목록</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="forms">
+    <div class="sec-head"><h2>4. 폼 요소</h2><span class="badge-kind core">핵심</span></div>
+    <p class="note"><code>.input</code> / <code>.select</code> — accent 포커스 링, 모바일에서 16px 폰트 고정(자동 확대 방지). 에러는 필드 바로 아래 표기.</p>
+    <div class="grid">
+      <div class="panel">
+        <div class="subhead">텍스트 입력 + 필수 표시</div>
+        <div class="field">
+          <label>이메일<span class="req">*</span></label>
+          <input class="input" placeholder="user@example.com" />
+        </div>
+        <div class="field">
+          <label>UUID (선택)</label>
+          <input class="input" placeholder="자동 생성" />
+          <div class="hint">비우면 서버가 자동 생성합니다.</div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="subhead">유효성 에러 상태</div>
+        <div class="field">
+          <label>비밀번호 (8자 이상)<span class="req">*</span></label>
+          <div class="input-wrap">
+            <input class="input err-border" type="password" value="1234" />
+            <button type="button" class="reveal">보기</button>
+          </div>
+          <div class="err">비밀번호는 8자 이상이어야 합니다.</div>
+        </div>
+        <div class="field">
+          <label>역할</label>
+          <select class="select"><option>운영자</option><option>최고관리자</option><option>뷰어</option></select>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="subhead">체크박스 · 라디오</div>
+        <label class="check-row"><input type="checkbox" checked /> 약관에 동의합니다</label>
+        <label class="check-row"><input type="checkbox" /> 마케팅 정보 수신</label>
+        <label class="radio-row"><input type="radio" name="r" checked /> 전체 사용자</label>
+        <label class="radio-row"><input type="radio" name="r" /> 특정 그룹만</label>
+      </div>
+      <div class="panel">
+        <div class="subhead">토글 스위치 (role="switch")</div>
+        <div class="row" style="margin-bottom:10px">
+          <button class="switch on"><span class="knob"></span></button>
+          <span style="font-size:12.5px">자동 갱신 ON (emerald)</span>
+        </div>
+        <div class="row">
+          <button class="switch off"><span class="knob"></span></button>
+          <span style="font-size:12.5px">자동 갱신 OFF (slate)</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="chips">
+    <div class="sec-head"><h2>5. 배지 · 칩</h2><span class="badge-kind aux">부기능</span></div>
+    <p class="note"><code>.chip-info/-warn/-error/-success/-muted</code> — 색만이 아니라 항상 텍스트를 함께 표기 (색맹 접근성).</p>
+    <div class="panel">
+      <div class="row">
+        <span class="chip chip-info">정보</span>
+        <span class="chip chip-warn">경고</span>
+        <span class="chip chip-error">위험</span>
+        <span class="chip chip-success">정상</span>
+        <span class="chip chip-muted">비활성</span>
+        <span class="dot-badge">7</span>
+        <span class="dot-badge">99+</span>
+      </div>
+    </div>
+  </section>
+
+  <section id="cards">
+    <div class="sec-head"><h2>6. 카드</h2><span class="badge-kind core">핵심</span></div>
+    <p class="note"><code>.glass-card</code>(12px) / <code>.glass-panel</code>(16px) — 전 페이지의 유일한 카드 표면. PanelCard 헤더 패턴 + StatCard 5색 포함.</p>
+    <div class="grid" style="margin-bottom:14px">
+      <div class="glass-card">glass-card — 12px radius</div>
+      <div class="glass-panel">
+        <div class="panel-card-head">
+          <div><h3>PanelCard 제목</h3><p>설명 텍스트가 여기 들어갑니다.</p></div>
+          <button class="btn-outline btn-sm">액션</button>
+        </div>
+        본문 콘텐츠
+      </div>
+    </div>
+    <div class="grid">
       <div class="stat-card"><div class="blob" style="background:radial-gradient(circle, var(--accent-blue), transparent)"></div><div class="label">오늘 신규 가입</div><div class="value">128</div><div class="delta"><span class="up">▲ 12%</span> 전일 대비</div></div>
       <div class="stat-card"><div class="blob" style="background:radial-gradient(circle, var(--accent-pink), transparent)"></div><div class="label">미해결 모더레이션</div><div class="value">7건</div><div class="delta"><span class="down">▼ 3건</span> 전일 대비</div></div>
       <div class="stat-card"><div class="blob" style="background:radial-gradient(circle, var(--accent-orange), transparent)"></div><div class="label">디바이스 오프라인</div><div class="value">42대</div><div class="delta"><span class="flat">변동 없음</span></div></div>
@@ -159,55 +384,160 @@
     </div>
   </section>
 
-  <section>
-    <h2>3. 버튼</h2>
-    <div class="panel">
-      <div class="btn-row">
-        <button class="btn btn-primary">확인</button>
-        <button class="btn btn-secondary">취소</button>
-        <button class="btn btn-danger">계정 잠금</button>
-        <button class="btn btn-disabled" disabled>처리 중...</button>
+  <section id="tabs">
+    <div class="sec-head"><h2>7. 탭</h2><span class="badge-kind aux">부기능</span></div>
+    <p class="note">AI Key 관리의 모델 카테고리 하위탭(<code>role="tablist"</code>) 패턴.</p>
+    <div class="panel" style="padding:0">
+      <div class="tabs">
+        <div class="tab active">텍스트</div>
+        <div class="tab">이미지</div>
+        <div class="tab">일기</div>
+        <div class="tab">TTS</div>
+        <div class="tab">STT</div>
+      </div>
+      <div class="tab-body" style="padding:16px">선택된 카테고리의 모델 옵션 목록이 여기 표시됩니다.</div>
+    </div>
+  </section>
+
+  <section id="accordion">
+    <div class="sec-head"><h2>8. 아코디언 / 펼침 행</h2><span class="badge-kind aux">부기능</span></div>
+    <p class="note">오류 추적의 "스택 펼치기" 패턴 — 공지·푸시 목록 등에서 재사용.</p>
+    <div class="expand-row">
+      <div class="head">
+        <div>공지 제목 · 발행 예정 · 2026-09-28 10:00</div>
+        <div class="row"><button class="toggle-btn">펼침</button><button class="btn-danger btn-sm">삭제</button></div>
       </div>
     </div>
-  </section>
-
-  <section>
-    <h2>4. DataTable — 정상 / empty / 상태 배지</h2>
-    <table>
-      <thead><tr><th>이메일</th><th>가입일</th><th>상태</th><th>최근 접속</th></tr></thead>
-      <tbody>
-        <tr><td>user01@example.com</td><td>2026-03-11</td><td><span class="badge badge-ok">정상</span></td><td>2시간 전</td></tr>
-        <tr><td>user02@example.com</td><td>2026-04-02</td><td><span class="badge badge-warn">경고</span></td><td>3일 전</td></tr>
-        <tr><td>user03@example.com</td><td>2026-05-19</td><td><span class="badge badge-off">비활성</span></td><td>—</td></tr>
-      </tbody>
-    </table>
-    <div style="height:14px"></div>
-    <div class="state-box">데이터가 없습니다.</div>
-  </section>
-
-  <section>
-    <h2>5. 예외 상태</h2>
-    <div class="card-row">
-      <div class="state-box">불러오는 중...</div>
-      <div class="state-box error">문제가 발생했습니다. 다시 시도해 주세요.</div>
-      <div class="state-box">이 화면에 접근할 권한이 없습니다.</div>
+    <div class="expand-row">
+      <div class="head">
+        <div>이벤트 안내 배너 · 노출 중</div>
+        <div class="row"><button class="toggle-btn">접기</button><button class="btn-danger btn-sm">삭제</button></div>
+      </div>
+      <div class="detail">본문 내용, 이미지 미리보기, 노출 기간 등이 펼쳐진 영역에 표시됩니다.</div>
     </div>
   </section>
 
-  <section>
-    <h2>6. 사이드바 네비게이션 (그룹 아코디언 목업)</h2>
+  <section id="nav">
+    <div class="sec-head"><h2>9. 내비게이션</h2><span class="badge-kind core">핵심</span></div>
+    <p class="note">사이드바 4개 그룹 아코디언 — RBAC로 항목 자체가 숨겨짐, 배지는 텍스트 카운트 동반.</p>
     <div class="nav-mock">
       <div class="side">
         <div class="group-label">사용자·디바이스</div>
         <div class="item active">회원 관리</div>
         <div class="item">CS 통합 조회</div>
         <div class="group-label">콘텐츠·모더레이션</div>
-        <div class="item">모더레이션 <span class="dot"></span></div>
-        <div class="item">공지·푸시 관리</div>
+        <div class="item">콘텐츠 관리 ▾</div>
+        <div class="child active">피드</div>
+        <div class="child">커머스</div>
+        <div class="item" style="color:#be123c">모더레이션 <span class="dot-badge" style="margin-left:auto">7</span></div>
       </div>
-      <div class="body">본문 캔버스 (선택된 메뉴에 따라 페이지 렌더)</div>
+      <div class="body">본문 캔버스 — 선택된 메뉴에 따라 페이지 렌더 (lg 미만은 햄버거 드로어로 전환)</div>
     </div>
   </section>
+
+  <section id="banners">
+    <div class="sec-head"><h2>10. 배너 · 토스트</h2><span class="badge-kind aux">부기능</span></div>
+    <p class="note">경고/에러 배너는 아이콘 + 텍스트를 함께, 토스트는 성공/실패 2종만.</p>
+    <div class="panel" style="display:flex; flex-direction:column; gap:10px; margin-bottom:14px">
+      <div class="banner warn">
+        <span class="icon">⚠</span>
+        <div><p class="title">접근 권한이 없는 페이지입니다.</p><p class="desc">요청한 화면은 현재 운영자 역할로 접근할 수 없어 대시보드로 이동했습니다.</p></div>
+        <button class="dismiss">닫기</button>
+      </div>
+      <div class="banner error" role="alert">이미 사용 중인 이메일입니다.</div>
+    </div>
+    <div class="row">
+      <span class="toast success">✓ 저장되었습니다</span>
+      <span class="toast error">✕ 처리에 실패했습니다</span>
+    </div>
+  </section>
+
+  <section id="modal">
+    <div class="sec-head"><h2>11. 모달 / 확인 다이얼로그</h2><span class="badge-kind core">핵심</span></div>
+    <p class="note"><code>role="dialog"</code> — danger(빨강, 삭제류) / primary(파랑, 발송류) 2가지 variant만 사용.</p>
+    <div class="grid">
+      <div class="modal-demo">
+        <div class="modal">
+          <header><h4>⚠ 계정을 잠그시겠습니까?</h4></header>
+          <div class="body">
+            <p>선택한 사용자의 로그인이 즉시 차단됩니다.</p>
+            <div class="detail-box">user01@example.com · 잠금 사유: 반복 신고 누적</div>
+            <p class="small">이 동작은 되돌릴 수 없습니다. 정말 진행하시려면 아래 "잠금" 버튼을 누르세요.</p>
+          </div>
+          <footer><button class="btn-outline btn-sm">취소</button><button class="btn-danger btn-sm">잠금</button></footer>
+        </div>
+      </div>
+      <div class="modal-demo">
+        <div class="modal primary">
+          <header><h4>➤ 전체 사용자에게 발송하시겠습니까?</h4></header>
+          <div class="body">
+            <p>대상 12,480명에게 즉시 푸시가 발송됩니다.</p>
+            <p class="small">이 동작은 되돌릴 수 없습니다. 정말 진행하시려면 아래 "발송" 버튼을 누르세요.</p>
+          </div>
+          <footer><button class="btn-outline btn-sm">취소</button><button class="btn-primary btn-sm">발송</button></footer>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="table">
+    <div class="sec-head"><h2>12. 표 · 페이지네이션</h2><span class="badge-kind core">핵심</span></div>
+    <p class="note">전 대시보드가 <code>DataTable</code> 하나만 사용 — 기본 25행 페이지네이션, 폴링으로 들어온 새 행은 1초 amber fade.</p>
+    <table class="data-table">
+      <thead><tr><th>이메일</th><th>가입일</th><th>상태</th><th>최근 접속</th></tr></thead>
+      <tbody>
+        <tr class="highlight"><td>user01@example.com</td><td>2026-03-11</td><td><span class="chip chip-success">정상</span></td><td>방금 (신규)</td></tr>
+        <tr><td>user02@example.com</td><td>2026-04-02</td><td><span class="chip chip-warn">경고</span></td><td>3일 전</td></tr>
+        <tr><td>user03@example.com</td><td>2026-05-19</td><td><span class="chip chip-muted">비활성</span></td><td>—</td></tr>
+      </tbody>
+    </table>
+    <div class="pagination">
+      <span>전체 128건 중 1–25</span>
+      <div class="controls">
+        <button disabled>«</button>
+        <button disabled>이전</button>
+        <span class="page-num">1 / 6</span>
+        <button>다음</button>
+        <button>»</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="states">
+    <div class="sec-head"><h2>13. 상태 (empty / loading / error / forbidden)</h2><span class="badge-kind aux">부기능</span></div>
+    <div class="grid">
+      <div class="state-box"><span class="spinner"></span>&nbsp; 불러오는 중...</div>
+      <div class="state-box">데이터가 없습니다.</div>
+      <div class="state-box error">문제가 발생했습니다. 다시 시도해 주세요.</div>
+      <div class="state-box">이 화면에 접근할 권한이 없습니다.</div>
+    </div>
+  </section>
+
+  <section id="misc">
+    <div class="sec-head"><h2>14. 기타 규칙</h2><span class="badge-kind aux">부기능</span></div>
+    <div class="grid">
+      <div class="panel">
+        <div class="subhead">모션 감소 대응</div>
+        <p style="font-size:12.5px;color:var(--slate-600);margin:0">
+          <code class="inline">prefers-reduced-motion: reduce</code> 시 스피너 회전과 신규 행 fade 애니메이션을 모두 끈다.
+        </p>
+      </div>
+      <div class="panel">
+        <div class="subhead">인쇄 스타일</div>
+        <p style="font-size:12.5px;color:var(--slate-600);margin:0">
+          감사 로그 CSV 리포트 등을 인쇄할 때 사이드바·그림자를 숨기고 카드 보더만 남긴다 (<code class="inline">@media print</code>).
+        </p>
+      </div>
+      <div class="panel">
+        <div class="subhead">모바일 폼 줌 방지</div>
+        <p style="font-size:12.5px;color:var(--slate-600);margin:0">
+          640px 이하에서 <code class="inline">.input/.select/textarea</code> 폰트를 16px로 고정 — iOS 자동 확대 방지.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <footer class="print-note">최종 갱신: 2026-09-27 · 근거: <code class="inline">app/globals.css</code>, <code class="inline">tailwind.config.js</code>, <code class="inline">app/dashboard/_components/*</code></footer>
 
 </div>
 </body>
