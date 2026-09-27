@@ -123,6 +123,37 @@ function toggleTheme() {
   }
 })();
 
+/* 색상 팔레트 선택 — 헤더의 🎨 색상 메뉴에서 고르면 --accent/--accent-hover가
+   바뀌어 버튼·링크·강조색이 그 색 기준으로 다시 꾸며진다. 페이지 간 선택은
+   localStorage로 유지된다 (다크모드와 동일 방식). */
+const SG_PALETTES = {
+  violet: { label: '보라(기본)', accent: '#6D5DFE', hover: '#5B4BE6' },
+  blue:   { label: '블루',       accent: '#2563EB', hover: '#1D4ED8' },
+  teal:   { label: '틸',         accent: '#0D9488', hover: '#0F766E' },
+  green:  { label: '그린',       accent: '#059669', hover: '#047857' },
+  orange: { label: '오렌지',     accent: '#EA580C', hover: '#C2410C' },
+  pink:   { label: '핑크',       accent: '#DB2777', hover: '#BE185D' },
+};
+function setPalette(name) {
+  const p = SG_PALETTES[name];
+  if (!p) return;
+  const root = document.documentElement;
+  root.style.setProperty('--accent', p.accent);
+  root.style.setProperty('--accent-hover', p.hover);
+  document.querySelectorAll('.palette-menu .item').forEach((b) => {
+    b.setAttribute('aria-current', String(b.dataset.palette === name));
+  });
+  try { localStorage.setItem('sg-palette', name); } catch (e) { /* 저장 불가 시에도 현재 화면 색상은 그대로 적용됨 */ }
+}
+(function initPalette() {
+  let saved = null;
+  try { saved = localStorage.getItem('sg-palette'); } catch (e) { /* storage 접근 불가 시 기본(보라) 유지 */ }
+  if (saved && SG_PALETTES[saved]) {
+    const apply = () => setPalette(saved);
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', apply); else apply();
+  }
+})();
+
 /* 카드 그리드 중 하나만 선택 (템플릿/플랜 선택 등) — 같은 부모 안 형제 카드는 선택 해제 */
 function selectOnlyCard(el) {
   el.parentElement.querySelectorAll('.pick-card').forEach((c) => { c.dataset.selected = 'false'; });

@@ -9,7 +9,20 @@
 <body>
 <div class="app-shell">
   <header class="page-head">
-    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="page-head-actions">
+      <div class="dropdown palette-picker">
+        <button type="button" class="theme-toggle" onclick="toggleDropdown(event,this)">🎨 색상</button>
+        <div class="dropdown-menu right palette-menu" hidden onclick="event.stopPropagation()">
+          <button class="item" data-palette="violet" aria-current="true" onclick="setPalette('violet');closeDropdown()"><span class="palette-dot" style="background:#6D5DFE"></span>보라(기본)</button>
+          <button class="item" data-palette="blue" aria-current="false" onclick="setPalette('blue');closeDropdown()"><span class="palette-dot" style="background:#2563EB"></span>블루</button>
+          <button class="item" data-palette="teal" aria-current="false" onclick="setPalette('teal');closeDropdown()"><span class="palette-dot" style="background:#0D9488"></span>틸</button>
+          <button class="item" data-palette="green" aria-current="false" onclick="setPalette('green');closeDropdown()"><span class="palette-dot" style="background:#059669"></span>그린</button>
+          <button class="item" data-palette="orange" aria-current="false" onclick="setPalette('orange');closeDropdown()"><span class="palette-dot" style="background:#EA580C"></span>오렌지</button>
+          <button class="item" data-palette="pink" aria-current="false" onclick="setPalette('pink');closeDropdown()"><span class="palette-dot" style="background:#DB2777"></span>핑크</button>
+        </div>
+      </div>
+      <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    </div>
     <div class="crumb-nav"><a href="../README.md">← 전체 목록</a> · <a href="./README.md">RPA 자동화 대시보드 폴더</a> · <a href="./variant-c.html">시안 C 홈</a></div>
     <h1 id="log-title">실행 로그 상세 — 시안 C</h1>
   </header>
