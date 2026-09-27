@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>새 티켓 등록 — CS 티켓팅 시안 B</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 전체 목록</a> · <a href="./README.md">CS 티켓팅 폴더</a> · <a href="./variant-b.html">시안 B 홈</a></div>
+    <h1>새 티켓 등록 — 시안 B</h1>
+  </header>
+
+  <div class="page-frame">
+    <form onsubmit="return submitTicket(event)">
+      <div class="field"><label>제목<span class="req">*</span></label><input class="input" id="f-name" required placeholder="예: 결제 오류 문의" /></div>
+      <div class="field"><label>고객명</label><input class="input" id="f-customer" placeholder="예: 정민수" /></div>
+      <div class="sticky-footer">
+        <button type="button" class="btn-outline" onclick="location.href='./variant-b.html'">취소</button>
+        <button type="submit" class="btn-primary" id="submit-btn">등록</button>
+      </div>
+    </form>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+<script>
+  const NS = '04b';
+  function submitTicket(e) {
+    e.preventDefault();
+    const name = document.getElementById('f-name').value.trim();
+    if (!name) { showSnack('warning', '제목을 입력해주세요.'); return false; }
+    const customer = document.getElementById('f-customer').value.trim() || '익명 고객';
+    const cols = sgGetJSON('sg-board-' + NS, []);
+    const id = 'k' + Date.now();
+    cols[0].tickets.unshift({ id, name, meta: customer + ' · 방금' });
+    sgSetJSON('sg-board-' + NS, cols);
+    const btn = document.getElementById('submit-btn');
+    btn.innerHTML = '<span class="spinner spin"></span> 등록 중...';
+    btn.disabled = true;
+    setTimeout(() => { window.location.href = './variant-b.html'; }, 500);
+    return false;
+  }
+</script>
+</body>
+</html>

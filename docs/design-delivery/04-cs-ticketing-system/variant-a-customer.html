@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>고객 히스토리 — CS 티켓팅 시안 A</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 전체 목록</a> · <a href="./README.md">CS 티켓팅 폴더</a> · <a href="./variant-a.html">시안 A 홈</a></div>
+    <h1 id="cust-title">고객 히스토리 — 시안 A</h1>
+  </header>
+
+  <div class="page-frame">
+    <div class="brief-box">
+      <h4>기능</h4>
+      <ul><li>같은 고객이 과거에 남긴 문의를 한 번에 확인 — 반복 문의인지, 처음인지 바로 파악</li></ul>
+    </div>
+    <div class="glass-panel" id="cust-list"></div>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+<script>
+  const NS = '04a';
+  const name = new URLSearchParams(window.location.search).get('name') || '김하나';
+  document.getElementById('cust-title').textContent = name + ' 고객 히스토리';
+  const tickets = sgGetJSON('sg-tickets-' + NS, []).filter((t) => t.customer === name);
+  function statusChip(s) { return s === '답변완료' ? 'chip-success' : s === '처리중' ? 'chip-warn' : 'chip-info'; }
+  document.getElementById('cust-list').innerHTML = tickets.length ? tickets.map((t, i) => (
+    '<div style="padding:12px 0;' + (i < tickets.length - 1 ? 'border-bottom:1px solid var(--hairline)' : '') + '">' +
+    '<b style="font-size:13px">' + t.subject + '</b> <span class="chip ' + statusChip(t.status) + '" style="margin-left:6px">' + t.status + '</span>' +
+    '<div style="font-size:12px;color:var(--slate-500);margin-top:4px">' + t.time + '</div></div>'
+  )).join('') : '<div class="state-box">이 고객의 이전 문의 이력이 없습니다.</div>';
+</script>
+</body>
+</html>

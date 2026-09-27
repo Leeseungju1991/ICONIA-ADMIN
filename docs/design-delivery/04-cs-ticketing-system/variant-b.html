@@ -16,44 +16,64 @@
 
   <div class="page-frame">
     <div class="brief-box">
-      <h4>기능</h4>
-      <ul><li>컬럼 = 처리 단계, 카드 = 티켓 — 버튼으로 다음 단계로 이동</li></ul>
-      <h4>UI/UX</h4>
-      <ul><li>여러 상담사가 함께 일하는 CS팀에서 "지금 뭐가 어디 단계인지" 전체를 보고 관리하는 팀장/매니저용 보드</li></ul>
+      <h4>방향성 — 칸반 보드형(팀장·매니저용)</h4>
+      <ul><li>컬럼 = 처리 단계, 카드 = 티켓 — 여러 상담사가 함께 일하는 팀 전체 현황을 한눈에 관리</li><li>카드 이동은 실제로 저장되어 새로고침해도 유지되고, 카드를 누르면 상세에서 담당자·우선순위를 바꿀 수 있습니다</li></ul>
     </div>
 
-    <div class="page-title-row"><h2>티켓 보드</h2></div>
-
-    <div class="kanban-board">
-      <div class="kanban-col">
-        <div class="kanban-col-head">신규 <span class="count">2</span></div>
-        <div class="kanban-col-body">
-          <div class="kanban-card"><div class="name">배송 지연 문의</div><div class="meta">김하나 · 5분 전</div><div class="move-row"><button onclick="moveKanbanCard(this,'next')">›</button></div></div>
-          <div class="kanban-card"><div class="name">제품 파손 신고</div><div class="meta">한지민 · 20분 전</div><div class="move-row"><button onclick="moveKanbanCard(this,'next')">›</button></div></div>
-        </div>
-      </div>
-      <div class="kanban-col">
-        <div class="kanban-col-head">처리중 <span class="count">1</span></div>
-        <div class="kanban-col-body">
-          <div class="kanban-card"><div class="name">환불 요청</div><div class="meta">이도윤 · 1시간 전</div><div class="move-row"><button onclick="moveKanbanCard(this,'prev')">‹</button><button onclick="moveKanbanCard(this,'next')">›</button></div></div>
-        </div>
-      </div>
-      <div class="kanban-col">
-        <div class="kanban-col-head">고객 확인 대기 <span class="count">1</span></div>
-        <div class="kanban-col-body">
-          <div class="kanban-card"><div class="name">교환 배송지 확인 요청</div><div class="meta">박준서 · 3시간 전</div><div class="move-row"><button onclick="moveKanbanCard(this,'prev')">‹</button><button onclick="moveKanbanCard(this,'next')">›</button></div></div>
-        </div>
-      </div>
-      <div class="kanban-col">
-        <div class="kanban-col-head">완료 <span class="count">1</span></div>
-        <div class="kanban-col-body">
-          <div class="kanban-card"><div class="name">제품 사용법 문의</div><div class="meta">최서연 · 어제</div><div class="move-row"><button onclick="moveKanbanCard(this,'prev')">‹</button></div></div>
-        </div>
-      </div>
-    </div>
+    <div class="page-title-row"><h2>티켓 보드</h2><a href="./variant-b-new.html" class="btn-primary btn-sm">+ 새 티켓 등록</a></div>
+    <div class="kanban-board" id="board"></div>
   </div>
 </div>
 <div id="snackbar-stack"></div>
 <script src="../components/interactions.js"></script>
+<script>
+  const NS = '04b';
+  const SEED = [
+    { key:'new', label:'신규', tickets:[
+      { id:'k1', name:'배송 지연 문의', meta:'김하나 · 5분 전' },
+      { id:'k2', name:'제품 파손 신고', meta:'한지민 · 20분 전' },
+    ]},
+    { key:'progress', label:'처리중', tickets:[
+      { id:'k3', name:'환불 요청', meta:'이도윤 · 1시간 전' },
+    ]},
+    { key:'waiting', label:'고객 확인 대기', tickets:[
+      { id:'k4', name:'교환 배송지 확인 요청', meta:'박준서 · 3시간 전' },
+    ]},
+    { key:'done', label:'완료', tickets:[
+      { id:'k5', name:'제품 사용법 문의', meta:'최서연 · 어제' },
+    ]},
+  ];
+  function loadBoard() {
+    let cols = sgGetJSON('sg-board-' + NS, null);
+    if (!cols) { cols = SEED; sgSetJSON('sg-board-' + NS, cols); }
+    return cols;
+  }
+  function saveBoard(cols) { sgSetJSON('sg-board-' + NS, cols); }
+  let cols = loadBoard();
+
+  function render() {
+    document.getElementById('board').innerHTML = cols.map((col, ci) => (
+      '<div class="kanban-col"><div class="kanban-col-head">' + col.label + ' <span class="count">' + col.tickets.length + '</span></div><div class="kanban-col-body">' +
+      col.tickets.map((t) => (
+        '<div class="kanban-card"><div class="name" style="cursor:pointer" onclick="location.href=\'./variant-b-detail.html?id=' + t.id + '\'">' + t.name + '</div><div class="meta">' + t.meta + '</div><div class="move-row">' +
+        (ci > 0 ? '<button onclick="move(\'' + t.id + '\',-1)">‹</button>' : '') +
+        (ci < cols.length - 1 ? '<button onclick="move(\'' + t.id + '\',1)">›</button>' : '') +
+        '</div></div>'
+      )).join('') +
+      '</div></div>'
+    )).join('');
+  }
+  function move(id, dir) {
+    const ci = cols.findIndex((c) => c.tickets.some((t) => t.id === id));
+    const ti = cols[ci].tickets.findIndex((t) => t.id === id);
+    const target = ci + dir;
+    if (target < 0 || target >= cols.length) return;
+    const [ticket] = cols[ci].tickets.splice(ti, 1);
+    cols[target].tickets.push(ticket);
+    saveBoard(cols);
+    render();
+  }
+  render();
+</script>
 </body>
 </html>

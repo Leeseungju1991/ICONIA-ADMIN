@@ -16,26 +16,46 @@
 
   <div class="page-frame">
     <div class="brief-box">
-      <h4>기능</h4>
-      <ul><li>고객-상담사 대화를 채팅 형태로 주고받기</li><li>고객에게는 보이지 않는 내부 메모 남기기</li></ul>
-      <h4>UI/UX</h4>
-      <ul><li>카카오톡·문자와 닮은 대화형 UI — 실시간 채팅 상담(라이브챗)에 가장 자연스러운 형태</li></ul>
+      <h4>방향성 — 대화형 채팅 스레드(라이브챗)</h4>
+      <ul><li>카카오톡·문자와 닮은 대화형 UI — 실시간 채팅 상담에 가장 자연스러운 형태</li><li>메시지 전송과 내부 메모가 실제로 쌓이고 저장됩니다(고객에게는 내부 메모가 보이지 않는다는 설정)</li></ul>
     </div>
 
-    <div class="page-title-row"><h2>배송 지연 문의 <span class="chip chip-warn" style="margin-left:8px">처리중</span></h2><span style="font-size:12px;color:var(--slate-400)">김하나 고객</span></div>
-
-    <div class="glass-panel">
-      <div class="msg-thread" style="margin-bottom:16px">
-        <div class="msg-bubble customer">안녕하세요, 주문한 지 5일이 지났는데 배송이 시작 안 됐어요.<span class="meta">14:02</span></div>
-        <div class="msg-bubble internal">🔒 내부 메모: 물류센터 확인 결과 재고 부족으로 지연 — 09-29 입고 예정</div>
-        <div class="msg-bubble agent">불편을 드려 죄송합니다. 확인해보니 재고 입고 지연으로 09월 29일 출고 예정입니다.<span class="meta">14:05</span></div>
-        <div class="msg-bubble customer">알겠습니다, 그럼 그때까지 기다릴게요.<span class="meta">14:06</span></div>
-      </div>
-      <div class="row"><input class="input grow" placeholder="답변을 입력하세요" /><button class="btn-primary btn-sm" onclick="showSnack('success','전송되었습니다.')">전송</button></div>
-    </div>
+    <div class="page-title-row"><h2 style="margin:0">진행 중인 대화</h2></div>
+    <div class="glass-panel" id="chat-list"></div>
   </div>
 </div>
 <div id="snackbar-stack"></div>
 <script src="../components/interactions.js"></script>
+<script>
+  const NS = '04c';
+  const SEED = [
+    { id:'c1', customer:'김하나', subject:'배송 지연 문의', status:'처리중', messages:[
+      { who:'customer', text:'안녕하세요, 주문한 지 5일이 지났는데 배송이 시작 안 됐어요.', time:'14:02' },
+      { who:'internal', text:'🔒 내부 메모: 물류센터 확인 결과 재고 부족으로 지연 — 09-29 입고 예정', time:'14:04' },
+      { who:'agent', text:'불편을 드려 죄송합니다. 확인해보니 재고 입고 지연으로 09월 29일 출고 예정입니다.', time:'14:05' },
+      { who:'customer', text:'알겠습니다, 그럼 그때까지 기다릴게요.', time:'14:06' },
+    ]},
+    { id:'c2', customer:'이도윤', subject:'환불 요청', status:'신규', messages:[
+      { who:'customer', text:'단순 변심으로 환불하고 싶습니다.', time:'13:10' },
+    ]},
+    { id:'c3', customer:'최서연', subject:'제품 사용법 문의', status:'완료', messages:[
+      { who:'customer', text:'제품 사용법을 문의드립니다.', time:'어제' },
+      { who:'agent', text:'사용 설명서를 이메일로 보내드렸습니다.', time:'어제' },
+    ]},
+  ];
+  function loadChats() {
+    let list = sgGetJSON('sg-chats-' + NS, null);
+    if (!list) { list = SEED; sgSetJSON('sg-chats-' + NS, list); }
+    return list;
+  }
+  function statusChip(s) { return s === '완료' ? 'chip-success' : s === '처리중' ? 'chip-warn' : 'chip-info'; }
+  const chats = loadChats();
+  document.getElementById('chat-list').innerHTML = chats.map((c, i) => {
+    const last = c.messages[c.messages.length - 1];
+    return '<a href="./variant-c-chat.html?id=' + c.id + '" style="text-decoration:none;color:inherit;display:block;padding:12px 0;' + (i < chats.length - 1 ? 'border-bottom:1px solid var(--hairline)' : '') + '">' +
+      '<b style="font-size:13px">' + c.subject + '</b> <span class="chip ' + statusChip(c.status) + '" style="margin-left:6px">' + c.status + '</span>' +
+      '<div style="font-size:12px;color:var(--slate-500);margin-top:4px">' + c.customer + ' · ' + (last ? last.text.slice(0, 30) + (last.text.length > 30 ? '…' : '') : '') + '</div></a>';
+  }).join('');
+</script>
 </body>
 </html>
