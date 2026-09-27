@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>문서상세 — 지식 검색 포털 시안 A</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 전체 목록</a> · <a href="./README.md">지식 검색 포털 폴더</a> · <a href="./variant-a.html">시안 A 홈</a> · <a href="javascript:history.back()">검색결과</a></div>
+    <h1 id="doc-title">문서 상세 — 시안 A</h1>
+  </header>
+
+  <div class="page-frame">
+    <div class="page-title-row">
+      <div id="doc-meta" style="font-size:12.5px;color:var(--slate-600)"></div>
+      <button type="button" class="btn-outline btn-sm" id="fav-btn" data-fav="false">☆ 즐겨찾기</button>
+    </div>
+
+    <div class="glass-panel" style="margin-bottom:16px">
+      <p id="doc-body" style="font-size:13.5px;line-height:1.8;color:var(--slate-700);margin:0"></p>
+    </div>
+
+    <div class="u-label">관련 문서</div>
+    <div class="grid" id="related-grid"></div>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+<script>
+  const DOCS = [
+    { id:'d1', title:'연차 신청 방법 안내', type:'위키', dept:'인사', date:'2026-08-11', views:1204, body:'사내 인사 시스템(HRIS) &gt; 근태 &gt; 연차신청 메뉴에서 신청합니다. 신청 후 팀장 승인이 완료되면 캘린더에 자동 반영됩니다. 반차/반반차도 동일한 메뉴에서 신청할 수 있습니다.' },
+    { id:'d2', title:'연차 관련 인사 규정 제12조', type:'규정', dept:'인사', date:'2026-05-02', views:862, body:'제12조(연차의 이월) 미사용 연차는 최대 5일까지 다음 회계연도로 이월할 수 있습니다. 5일을 초과하는 연차는 회계연도 말 자동 소멸되며, 별도 보상하지 않습니다.' },
+    { id:'d3', title:'2026년 하반기 연차 사용 독려 공지', type:'공지', dept:'총무', date:'2026-09-01', views:430, body:'하반기 미사용 연차 소진을 위해 팀별 연차 사용 계획을 10월 말까지 제출해 주세요. 12월에는 연차 소진 주간을 운영합니다.' },
+    { id:'d4', title:'신규 입사자 온보딩 가이드', type:'매뉴얼', dept:'인사', date:'2026-07-20', views:980, body:'입사 첫 주 체크리스트: 사내 계정 발급, 장비 수령, 필수 교육 이수, 팀 소개 미팅. 온보딩 담당자가 첫날 안내 메일을 발송합니다.' },
+    { id:'d5', title:'사내 와이파이 접속 및 VPN 설정 안내', type:'매뉴얼', dept:'IT', date:'2026-06-15', views:862, body:'회사 와이파이 SSID는 ICONIA-Secure이며, 사내 계정으로 인증합니다. 외부에서 사내망 접속 시 VPN 클라이언트를 통해서만 접속할 수 있습니다.' },
+    { id:'d6', title:'보안 정책 v2.1 (재택근무 보안수칙 포함)', type:'규정', dept:'보안', date:'2026-08-30', views:551, body:'재택근무 시 VPN 필수 연결, 공용 와이파이 사용 금지, 화면 잠금 자동 설정(5분) 등을 준수해야 합니다.' },
+    { id:'d7', title:'법인카드 사용 및 정산 가이드', type:'매뉴얼', dept:'총무', date:'2026-04-11', views:701, body:'법인카드는 업무 목적으로만 사용하며, 사용 후 3영업일 내 정산 시스템에 영수증을 등록해야 합니다.' },
+    { id:'d8', title:'회의실 예약 시스템 사용법', type:'위키', dept:'총무', date:'2026-03-22', views:390, body:'회의실 예약은 사내 캘린더와 연동되어 있으며, 예약 시 참석자 초대 메일이 자동 발송됩니다.' },
+  ];
+  const NS = '01a';
+  const id = new URLSearchParams(window.location.search).get('id') || 'd1';
+  const doc = DOCS.find((d) => d.id === id) || DOCS[0];
+
+  document.title = doc.title + ' — 지식 검색 포털 시안 A';
+  document.getElementById('doc-title').textContent = doc.title;
+  document.getElementById('doc-meta').innerHTML = '<span class="chip chip-info">' + doc.type + '</span> ' + doc.dept + ' · ' + doc.date + ' 갱신 · 조회 ' + doc.views.toLocaleString();
+  document.getElementById('doc-body').innerHTML = doc.body;
+
+  const favBtn = document.getElementById('fav-btn');
+  if (sgIsFavorite(NS, doc.id)) { favBtn.dataset.fav = 'true'; favBtn.textContent = '★ 즐겨찾기됨'; }
+  favBtn.addEventListener('click', function () { toggleFavorite(NS, doc.id, favBtn); });
+
+  const related = DOCS.filter((d) => d.id !== doc.id && d.dept === doc.dept).slice(0, 3);
+  document.getElementById('related-grid').innerHTML = (related.length ? related : DOCS.filter((d) => d.id !== doc.id).slice(0, 3)).map((d) => (
+    '<a href="./variant-a-detail.html?id=' + d.id + '" style="text-decoration:none;color:inherit">' +
+    '<div class="glass-card"><b style="font-size:12.5px">' + d.title + '</b><div style="font-size:11px;color:var(--slate-400);margin-top:4px">' + d.dept + ' · ' + d.date + '</div></div>' +
+    '</a>'
+  )).join('');
+</script>
+</body>
+</html>

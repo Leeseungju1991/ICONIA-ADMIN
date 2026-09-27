@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>즐겨찾기 — 지식 검색 포털 시안 A</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 전체 목록</a> · <a href="./README.md">지식 검색 포털 폴더</a> · <a href="./variant-a.html">시안 A 홈</a></div>
+    <h1>내 즐겨찾기 — 시안 A</h1>
+  </header>
+
+  <div class="page-frame">
+    <div class="brief-box">
+      <h4>기능</h4>
+      <ul><li>문서 상세에서 ☆ 즐겨찾기를 누르면 이 목록에 실제로 저장됩니다(브라우저 localStorage) — 새로고침해도 유지됩니다</li></ul>
+    </div>
+    <div class="page-title-row"><h2>즐겨찾기한 문서</h2><a href="./variant-a.html" class="btn-outline btn-sm">검색으로 돌아가기</a></div>
+    <div class="glass-panel" id="fav-list"></div>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+<script>
+  const DOCS = [
+    { id:'d1', title:'연차 신청 방법 안내', type:'위키', dept:'인사', date:'2026-08-11', views:1204 },
+    { id:'d2', title:'연차 관련 인사 규정 제12조', type:'규정', dept:'인사', date:'2026-05-02', views:862 },
+    { id:'d3', title:'2026년 하반기 연차 사용 독려 공지', type:'공지', dept:'총무', date:'2026-09-01', views:430 },
+    { id:'d4', title:'신규 입사자 온보딩 가이드', type:'매뉴얼', dept:'인사', date:'2026-07-20', views:980 },
+    { id:'d5', title:'사내 와이파이 접속 및 VPN 설정 안내', type:'매뉴얼', dept:'IT', date:'2026-06-15', views:862 },
+    { id:'d6', title:'보안 정책 v2.1 (재택근무 보안수칙 포함)', type:'규정', dept:'보안', date:'2026-08-30', views:551 },
+    { id:'d7', title:'법인카드 사용 및 정산 가이드', type:'매뉴얼', dept:'총무', date:'2026-04-11', views:701 },
+    { id:'d8', title:'회의실 예약 시스템 사용법', type:'위키', dept:'총무', date:'2026-03-22', views:390 },
+  ];
+  const NS = '01a';
+
+  function render() {
+    const favIds = sgGetFavorites(NS);
+    const favDocs = DOCS.filter((d) => favIds.includes(d.id));
+    document.getElementById('fav-list').innerHTML = favDocs.length ? favDocs.map((d, i) => (
+      '<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;' + (i < favDocs.length - 1 ? 'border-bottom:1px solid var(--hairline)' : '') + '">' +
+      '<a href="./variant-a-detail.html?id=' + d.id + '" style="text-decoration:none;color:inherit"><b style="font-size:13px">' + d.title + '</b> <span class="chip chip-info" style="margin-left:6px">' + d.type + '</span>' +
+      '<div style="font-size:12px;color:var(--slate-500);margin-top:4px">' + d.dept + ' · ' + d.date + ' 갱신</div></a>' +
+      '<button class="btn-ghost btn-xs" onclick="removeFav(\'' + d.id + '\')">제거</button>' +
+      '</div>'
+    )).join('') : '<div class="state-box">아직 즐겨찾기한 문서가 없습니다. 문서 상세에서 ☆ 즐겨찾기를 눌러보세요.</div>';
+  }
+  function removeFav(id) {
+    const dummyBtn = document.createElement('button');
+    toggleFavorite(NS, id, dummyBtn);
+    render();
+  }
+  render();
+</script>
+</body>
+</html>

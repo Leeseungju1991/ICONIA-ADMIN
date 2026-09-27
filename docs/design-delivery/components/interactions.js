@@ -172,3 +172,39 @@ function recalcItemTotal(containerId) {
   const sumEl = document.getElementById(containerId + '-sum');
   if (sumEl) sumEl.textContent = sum.toLocaleString() + '원';
 }
+
+/* 즐겨찾기 (localStorage) — 네임스페이스(ns)별 id 배열로 저장. 문서 상세 페이지의
+   "즐겨찾기" 버튼과, 그 결과를 보여주는 별도의 즐겨찾기 목록 페이지가 이 값을 공유한다. */
+function sgFavKey(ns) { return 'sg-fav-' + ns; }
+function sgGetFavorites(ns) {
+  try { return JSON.parse(localStorage.getItem(sgFavKey(ns)) || '[]'); } catch (e) { return []; }
+}
+function sgIsFavorite(ns, id) { return sgGetFavorites(ns).indexOf(id) !== -1; }
+function toggleFavorite(ns, id, btn) {
+  let favs = sgGetFavorites(ns);
+  const has = favs.indexOf(id) !== -1;
+  favs = has ? favs.filter((x) => x !== id) : favs.concat([id]);
+  try { localStorage.setItem(sgFavKey(ns), JSON.stringify(favs)); } catch (e) { /* storage 접근 불가 시에도 버튼 표시는 갱신 */ }
+  if (btn) {
+    btn.dataset.fav = String(!has);
+    btn.textContent = !has ? '★ 즐겨찾기됨' : '☆ 즐겨찾기';
+  }
+  showSnack(!has ? 'success' : 'info', !has ? '즐겨찾기에 추가했습니다.' : '즐겨찾기에서 제거했습니다.');
+  return !has;
+}
+
+/* 최근 검색·질문 기록 (localStorage) — 검색/질문형 홈 화면과 기록 페이지가 공유 */
+function sgHistKey(ns) { return 'sg-hist-' + ns; }
+function sgGetHistory(ns) {
+  try { return JSON.parse(localStorage.getItem(sgHistKey(ns)) || '[]'); } catch (e) { return []; }
+}
+function sgAddHistory(ns, text) {
+  if (!text || !text.trim()) return;
+  let hist = sgGetHistory(ns).filter((h) => h.text !== text);
+  hist.unshift({ text: text.trim(), ts: Date.now() });
+  try { localStorage.setItem(sgHistKey(ns), JSON.stringify(hist.slice(0, 20))); } catch (e) { /* 저장 불가 시 화면 표시만 스킵 */ }
+}
+function sgClearHistory(ns, onDone) {
+  try { localStorage.removeItem(sgHistKey(ns)); } catch (e) {}
+  if (onDone) onDone();
+}

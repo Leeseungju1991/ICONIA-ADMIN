@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AI 답변 — 지식 검색 포털 시안 C</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 전체 목록</a> · <a href="./README.md">지식 검색 포털 폴더</a> · <a href="./variant-c.html">시안 C 홈</a></div>
+    <h1>AI 답변 — 시안 C</h1>
+  </header>
+
+  <div class="page-frame">
+    <div class="input-wrap" style="margin-bottom:16px"><input class="input" id="q-input" style="padding-right:34px" /><button type="button" class="clear-btn" style="display:block" onclick="clearSearch(this)">✕</button></div>
+
+    <div class="banner info" style="margin-bottom:16px">
+      <span class="icon">✨</span>
+      <div><p class="title">AI 요약 답변</p><p class="desc" id="answer-text"></p></div>
+    </div>
+
+    <div class="u-label">출처 문서</div>
+    <div class="grid" id="source-grid" style="margin-bottom:20px"></div>
+
+    <div class="u-label">추가로 물어보기</div>
+    <div class="row"><input class="input" id="followup-input" placeholder="추가 질문을 입력하세요" style="max-width:320px" /><button class="btn-primary btn-sm" onclick="askFollowup()">질문하기</button></div>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+<script>
+  const NS = '01c';
+  const SOURCES = {
+    s1:{ id:'s1', title:'인사 규정 제12조 (연차 이월)', dept:'인사팀', date:'2026-05-02' },
+    s2:{ id:'s2', title:'연차 신청 방법 안내', dept:'인사팀', date:'2026-08-11' },
+    s3:{ id:'s3', title:'사내 와이파이 접속 및 VPN 설정 안내', dept:'IT팀', date:'2026-06-15' },
+    s4:{ id:'s4', title:'보안 정책 v2.1 (재택근무 보안수칙 포함)', dept:'보안팀', date:'2026-08-30' },
+    s5:{ id:'s5', title:'법인카드 사용 및 정산 가이드', dept:'총무팀', date:'2026-04-11' },
+    s6:{ id:'s6', title:'신규 입사자 온보딩 가이드', dept:'인사팀', date:'2026-07-20' },
+    s7:{ id:'s7', title:'회의실 예약 시스템 사용법', dept:'총무팀', date:'2026-03-22' },
+  };
+  const QA = [
+    { kw:['연차','이월'], answer:'인사 규정 제12조에 따라 미사용 연차는 최대 5일까지 다음 해로 이월할 수 있습니다. 5일을 초과하는 연차는 회계연도 말 자동 소멸됩니다.', sources:['s1','s2'] },
+    { kw:['vpn','와이파이','wifi'], answer:'회사 와이파이(ICONIA-Secure)는 사내 계정으로 인증합니다. 외부에서 사내망에 접속할 때는 VPN 클라이언트를 통해서만 접속할 수 있으며, 재택근무 시 VPN 연결이 필수입니다.', sources:['s3','s4'] },
+    { kw:['법인카드','정산'], answer:'법인카드는 업무 목적으로만 사용해야 하며, 사용 후 3영업일 이내에 정산 시스템에 영수증을 등록해야 합니다.', sources:['s5'] },
+    { kw:['온보딩','입사','체크리스트'], answer:'입사 첫 주에는 사내 계정 발급, 장비 수령, 필수 교육 이수, 팀 소개 미팅을 진행합니다. 온보딩 담당자가 첫날 안내 메일로 세부 일정을 안내합니다.', sources:['s6'] },
+    { kw:['회의실'], answer:'회의실 예약은 사내 캘린더와 연동되어 있으며, 예약 시 참석자 초대 메일이 자동 발송됩니다.', sources:['s7'] },
+  ];
+  function findAnswer(q) {
+    const lower = q.toLowerCase();
+    const hit = QA.find((qa) => qa.kw.some((k) => lower.includes(k)));
+    if (hit) return hit;
+    return { answer:'질문과 정확히 일치하는 문서를 찾지 못했습니다. 아래는 관련도가 높을 것으로 예상되는 인기 문서입니다 — 표현을 조금 바꿔 다시 질문해 보세요.', sources:['s2','s6','s5'] };
+  }
+
+  const q = new URLSearchParams(window.location.search).get('q') || '연차는 최대 며칠까지 이월할 수 있나요?';
+  document.getElementById('q-input').value = q;
+  sgAddHistory(NS, q);
+
+  const result = findAnswer(q);
+  document.getElementById('answer-text').textContent = result.answer;
+  document.getElementById('source-grid').innerHTML = result.sources.map((sid) => {
+    const s = SOURCES[sid];
+    return '<a href="./variant-c-source.html?id=' + s.id + '" style="text-decoration:none;color:inherit"><div class="glass-card"><b style="font-size:12.5px">' + s.title + '</b><div style="font-size:11px;color:var(--slate-400);margin-top:4px">' + s.dept + ' · ' + s.date + '</div></div></a>';
+  }).join('');
+
+  function askFollowup() {
+    const v = document.getElementById('followup-input').value.trim();
+    if (v) window.location.href = './variant-c-answer.html?q=' + encodeURIComponent(v);
+  }
+</script>
+</body>
+</html>

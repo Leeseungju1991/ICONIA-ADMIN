@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>문서상세 — 지식 검색 포털 시안 B</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+<style>
+  .editorial-grid { display:grid; grid-template-columns:1fr 220px; gap:24px; align-items:start; }
+  @media (max-width:760px) { .editorial-grid { grid-template-columns:1fr; } }
+  .editorial-grid .toc { position:sticky; top:16px; }
+  .editorial-body p { font-size:14.5px; line-height:1.9; color:var(--slate-700); }
+  .version-row { display:flex; justify-content:space-between; padding:9px 0; border-bottom:1px solid var(--hairline); font-size:12.5px; }
+  .version-row:last-child { border-bottom:none; }
+</style>
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 전체 목록</a> · <a href="./README.md">지식 검색 포털 폴더</a> · <a href="./variant-b.html">시안 B 홈</a></div>
+    <h1 id="doc-title">문서 상세 — 시안 B</h1>
+  </header>
+
+  <div class="page-frame">
+    <div id="doc-meta" style="font-size:12.5px;color:var(--slate-600);margin-bottom:14px"></div>
+
+    <div class="tabs" style="margin-bottom:16px">
+      <button class="tab" aria-selected="true" onclick="switchTab(this,'body')">본문</button>
+      <button class="tab" aria-selected="false" onclick="switchTab(this,'history')">버전이력</button>
+      <button class="tab" aria-selected="false" onclick="switchTab(this,'approval')">승인상태</button>
+    </div>
+
+    <div class="tab-panel" data-panel="body">
+      <div class="editorial-grid">
+        <div class="glass-panel editorial-body">
+          <p id="doc-body"></p>
+        </div>
+        <div class="glass-panel toc">
+          <div class="u-label">목차</div>
+          <div style="font-size:12px;color:var(--slate-600);line-height:2">
+            <div>1. 개요</div><div>2. 처리 절차</div><div>3. 예외 사항</div><div>4. 문의처</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-panel" data-panel="history" hidden>
+      <div class="glass-panel">
+        <div class="version-row"><span><b>v3</b> — 절차 문구 보완</span><span style="color:var(--slate-500)">김민지 · 2026-08-11</span></div>
+        <div class="version-row"><span><b>v2</b> — 이월 한도 5일로 변경</span><span style="color:var(--slate-500)">이하늘 · 2026-05-02</span></div>
+        <div class="version-row"><span><b>v1</b> — 최초 작성</span><span style="color:var(--slate-500)">이하늘 · 2025-11-10</span></div>
+      </div>
+    </div>
+
+    <div class="tab-panel" data-panel="approval" hidden>
+      <div class="glass-panel">
+        <div class="checklist-item"><span class="status-icon pass">✓</span><span class="label">작성자 검토</span><span class="owner">이하늘 · 완료</span></div>
+        <div class="checklist-item"><span class="status-icon pass">✓</span><span class="label">부서장 승인</span><span class="owner">박부장 · 완료</span></div>
+        <div class="checklist-item"><span class="status-icon pending">…</span><span class="label">최종 게시</span><span class="owner">대기중</span></div>
+      </div>
+    </div>
+
+    <div class="u-label" style="margin-top:20px">같은 카테고리 문서</div>
+    <div class="grid" id="related-grid"></div>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+<script>
+  const DOCS = [
+    { id:'d1', title:'연차 신청 방법 안내', type:'위키', cat:'인사', date:'2026-08-11', body:'사내 인사 시스템(HRIS) &gt; 근태 &gt; 연차신청 메뉴에서 신청합니다. 신청 후 팀장 승인이 완료되면 캘린더에 자동 반영됩니다. 반차/반반차도 동일한 메뉴에서 신청할 수 있습니다. 신청 취소는 승인 전까지만 가능하며, 승인 후 취소가 필요한 경우 인사팀에 별도 요청해야 합니다.' },
+    { id:'d2', title:'연차 관련 인사 규정 제12조', type:'규정', cat:'인사', date:'2026-05-02', body:'제12조(연차의 이월) 미사용 연차는 최대 5일까지 다음 회계연도로 이월할 수 있습니다. 5일을 초과하는 연차는 회계연도 말 자동 소멸되며, 별도 보상하지 않습니다.' },
+    { id:'d3', title:'2026년 하반기 연차 사용 독려 공지', type:'공지', cat:'총무', date:'2026-09-01', body:'하반기 미사용 연차 소진을 위해 팀별 연차 사용 계획을 10월 말까지 제출해 주세요.' },
+    { id:'d4', title:'신규 입사자 온보딩 가이드', type:'매뉴얼', cat:'인사', date:'2026-07-20', body:'입사 첫 주 체크리스트: 사내 계정 발급, 장비 수령, 필수 교육 이수, 팀 소개 미팅.' },
+    { id:'d5', title:'사내 와이파이 접속 및 VPN 설정 안내', type:'매뉴얼', cat:'IT', date:'2026-06-15', body:'회사 와이파이 SSID는 ICONIA-Secure이며, 사내 계정으로 인증합니다.' },
+    { id:'d6', title:'보안 정책 v2.1', type:'규정', cat:'보안', date:'2026-08-30', body:'재택근무 시 VPN 필수 연결, 공용 와이파이 사용 금지 등을 준수해야 합니다.' },
+    { id:'d7', title:'법인카드 사용 및 정산 가이드', type:'매뉴얼', cat:'총무', date:'2026-04-11', body:'법인카드는 업무 목적으로만 사용하며, 사용 후 3영업일 내 정산 시스템에 영수증을 등록해야 합니다.' },
+    { id:'d8', title:'회의실 예약 시스템 사용법', type:'위키', cat:'총무', date:'2026-03-22', body:'회의실 예약은 사내 캘린더와 연동되어 있으며, 예약 시 참석자 초대 메일이 자동 발송됩니다.' },
+  ];
+  const id = new URLSearchParams(window.location.search).get('id') || 'd1';
+  const doc = DOCS.find((d) => d.id === id) || DOCS[0];
+  document.title = doc.title + ' — 시안 B';
+  document.getElementById('doc-title').textContent = doc.title;
+  document.getElementById('doc-meta').innerHTML = '<span class="chip chip-info">' + doc.type + '</span> ' + doc.cat + ' · ' + doc.date + ' 갱신';
+  document.getElementById('doc-body').innerHTML = doc.body;
+  const related = DOCS.filter((d) => d.id !== doc.id && d.cat === doc.cat).slice(0, 3);
+  document.getElementById('related-grid').innerHTML = related.map((d) => (
+    '<a href="./variant-b-detail.html?id=' + d.id + '" style="text-decoration:none;color:inherit"><div class="glass-card"><b style="font-size:12.5px">' + d.title + '</b><div style="font-size:11px;color:var(--slate-400);margin-top:4px">' + d.date + '</div></div></a>'
+  )).join('') || '<div class="state-box">같은 카테고리의 다른 문서가 없습니다.</div>';
+</script>
+</body>
+</html>
