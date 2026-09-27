@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>완료 — SOP·매뉴얼 포털 시안 C</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 전체 목록</a> · <a href="./README.md">SOP·매뉴얼 포털 폴더</a> · <a href="./variant-c.html">시안 C 홈</a></div>
+    <h1>절차 완료</h1>
+  </header>
+
+  <div class="page-frame">
+    <div class="state-box" id="complete-box" style="padding:40px 20px">
+      <div style="font-size:32px;margin-bottom:10px">✅</div>
+      <p id="complete-title" style="font-size:15px;font-weight:700;color:var(--slate-900);margin:0 0 6px"></p>
+      <p style="margin:0">모든 단계를 완료했습니다. 담당팀에 완료 사실이 자동으로 공유됩니다.</p>
+    </div>
+    <div class="row" style="justify-content:center;margin-top:16px"><a class="btn-outline btn-sm" href="./variant-c.html">목록으로 돌아가기</a></div>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+<script>
+  const NS = '02c';
+  const TITLES = { proc1:'신규 입사자 온보딩 절차', proc2:'보안 사고 대응 절차', proc3:'출고 검수 절차' };
+  const id = new URLSearchParams(window.location.search).get('id') || 'proc1';
+  const done = sgGetJSON('sg-checklist-' + NS + '-' + id, []);
+  const complete = done.length > 0 && done.every(Boolean);
+  document.getElementById('complete-title').textContent = (TITLES[id] || '') + (complete ? ' — 완료' : ' — 아직 미완료');
+  if (!complete) {
+    document.getElementById('complete-box').innerHTML = '<div style="font-size:32px;margin-bottom:10px">⏳</div><p style="font-size:15px;font-weight:700;color:var(--slate-900);margin:0 0 6px">아직 모든 단계가 완료되지 않았습니다</p><p style="margin:0">절차 실행 화면으로 돌아가 남은 단계를 체크해주세요.</p>';
+  }
+</script>
+</body>
+</html>

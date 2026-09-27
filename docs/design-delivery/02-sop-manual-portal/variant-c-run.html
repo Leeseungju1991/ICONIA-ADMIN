@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>절차 실행 — SOP·매뉴얼 포털 시안 C</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 전체 목록</a> · <a href="./README.md">SOP·매뉴얼 포털 폴더</a> · <a href="./variant-c.html">시안 C 홈</a></div>
+    <h1 id="proc-title">절차 실행 — 시안 C</h1>
+  </header>
+
+  <div class="page-frame">
+    <div class="page-title-row"><h2 id="proc-title2" style="margin:0"></h2><span class="chip chip-muted" id="proc-count"></span></div>
+    <div class="progress-track" style="height:10px;margin-bottom:16px"><div class="progress-fill" id="proc-progress" style="width:0%"></div></div>
+    <div class="glass-panel" id="step-list"></div>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+<script>
+  const NS = '02c';
+  const PROCS = {
+    proc1:{ title:'신규 입사자 온보딩 절차', owners:['IT팀','인사팀','본인','소속팀장','총무팀','소속팀장'], labels:['계정 및 사내 시스템 접근 권한 발급','근로계약서 및 서류 제출','사내 필수 교육(윤리·보안) 이수','부서 배치 및 멘토 지정','업무용 장비 수령','1개월 수습 평가 면담'] },
+    proc2:{ title:'보안 사고 대응 절차', owners:['본인','보안팀','IT팀','보안팀'], labels:['사고 인지 및 보안팀 신고','영향받는 계정 비밀번호 변경','로그 확보 및 원인 분석','재발 방지 대책 수립'] },
+    proc3:{ title:'출고 검수 절차', owners:['물류팀','물류팀','품질팀'], labels:['수량 확인','포장 상태 확인','최종 서명 및 출고 승인'] },
+  };
+  const id = new URLSearchParams(window.location.search).get('id') || 'proc1';
+  const proc = PROCS[id] || PROCS.proc1;
+  const storeKey = 'sg-checklist-' + NS + '-' + id;
+  document.title = proc.title + ' — 시안 C';
+  document.getElementById('proc-title').textContent = proc.title;
+  document.getElementById('proc-title2').textContent = proc.title;
+
+  function getDone() {
+    let done = sgGetJSON(storeKey, null);
+    if (!done) { done = proc.labels.map(() => false); sgSetJSON(storeKey, done); }
+    return done;
+  }
+  function render() {
+    const done = getDone();
+    const count = done.filter(Boolean).length;
+    document.getElementById('proc-count').textContent = count + '/' + proc.labels.length + ' 완료';
+    document.getElementById('proc-progress').style.width = Math.round((count / proc.labels.length) * 100) + '%';
+    document.getElementById('step-list').innerHTML = proc.labels.map((label, i) => (
+      '<div class="checklist-item" style="cursor:pointer" onclick="toggleStep(' + i + ')">' +
+      '<span class="status-icon ' + (done[i] ? 'pass' : 'pending') + '">' + (done[i] ? '✓' : (i + 1)) + '</span>' +
+      '<span class="label">' + label + '</span><span class="owner">' + proc.owners[i] + '</span>' +
+      '</div>'
+    )).join('');
+    if (count === proc.labels.length) {
+      document.getElementById('step-list').insertAdjacentHTML('beforeend', '<div style="text-align:center;padding-top:14px"><a class="btn-primary btn-sm" href="./variant-c-complete.html?id=' + id + '">완료 인증서 보기 →</a></div>');
+    }
+  }
+  function toggleStep(i) {
+    const done = getDone();
+    done[i] = !done[i];
+    sgSetJSON(storeKey, done);
+    render();
+  }
+  render();
+</script>
+</body>
+</html>

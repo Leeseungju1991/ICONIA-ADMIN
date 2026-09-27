@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>문서상세 — SOP·매뉴얼 포털 시안 A</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 전체 목록</a> · <a href="./README.md">SOP·매뉴얼 포털 폴더</a> · <a href="./variant-a.html">시안 A 홈</a></div>
+    <h1 id="doc-title">문서 상세 — 시안 A</h1>
+  </header>
+
+  <div class="page-frame">
+    <div class="page-title-row">
+      <div id="doc-meta" style="font-size:12.5px;color:var(--slate-600)"></div>
+      <button class="btn-outline btn-sm" onclick="showSnack('success','다운로드를 시작합니다.')">⬇ 다운로드</button>
+    </div>
+    <div class="glass-panel">
+      <p id="doc-body" style="font-size:13.5px;line-height:1.8;color:var(--slate-700);margin:0"></p>
+    </div>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+<script>
+  const DOCS = {
+    p1:{ title:'CS 응대 표준 스크립트', dept:'영업·CS', ver:'v3.2', status:'승인됨', body:'1. 고객 응대 시 반드시 본인 소속과 이름을 먼저 밝힌다.<br/>2. 고객의 문의를 끝까지 경청한 뒤 요약해 재확인한다.<br/>3. 해결 불가한 문의는 담당 부서로 즉시 이관한다.' },
+    p2:{ title:'반품·교환 처리 절차', dept:'영업·CS', ver:'v2.0', status:'검토중', body:'반품 접수 후 3영업일 이내 상태 확인, 검수 통과 시 환불 또는 교환을 진행한다.' },
+    p3:{ title:'신규 입사자 온보딩 절차', dept:'인사·총무', ver:'v1.4', status:'승인됨', body:'계정 발급 → 서류 제출 → 필수 교육 → 부서 배치 → 장비 수령 → 수습 평가 순으로 진행한다.' },
+    p4:{ title:'연차·경조사 신청 매뉴얼', dept:'인사·총무', ver:'v2.1', status:'승인됨', body:'연차는 HRIS에서, 경조사는 경조사 신청서 양식을 작성해 인사팀에 제출한다.' },
+    p5:{ title:'사내 계정 발급 절차', dept:'IT·보안', ver:'v1.0', status:'승인됨', body:'입사 확정 통보 즉시 IT팀에 계정 발급을 요청하며, 입사 1일 전까지 발급을 완료한다.' },
+    p6:{ title:'보안 사고 대응 매뉴얼', dept:'IT·보안', ver:'v3.0', status:'검토중', body:'사고 인지 즉시 보안팀에 신고하고, 영향받는 계정의 비밀번호를 즉시 변경한다.' },
+    p7:{ title:'출고 검수 표준 절차', dept:'생산·물류', ver:'v2.2', status:'승인됨', body:'출고 전 수량·포장 상태를 검수 체크리스트에 따라 확인 후 서명한다.' },
+  };
+  const id = new URLSearchParams(window.location.search).get('id') || 'p1';
+  const doc = DOCS[id] || DOCS.p1;
+  document.title = doc.title + ' — 시안 A';
+  document.getElementById('doc-title').textContent = doc.title;
+  document.getElementById('doc-meta').innerHTML = '<span class="chip chip-muted">' + doc.dept + '</span> ' + doc.ver + ' · <span class="chip ' + (doc.status === '승인됨' ? 'chip-success' : 'chip-warn') + '">' + doc.status + '</span>';
+  document.getElementById('doc-body').innerHTML = doc.body;
+</script>
+</body>
+</html>
