@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>자동화 상세 — RPA 대시보드 시안 A</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 전체 목록</a> · <a href="./README.md">RPA 자동화 대시보드 폴더</a> · <a href="./variant-a.html">시안 A 홈</a></div>
+    <h1 id="auto-title">자동화 상세 — 시안 A</h1>
+  </header>
+
+  <div class="page-frame">
+    <div class="page-title-row">
+      <div id="auto-meta" style="font-size:12.5px;color:var(--slate-600)"></div>
+      <button type="button" class="switch" id="active-switch" role="switch" onclick="onToggle(this)"><span class="knob"></span></button>
+    </div>
+
+    <div class="glass-panel kv-list" style="margin-bottom:16px">
+      <div class="kv-row"><span class="k">업무 유형</span><span class="v" id="auto-type"></span></div>
+      <div class="kv-row"><span class="k">실행 주기</span><span class="v" id="auto-freq"></span></div>
+      <div class="kv-row"><span class="k">담당자</span><span class="v" id="auto-owner"></span></div>
+    </div>
+
+    <div class="u-label">최근 실행 이력</div>
+    <div class="table-scroll"><table class="data-table">
+      <thead><tr><th>실행시각</th><th>결과</th><th>처리건수</th></tr></thead>
+      <tbody id="hist-tbody"></tbody>
+    </table></div>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+<script>
+  const NS = '03a';
+  const AUTOS = {
+    a1:{ name:'일일 매출 집계 → 엑셀 발송', type:'보고서', freq:'매일 07:00', owner:'재무팀', active:true, hist:[['09:02:14','성공','1건'],['어제 07:00','성공','1건']] },
+    a2:{ name:'신규 발주서 ERP 입력', type:'데이터입력', freq:'10분마다', owner:'구매팀', active:true, hist:[['08:50:00','성공','12건'],['08:40:00','성공','8건']] },
+    a3:{ name:'거래처 세금계산서 발행', type:'회계', freq:'매일 18:00', owner:'재무팀', active:false, hist:[['어제 18:00','실패','세션 만료'],['그제 18:00','성공','5건']] },
+    a4:{ name:'급여 데이터 검증', type:'인사', freq:'매월 25일', owner:'인사팀', active:false, hist:[['지난달 25일','성공','1건']] },
+  };
+  const id = new URLSearchParams(window.location.search).get('id') || 'a1';
+  const auto = AUTOS[id] || AUTOS.a1;
+
+  function getActive() {
+    const saved = sgGetJSON(NS + '-' + id, null);
+    return saved === null ? auto.active : saved;
+  }
+  function render() {
+    const active = getActive();
+    document.title = auto.name + ' — 시안 A';
+    document.getElementById('auto-title').textContent = auto.name;
+    document.getElementById('auto-meta').innerHTML = '<span class="chip ' + (active ? 'chip-success' : 'chip-muted') + '">' + (active ? '활성' : '일시중지') + '</span>';
+    document.getElementById('auto-type').textContent = auto.type;
+    document.getElementById('auto-freq').textContent = auto.freq;
+    document.getElementById('auto-owner').textContent = auto.owner;
+    const sw = document.getElementById('active-switch');
+    sw.dataset.on = String(active);
+    sw.setAttribute('aria-checked', String(active));
+    document.getElementById('hist-tbody').innerHTML = auto.hist.map((h) => (
+      '<tr><td>' + h[0] + '</td><td><span class="chip ' + (h[1] === '성공' ? 'chip-success' : 'chip-error') + '">' + h[1] + '</span></td><td>' + h[2] + '</td></tr>'
+    )).join('');
+  }
+  function onToggle(btn) {
+    const next = btn.dataset.on !== 'true';
+    sgSetJSON(NS + '-' + id, next);
+    render();
+    showSnack(next ? 'success' : 'info', next ? '자동화를 활성화했습니다.' : '자동화를 일시중지했습니다.');
+  }
+  render();
+</script>
+</body>
+</html>

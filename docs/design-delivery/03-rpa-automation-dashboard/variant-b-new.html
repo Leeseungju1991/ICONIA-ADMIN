@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>새 자동화 등록 — RPA 대시보드 시안 B</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 전체 목록</a> · <a href="./README.md">RPA 자동화 대시보드 폴더</a> · <a href="./variant-b.html">시안 B 홈</a></div>
+    <h1>새 자동화 등록 — 시안 B</h1>
+  </header>
+
+  <div class="page-frame">
+    <div class="u-label">트리거 방식</div>
+    <div class="grid" style="margin-bottom:16px" id="trigger-cards">
+      <div class="pick-card" data-selected="true" onclick="selectOnlyCard(this)" data-freq="매일 지정 시각 실행">⏰ 정해진 시각마다</div>
+      <div class="pick-card" data-selected="false" onclick="selectOnlyCard(this)" data-freq="파일 업로드 시 실행">📥 파일 업로드 시</div>
+      <div class="pick-card" data-selected="false" onclick="selectOnlyCard(this)" data-freq="수동 실행만">🖱 수동 실행만</div>
+    </div>
+    <form onsubmit="return submitAuto(event)">
+      <div class="field"><label>자동화 이름<span class="req">*</span></label><input class="input" id="f-name" required placeholder="예: 주간 재고 현황 집계" /></div>
+      <div class="sticky-footer">
+        <button type="button" class="btn-outline" onclick="location.href='./variant-b.html'">취소</button>
+        <button type="submit" class="btn-primary" id="submit-btn">등록</button>
+      </div>
+    </form>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+<script>
+  const NS = '03b';
+  function submitAuto(e) {
+    e.preventDefault();
+    const name = document.getElementById('f-name').value.trim();
+    if (!name) { showSnack('warning', '자동화 이름을 입력해주세요.'); return false; }
+    const freq = document.querySelector('#trigger-cards .pick-card[data-selected="true"]').dataset.freq;
+    const list = sgGetJSON('sg-automations-' + NS, []);
+    const id = 'b' + Date.now();
+    list.push({ id, name, freq, status:true, lastResult:'아직 실행 안 함', lastRunAt:null });
+    sgSetJSON('sg-automations-' + NS, list);
+    const btn = document.getElementById('submit-btn');
+    btn.innerHTML = '<span class="spinner spin"></span> 등록 중...';
+    btn.disabled = true;
+    setTimeout(() => { window.location.href = './variant-b-detail.html?id=' + id; }, 600);
+    return false;
+  }
+</script>
+</body>
+</html>
