@@ -5,3 +5,4 @@
 | [A](./variant-a.html) | ![A](./preview-a.svg) | 부서 카드 그리드 진입 + 문서 표 |
 | [B](./variant-b.html) | ![B](./preview-b.svg) | 문서 상세 (본문/버전이력/승인상태 탭) |
 | [C](./variant-c.html) | ![C](./preview-c.svg) | 절차 체크리스트 + 진행률 |
+| [D](./variant-d.html) | ![D](./preview-d.svg) | 변경 알림 피드 — 구독 문서 개정 소식 스크롤 목록 |

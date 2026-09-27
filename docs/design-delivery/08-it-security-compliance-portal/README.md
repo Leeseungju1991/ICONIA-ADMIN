@@ -5,3 +5,4 @@
 | [A](./variant-a.html) | ![A](./preview-a.svg) | 점검 체크리스트 + 진행률 |
 | [B](./variant-b.html) | ![B](./preview-b.svg) | 부서별 준수율 비교 대시보드 |
 | [C](./variant-c.html) | ![C](./preview-c.svg) | 감사 증적 관리 표 |
+| [D](./variant-d.html) | ![D](./preview-d.svg) | 정책 서명 현황 — 문서 버전별 서명 완료율 표 |

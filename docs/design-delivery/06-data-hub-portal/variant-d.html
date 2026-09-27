@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>데이터 허브 포털 — 시안 D</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 전체 목록</a> · <a href="./README.md">데이터 허브 포털 폴더</a></div>
+    <h1>사내 데이터 허브·정제 관리 포털 — 시안 D</h1>
+  </header>
+
+  <div class="page-frame">
+    <div class="brief-box">
+      <h4>기능</h4>
+      <ul><li>민감 데이터셋에 대한 접근 신청과 승인 상태 관리</li></ul>
+      <h4>UI/UX</h4>
+      <ul><li>데이터 자체보다 "누가 무엇에 접근 가능한지" 거버넌스가 우선인 관리자용 신청·승인 표</li></ul>
+    </div>
+
+    <div class="page-title-row"><h2>접근 권한 신청</h2><button class="btn-primary btn-sm">+ 접근 신청</button></div>
+
+    <div class="table-scroll"><table class="data-table">
+      <thead><tr><th>신청자</th><th>데이터셋</th><th>사유</th><th>상태</th></tr></thead>
+      <tbody>
+        <tr><td>정민수 (마케팅)</td><td>캠페인 클릭 로그</td><td>분기 성과 분석</td><td><span class="chip chip-success">승인됨</span></td></tr>
+        <tr><td>한지민 (영업)</td><td>고객 주문 이력</td><td>대시보드 구축</td><td><span class="chip chip-warn">검토중</span></td></tr>
+        <tr><td>오세훈 (외부 협력사)</td><td>CS 문의 원문</td><td>챗봇 학습용</td><td><span class="chip chip-error">반려됨</span></td></tr>
+      </tbody>
+    </table></div>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+</body>
+</html>

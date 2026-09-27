@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>CS 티켓팅 — 시안 D</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 전체 목록</a> · <a href="./README.md">CS 티켓팅 폴더</a></div>
+    <h1>CS 티켓팅·응대 관리 시스템 — 시안 D</h1>
+  </header>
+
+  <div class="page-frame">
+    <div class="brief-box">
+      <h4>기능</h4>
+      <ul><li>응답 기한(SLA)이 임박한 티켓을 우선 노출</li><li>남은 시간을 카운트다운 칩으로 강조</li></ul>
+      <h4>UI/UX</h4>
+      <ul><li>여러 티켓 중 "지금 뭘 먼저 처리해야 하는지" 우선순위가 최우선 관심사인 팀장/시니어 상담사용</li></ul>
+    </div>
+
+    <div class="page-title-row"><h2>SLA 임박 순</h2><span class="chip chip-error">2건 초과 위험</span></div>
+
+    <div class="table-scroll"><table class="data-table">
+      <thead><tr><th>티켓</th><th>고객</th><th>남은 시간</th><th>담당자</th></tr></thead>
+      <tbody>
+        <tr><td>제품 파손 신고</td><td>한지민</td><td><span class="chip chip-error">12분</span></td><td>미배정</td></tr>
+        <tr><td>환불 요청</td><td>이도윤</td><td><span class="chip chip-error">28분</span></td><td>박상담</td></tr>
+        <tr><td>배송 지연 문의</td><td>김하나</td><td><span class="chip chip-warn">1시간 40분</span></td><td>박상담</td></tr>
+        <tr><td>제품 사용법 문의</td><td>최서연</td><td><span class="chip chip-success">6시간</span></td><td>이상담</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+</body>
+</html>

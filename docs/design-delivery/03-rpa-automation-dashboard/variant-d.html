@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>RPA 자동화 대시보드 — 시안 D</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+<style>
+  .flow-block { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+  .flow-node { flex:1; background:var(--surface); border:1px solid var(--hairline); border-radius:10px; padding:10px 14px; font-size:12.5px; }
+  .flow-arrow { color:var(--slate-300); font-size:16px; }
+</style>
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 전체 목록</a> · <a href="./README.md">RPA 자동화 대시보드 폴더</a></div>
+    <h1>RPA 기반 반복 업무 자동화 대시보드 — 시안 D</h1>
+  </header>
+
+  <div class="page-frame">
+    <div class="brief-box">
+      <h4>기능</h4>
+      <ul><li>자동화 시나리오를 단계 블록으로 조립</li><li>조건 분기(성공/실패 시 다음 동작)를 시각적으로 표시</li></ul>
+      <h4>UI/UX</h4>
+      <ul><li>기존 자동화를 "확인"하는 화면이 아니라 새 자동화를 직접 "만드는" 빌더형 — 순서가 곧 로직이라는 걸 화살표로 보여줌</li></ul>
+    </div>
+
+    <div class="page-title-row"><h2>새 자동화 만들기</h2><button class="btn-primary btn-sm">저장</button></div>
+
+    <div class="glass-panel">
+      <div class="flow-block"><div class="flow-node">🕒 트리거: 매일 07:00</div></div>
+      <div class="flow-block" style="padding-left:20px"><span class="flow-arrow">↓</span></div>
+      <div class="flow-block"><div class="flow-node">📥 ERP에서 어제자 매출 데이터 조회</div></div>
+      <div class="flow-block" style="padding-left:20px"><span class="flow-arrow">↓</span></div>
+      <div class="flow-block"><div class="flow-node">📊 엑셀 템플릿에 자동 입력</div></div>
+      <div class="flow-block" style="padding-left:20px"><span class="flow-arrow">↓</span></div>
+      <div class="flow-block">
+        <div class="flow-node" style="border-color:var(--emerald-600)">✅ 성공 → 담당자에게 메일 발송</div>
+      </div>
+      <div class="flow-block">
+        <div class="flow-node" style="border-color:var(--rose-500)">⚠ 실패 → Slack #ops-alert 채널에 알림</div>
+      </div>
+      <button class="btn-outline btn-sm" style="margin-top:8px">+ 단계 추가</button>
+    </div>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+</body>
+</html>

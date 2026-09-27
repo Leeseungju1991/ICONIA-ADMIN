@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>IT·보안 컴플라이언스 포털 — 시안 D</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 전체 목록</a> · <a href="./README.md">IT·보안 컴플라이언스 포털 폴더</a></div>
+    <h1>IT 서비스·보안 컴플라이언스 체크리스트 포털 — 시안 D</h1>
+  </header>
+
+  <div class="page-frame">
+    <div class="brief-box">
+      <h4>기능</h4>
+      <ul><li>보안 정책 문서별 최신 버전과 직원 서명(동의) 현황 관리</li></ul>
+      <h4>UI/UX</h4>
+      <ul><li>점검 항목이 아니라 "정책에 누가 동의했는지" 문서 버전·서명 추적이 핵심인 관리자용 표</li></ul>
+    </div>
+
+    <div class="page-title-row"><h2>보안 정책 서명 현황</h2></div>
+
+    <div class="table-scroll"><table class="data-table">
+      <thead><tr><th>정책 문서</th><th>버전</th><th>서명 완료</th><th>상태</th></tr></thead>
+      <tbody>
+        <tr><td>정보보안 기본 정책</td><td>v4.0</td><td>412 / 420명</td><td><span class="chip chip-success">98%</span></td></tr>
+        <tr><td>개인정보 취급 방침</td><td>v2.3</td><td>398 / 420명</td><td><span class="chip chip-warn">95%</span></td></tr>
+        <tr><td>재택근무 보안 수칙</td><td>v1.1 (신규)</td><td>102 / 420명</td><td><span class="chip chip-error">24%</span></td></tr>
+      </tbody>
+    </table></div>
+
+    <div class="banner warn" style="margin-top:12px"><span class="icon">⚠</span><div><p class="title">재택근무 보안 수칙 서명 독려 필요</p><p class="desc">신규 정책 배포 후 3일 경과, 미서명 318명에게 리마인드 발송 권장.</p></div></div>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+</body>
+</html>
