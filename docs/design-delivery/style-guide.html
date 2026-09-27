@@ -6,98 +6,101 @@
 <title>ICONIA Admin — 스타일 가이드 (20종)</title>
 <style>
   :root {
-    --accent: #6D5DFE; --accent-hover: #5B4BE6;
-    --accent-pink: #EC4899; --accent-blue: #60A5FA; --accent-orange: #F97316; --accent-teal: #14B8A6;
-    --canvas: #F5F6F8; --surface: #FFFFFF; --hairline: #E5E7EB;
-    --slate-900: #0f172a; --slate-700: #334155; --slate-600: #475569; --slate-400: #94a3b8; --slate-300: #cbd5e1;
-    --rose-500: #f43f5e; --red-600: #dc2626; --emerald-600: #059669; --amber-600: #d97706; --blue-600: #2563eb;
-    --shadow-card: 0 1px 2px rgba(15,23,42,.04), 0 1px 3px rgba(15,23,42,.06);
-    --shadow-soft: 0 6px 18px rgba(109,93,254,.18);
-    --shadow-pop: 0 12px 28px rgba(15,23,42,.16);
+    --accent:#6D5DFE; --accent-hover:#5B4BE6; --accent-pink:#EC4899; --accent-blue:#60A5FA; --accent-orange:#F97316; --accent-teal:#14B8A6;
+    --canvas:#F5F6F8; --surface:#FFFFFF; --hairline:#E5E7EB;
+    --slate-900:#0f172a; --slate-700:#334155; --slate-600:#475569; --slate-400:#94a3b8; --slate-300:#cbd5e1;
+    --rose-500:#f43f5e; --red-600:#dc2626; --emerald-600:#059669; --amber-600:#d97706; --blue-600:#2563eb;
+    --shadow-card:0 1px 2px rgba(15,23,42,.04),0 1px 3px rgba(15,23,42,.06);
+    --shadow-soft:0 6px 18px rgba(109,93,254,.18); --shadow-pop:0 12px 28px rgba(15,23,42,.16);
   }
-  * { box-sizing: border-box; }
+  * { box-sizing:border-box; }
   body { margin:0; background:var(--canvas); color:var(--slate-900);
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Apple SD Gothic Neo","Noto Sans KR",sans-serif; padding:0 0 100px; }
-  a { color: inherit; }
-  .wrap { max-width: 1060px; margin: 0 auto; padding: 32px 20px 0; }
+  a { color:inherit; }
+  .wrap { max-width:1080px; margin:0 auto; padding:32px 20px 0; }
+  header.page-head { margin-bottom:24px; }
+  header.page-head h1 { font-size:24px; font-weight:800; margin:0 0 6px; }
+  header.page-head p { color:var(--slate-600); margin:0; font-size:13px; line-height:1.6; }
+  header.page-head code { background:#eef1f5; padding:1px 6px; border-radius:4px; font-size:12px; }
 
-  header.page-head { margin-bottom: 28px; }
-  header.page-head h1 { font-size: 24px; font-weight: 800; margin: 0 0 6px; }
-  header.page-head p { color: var(--slate-600); margin: 0; font-size: 13.5px; line-height: 1.6; }
-  header.page-head code { background: #eef1f5; padding: 1px 6px; border-radius: 4px; font-size: 12px; }
+  nav.toc { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:6px; margin-bottom:32px; }
+  nav.toc a { font-size:11.5px; font-weight:600; padding:7px 10px; border-radius:10px; background:var(--surface); box-shadow:var(--shadow-card); color:var(--slate-600); text-decoration:none; }
+  nav.toc a b { color:var(--accent); margin-right:4px; }
 
-  nav.toc { display: grid; grid-template-columns: repeat(auto-fill,minmax(150px,1fr)); gap: 6px; margin-bottom: 36px; }
-  nav.toc a { font-size: 11.5px; font-weight: 600; padding: 7px 10px; border-radius: 10px;
-    background: var(--surface); box-shadow: var(--shadow-card); color: var(--slate-600); text-decoration: none; }
-  nav.toc a b { color: var(--accent); margin-right: 4px; }
+  section { margin-bottom:44px; scroll-margin-top:16px; }
+  section > .sec-head { display:flex; align-items:baseline; gap:10px; margin-bottom:14px; padding-bottom:8px; border-bottom:1px solid var(--hairline); }
+  section > .sec-head .num { font-size:20px; font-weight:800; color:var(--slate-300); font-family:ui-monospace,monospace; }
+  section > .sec-head h2 { font-size:14px; font-weight:700; margin:0; }
+  section > .sec-head .tag { font-size:10px; font-weight:700; padding:2px 8px; border-radius:999px; margin-left:auto; }
+  .tag.live { background:#eef2ff; color:var(--accent); } .tag.new { background:#f0fdfa; color:var(--emerald-600); }
 
-  section { margin-bottom: 48px; scroll-margin-top: 16px; }
-  section > .sec-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--hairline); }
-  section > .sec-head .num { font-size: 20px; font-weight: 800; color: var(--slate-300); font-family: ui-monospace, monospace; }
-  section > .sec-head h2 { font-size: 14px; font-weight: 700; margin: 0; }
-  section > .sec-head .tag { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 999px; margin-left: auto; }
-  .tag.live { background: #eef2ff; color: var(--accent); }
-  .tag.new { background: #f0fdfa; color: var(--emerald-600); }
-  section > p.note { font-size: 12px; color: var(--slate-600); margin: -6px 0 14px; }
-  section > p.note code { background: #eef1f5; padding: 1px 6px; border-radius: 4px; font-size: 11px; }
-
-  .subhead { font-size: 11px; font-weight: 700; color: var(--slate-600); margin: 18px 0 8px; }
-  .subhead:first-child { margin-top: 0; }
-
-  .panel { background: var(--surface); border-radius: 16px; box-shadow: var(--shadow-card); padding: 18px; }
-  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
-  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px,1fr)); gap: 14px; }
+  .unit { margin-bottom:16px; } .unit:last-child { margin-bottom:0; }
+  .unit .u-label { font-size:11px; font-weight:700; color:var(--slate-600); margin-bottom:8px; }
+  .panel { background:var(--surface); border-radius:16px; box-shadow:var(--shadow-card); padding:18px; }
+  .row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px; }
 
   /* 1. colors */
-  .swatch-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px,1fr)); gap: 10px; }
-  .swatch { background: var(--surface); border-radius: 12px; box-shadow: var(--shadow-card); overflow: hidden; }
-  .swatch .fill { height: 52px; }
-  .swatch .meta { padding: 8px 10px; }
-  .swatch .meta .name { font-size: 11.5px; font-weight: 700; }
-  .swatch .meta .hex { font-size: 10px; color: var(--slate-400); font-family: ui-monospace, monospace; }
+  .swatch-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:10px; }
+  .swatch { background:var(--surface); border-radius:12px; box-shadow:var(--shadow-card); overflow:hidden; }
+  .swatch .fill { height:52px; } .swatch .meta { padding:8px 10px; }
+  .swatch .meta .name { font-size:11.5px; font-weight:700; } .swatch .meta .hex { font-size:10px; color:var(--slate-400); font-family:ui-monospace,monospace; }
+  .contrast-pair { display:flex; align-items:center; justify-content:center; height:52px; font-size:12px; font-weight:700; }
 
   /* 2. typography */
-  .type-row { display: flex; align-items: baseline; gap: 14px; padding: 9px 0; border-bottom: 1px dashed var(--hairline); }
-  .type-row:last-child { border-bottom: none; }
-  .type-row .tag2 { width: 130px; flex-shrink: 0; font-size: 10.5px; color: var(--slate-400); font-family: ui-monospace, monospace; }
+  .type-row { display:flex; align-items:baseline; gap:14px; padding:8px 0; border-bottom:1px dashed var(--hairline); }
+  .type-row:last-child { border-bottom:none; }
+  .type-row .tag2 { width:120px; flex-shrink:0; font-size:10px; color:var(--slate-400); font-family:ui-monospace,monospace; }
 
   /* 3. buttons */
-  .btn-primary,.btn-outline,.btn-danger { display:inline-flex; align-items:center; gap:6px; border-radius:8px; padding:10px 16px; font-weight:600; font-size:13.5px; cursor:pointer; border:none; }
-  .btn-primary { color:#fff; background:var(--accent); transition:background .15s; }
-  .btn-primary:hover { background:var(--accent-hover); }
+  .btn-primary,.btn-outline,.btn-danger,.btn-ghost,.btn-link { display:inline-flex; align-items:center; gap:6px; border-radius:8px; padding:10px 16px; font-weight:600; font-size:13.5px; cursor:pointer; border:none; }
+  .btn-primary { color:#fff; background:var(--accent); } .btn-primary:hover { background:var(--accent-hover); }
   .btn-primary:disabled { opacity:.5; cursor:not-allowed; }
-  .btn-outline { background:#fff; border:1px solid var(--slate-300); color:var(--slate-700); }
-  .btn-outline:hover { background:#f8fafc; }
-  .btn-danger { color:#fff; background:#EF4444; }
-  .btn-danger:hover { background:var(--red-600); }
+  .btn-outline { background:#fff; border:1px solid var(--slate-300); color:var(--slate-700); } .btn-outline:hover { background:#f8fafc; }
+  .btn-danger { color:#fff; background:#EF4444; } .btn-danger:hover { background:var(--red-600); }
+  .btn-ghost { background:transparent; color:var(--slate-600); } .btn-ghost:hover { background:#eef2f6; }
+  .btn-link { background:none; color:var(--accent); text-decoration:underline; padding:4px 2px; }
   .btn-icon { width:36px; height:36px; padding:0; justify-content:center; border-radius:10px; }
+  .btn-xs { padding:5px 8px; font-size:11px; border-radius:7px; }
   .btn-sm { padding:6px 10px; font-size:12px; border-radius:8px; }
+  .btn-lg { padding:13px 22px; font-size:15px; border-radius:10px; }
+  .btn-block { width:100%; justify-content:center; }
+  .btn-group { display:inline-flex; border-radius:8px; overflow:hidden; border:1px solid var(--slate-300); }
+  .btn-group button { border:none; border-right:1px solid var(--slate-300); background:#fff; padding:8px 14px; font-size:12.5px; cursor:pointer; color:var(--slate-700); }
+  .btn-group button:last-child { border-right:none; }
+  .btn-group button[aria-pressed="true"] { background:var(--accent); color:#fff; }
   .spinner { display:inline-block; width:13px; height:13px; border:2px solid currentColor; border-top-color:transparent; border-radius:50%; animation:spin .7s linear infinite; }
   @keyframes spin { to { transform:rotate(360deg); } }
 
-  /* 4. form inputs */
-  .field { margin-bottom: 14px; }
-  .field label { display:block; font-size:12px; font-weight:600; color:var(--slate-700); margin-bottom:6px; }
-  .field label .req { color: var(--rose-500); margin-left: 2px; }
-  .field .hint { font-size:11px; color:var(--slate-400); margin-top:4px; }
+  /* 4. form */
+  .field { margin-bottom:14px; } .field label { display:block; font-size:12px; font-weight:600; color:var(--slate-700); margin-bottom:6px; }
+  .field label .req { color:var(--rose-500); margin-left:2px; } .field .hint { font-size:11px; color:var(--slate-400); margin-top:4px; }
   .field .err { font-size:11.5px; color:var(--red-600); margin-top:4px; }
-  .input,.select,textarea { width:100%; border-radius:8px; padding:9px 12px; background:#fff; border:1px solid var(--slate-300); outline:none; font-size:13.5px; transition:border-color .15s,box-shadow .15s; }
+  .input,.select,textarea { width:100%; border-radius:8px; padding:9px 12px; background:#fff; border:1px solid var(--slate-300); outline:none; font-size:13.5px; font-family:inherit; transition:border-color .15s,box-shadow .15s; }
   .input:focus,.select:focus,textarea:focus { border-color:var(--accent); box-shadow:0 0 0 3px rgba(109,93,254,.18); }
   .input.err-border { border-color:#fca5a5; }
+  .input[readonly],.input:disabled { background:#f8fafc; color:var(--slate-400); }
   .input-wrap { position:relative; }
   .input-wrap .reveal,.input-wrap .clear-btn { position:absolute; right:8px; top:50%; transform:translateY(-50%); font-size:11px; padding:3px 8px; border-radius:6px; background:rgba(255,255,255,.7); border:1px solid #e2e8f0; color:var(--slate-600); cursor:pointer; }
   .input-wrap .clear-btn { display:none; width:20px; height:20px; padding:0; text-align:center; line-height:18px; }
   .input-wrap.has-value .clear-btn { display:block; }
+  .stepper-input { display:inline-flex; align-items:center; border:1px solid var(--slate-300); border-radius:8px; overflow:hidden; }
+  .stepper-input button { width:32px; height:34px; border:none; background:#f8fafc; font-size:15px; cursor:pointer; color:var(--slate-700); }
+  .stepper-input span { width:40px; text-align:center; font-size:13.5px; font-weight:700; }
+  .dropzone { border:2px dashed var(--slate-300); border-radius:12px; padding:20px; text-align:center; font-size:12.5px; color:var(--slate-500); cursor:pointer; transition:border-color .15s,background .15s; }
+  .dropzone.drag { border-color:var(--accent); background:#f5f4ff; color:var(--accent); }
+  .dropzone.filled { border-style:solid; border-color:var(--emerald-600); color:var(--emerald-600); background:#ecfdf5; }
 
-  /* 5. checkbox/radio/toggle */
+  /* 5. check/radio/toggle */
   .check-row,.radio-row { display:flex; align-items:center; gap:8px; font-size:13px; color:var(--slate-700); margin-bottom:8px; }
   .check-row input,.radio-row input { width:16px; height:16px; accent-color:var(--accent); }
+  .tri-box { width:17px; height:17px; border-radius:5px; border:1.5px solid var(--slate-300); display:inline-flex; align-items:center; justify-content:center; cursor:pointer; font-size:11px; color:#fff; font-weight:700; flex-shrink:0; }
+  .tri-box[data-state="checked"] { background:var(--accent); border-color:var(--accent); }
+  .tri-box[data-state="indeterminate"] { background:var(--accent); border-color:var(--accent); }
   .switch { position:relative; display:inline-flex; height:20px; width:36px; align-items:center; border-radius:999px; border:none; cursor:pointer; transition:background .15s; }
-  .switch[data-on="true"] { background:var(--emerald-600); }
-  .switch[data-on="false"] { background:var(--slate-300); }
+  .switch[data-on="true"] { background:var(--emerald-600); } .switch[data-on="false"] { background:var(--slate-300); }
   .switch .knob { display:block; height:16px; width:16px; border-radius:999px; background:#fff; box-shadow:0 1px 2px rgba(0,0,0,.2); transition:transform .15s; }
-  .switch[data-on="true"] .knob { transform:translateX(18px); }
-  .switch[data-on="false"] .knob { transform:translateX(2px); }
+  .switch[data-on="true"] .knob { transform:translateX(18px); } .switch[data-on="false"] .knob { transform:translateX(2px); }
 
   /* 6. chips */
   .chip { display:inline-flex; align-items:center; gap:5px; border-radius:999px; padding:2px 10px; font-size:11px; font-weight:600; }
@@ -106,27 +109,41 @@
   .chip-error { background:#fff1f2; color:#be123c; border:1px solid #fecdd3; }
   .chip-success { background:#ecfdf5; color:var(--emerald-600); border:1px solid #d1fae5; }
   .chip-muted { background:#f1f5f9; color:var(--slate-600); border:1px solid #e2e8f0; }
+  .chip-outline { background:#fff; color:var(--slate-700); border:1px solid var(--slate-300); }
+  .chip .x { cursor:pointer; opacity:.6; font-weight:800; } .chip .x:hover { opacity:1; }
   .dot-badge { display:inline-flex; align-items:center; justify-content:center; min-width:20px; height:20px; border-radius:999px; background:var(--rose-500); color:#fff; font-size:10px; font-weight:700; padding:0 5px; }
 
   /* 7. cards */
   .glass-card { background:#fff; border:1px solid var(--slate-300); border-radius:12px; box-shadow:var(--shadow-card); padding:16px; }
   .glass-panel { background:#fff; border:1px solid var(--slate-300); border-radius:16px; box-shadow:var(--shadow-card); padding:18px; }
   .panel-card-head { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:10px; flex-wrap:wrap; }
-  .panel-card-head h3 { font-size:15px; font-weight:700; margin:0; }
-  .panel-card-head p { font-size:11px; color:var(--slate-600); margin:2px 0 0; }
+  .panel-card-head h3 { font-size:15px; font-weight:700; margin:0; } .panel-card-head p { font-size:11px; color:var(--slate-600); margin:2px 0 0; }
   .stat-card { position:relative; overflow:hidden; border-radius:20px; background:#fff; box-shadow:var(--shadow-card); padding:16px; }
   .stat-card .blob { position:absolute; top:-40px; right:-32px; height:110px; width:110px; border-radius:999px; filter:blur(26px); opacity:.55; }
   .stat-card .label { font-size:11px; color:var(--slate-400); position:relative; }
   .stat-card .value { font-size:22px; font-weight:800; margin-top:6px; position:relative; }
   .stat-card .delta { font-size:11.5px; margin-top:4px; position:relative; }
   .up { color:var(--emerald-600); font-weight:700; } .down { color:var(--rose-500); font-weight:700; } .flat { color:var(--slate-600); }
+  .pick-card { border:2px solid var(--slate-300); border-radius:14px; padding:14px; cursor:pointer; background:#fff; position:relative; }
+  .pick-card[data-selected="true"] { border-color:var(--accent); background:#f5f4ff; }
+  .pick-card .check { position:absolute; top:10px; right:10px; width:18px; height:18px; border-radius:999px; border:1.5px solid var(--slate-300); background:#fff; display:flex; align-items:center; justify-content:center; font-size:11px; color:#fff; }
+  .pick-card[data-selected="true"] .check { background:var(--accent); border-color:var(--accent); }
+  .img-card { border-radius:14px; overflow:hidden; background:#fff; border:1px solid var(--slate-300); }
+  .img-card .thumb { height:70px; background:linear-gradient(135deg,var(--accent-blue),var(--accent)); }
+  .img-card .body { padding:12px; font-size:12.5px; }
 
   /* 8. tabs */
   .tabs { display:flex; gap:4px; border-bottom:1px solid var(--hairline); padding:0 4px; }
   .tab { padding:8px 14px; font-size:12.5px; font-weight:600; color:var(--slate-600); border-bottom:2px solid transparent; cursor:pointer; background:none; border-top:none; border-left:none; border-right:none; }
   .tab[aria-selected="true"] { color:var(--accent); border-bottom-color:var(--accent); }
-  .tab-panel { padding:14px 4px 0; font-size:12.5px; color:var(--slate-600); }
-  .tab-panel[hidden] { display:none; }
+  .tab-panel { padding:14px 4px 0; font-size:12.5px; color:var(--slate-600); } .tab-panel[hidden] { display:none; }
+  .pill-tabs { display:flex; gap:6px; flex-wrap:wrap; }
+  .pill-tab { padding:7px 14px; border-radius:999px; font-size:12px; font-weight:600; background:#f1f5f9; color:var(--slate-600); border:none; cursor:pointer; }
+  .pill-tab[aria-selected="true"] { background:var(--accent); color:#fff; }
+  .vtabs { display:flex; gap:14px; }
+  .vtabs .vlist { display:flex; flex-direction:column; gap:2px; width:110px; flex-shrink:0; }
+  .vtabs .vtab { text-align:left; padding:8px 10px; border-radius:8px; font-size:12px; font-weight:600; background:none; border:none; color:var(--slate-600); cursor:pointer; }
+  .vtabs .vtab[aria-selected="true"] { background:rgba(109,93,254,.1); color:var(--accent); }
 
   /* 9. accordion */
   .expand-row { border:1px solid var(--slate-300); border-radius:12px; background:#fff; padding:10px 12px; margin-bottom:8px; }
@@ -134,52 +151,70 @@
   .expand-row .toggle-btn { border-radius:8px; border:1px solid var(--slate-300); background:#fff; padding:4px 10px; font-size:12px; cursor:pointer; }
   .expand-row .detail { margin-top:12px; border:1px solid #f1f5f9; border-radius:8px; background:#f8fafc; padding:12px; font-size:12.5px; color:var(--slate-600); }
   .expand-row .detail[hidden] { display:none; }
+  .faq-row { border-bottom:1px solid var(--hairline); padding:10px 0; }
+  .faq-q { display:flex; justify-content:space-between; align-items:center; cursor:pointer; font-size:13px; font-weight:600; }
+  .faq-q .plus { font-size:16px; color:var(--accent); font-weight:800; width:16px; text-align:center; }
+  .faq-a { font-size:12.5px; color:var(--slate-600); padding-top:8px; } .faq-a[hidden] { display:none; }
 
   /* 10. breadcrumb */
   .breadcrumb { display:flex; align-items:center; gap:6px; font-size:12.5px; color:var(--slate-400); flex-wrap:wrap; }
-  .breadcrumb a { color:var(--slate-600); font-weight:600; text-decoration:none; }
-  .breadcrumb a:hover { color:var(--accent); }
-  .breadcrumb .sep { color:var(--slate-300); }
-  .breadcrumb .current { color:var(--slate-900); font-weight:700; }
+  .breadcrumb a,.breadcrumb button.crumb { color:var(--slate-600); font-weight:600; text-decoration:none; background:none; border:none; font-size:12.5px; cursor:pointer; padding:0; }
+  .breadcrumb a:hover,.breadcrumb button.crumb:hover { color:var(--accent); }
+  .breadcrumb .sep { color:var(--slate-300); } .breadcrumb .current { color:var(--slate-900); font-weight:700; }
+  .crumb-hidden { display:none; } .crumb-hidden.show { display:inline; }
 
   /* 11. dropdown */
   .dropdown { position:relative; display:inline-block; }
-  .dropdown-menu { position:absolute; top:calc(100% + 6px); left:0; min-width:180px; background:#fff; border:1px solid var(--slate-300); border-radius:10px; box-shadow:var(--shadow-pop); padding:6px; z-index:10; }
+  .dropdown-menu { position:absolute; top:calc(100% + 6px); left:0; min-width:190px; background:#fff; border:1px solid var(--slate-300); border-radius:10px; box-shadow:var(--shadow-pop); padding:6px; z-index:10; }
+  .dropdown-menu.right { left:auto; right:0; }
   .dropdown-menu[hidden] { display:none; }
-  .dropdown-menu button { display:block; width:100%; text-align:left; padding:8px 10px; border-radius:6px; border:none; background:none; font-size:12.5px; color:var(--slate-700); cursor:pointer; }
-  .dropdown-menu button:hover { background:#f1f5f9; }
-  .dropdown-menu .danger { color:#be123c; }
+  .dropdown-menu button.item { display:block; width:100%; text-align:left; padding:8px 10px; border-radius:6px; border:none; background:none; font-size:12.5px; color:var(--slate-700); cursor:pointer; }
+  .dropdown-menu button.item:hover { background:#f1f5f9; } .dropdown-menu button.item.danger { color:#be123c; }
+  .dropdown-menu label.item { display:flex; align-items:center; gap:8px; padding:7px 10px; font-size:12.5px; border-radius:6px; cursor:pointer; }
+  .dropdown-menu label.item:hover { background:#f1f5f9; }
   .dropdown-menu hr { border:none; border-top:1px solid var(--hairline); margin:6px 0; }
+  .dropdown-menu .apply { margin-top:4px; }
+  .avatar-btn { width:34px; height:34px; border-radius:999px; background:var(--accent); color:#fff; border:none; font-weight:700; font-size:12.5px; cursor:pointer; }
 
-  /* 12. tooltip (pure CSS) */
+  /* 12. tooltip */
   .tip { position:relative; display:inline-block; border-bottom:1px dashed var(--slate-400); cursor:help; font-size:12.5px; }
-  .tip::after { content:attr(data-tip); position:absolute; bottom:calc(100% + 8px); left:50%; transform:translateX(-50%) translateY(4px);
-    background:#0f172a; color:#fff; font-size:11px; padding:6px 10px; border-radius:8px; white-space:nowrap; opacity:0; pointer-events:none; transition:opacity .12s, transform .12s; box-shadow:var(--shadow-pop); }
-  .tip::before { content:""; position:absolute; bottom:calc(100% + 3px); left:50%; transform:translateX(-50%); border:5px solid transparent; border-top-color:#0f172a; opacity:0; transition:opacity .12s; }
-  .tip:hover::after,.tip:focus::after { opacity:1; transform:translateX(-50%) translateY(0); }
-  .tip:hover::before,.tip:focus::before { opacity:1; }
+  .tip::after { content:attr(data-tip); position:absolute; background:#0f172a; color:#fff; font-size:11px; padding:6px 10px; border-radius:8px; white-space:nowrap; opacity:0; pointer-events:none; transition:opacity .12s,transform .12s; box-shadow:var(--shadow-pop); z-index:5; }
+  .tip.top::after { bottom:calc(100% + 8px); left:50%; transform:translateX(-50%) translateY(4px); }
+  .tip.bottom::after { top:calc(100% + 8px); left:50%; transform:translateX(-50%) translateY(-4px); }
+  .tip.left::after { right:calc(100% + 8px); top:50%; transform:translateY(-50%) translateX(4px); }
+  .tip.right::after { left:calc(100% + 8px); top:50%; transform:translateY(-50%) translateX(-4px); }
+  .tip:hover::after,.tip:focus::after { opacity:1; transform:translate(0,0); }
+  .tip-icon { display:inline-flex; align-items:center; justify-content:center; width:16px; height:16px; border-radius:999px; background:var(--slate-300); color:#fff; font-size:10px; font-weight:800; cursor:help; }
 
-  /* 13. sidebar nav */
+  /* 13. nav */
   .nav-mock { display:flex; border-radius:16px; overflow:hidden; box-shadow:var(--shadow-card); background:var(--surface); }
-  .nav-mock .side { width:200px; padding:14px 10px; border-right:1px solid var(--hairline); }
+  .nav-mock .side { width:190px; padding:14px 10px; border-right:1px solid var(--hairline); }
   .nav-mock .group-label { font-size:9.5px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:#94a3b8; padding:8px 10px 4px; }
-  .nav-mock .item { display:flex; align-items:center; gap:8px; padding:8px 10px; border-radius:8px; font-size:12.5px; color:var(--slate-600); margin-bottom:2px; cursor:pointer; }
-  .nav-mock .item.active { background:rgba(109,93,254,.1); color:var(--accent); font-weight:700; }
-  .nav-mock .child { padding:6px 10px 6px 24px; font-size:12px; color:var(--slate-600); border-radius:8px; }
-  .nav-mock .child.active { background:rgba(109,93,254,.1); color:var(--accent); font-weight:700; }
-  .nav-mock .body { flex:1; padding:20px; color:var(--slate-400); font-size:12.5px; }
+  .nav-mock .item { display:flex; align-items:center; gap:8px; padding:8px 10px; border-radius:8px; font-size:12.5px; color:var(--slate-600); margin-bottom:2px; cursor:pointer; border:none; background:none; width:100%; text-align:left; font-family:inherit; }
+  .nav-mock .item[data-active="true"] { background:rgba(109,93,254,.1); color:var(--accent); font-weight:700; }
+  .nav-mock .body { flex:1; padding:18px; color:var(--slate-400); font-size:12px; }
+  .top-nav { display:flex; gap:4px; background:#fff; border-radius:14px; padding:5px; box-shadow:var(--shadow-card); }
+  .top-nav button { flex:1; padding:9px; border-radius:10px; border:none; background:none; font-size:12.5px; font-weight:600; color:var(--slate-600); cursor:pointer; }
+  .top-nav button[data-active="true"] { background:var(--accent); color:#fff; }
+  .bottom-nav { display:flex; background:#fff; border-radius:16px; box-shadow:var(--shadow-card); overflow:hidden; }
+  .bottom-nav button { flex:1; padding:10px 4px; border:none; background:none; display:flex; flex-direction:column; align-items:center; gap:2px; font-size:10.5px; color:var(--slate-400); cursor:pointer; }
+  .bottom-nav button[data-active="true"] { color:var(--accent); font-weight:700; }
+  .bottom-nav .ic { font-size:16px; }
 
   /* 14. banners */
   .banner { display:flex; align-items:flex-start; gap:10px; border-radius:16px; padding:12px 16px; font-size:12.5px; }
   .banner .icon { font-size:16px; line-height:1; }
   .banner .title { font-weight:700; margin:0; } .banner .desc { margin:2px 0 0; font-size:11.5px; }
-  .banner.warn { background:rgba(255,251,235,.85); border:1px solid #fde68a; color:#92400e; }
-  .banner.warn .desc { color:#b45309; }
+  .banner.info { background:#eff6ff; border:1px solid #dbeafe; color:#1e40af; }
+  .banner.success { background:#ecfdf5; border:1px solid #d1fae5; color:#065f46; }
+  .banner.warn { background:rgba(255,251,235,.85); border:1px solid #fde68a; color:#92400e; } .banner.warn .desc { color:#b45309; }
   .banner.error { border:1px solid #fecaca; background:#fef2f2; color:#b91c1c; }
   .banner .dismiss { margin-left:auto; font-size:11px; text-decoration:underline; color:inherit; background:none; border:none; cursor:pointer; }
+  .banner .act { margin-left:auto; font-size:11.5px; font-weight:700; text-decoration:underline; color:inherit; background:none; border:none; cursor:pointer; }
 
-  /* 15. snackbar / toast */
+  /* 15. snackbar */
   #snackbar-stack { position:fixed; bottom:20px; right:20px; z-index:100; display:flex; flex-direction:column; gap:8px; align-items:flex-end; }
+  #snackbar-stack.top-pos { bottom:auto; top:20px; }
   .snackbar { display:flex; align-items:center; gap:10px; border-radius:14px; padding:10px 12px 10px 14px; box-shadow:var(--shadow-pop); max-width:340px; font-size:12.5px; color:#fff; position:relative; overflow:hidden; animation:snack-in .18s ease-out; }
   @keyframes snack-in { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
   .snackbar.success { background:rgba(6,95,70,.94); } .snackbar.warning { background:rgba(120,53,15,.94); }
@@ -188,66 +223,79 @@
   .snackbar.success .dot { background:#34d399; } .snackbar.warning .dot { background:#fbbf24; }
   .snackbar.error .dot { background:#fb7185; } .snackbar.info .dot { background:#94a3b8; }
   .snackbar .msg { flex:1; line-height:1.4; }
-  .snackbar .undo-btn { flex-shrink:0; font-weight:700; text-decoration:underline; background:none; border:none; color:inherit; cursor:pointer; font-size:12px; }
+  .snackbar .undo-btn,.snackbar .view-btn { flex-shrink:0; font-weight:700; text-decoration:underline; background:none; border:none; color:inherit; cursor:pointer; font-size:12px; }
   .snackbar .close-btn { flex-shrink:0; background:none; border:none; color:inherit; opacity:.7; cursor:pointer; font-size:14px; line-height:1; padding:2px; }
   .snackbar .close-btn:hover { opacity:1; }
   .snackbar .bar { position:absolute; left:0; bottom:0; height:2px; background:rgba(255,255,255,.55); animation-name:snack-timer; animation-timing-function:linear; animation-fill-mode:forwards; }
   @keyframes snack-timer { from { width:100%; } to { width:0%; } }
-  .snackbar-demo-row { display:flex; flex-wrap:wrap; gap:8px; }
 
   /* 16. modal */
-  .modal-demo { position:relative; background:#0f172a11; border-radius:16px; padding:36px 16px; display:flex; justify-content:center; }
+  .modal-overlay { position:fixed; inset:0; z-index:90; display:flex; align-items:center; justify-content:center; padding:16px; background:rgba(15,23,42,.5); }
+  .modal-overlay[hidden] { display:none; }
   .modal { width:100%; max-width:380px; border-radius:16px; background:#fff; box-shadow:var(--shadow-pop); overflow:hidden; border:2px solid #fecdd3; }
-  .modal.primary { border-color:#bfdbfe; }
+  .modal.primary { border-color:#bfdbfe; } .modal.plain { border-color:var(--slate-300); }
   .modal header { color:#fff; padding:12px 16px; display:flex; align-items:center; gap:8px; background:#dc2626; }
-  .modal.primary header { background:var(--blue-600); }
+  .modal.primary header { background:var(--blue-600); } .modal.plain header { background:var(--slate-700); }
   .modal header h4 { font-size:14px; font-weight:700; margin:0; }
   .modal .body { padding:16px; font-size:13px; color:var(--slate-700); }
   .modal .body .detail-box { border-radius:8px; border:1px solid #fecaca; background:#fef2f2; color:#b91c1c; padding:8px 10px; font-size:11.5px; margin-top:8px; }
   .modal .body p.small { font-size:11px; color:var(--slate-400); margin-top:10px; }
   .modal footer { display:flex; justify-content:flex-end; gap:8px; padding:12px 16px; background:#f8fafc; border-top:1px solid var(--hairline); }
-  .modal-overlay { position:fixed; inset:0; z-index:90; display:flex; align-items:center; justify-content:center; padding:16px; background:rgba(15,23,42,.5); }
-  .modal-overlay[hidden] { display:none; }
+  .modal-overlay.right { justify-content:flex-end; padding:0; align-items:stretch; }
+  .drawer { width:100%; max-width:320px; height:100%; background:#fff; box-shadow:var(--shadow-pop); display:flex; flex-direction:column; transform:translateX(20px); animation:drawer-in .18s ease-out forwards; }
+  @keyframes drawer-in { to { transform:translateX(0); } }
+  .drawer header { padding:16px; border-bottom:1px solid var(--hairline); display:flex; justify-content:space-between; align-items:center; }
+  .drawer header h4 { font-size:14px; margin:0; }
+  .drawer .body { padding:16px; font-size:13px; color:var(--slate-600); flex:1; }
 
-  /* 17. table + pagination */
+  /* 17. table */
   table.data-table { width:100%; border-collapse:collapse; background:var(--surface); border-radius:16px; overflow:hidden; box-shadow:var(--shadow-card); }
-  .data-table thead th { text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:var(--slate-400); padding:11px 14px; background:#f8fafc; border-bottom:1px solid var(--hairline); }
+  .data-table thead th { text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:var(--slate-400); padding:11px 14px; background:#f8fafc; border-bottom:1px solid var(--hairline); cursor:pointer; user-select:none; }
+  .data-table thead th.sortable:hover { color:var(--slate-700); }
+  .data-table thead th .arrow { font-size:9px; margin-left:2px; opacity:.5; }
+  .data-table thead th[data-dir]:not([data-dir="none"]) .arrow { opacity:1; color:var(--accent); }
   .data-table tbody td { padding:11px 14px; font-size:13px; border-bottom:1px solid #f1f5f9; }
   .data-table tbody tr:last-child td { border-bottom:none; }
   .data-table tbody tr.highlight td { animation:rowhi 1.4s ease-out; }
   @keyframes rowhi { 0% { background-color:rgba(253,230,138,.85); } 100% { background-color:transparent; } }
+  .select-bar { display:none; align-items:center; gap:10px; background:#f5f4ff; border:1px solid #ddd6fe; border-radius:10px; padding:8px 12px; font-size:12px; color:var(--accent); margin-bottom:8px; }
+  .select-bar.show { display:flex; }
   .pagination { margin-top:10px; display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:8px; font-size:11.5px; color:var(--slate-600); }
   .pagination .controls { display:flex; align-items:center; gap:4px; }
   .pagination button { border-radius:8px; padding:5px 10px; background:rgba(255,255,255,.7); border:1px solid #e2e8f0; font-size:11.5px; cursor:pointer; }
   .pagination button:disabled { opacity:.4; cursor:not-allowed; }
   .pagination .page-num { padding:0 6px; color:var(--slate-700); }
 
-  /* 18. skeleton / shimmer */
+  /* 18. skeleton */
   .skeleton { position:relative; overflow:hidden; background:#e2e8f0; border-radius:8px; }
-  .skeleton::after { content:""; position:absolute; inset:0; transform:translateX(-100%);
-    background:linear-gradient(90deg, transparent, rgba(255,255,255,.55), transparent); animation:shimmer 1.4s infinite; }
+  .skeleton::after { content:""; position:absolute; inset:0; transform:translateX(-100%); background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent); animation:shimmer 1.4s infinite; }
   @keyframes shimmer { 100% { transform:translateX(100%); } }
   .sk-line { height:12px; margin-bottom:8px; } .sk-line.w60 { width:60%; } .sk-line.w40 { width:40%; } .sk-line.w90 { width:90%; }
   .sk-avatar { width:40px; height:40px; border-radius:999px; }
   .sk-row { display:flex; gap:12px; align-items:center; }
+  .sk-card { border-radius:14px; padding:14px; background:#fff; box-shadow:var(--shadow-card); }
+  .sk-block { height:60px; margin-bottom:10px; border-radius:10px; }
 
-  /* 19. progress / stepper */
-  .progress-track { height:8px; border-radius:999px; background:#e2e8f0; overflow:hidden; }
+  /* 19. progress/stepper */
+  .progress-track { height:8px; border-radius:999px; background:#e2e8f0; overflow:hidden; position:relative; }
   .progress-fill { height:100%; border-radius:999px; background:var(--accent); transition:width .5s ease; width:0%; }
+  .progress-fill.indet { width:34%; position:absolute; animation:indet 1.1s ease-in-out infinite; }
+  @keyframes indet { 0% { left:-34%; } 100% { left:100%; } }
   .stepper { display:flex; align-items:center; }
-  .step { display:flex; align-items:center; gap:8px; }
+  .step { display:flex; align-items:center; gap:8px; cursor:pointer; background:none; border:none; padding:0; font-family:inherit; }
   .step .circle { width:26px; height:26px; border-radius:999px; display:flex; align-items:center; justify-content:center; font-size:11.5px; font-weight:700; background:#e2e8f0; color:var(--slate-500); flex-shrink:0; }
-  .step.done .circle { background:var(--emerald-600); color:#fff; }
-  .step.active .circle { background:var(--accent); color:#fff; }
+  .step[data-done="true"] .circle { background:var(--emerald-600); color:#fff; }
+  .step[data-active="true"] .circle { background:var(--accent); color:#fff; }
   .step .label { font-size:11.5px; color:var(--slate-600); white-space:nowrap; }
-  .step.active .label { color:var(--slate-900); font-weight:700; }
-  .step-line { flex:1; height:2px; background:#e2e8f0; margin:0 8px; min-width:24px; }
+  .step[data-active="true"] .label { color:var(--slate-900); font-weight:700; }
+  .step-line { flex:1; height:2px; background:#e2e8f0; margin:0 8px; min-width:20px; }
   .step-line.done { background:var(--emerald-600); }
 
-  /* 20. states + misc */
-  .state-box { background:var(--surface); border-radius:16px; box-shadow:var(--shadow-card); padding:28px; text-align:center; color:var(--slate-600); font-size:13px; }
+  /* 20. states/misc */
+  .state-box { background:var(--surface); border-radius:16px; box-shadow:var(--shadow-card); padding:26px; text-align:center; color:var(--slate-600); font-size:13px; }
   .state-box.error { color:#be123c; }
   code.inline { background:#eef1f5; padding:1px 6px; border-radius:4px; font-size:11.5px; }
+  .focus-demo:focus-visible { outline:3px solid var(--accent); outline-offset:2px; }
 
   footer.print-note { font-size:11.5px; color:var(--slate-400); border-top:1px solid var(--hairline); padding-top:16px; margin-top:8px; }
 </style>
@@ -257,14 +305,8 @@
 
   <header class="page-head">
     <h1>ICONIA Admin — 스타일 가이드 (20종)</h1>
-    <p>
-      <code>app/globals.css</code> 전역 유틸리티(<code>.btn-*</code>/<code>.input</code>/<code>.chip-*</code>/<code>.glass-*</code>)와
-      <code>app/dashboard/_components/</code>의 실제 컴포넌트를 기준으로 하고, 아직 앱에 없지만 일반적인
-      웹앱에서 널리 쓰이는 패턴(툴팁·드롭다운·스켈레톤·스텝퍼 등)을 더해 20개 카테고리로 정리했습니다.
-      섹션 헤더의 <span class="tag live" style="margin-left:0">적용중</span>은 현재 코드에 있는 패턴,
-      <span class="tag new" style="margin-left:0">제안</span>은 이 문서에서 새로 제안하는 일반 패턴입니다.
-      대부분 실제로 클릭 가능한 동작 데모입니다 — 프레임워크 없이 바닐라 JS ~120줄로 구현.
-    </p>
+    <p><code>app/globals.css</code> · <code>app/dashboard/_components/</code> 기준 실사용 패턴 +
+      일반 웹앱 제안 패턴. 각 번호 아래 여러 세부 항목이 있고, 클릭 가능한 것은 실제로 동작합니다.</p>
   </header>
 
   <nav class="toc">
@@ -277,341 +319,406 @@
     <a href="#s19"><b>19</b>진행·스텝</a><a href="#s20"><b>20</b>상태·유틸</a>
   </nav>
 
-  <!-- 1 -->
+  <!-- 1 컬러 -->
   <section id="s1">
     <div class="sec-head"><span class="num">01</span><h2>컬러 토큰</h2><span class="tag live">적용중</span></div>
-    <p class="note"><code>tailwind.config.js</code> 그대로 — canvas/surface/hairline 포함 실제 팔레트.</p>
-    <div class="swatch-grid">
-      <div class="swatch"><div class="fill" style="background:var(--accent)"></div><div class="meta"><div class="name">accent</div><div class="hex">#6D5DFE</div></div></div>
-      <div class="swatch"><div class="fill" style="background:var(--accent-pink)"></div><div class="meta"><div class="name">accentPink</div><div class="hex">#EC4899</div></div></div>
-      <div class="swatch"><div class="fill" style="background:var(--accent-blue)"></div><div class="meta"><div class="name">accentBlue</div><div class="hex">#60A5FA</div></div></div>
-      <div class="swatch"><div class="fill" style="background:var(--accent-orange)"></div><div class="meta"><div class="name">accentOrange</div><div class="hex">#F97316</div></div></div>
-      <div class="swatch"><div class="fill" style="background:var(--accent-teal)"></div><div class="meta"><div class="name">accentTeal</div><div class="hex">#14B8A6</div></div></div>
-      <div class="swatch"><div class="fill" style="background:var(--canvas); border-bottom:1px solid var(--hairline)"></div><div class="meta"><div class="name">canvas</div><div class="hex">#F5F6F8</div></div></div>
-      <div class="swatch"><div class="fill" style="background:var(--surface); border-bottom:1px solid var(--hairline)"></div><div class="meta"><div class="name">surface</div><div class="hex">#FFFFFF</div></div></div>
-      <div class="swatch"><div class="fill" style="background:var(--emerald-600)"></div><div class="meta"><div class="name">success</div><div class="hex">emerald-600</div></div></div>
-      <div class="swatch"><div class="fill" style="background:var(--amber-600)"></div><div class="meta"><div class="name">warning</div><div class="hex">amber-600</div></div></div>
-      <div class="swatch"><div class="fill" style="background:#be123c"></div><div class="meta"><div class="name">danger</div><div class="hex">rose-700</div></div></div>
+    <div class="unit"><div class="u-label">브랜드 accent 5색</div>
+      <div class="swatch-grid">
+        <div class="swatch"><div class="fill" style="background:var(--accent)"></div><div class="meta"><div class="name">accent</div><div class="hex">#6D5DFE</div></div></div>
+        <div class="swatch"><div class="fill" style="background:var(--accent-pink)"></div><div class="meta"><div class="name">accentPink</div><div class="hex">#EC4899</div></div></div>
+        <div class="swatch"><div class="fill" style="background:var(--accent-blue)"></div><div class="meta"><div class="name">accentBlue</div><div class="hex">#60A5FA</div></div></div>
+        <div class="swatch"><div class="fill" style="background:var(--accent-orange)"></div><div class="meta"><div class="name">accentOrange</div><div class="hex">#F97316</div></div></div>
+        <div class="swatch"><div class="fill" style="background:var(--accent-teal)"></div><div class="meta"><div class="name">accentTeal</div><div class="hex">#14B8A6</div></div></div>
+      </div>
+    </div>
+    <div class="unit"><div class="u-label">서피스 · 시맨틱 5색</div>
+      <div class="swatch-grid">
+        <div class="swatch"><div class="fill" style="background:var(--canvas); border-bottom:1px solid var(--hairline)"></div><div class="meta"><div class="name">canvas</div><div class="hex">#F5F6F8</div></div></div>
+        <div class="swatch"><div class="fill" style="background:var(--surface); border-bottom:1px solid var(--hairline)"></div><div class="meta"><div class="name">surface</div><div class="hex">#FFFFFF</div></div></div>
+        <div class="swatch"><div class="fill" style="background:var(--emerald-600)"></div><div class="meta"><div class="name">success</div><div class="hex">emerald-600</div></div></div>
+        <div class="swatch"><div class="fill" style="background:var(--amber-600)"></div><div class="meta"><div class="name">warning</div><div class="hex">amber-600</div></div></div>
+        <div class="swatch"><div class="fill" style="background:#be123c"></div><div class="meta"><div class="name">danger</div><div class="hex">rose-700</div></div></div>
+      </div>
+    </div>
+    <div class="unit"><div class="u-label">텍스트 대비 페어</div>
+      <div class="swatch-grid">
+        <div class="swatch"><div class="contrast-pair" style="background:var(--accent); color:#fff">accent 위 흰 텍스트</div></div>
+        <div class="swatch"><div class="contrast-pair" style="background:#fff; color:var(--slate-900)">surface 위 slate-900</div></div>
+        <div class="swatch"><div class="contrast-pair" style="background:#fff1f2; color:#be123c">chip-error 배경/글자</div></div>
+      </div>
     </div>
   </section>
 
-  <!-- 2 -->
+  <!-- 2 타이포 -->
   <section id="s2">
     <div class="sec-head"><span class="num">02</span><h2>타이포그래피 · 스페이싱</h2><span class="tag live">적용중</span></div>
     <div class="panel">
-      <div class="type-row"><span class="tag2">text-2xl/800</span><span style="font-size:22px;font-weight:800">페이지 타이틀 / StatCard 값</span></div>
-      <div class="type-row"><span class="tag2">text-lg/700</span><span style="font-size:17px;font-weight:700">PanelCard 제목</span></div>
-      <div class="type-row"><span class="tag2">text-sm/400</span><span style="font-size:14px">본문 텍스트</span></div>
-      <div class="type-row"><span class="tag2">text-xs/muted</span><span style="font-size:12px;color:var(--slate-400)">보조 설명</span></div>
-      <div class="type-row"><span class="tag2">radius</span><span style="font-size:12px">카드 12/16px · 버튼 8px</span></div>
-      <div class="type-row"><span class="tag2">shadow-card</span><span style="font-size:12px">0 1px 2px rgba(15,23,42,.04)</span></div>
+      <div class="type-row"><span class="tag2">H1 · 24/800</span><span style="font-size:24px;font-weight:800">페이지 타이틀</span></div>
+      <div class="type-row"><span class="tag2">H2 · 18/700</span><span style="font-size:18px;font-weight:700">PanelCard 제목</span></div>
+      <div class="type-row"><span class="tag2">H3 · 15/700</span><span style="font-size:15px;font-weight:700">서브 섹션 제목</span></div>
+      <div class="type-row"><span class="tag2">Body · 14/400</span><span style="font-size:14px">본문 텍스트</span></div>
+      <div class="type-row"><span class="tag2">Caption · 12/400</span><span style="font-size:12px;color:var(--slate-600)">캡션 · 보조 설명</span></div>
+      <div class="type-row"><span class="tag2">Overline · 10/700</span><span style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--slate-400)">그룹 라벨</span></div>
+      <div class="type-row"><span class="tag2">Mono</span><span style="font-family:ui-monospace,monospace;font-size:12.5px">a1b2c3d4-uuid</span></div>
+      <div class="type-row"><span class="tag2">radius</span><span style="font-size:12px">카드 12·16px / 버튼 8px / 칩 999px</span></div>
+      <div class="type-row"><span class="tag2">shadow</span><span style="font-size:12px">card / soft(accent glow) / pop(모달)</span></div>
     </div>
   </section>
 
-  <!-- 3 -->
+  <!-- 3 버튼 -->
   <section id="s3">
     <div class="sec-head"><span class="num">03</span><h2>버튼</h2><span class="tag live">적용중</span></div>
-    <p class="note"><code>.btn-primary/-outline/-danger</code> 3종 고정 + 로딩/아이콘 전용 변형.</p>
     <div class="panel">
-      <div class="row">
-        <button class="btn-primary">저장</button>
-        <button class="btn-outline">취소</button>
-        <button class="btn-danger">삭제</button>
-        <button class="btn-primary" id="btn-loading-demo" data-action="btn-loading">저장</button>
-        <button class="btn-outline btn-icon" title="새로고침" data-action="spin-icon">↻</button>
-        <button class="btn-primary" disabled>비활성</button>
+      <div class="unit"><div class="u-label">기본 3종 (클릭 시 로딩 데모)</div>
+        <div class="row">
+          <button class="btn-primary">저장</button><button class="btn-outline">취소</button><button class="btn-danger">삭제</button>
+          <button class="btn-primary" data-action="btn-loading">저장</button>
+        </div>
       </div>
+      <div class="unit"><div class="u-label">고스트 · 링크 · 비활성</div>
+        <div class="row"><button class="btn-ghost">고스트</button><button class="btn-link">링크 버튼</button><button class="btn-primary" disabled>비활성</button></div>
+      </div>
+      <div class="unit"><div class="u-label">크기 xs · sm · md · lg</div>
+        <div class="row"><button class="btn-primary btn-xs">xs</button><button class="btn-primary btn-sm">sm</button><button class="btn-primary">md</button><button class="btn-primary btn-lg">lg</button></div>
+      </div>
+      <div class="unit"><div class="u-label">아이콘 전용 (클릭 시 회전)</div>
+        <div class="row"><button class="btn-outline btn-icon" title="새로고침" data-action="spin-icon">↻</button><button class="btn-danger btn-icon" title="삭제">🗑</button></div>
+      </div>
+      <div class="unit"><div class="u-label">버튼 그룹 · 세그먼트 (클릭 시 선택 전환)</div>
+        <div class="btn-group" id="seg-group">
+          <button aria-pressed="true" onclick="pickSegment(this)">일간</button>
+          <button aria-pressed="false" onclick="pickSegment(this)">주간</button>
+          <button aria-pressed="false" onclick="pickSegment(this)">월간</button>
+        </div>
+      </div>
+      <div class="unit"><div class="u-label">전체 너비</div><button class="btn-primary btn-block">전체 너비 버튼</button></div>
     </div>
   </section>
 
-  <!-- 4 -->
+  <!-- 4 폼 -->
   <section id="s4">
     <div class="sec-head"><span class="num">04</span><h2>폼 입력</h2><span class="tag live">적용중</span></div>
-    <p class="note"><code>.input</code>/<code>.select</code> — accent 포커스 링, 검색창은 입력 시 X 지우기 버튼 등장(라이브).</p>
     <div class="grid">
-      <div class="panel">
-        <div class="subhead">검색 입력 + Clear 버튼</div>
-        <div class="field">
-          <label>사용자 검색</label>
-          <div class="input-wrap" id="search-wrap">
-            <input class="input" placeholder="이메일 또는 UUID" id="search-input" oninput="onSearchInput(this)" style="padding-right:34px" />
-            <button type="button" class="clear-btn" onclick="clearSearch()">✕</button>
-          </div>
-        </div>
+      <div class="panel"><div class="unit"><div class="u-label">검색 + Clear(X) 버튼</div>
+        <div class="input-wrap" id="search-wrap"><input class="input" placeholder="이메일 또는 UUID" id="search-input" oninput="onSearchInput(this)" style="padding-right:34px" /><button type="button" class="clear-btn" onclick="clearSearch()">✕</button></div>
       </div>
-      <div class="panel">
-        <div class="subhead">유효성 에러 + 비밀번호 보기</div>
-        <div class="field">
-          <label>비밀번호<span class="req">*</span></label>
-          <div class="input-wrap">
-            <input class="input err-border" type="password" id="pw-input" value="1234" />
-            <button type="button" class="reveal" onclick="togglePw()">보기</button>
-          </div>
-          <div class="err">비밀번호는 8자 이상이어야 합니다.</div>
-        </div>
+      <div class="unit"><div class="u-label">비밀번호 보기/숨기기</div>
+        <div class="input-wrap"><input class="input err-border" type="password" id="pw-input" value="1234" /><button type="button" class="reveal" onclick="togglePw()">보기</button></div>
+        <div class="field"><div class="err">비밀번호는 8자 이상이어야 합니다.</div></div>
+      </div></div>
+      <div class="panel"><div class="unit"><div class="u-label">셀렉트 · 텍스트에어리어</div>
+        <div class="field"><select class="select"><option>운영자</option><option>최고관리자</option><option>뷰어</option></select></div>
+        <textarea rows="2" placeholder="메모 입력..."></textarea>
       </div>
+      <div class="unit"><div class="u-label">읽기전용 · 비활성</div>
+        <div class="field" style="margin-bottom:8px"><input class="input" value="user-created-id-8842" readonly /></div>
+        <input class="input" value="편집 불가" disabled />
+      </div></div>
+      <div class="panel"><div class="unit"><div class="u-label">숫자 스테퍼 (클릭 시 증감)</div>
+        <div class="stepper-input"><button onclick="stepNumber(-1)">−</button><span id="step-value">1</span><button onclick="stepNumber(1)">+</button></div>
+      </div>
+      <div class="unit"><div class="u-label">파일 업로드 (클릭 시 상태 전환)</div>
+        <div class="dropzone" id="dropzone" onclick="toggleDropzone()">클릭하여 SOUL 파일 업로드 (.json)</div>
+      </div></div>
     </div>
   </section>
 
-  <!-- 5 -->
+  <!-- 5 체크/토글 -->
   <section id="s5">
     <div class="sec-head"><span class="num">05</span><h2>체크박스 · 라디오 · 토글</h2><span class="tag live">적용중</span></div>
-    <p class="note">토글은 <code>role="switch"</code> 패턴 — 클릭하면 실제로 상태가 바뀝니다.</p>
     <div class="grid">
-      <div class="panel">
-        <label class="check-row"><input type="checkbox" checked /> 약관에 동의합니다</label>
-        <label class="check-row"><input type="checkbox" /> 마케팅 정보 수신</label>
+      <div class="panel"><div class="unit"><div class="u-label">3단 체크(클릭 시 미체크→일부→전체 순환)</div>
+        <div class="check-row"><span class="tri-box" id="tri-parent" data-state="unchecked" onclick="cycleTri()"></span> 전체 항목 (부모)</div>
+      </div>
+      <div class="unit"><div class="u-label">라디오 그룹</div>
         <label class="radio-row"><input type="radio" name="r1" checked /> 전체 사용자</label>
         <label class="radio-row"><input type="radio" name="r1" /> 특정 그룹만</label>
-      </div>
-      <div class="panel">
-        <div class="row" style="margin-bottom:10px">
-          <button class="switch" data-on="true" role="switch" aria-checked="true" onclick="toggleSwitch(this)"><span class="knob"></span></button>
-          <span id="switch-label-1" style="font-size:12.5px">자동 갱신 ON</span>
-        </div>
-        <div class="row">
-          <button class="switch" data-on="false" role="switch" aria-checked="false" onclick="toggleSwitch(this)"><span class="knob"></span></button>
-          <span id="switch-label-2" style="font-size:12.5px">알림 OFF</span>
-        </div>
-      </div>
+      </div></div>
+      <div class="panel"><div class="unit"><div class="u-label">전체선택 → 자식 체크박스 연동 (클릭)</div>
+        <label class="check-row"><input type="checkbox" id="select-all" onclick="toggleAll(this)" /> 전체선택</label>
+        <label class="check-row" style="margin-left:20px"><input type="checkbox" class="child-check" onclick="syncAllState()" /> user01@example.com</label>
+        <label class="check-row" style="margin-left:20px"><input type="checkbox" class="child-check" onclick="syncAllState()" /> user02@example.com</label>
+      </div></div>
+      <div class="panel"><div class="unit"><div class="u-label">토글 스위치 (클릭 시 on/off)</div>
+        <div class="row" style="margin-bottom:8px"><button class="switch" data-on="true" role="switch" aria-checked="true" onclick="toggleSwitch(this)"><span class="knob"></span></button><span>자동 갱신</span></div>
+        <div class="row"><button class="switch" data-on="false" role="switch" aria-checked="false" onclick="toggleSwitch(this)"><span class="knob"></span></button><span>알림</span></div>
+      </div></div>
     </div>
   </section>
 
-  <!-- 6 -->
+  <!-- 6 배지/칩 -->
   <section id="s6">
     <div class="sec-head"><span class="num">06</span><h2>배지 · 칩</h2><span class="tag live">적용중</span></div>
-    <p class="note"><code>.chip-info/-warn/-error/-success/-muted</code> — 색만이 아니라 텍스트도 함께.</p>
-    <div class="panel">
-      <div class="row">
-        <span class="chip chip-info">정보</span><span class="chip chip-warn">경고</span><span class="chip chip-error">위험</span>
-        <span class="chip chip-success">정상</span><span class="chip chip-muted">비활성</span>
-        <span class="dot-badge">7</span><span class="dot-badge">99+</span>
+    <div class="unit"><div class="u-label">상태 칩 5색 · 아웃라인</div>
+      <div class="row"><span class="chip chip-info">정보</span><span class="chip chip-warn">경고</span><span class="chip chip-error">위험</span><span class="chip chip-success">정상</span><span class="chip chip-muted">비활성</span><span class="chip chip-outline">아웃라인</span></div>
+    </div>
+    <div class="unit"><div class="u-label">제거 가능 칩 (X 클릭 시 삭제)</div>
+      <div class="row" id="removable-chips">
+        <span class="chip chip-info">feed <span class="x" onclick="this.parentElement.remove()">✕</span></span>
+        <span class="chip chip-info">commerce <span class="x" onclick="this.parentElement.remove()">✕</span></span>
+        <span class="chip chip-info">rag <span class="x" onclick="this.parentElement.remove()">✕</span></span>
       </div>
     </div>
+    <div class="unit"><div class="u-label">카운트 배지</div><div class="row"><span class="dot-badge">7</span><span class="dot-badge">99+</span></div></div>
   </section>
 
-  <!-- 7 -->
+  <!-- 7 카드 -->
   <section id="s7">
     <div class="sec-head"><span class="num">07</span><h2>카드</h2><span class="tag live">적용중</span></div>
-    <p class="note"><code>.glass-card</code>(12px) / <code>.glass-panel</code>(16px) — 유일한 카드 표면.</p>
-    <div class="grid" style="margin-bottom:12px">
-      <div class="glass-card">glass-card — 12px radius</div>
-      <div class="glass-panel">
-        <div class="panel-card-head"><div><h3>PanelCard</h3><p>설명 텍스트</p></div><button class="btn-outline btn-sm">액션</button></div>
-        본문 콘텐츠
+    <div class="unit"><div class="u-label">glass-card · glass-panel</div>
+      <div class="grid"><div class="glass-card">glass-card 12px</div><div class="glass-panel"><div class="panel-card-head"><div><h3>PanelCard</h3><p>설명 텍스트</p></div><button class="btn-outline btn-sm">액션</button></div>본문</div></div>
+    </div>
+    <div class="unit"><div class="u-label">StatCard 3색</div>
+      <div class="grid"><div class="stat-card"><div class="blob" style="background:radial-gradient(circle,var(--accent-blue),transparent)"></div><div class="label">신규 가입</div><div class="value">128</div><div class="delta"><span class="up">▲12%</span></div></div>
+        <div class="stat-card"><div class="blob" style="background:radial-gradient(circle,var(--accent-pink),transparent)"></div><div class="label">미해결 신고</div><div class="value">7건</div><div class="delta"><span class="down">▼3건</span></div></div>
+        <div class="stat-card"><div class="blob" style="background:radial-gradient(circle,var(--accent-orange),transparent)"></div><div class="label">오프라인</div><div class="value">42대</div><div class="delta"><span class="flat">변동없음</span></div></div>
       </div>
     </div>
-    <div class="grid">
-      <div class="stat-card"><div class="blob" style="background:radial-gradient(circle, var(--accent-blue), transparent)"></div><div class="label">신규 가입</div><div class="value">128</div><div class="delta"><span class="up">▲ 12%</span></div></div>
-      <div class="stat-card"><div class="blob" style="background:radial-gradient(circle, var(--accent-pink), transparent)"></div><div class="label">미해결 신고</div><div class="value">7건</div><div class="delta"><span class="down">▼ 3건</span></div></div>
-      <div class="stat-card"><div class="blob" style="background:radial-gradient(circle, var(--accent-orange), transparent)"></div><div class="label">디바이스 오프라인</div><div class="value">42대</div><div class="delta"><span class="flat">변동 없음</span></div></div>
+    <div class="unit"><div class="u-label">선택 가능 카드 (클릭 시 체크) · 이미지 헤더 카드</div>
+      <div class="grid">
+        <div class="pick-card" data-selected="true" onclick="togglePick(this)"><span class="check">✓</span><b>Basic 플랜</b><div style="font-size:11.5px;color:var(--slate-500);margin-top:4px">월 9,900원</div></div>
+        <div class="pick-card" data-selected="false" onclick="togglePick(this)"><span class="check">✓</span><b>Pro 플랜</b><div style="font-size:11.5px;color:var(--slate-500);margin-top:4px">월 19,900원</div></div>
+        <div class="img-card"><div class="thumb"></div><div class="body"><b>도감 항목</b><div style="color:var(--slate-500);margin-top:2px">토끼 인형 · #0042</div></div></div>
+      </div>
     </div>
   </section>
 
-  <!-- 8 -->
+  <!-- 8 탭 -->
   <section id="s8">
     <div class="sec-head"><span class="num">08</span><h2>탭</h2><span class="tag live">적용중</span></div>
-    <p class="note">AI Key 관리의 모델 카테고리 하위탭 — 클릭 시 실제로 패널 전환.</p>
-    <div class="panel" style="padding:0">
-      <div class="tabs" role="tablist">
-        <button class="tab" role="tab" aria-selected="true" data-tab="text" onclick="switchTab(this,'text')">텍스트</button>
-        <button class="tab" role="tab" aria-selected="false" data-tab="image" onclick="switchTab(this,'image')">이미지</button>
-        <button class="tab" role="tab" aria-selected="false" data-tab="tts" onclick="switchTab(this,'tts')">TTS</button>
+    <div class="unit"><div class="u-label">가로 탭 (클릭 시 패널 전환)</div>
+      <div class="panel" style="padding:0">
+        <div class="tabs" role="tablist">
+          <button class="tab" role="tab" aria-selected="true" onclick="switchTab(this,'text')">텍스트</button>
+          <button class="tab" role="tab" aria-selected="false" onclick="switchTab(this,'image')">이미지</button>
+          <button class="tab" role="tab" aria-selected="false" onclick="switchTab(this,'tts')">TTS</button>
+        </div>
+        <div class="tab-panel" data-panel="text">gemini-2.5-pro / flash 중 선택</div>
+        <div class="tab-panel" data-panel="image" hidden>imagen-4 / imagen-4-fast 중 선택</div>
+        <div class="tab-panel" data-panel="tts" hidden>Gemini 미지원 — placeholder + 안내 배너</div>
       </div>
-      <div class="tab-panel" data-panel="text">gemini-2.5-pro / gemini-2.5-flash 중 선택</div>
-      <div class="tab-panel" data-panel="image" hidden>imagen-4 / imagen-4-fast 중 선택</div>
-      <div class="tab-panel" data-panel="tts" hidden>Gemini 미지원 — placeholder 옵션 + 안내 배너</div>
+    </div>
+    <div class="grid">
+      <div class="panel"><div class="u-label">필 탭 (pill)</div>
+        <div class="pill-tabs"><button class="pill-tab" aria-selected="true" onclick="switchPill(this,'p1')">전체</button><button class="pill-tab" aria-selected="false" onclick="switchPill(this,'p2')">진행중</button><button class="pill-tab" aria-selected="false" onclick="switchPill(this,'p3')">완료</button></div>
+        <div class="tab-panel" data-panel="p1" style="padding-top:10px">전체 128건</div><div class="tab-panel" data-panel="p2" hidden style="padding-top:10px">진행중 12건</div><div class="tab-panel" data-panel="p3" hidden style="padding-top:10px">완료 116건</div>
+      </div>
+      <div class="panel"><div class="u-label">세로 탭</div>
+        <div class="vtabs"><div class="vlist"><button class="vtab" aria-selected="true" onclick="switchVtab(this,'v1')">일반</button><button class="vtab" aria-selected="false" onclick="switchVtab(this,'v2')">보안</button><button class="vtab" aria-selected="false" onclick="switchVtab(this,'v3')">알림</button></div>
+          <div style="flex:1"><div class="tab-panel" data-panel="v1">일반 설정 화면</div><div class="tab-panel" data-panel="v2" hidden>2FA · IP 허용목록</div><div class="tab-panel" data-panel="v3" hidden>이메일 · 푸시 알림 설정</div></div>
+        </div>
+      </div>
     </div>
   </section>
 
-  <!-- 9 -->
+  <!-- 9 아코디언 -->
   <section id="s9">
     <div class="sec-head"><span class="num">09</span><h2>아코디언 / 펼침 행</h2><span class="tag live">적용중</span></div>
-    <p class="note">오류 추적 "스택 펼치기" 패턴 — 버튼으로 실제 펼침/접힘.</p>
-    <div class="expand-row">
-      <div class="head"><div>공지 제목 · 발행 예정 · 09-28 10:00</div>
-        <div class="row"><button class="toggle-btn" onclick="toggleAccordion(this)">펼침</button><button class="btn-danger btn-sm">삭제</button></div></div>
-      <div class="detail" hidden>본문 내용, 이미지 미리보기, 노출 기간이 여기 표시됩니다.</div>
+    <div class="unit"><div class="u-label">단일 펼침 행 (클릭)</div>
+      <div class="expand-row"><div class="head"><div>공지 제목 · 발행 예정 · 09-28 10:00</div><div class="row"><button class="toggle-btn" onclick="toggleAccordion(this)">펼침</button><button class="btn-danger btn-sm">삭제</button></div></div><div class="detail" hidden>본문 내용, 이미지 미리보기, 노출 기간.</div></div>
+    </div>
+    <div class="unit"><div class="u-label">그룹 아코디언 — 하나 열면 나머지 자동 접힘</div>
+      <div id="acc-group">
+        <div class="expand-row"><div class="head"><div>항목 A</div><button class="toggle-btn" onclick="toggleAccordionGroup(this)">펼침</button></div><div class="detail" hidden>항목 A의 상세 내용입니다.</div></div>
+        <div class="expand-row"><div class="head"><div>항목 B</div><button class="toggle-btn" onclick="toggleAccordionGroup(this)">펼침</button></div><div class="detail" hidden>항목 B의 상세 내용입니다.</div></div>
+      </div>
+    </div>
+    <div class="unit"><div class="u-label">FAQ 스타일 (+/− 클릭)</div>
+      <div class="panel">
+        <div class="faq-row"><div class="faq-q" onclick="toggleFaq(this)"><span>사용자 삭제는 되돌릴 수 있나요?</span><span class="plus">+</span></div><div class="faq-a" hidden>아니요, 삭제는 되돌릴 수 없으며 확인 모달을 거칩니다.</div></div>
+        <div class="faq-row"><div class="faq-q" onclick="toggleFaq(this)"><span>모더레이션 배지는 언제 사라지나요?</span><span class="plus">+</span></div><div class="faq-a" hidden>미해결 신고가 0건이 되면 배지가 사라집니다.</div></div>
+      </div>
     </div>
   </section>
 
-  <!-- 10 -->
+  <!-- 10 브레드크럼 -->
   <section id="s10">
     <div class="sec-head"><span class="num">10</span><h2>브레드크럼</h2><span class="tag new">제안</span></div>
-    <p class="note">깊은 라우트(예: 커머스 상품 상세)에서 상위 경로를 보여줄 때.</p>
-    <div class="panel">
-      <div class="breadcrumb"><a href="#">대시보드</a><span class="sep">›</span><a href="#">콘텐츠 관리</a><span class="sep">›</span><a href="#">커머스</a><span class="sep">›</span><span class="current">상품 상세</span></div>
+    <div class="unit"><div class="u-label">기본 · 홈 아이콘</div>
+      <div class="panel"><div class="breadcrumb"><a href="#">🏠 대시보드</a><span class="sep">›</span><a href="#">콘텐츠 관리</a><span class="sep">›</span><span class="current">피드</span></div></div>
+    </div>
+    <div class="unit"><div class="u-label">긴 경로 축약 ("…" 클릭 시 펼침)</div>
+      <div class="panel"><div class="breadcrumb">
+        <a href="#">대시보드</a><span class="sep">›</span>
+        <button class="crumb" onclick="expandCrumb(this)">…</button>
+        <span class="crumb-hidden"><a href="#">콘텐츠 관리</a><span class="sep">›</span></span>
+        <span class="crumb-hidden"><a href="#">커머스</a><span class="sep">›</span></span>
+        <span class="current">상품 상세</span>
+      </div></div>
     </div>
   </section>
 
-  <!-- 11 -->
+  <!-- 11 드롭다운 -->
   <section id="s11">
     <div class="sec-head"><span class="num">11</span><h2>드롭다운 메뉴</h2><span class="tag new">제안</span></div>
-    <p class="note">표 행의 "⋯" 액션 메뉴 등에 사용 — 바깥 클릭 시 자동 닫힘.</p>
-    <div class="panel">
-      <div class="dropdown">
-        <button class="btn-outline btn-sm" onclick="toggleDropdown(event,this)">작업 ▾</button>
-        <div class="dropdown-menu" hidden>
-          <button onclick="closeDropdown()">상세 보기</button>
-          <button onclick="closeDropdown()">권한 변경</button>
-          <hr />
-          <button class="danger" onclick="closeDropdown()">계정 잠금</button>
+    <div class="row">
+      <div class="dropdown"><button class="btn-outline btn-sm" onclick="toggleDropdown(event,this)">작업 ▾</button>
+        <div class="dropdown-menu" hidden><button class="item" onclick="closeDropdown()">상세 보기</button><button class="item" onclick="closeDropdown()">권한 변경</button><hr /><button class="item danger" onclick="closeDropdown()">계정 잠금</button></div>
+      </div>
+      <div class="dropdown"><button class="btn-outline btn-sm" onclick="toggleDropdown(event,this)">상태 필터 (<span id="filter-count">0</span>) ▾</button>
+        <div class="dropdown-menu" hidden onclick="event.stopPropagation()">
+          <label class="item"><input type="checkbox" onchange="updateFilterCount()" /> 정상</label>
+          <label class="item"><input type="checkbox" onchange="updateFilterCount()" /> 경고</label>
+          <label class="item"><input type="checkbox" onchange="updateFilterCount()" /> 비활성</label>
+          <hr /><button class="item apply" onclick="closeDropdown()">적용</button>
         </div>
+      </div>
+      <div class="dropdown"><button class="avatar-btn" onclick="toggleDropdown(event,this)">JK</button>
+        <div class="dropdown-menu right" hidden><button class="item" onclick="closeDropdown()">내 프로필</button><button class="item" onclick="closeDropdown()">감사 로그 보기</button><hr /><button class="item danger" onclick="closeDropdown()">로그아웃</button></div>
       </div>
     </div>
   </section>
 
-  <!-- 12 -->
+  <!-- 12 툴팁 -->
   <section id="s12">
     <div class="sec-head"><span class="num">12</span><h2>툴팁</h2><span class="tag new">제안</span></div>
-    <p class="note">순수 CSS(<code>::after</code>) — JS 없이 hover/focus로 표시.</p>
-    <div class="panel">
-      <span class="tip" tabindex="0" data-tip="회원가입 시각 기준 UTC+9">가입일 <b>2026-03-11</b></span>
-      &nbsp;&nbsp;
-      <span class="tip" tabindex="0" data-tip="PIPA 제35조 열람 요청 포함">권리 요청 <b>3건</b></span>
-    </div>
+    <div class="panel"><div class="row">
+      <span class="tip top" tabindex="0" data-tip="위쪽 툴팁">위(top)</span>
+      <span class="tip bottom" tabindex="0" data-tip="아래쪽 툴팁">아래(bottom)</span>
+      <span class="tip left" tabindex="0" data-tip="왼쪽 툴팁">왼쪽(left)</span>
+      <span class="tip right" tabindex="0" data-tip="오른쪽 툴팁">오른쪽(right)</span>
+      <span class="tip-icon" tabindex="0" data-tip="PIPA 제35조 열람 요청 포함">?</span>
+    </div></div>
   </section>
 
-  <!-- 13 -->
+  <!-- 13 내비게이션 -->
   <section id="s13">
     <div class="sec-head"><span class="num">13</span><h2>내비게이션</h2><span class="tag live">적용중</span></div>
-    <p class="note">사이드바 4그룹 아코디언 — RBAC로 항목 자체가 숨겨짐.</p>
-    <div class="nav-mock">
-      <div class="side">
+    <div class="unit"><div class="u-label">사이드바 (클릭 시 active 전환)</div>
+      <div class="nav-mock"><div class="side">
         <div class="group-label">사용자·디바이스</div>
-        <div class="item active">회원 관리</div><div class="item">CS 통합 조회</div>
+        <button class="item" data-active="true" onclick="pickNavItem(this)">회원 관리</button>
+        <button class="item" data-active="false" onclick="pickNavItem(this)">CS 통합 조회</button>
         <div class="group-label">콘텐츠·모더레이션</div>
-        <div class="item">콘텐츠 관리 ▾</div><div class="child active">피드</div><div class="child">커머스</div>
-        <div class="item" style="color:#be123c">모더레이션 <span class="dot-badge" style="margin-left:auto">7</span></div>
+        <button class="item" data-active="false" onclick="pickNavItem(this)">모더레이션 <span class="dot-badge" style="margin-left:auto">7</span></button>
+      </div><div class="body" id="nav-body">본문 캔버스 — "회원 관리" 화면</div></div>
+    </div>
+    <div class="grid">
+      <div class="panel"><div class="u-label">상단 탭바 (클릭)</div>
+        <div class="top-nav"><button data-active="true" onclick="pickTopNav(this)">홈</button><button data-active="false" onclick="pickTopNav(this)">알림</button><button data-active="false" onclick="pickTopNav(this)">설정</button></div>
       </div>
-      <div class="body">본문 캔버스 — lg 미만은 햄버거 드로어로 전환</div>
+      <div class="panel"><div class="u-label">모바일 하단 내비 (클릭)</div>
+        <div class="bottom-nav"><button data-active="true" onclick="pickBottomNav(this)"><span class="ic">🏠</span>홈</button><button data-active="false" onclick="pickBottomNav(this)"><span class="ic">🔔</span>알림</button><button data-active="false" onclick="pickBottomNav(this)"><span class="ic">⚙</span>설정</button></div>
+      </div>
     </div>
   </section>
 
-  <!-- 14 -->
+  <!-- 14 배너 -->
   <section id="s14">
     <div class="sec-head"><span class="num">14</span><h2>배너 · 알림</h2><span class="tag live">적용중</span></div>
-    <p class="note">경고/에러 배너는 아이콘 + 텍스트 동반, 닫기 가능.</p>
-    <div class="panel" style="display:flex; flex-direction:column; gap:10px">
-      <div class="banner warn" id="forbidden-banner">
-        <span class="icon">⚠</span>
-        <div><p class="title">접근 권한이 없는 페이지입니다.</p><p class="desc">현재 운영자 역할로는 접근할 수 없어 대시보드로 이동했습니다.</p></div>
-        <button class="dismiss" onclick="document.getElementById('forbidden-banner').style.display='none'">닫기</button>
-      </div>
-      <div class="banner error" role="alert">이미 사용 중인 이메일입니다.</div>
+    <div class="panel" style="display:flex;flex-direction:column;gap:10px">
+      <div class="banner info"><span class="icon">ℹ</span><div><p class="title">정보</p><p class="desc">이 화면은 30초마다 자동 갱신됩니다.</p></div></div>
+      <div class="banner success"><span class="icon">✓</span><div><p class="title">성공</p><p class="desc">변경 사항이 저장되었습니다.</p></div></div>
+      <div class="banner warn" id="forbidden-banner"><span class="icon">⚠</span><div><p class="title">접근 권한이 없는 페이지입니다.</p><p class="desc">현재 역할로는 접근할 수 없어 대시보드로 이동했습니다.</p></div><button class="dismiss" onclick="document.getElementById('forbidden-banner').style.display='none'">닫기</button></div>
+      <div class="banner error" id="retry-banner" role="alert"><span class="icon">✕</span><div><p class="title">데이터를 불러오지 못했습니다.</p></div><button class="act" onclick="retryBanner(this)">다시 시도</button></div>
     </div>
   </section>
 
-  <!-- 15 -->
+  <!-- 15 스낵바 -->
   <section id="s15">
     <div class="sec-head"><span class="num">15</span><h2>스낵바 · 토스트</h2><span class="tag live">적용중</span></div>
-    <p class="note">
-      <code>AdminToast</code> 4톤(success/warning/error/info) + 이 문서가 더한 <b>로딩</b> 변형과
-      <b>실행취소(undo)</b> 변형(<span class="tag new" style="margin-left:0">제안</span>). 아래 버튼을 눌러 우측 하단에서 실제 동작을 확인하세요.
-    </p>
     <div class="panel">
-      <div class="snackbar-demo-row">
-        <button class="btn-outline btn-sm" onclick="showSnack('success','저장되었습니다.')">성공 스낵바</button>
-        <button class="btn-outline btn-sm" onclick="showSnack('warning','사용량이 90%에 도달했습니다.')">경고 스낵바</button>
-        <button class="btn-outline btn-sm" onclick="showSnack('error','처리에 실패했습니다.')">에러 스낵바</button>
-        <button class="btn-outline btn-sm" onclick="showLoadingSnack()">로딩 → 완료 스낵바</button>
-        <button class="btn-outline btn-sm" onclick="showUndoSnack()">삭제 + 실행취소(undo)</button>
+      <div class="row" style="margin-bottom:10px">
+        <button class="btn-outline btn-sm" onclick="showSnack('info','정보 메시지입니다.')">정보</button>
+        <button class="btn-outline btn-sm" onclick="showSnack('success','저장되었습니다.')">성공</button>
+        <button class="btn-outline btn-sm" onclick="showSnack('warning','사용량이 90%에 도달했습니다.')">경고</button>
+        <button class="btn-outline btn-sm" onclick="showSnack('error','처리에 실패했습니다.')">에러</button>
+      </div>
+      <div class="row" style="margin-bottom:10px">
+        <button class="btn-outline btn-sm" onclick="showLoadingSnack()">로딩 → 완료 전환</button>
+        <button class="btn-outline btn-sm" onclick="showUndoSnack()">삭제 + 실행취소(undo) + X</button>
+        <button class="btn-outline btn-sm" onclick="showActionSnack()">액션 버튼(보기) 포함</button>
+      </div>
+      <div class="row">
+        <button class="btn-outline btn-sm" onclick="showStack()">여러 개 동시 스택</button>
+        <button class="btn-outline btn-sm" onclick="toggleSnackPosition()">위치 전환 (하단⇄상단)</button>
       </div>
     </div>
   </section>
 
-  <!-- 16 -->
+  <!-- 16 모달 -->
   <section id="s16">
     <div class="sec-head"><span class="num">16</span><h2>모달 / 확인 다이얼로그</h2><span class="tag live">적용중</span></div>
-    <p class="note"><code>DangerConfirmDialog</code> — danger(빨강)/primary(파랑) 2종. 버튼으로 실제 열고 닫기.</p>
-    <div class="panel">
-      <div class="row">
-        <button class="btn-danger btn-sm" onclick="openModal('modal-danger')">계정 잠금 모달 열기</button>
-        <button class="btn-primary btn-sm" onclick="openModal('modal-primary')">발송 모달 열기</button>
-      </div>
-    </div>
+    <div class="panel"><div class="row">
+      <button class="btn-danger btn-sm" onclick="openModal('modal-danger')">계정 잠금 (danger)</button>
+      <button class="btn-primary btn-sm" onclick="openModal('modal-primary')">전체 발송 (primary)</button>
+      <button class="btn-outline btn-sm" onclick="openModal('modal-confirm-input')">문구 입력 확인형</button>
+      <button class="btn-outline btn-sm" onclick="openModal('modal-drawer')">우측 드로어(슬라이드)</button>
+    </div></div>
 
-    <div class="modal-overlay" id="modal-danger" hidden onclick="if(event.target===this)closeModal('modal-danger')">
-      <div class="modal">
-        <header><h4>⚠ 계정을 잠그시겠습니까?</h4></header>
-        <div class="body">
-          <p>선택한 사용자의 로그인이 즉시 차단됩니다.</p>
-          <div class="detail-box">user01@example.com · 잠금 사유: 반복 신고 누적</div>
-          <p class="small">이 동작은 되돌릴 수 없습니다.</p>
-        </div>
-        <footer><button class="btn-outline btn-sm" onclick="closeModal('modal-danger')">취소</button><button class="btn-danger btn-sm" onclick="closeModal('modal-danger'); showUndoSnack()">잠금</button></footer>
-      </div>
-    </div>
-    <div class="modal-overlay" id="modal-primary" hidden onclick="if(event.target===this)closeModal('modal-primary')">
-      <div class="modal primary">
-        <header><h4>➤ 전체 사용자에게 발송하시겠습니까?</h4></header>
-        <div class="body"><p>대상 12,480명에게 즉시 푸시가 발송됩니다.</p><p class="small">이 동작은 되돌릴 수 없습니다.</p></div>
-        <footer><button class="btn-outline btn-sm" onclick="closeModal('modal-primary')">취소</button><button class="btn-primary btn-sm" onclick="closeModal('modal-primary'); showSnack('success','발송되었습니다.')">발송</button></footer>
-      </div>
-    </div>
+    <div class="modal-overlay" id="modal-danger" hidden onclick="if(event.target===this)closeModal('modal-danger')"><div class="modal"><header><h4>⚠ 계정을 잠그시겠습니까?</h4></header><div class="body"><p>선택한 사용자의 로그인이 즉시 차단됩니다.</p><div class="detail-box">user01@example.com · 사유: 반복 신고 누적</div><p class="small">되돌릴 수 없습니다.</p></div><footer><button class="btn-outline btn-sm" onclick="closeModal('modal-danger')">취소</button><button class="btn-danger btn-sm" onclick="closeModal('modal-danger'); showUndoSnack()">잠금</button></footer></div></div>
+
+    <div class="modal-overlay" id="modal-primary" hidden onclick="if(event.target===this)closeModal('modal-primary')"><div class="modal primary"><header><h4>➤ 전체 발송하시겠습니까?</h4></header><div class="body"><p>대상 12,480명에게 즉시 푸시가 발송됩니다.</p><p class="small">되돌릴 수 없습니다.</p></div><footer><button class="btn-outline btn-sm" onclick="closeModal('modal-primary')">취소</button><button class="btn-primary btn-sm" onclick="closeModal('modal-primary'); showSnack('success','발송되었습니다.')">발송</button></footer></div></div>
+
+    <div class="modal-overlay" id="modal-confirm-input" hidden onclick="if(event.target===this)closeModal('modal-confirm-input')"><div class="modal plain"><header><h4>영구 삭제 확인</h4></header><div class="body"><p>확인을 위해 아래에 <b>DELETE</b>를 입력하세요.</p><input class="input" id="confirm-word" placeholder="DELETE" oninput="checkConfirmWord(this)" style="margin-top:8px" /></div><footer><button class="btn-outline btn-sm" onclick="closeModal('modal-confirm-input')">취소</button><button class="btn-danger btn-sm" id="confirm-word-btn" disabled onclick="closeModal('modal-confirm-input'); showSnack('error','영구 삭제되었습니다.')">영구 삭제</button></footer></div></div>
+
+    <div class="modal-overlay right" id="modal-drawer" hidden onclick="if(event.target===this)closeModal('modal-drawer')"><div class="drawer"><header><h4>사용자 상세</h4><button class="btn-ghost btn-icon" onclick="closeModal('modal-drawer')">✕</button></header><div class="body">user01@example.com<br />가입일 2026-03-11<br />디바이스 2대 연결됨</div></div></div>
   </section>
 
-  <!-- 17 -->
+  <!-- 17 표 -->
   <section id="s17">
     <div class="sec-head"><span class="num">17</span><h2>표 · 페이지네이션</h2><span class="tag live">적용중</span></div>
-    <p class="note"><code>DataTable</code> — 기본 25행, 폴링 신규 행은 1초 amber fade.</p>
-    <table class="data-table">
-      <thead><tr><th>이메일</th><th>가입일</th><th>상태</th><th>최근 접속</th></tr></thead>
+    <div class="select-bar" id="select-bar"><span id="select-count">0개 선택됨</span><button class="btn-link" onclick="clearSelection()">선택 해제</button></div>
+    <table class="data-table" id="demo-table">
+      <thead><tr>
+        <th style="width:32px"><input type="checkbox" id="table-select-all" onclick="toggleRowSelectAll(this)" /></th>
+        <th class="sortable" data-dir="none" onclick="sortTable(this,1)">이메일 <span class="arrow">▲▼</span></th>
+        <th class="sortable" data-dir="none" onclick="sortTable(this,2)">가입일 <span class="arrow">▲▼</span></th>
+        <th>상태</th><th>최근 접속</th>
+      </tr></thead>
       <tbody>
-        <tr class="highlight"><td>user01@example.com</td><td>2026-03-11</td><td><span class="chip chip-success">정상</span></td><td>방금 (신규)</td></tr>
-        <tr><td>user02@example.com</td><td>2026-04-02</td><td><span class="chip chip-warn">경고</span></td><td>3일 전</td></tr>
-        <tr><td>user03@example.com</td><td>2026-05-19</td><td><span class="chip chip-muted">비활성</span></td><td>—</td></tr>
+        <tr class="highlight"><td><input type="checkbox" class="row-check" onclick="syncRowSelection()" /></td><td>user01@example.com</td><td>2026-03-11</td><td><span class="chip chip-success">정상</span></td><td>방금 (신규)</td></tr>
+        <tr><td><input type="checkbox" class="row-check" onclick="syncRowSelection()" /></td><td>user02@example.com</td><td>2026-04-02</td><td><span class="chip chip-warn">경고</span></td><td>3일 전</td></tr>
+        <tr><td><input type="checkbox" class="row-check" onclick="syncRowSelection()" /></td><td>user03@example.com</td><td>2026-05-19</td><td><span class="chip chip-muted">비활성</span></td><td>—</td></tr>
       </tbody>
     </table>
-    <div class="pagination">
-      <span>전체 128건 중 1–25</span>
-      <div class="controls"><button disabled>«</button><button disabled>이전</button><span class="page-num">1 / 6</span><button>다음</button><button>»</button></div>
-    </div>
+    <div class="pagination"><span>전체 128건 중 1–25</span><div class="controls"><button disabled>«</button><button disabled>이전</button><span class="page-num">1 / 6</span><button>다음</button><button>»</button></div></div>
   </section>
 
-  <!-- 18 -->
+  <!-- 18 스켈레톤 -->
   <section id="s18">
     <div class="sec-head"><span class="num">18</span><h2>스켈레톤 · 시머 이펙트</h2><span class="tag new">제안</span></div>
-    <p class="note">데이터 fetch 중 레이아웃 흔들림(CLS) 방지용. 버튼으로 로딩→로드완료 전환 데모.</p>
-    <div class="panel">
-      <div id="skeleton-demo">
-        <div class="sk-row" style="margin-bottom:14px">
-          <div class="skeleton sk-avatar"></div>
-          <div style="flex:1"><div class="skeleton sk-line w40"></div><div class="skeleton sk-line w60" style="margin-bottom:0"></div></div>
-        </div>
-        <div class="skeleton sk-line w90"></div><div class="skeleton sk-line w90"></div><div class="skeleton sk-line w60" style="margin-bottom:0"></div>
+    <div class="grid">
+      <div class="panel"><div class="u-label">아바타 + 텍스트 (클릭 시 로드완료 전환)</div>
+        <div id="skeleton-demo"><div class="sk-row" style="margin-bottom:14px"><div class="skeleton sk-avatar"></div><div style="flex:1"><div class="skeleton sk-line w40"></div><div class="skeleton sk-line w60" style="margin-bottom:0"></div></div></div><div class="skeleton sk-line w90"></div><div class="skeleton sk-line w90"></div><div class="skeleton sk-line w60" style="margin-bottom:0"></div></div>
+        <div style="margin-top:12px"><button class="btn-outline btn-sm" onclick="toggleSkeleton()">로딩 ⇄ 로드완료</button></div>
       </div>
-      <div style="margin-top:12px"><button class="btn-outline btn-sm" onclick="toggleSkeleton()">로딩 ⇄ 로드 완료 전환</button></div>
+      <div class="panel"><div class="u-label">카드형 스켈레톤</div>
+        <div class="sk-card"><div class="skeleton sk-block"></div><div class="skeleton sk-line w60"></div><div class="skeleton sk-line w40" style="margin-bottom:0"></div></div>
+      </div>
+      <div class="panel"><div class="u-label">표 행 스켈레톤</div>
+        <div style="display:flex;flex-direction:column;gap:8px"><div class="skeleton" style="height:16px"></div><div class="skeleton" style="height:16px"></div><div class="skeleton" style="height:16px;width:70%"></div></div>
+      </div>
     </div>
   </section>
 
-  <!-- 19 -->
+  <!-- 19 진행률 -->
   <section id="s19">
     <div class="sec-head"><span class="num">19</span><h2>진행 표시줄 · 스텝퍼</h2><span class="tag new">제안</span></div>
-    <p class="note">OTA 배포·양산 검수처럼 여러 단계를 거치는 흐름에 적용 제안.</p>
     <div class="grid">
-      <div class="panel">
-        <div class="subhead">진행률 바</div>
+      <div class="panel"><div class="u-label">결정형 진행률 (클릭)</div>
         <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
         <div class="row" style="margin-top:10px"><button class="btn-outline btn-sm" onclick="runProgress(30)">30%</button><button class="btn-outline btn-sm" onclick="runProgress(70)">70%</button><button class="btn-outline btn-sm" onclick="runProgress(100)">완료</button></div>
       </div>
-      <div class="panel">
-        <div class="subhead">스텝퍼 (OTA 배포 예시)</div>
-        <div class="stepper">
-          <div class="step done"><span class="circle">✓</span><span class="label">업로드</span></div>
+      <div class="panel"><div class="u-label">비결정형(인디터미닛) 진행률</div>
+        <div class="progress-track"><div class="progress-fill indet"></div></div>
+        <p style="font-size:11px;color:var(--slate-400);margin-top:8px">전체 소요 시간을 알 수 없을 때 (업로드 준비 중 등)</p>
+      </div>
+      <div class="panel"><div class="u-label">스텝퍼 — 단계 클릭 시 이동</div>
+        <div class="stepper" id="stepper">
+          <button class="step" data-done="true" data-active="false" onclick="jumpStep(0)"><span class="circle">✓</span><span class="label">업로드</span></button>
           <div class="step-line done"></div>
-          <div class="step active"><span class="circle">2</span><span class="label">단계 배포</span></div>
+          <button class="step" data-done="false" data-active="true" onclick="jumpStep(1)"><span class="circle">2</span><span class="label">단계 배포</span></button>
           <div class="step-line"></div>
-          <div class="step"><span class="circle">3</span><span class="label">전체 적용</span></div>
+          <button class="step" data-done="false" data-active="false" onclick="jumpStep(2)"><span class="circle">3</span><span class="label">전체 적용</span></button>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- 20 -->
+  <!-- 20 상태/유틸 -->
   <section id="s20">
     <div class="sec-head"><span class="num">20</span><h2>상태 · 유틸리티</h2><span class="tag live">적용중</span></div>
-    <p class="note">empty/loading/error/forbidden 4대 상태 + 인쇄/모션감소/클립보드 복사/모바일 줌 방지.</p>
     <div class="grid" style="margin-bottom:14px">
       <div class="state-box"><span class="spinner"></span>&nbsp; 불러오는 중...</div>
       <div class="state-box">데이터가 없습니다.</div>
@@ -619,164 +726,150 @@
       <div class="state-box">접근 권한이 없습니다.</div>
     </div>
     <div class="grid">
-      <div class="panel"><div class="subhead">클립보드 복사</div>
-        <div class="row"><code class="inline" id="copy-target">a1b2c3d4-...-uuid</code><button class="btn-outline btn-sm" onclick="copyToClipboard()">복사</button></div>
-      </div>
-      <div class="panel"><div class="subhead">모션 감소 대응</div>
-        <p style="font-size:12px;color:var(--slate-600);margin:0"><code class="inline">prefers-reduced-motion: reduce</code> 시 스피너·시머·행 하이라이트 애니메이션 전부 비활성.</p>
-      </div>
-      <div class="panel"><div class="subhead">인쇄 / 모바일 줌 방지</div>
-        <p style="font-size:12px;color:var(--slate-600);margin:0">감사 로그 인쇄 시 사이드바·그림자 제거 (<code class="inline">@media print</code>) · 640px 이하 입력 폰트 16px 고정.</p>
-      </div>
+      <div class="panel"><div class="u-label">클립보드 복사 (클릭)</div><div class="row"><code class="inline" id="copy-target">a1b2c3d4-...-uuid</code><button class="btn-outline btn-sm" onclick="copyToClipboard()">복사</button></div></div>
+      <div class="panel"><div class="u-label">인쇄 (클릭 시 브라우저 인쇄 대화상자)</div><button class="btn-outline btn-sm" onclick="window.print()">🖨 인쇄하기</button></div>
+      <div class="panel"><div class="u-label">키보드 포커스 링 (Tab으로 이동해보세요)</div><button class="btn-outline btn-sm focus-demo">포커스 데모 버튼</button></div>
     </div>
   </section>
 
-  <footer class="print-note">최종 갱신: 2026-09-27 · 근거: <code class="inline">app/globals.css</code>, <code class="inline">tailwind.config.js</code>, <code class="inline">app/dashboard/_components/*</code> · 신규 제안 6종(브레드크럼/드롭다운/툴팁/스켈레톤/진행바·스텝퍼/스낵바 loading·undo 변형)은 별도 표기.</footer>
-
+  <footer class="print-note">최종 갱신: 2026-09-27 · 근거: <code class="inline">app/globals.css</code>, <code class="inline">tailwind.config.js</code>, <code class="inline">app/dashboard/_components/*</code></footer>
 </div>
 
 <div id="snackbar-stack"></div>
 
 <script>
-// ── 경량 바닐라 JS (~120줄) — 프레임워크 없이 20개 컴포넌트 상호작용 구현 ──
-
-// 3. 버튼 로딩 상태
-function setBtnLoading(el, ms) {
-  const original = el.innerHTML;
-  el.disabled = true;
-  el.innerHTML = '<span class="spinner"></span> 저장 중...';
-  setTimeout(() => { el.disabled = false; el.innerHTML = original; showSnack('success','저장되었습니다.'); }, ms);
-}
+// ── 3. 버튼 ──
+function setBtnLoading(el, ms) { const o = el.innerHTML; el.disabled = true; el.innerHTML = '<span class="spinner"></span> 저장 중...'; setTimeout(() => { el.disabled = false; el.innerHTML = o; showSnack('success','저장되었습니다.'); }, ms); }
 document.addEventListener('click', (e) => {
-  const t = e.target.closest('[data-action]');
-  if (!t) return;
+  const t = e.target.closest('[data-action]'); if (!t) return;
   if (t.dataset.action === 'btn-loading') setBtnLoading(t, 1200);
   if (t.dataset.action === 'spin-icon') { t.style.transition='transform .5s'; t.style.transform='rotate(360deg)'; setTimeout(()=>{t.style.transition='none'; t.style.transform='none';},500); }
 });
+function pickSegment(btn) { btn.parentElement.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed','false')); btn.setAttribute('aria-pressed','true'); }
 
-// 4. 검색 입력 clear 버튼
-function onSearchInput(input) {
-  document.getElementById('search-wrap').classList.toggle('has-value', input.value.length > 0);
-}
-function clearSearch() {
-  const input = document.getElementById('search-input');
-  input.value = ''; input.focus();
-  document.getElementById('search-wrap').classList.remove('has-value');
-}
-function togglePw() {
-  const i = document.getElementById('pw-input');
-  i.type = i.type === 'password' ? 'text' : 'password';
-}
+// ── 4. 폼 ──
+function onSearchInput(input) { document.getElementById('search-wrap').classList.toggle('has-value', input.value.length > 0); }
+function clearSearch() { const i = document.getElementById('search-input'); i.value=''; i.focus(); document.getElementById('search-wrap').classList.remove('has-value'); }
+function togglePw() { const i = document.getElementById('pw-input'); i.type = i.type === 'password' ? 'text' : 'password'; }
+let stepVal = 1;
+function stepNumber(d) { stepVal = Math.max(0, stepVal + d); document.getElementById('step-value').textContent = stepVal; }
+function toggleDropzone() { const dz = document.getElementById('dropzone'); const filled = dz.classList.toggle('filled'); dz.textContent = filled ? '✓ persona-v2.json 업로드됨' : '클릭하여 SOUL 파일 업로드 (.json)'; }
 
-// 5. 토글 스위치
-function toggleSwitch(btn) {
-  const on = btn.dataset.on === 'true';
-  btn.dataset.on = String(!on);
-  btn.setAttribute('aria-checked', String(!on));
-}
+// ── 5. 체크/토글 ──
+function cycleTri() { const el = document.getElementById('tri-parent'); const next = { unchecked:'indeterminate', indeterminate:'checked', checked:'unchecked' }[el.dataset.state]; el.dataset.state = next; el.textContent = next === 'checked' ? '✓' : next === 'indeterminate' ? '−' : ''; }
+function toggleAll(master) { document.querySelectorAll('.child-check').forEach(c => c.checked = master.checked); }
+function syncAllState() { const boxes = [...document.querySelectorAll('.child-check')]; document.getElementById('select-all').checked = boxes.every(b => b.checked); }
+function toggleSwitch(btn) { const on = btn.dataset.on === 'true'; btn.dataset.on = String(!on); btn.setAttribute('aria-checked', String(!on)); }
 
-// 8. 탭
-function switchTab(btn, key) {
-  btn.parentElement.querySelectorAll('.tab').forEach(b => b.setAttribute('aria-selected', 'false'));
-  btn.setAttribute('aria-selected', 'true');
-  btn.closest('.panel').querySelectorAll('.tab-panel').forEach(p => p.hidden = p.dataset.panel !== key);
-}
+// ── 7. 카드 ──
+function togglePick(card) { card.dataset.selected = card.dataset.selected === 'true' ? 'false' : 'true'; }
 
-// 9. 아코디언
-function toggleAccordion(btn) {
-  const detail = btn.closest('.expand-row').querySelector('.detail');
-  detail.hidden = !detail.hidden;
-  btn.textContent = detail.hidden ? '펼침' : '접기';
+// ── 8. 탭 (공통 로직 재사용) ──
+function switchTabGeneric(btn, key, tabSel, panelSel) {
+  const group = btn.closest('.panel') || btn.closest('.vtabs') || btn.parentElement.parentElement;
+  group.querySelectorAll(tabSel).forEach(b => b.setAttribute('aria-selected','false'));
+  btn.setAttribute('aria-selected','true');
+  group.querySelectorAll(panelSel).forEach(p => p.hidden = p.dataset.panel !== key);
 }
+function switchTab(btn, key) { switchTabGeneric(btn, key, '.tab', '.tab-panel'); }
+function switchPill(btn, key) { switchTabGeneric(btn, key, '.pill-tab', '.tab-panel'); }
+function switchVtab(btn, key) { switchTabGeneric(btn, key, '.vtab', '.tab-panel'); }
 
-// 11. 드롭다운 (바깥 클릭 시 닫힘)
+// ── 9. 아코디언 ──
+function toggleAccordion(btn) { const d = btn.closest('.expand-row').querySelector('.detail'); d.hidden = !d.hidden; btn.textContent = d.hidden ? '펼침' : '접기'; }
+function toggleAccordionGroup(btn) {
+  const row = btn.closest('.expand-row'); const willOpen = row.querySelector('.detail').hidden;
+  document.querySelectorAll('#acc-group .expand-row').forEach(r => { r.querySelector('.detail').hidden = true; r.querySelector('.toggle-btn').textContent = '펼침'; });
+  if (willOpen) { row.querySelector('.detail').hidden = false; btn.textContent = '접기'; }
+}
+function toggleFaq(head) { const a = head.nextElementSibling; a.hidden = !a.hidden; head.querySelector('.plus').textContent = a.hidden ? '+' : '−'; }
+
+// ── 10. 브레드크럼 ──
+function expandCrumb(btn) { btn.remove(); document.querySelectorAll('.crumb-hidden').forEach(c => c.classList.add('show')); }
+
+// ── 11. 드롭다운 ──
 let openDropdownMenu = null;
-function toggleDropdown(e, btn) {
-  e.stopPropagation();
-  const menu = btn.nextElementSibling;
-  const willOpen = menu.hidden;
-  closeDropdown();
-  menu.hidden = !willOpen;
-  if (willOpen) openDropdownMenu = menu;
-}
+function toggleDropdown(e, btn) { e.stopPropagation(); const menu = btn.nextElementSibling; const willOpen = menu.hidden; closeDropdown(); menu.hidden = !willOpen; if (willOpen) openDropdownMenu = menu; }
 function closeDropdown() { if (openDropdownMenu) { openDropdownMenu.hidden = true; openDropdownMenu = null; } }
 document.addEventListener('click', closeDropdown);
+function updateFilterCount() { const n = document.querySelectorAll('#s11 .dropdown-menu input:checked').length; document.getElementById('filter-count').textContent = n; }
 
-// 15. 스낵바 스택 — success/warning/error/info + loading 변형 + undo 변형
+// ── 13. 내비게이션 ──
+function pickNavItem(btn) { btn.parentElement.querySelectorAll('.item').forEach(b => b.dataset.active = 'false'); btn.dataset.active = 'true'; document.getElementById('nav-body').textContent = '본문 캔버스 — "' + btn.textContent.trim() + '" 화면'; }
+function pickTopNav(btn) { btn.parentElement.querySelectorAll('button').forEach(b => b.dataset.active = 'false'); btn.dataset.active = 'true'; }
+function pickBottomNav(btn) { btn.parentElement.querySelectorAll('button').forEach(b => b.dataset.active = 'false'); btn.dataset.active = 'true'; }
+
+// ── 14. 배너 ──
+function retryBanner(btn) {
+  btn.disabled = true; btn.textContent = '재시도 중...';
+  setTimeout(() => { const banner = document.getElementById('retry-banner'); banner.className = 'banner success'; banner.querySelector('.icon').textContent = '✓'; banner.querySelector('.title').textContent = '다시 불러왔습니다.'; btn.remove(); }, 900);
+}
+
+// ── 15. 스낵바 ──
 const stack = document.getElementById('snackbar-stack');
 function autoMs(msg) { return msg.length <= 20 ? 2500 : msg.length <= 50 ? 4000 : 6000; }
 function makeSnack(tone, html, opts) {
   opts = opts || {};
-  const el = document.createElement('div');
-  el.className = 'snackbar ' + tone;
+  const el = document.createElement('div'); el.className = 'snackbar ' + tone;
   el.innerHTML = '<span class="dot"></span><span class="msg">' + html + '</span>';
-  if (opts.undo) {
-    const u = document.createElement('button'); u.className = 'undo-btn'; u.textContent = '실행 취소';
-    u.onclick = () => { clearTimeout(opts.timerId); el.remove(); showSnack('info', opts.undoMessage || '취소되었습니다.'); };
-    el.appendChild(u);
-  }
-  if (!opts.persistent) {
-    const x = document.createElement('button'); x.className = 'close-btn'; x.setAttribute('aria-label','닫기'); x.textContent = '✕';
-    x.onclick = () => { clearTimeout(opts.timerId); el.remove(); };
-    el.appendChild(x);
-  }
-  if (opts.duration) {
-    const bar = document.createElement('div'); bar.className = 'bar'; bar.style.animationDuration = opts.duration + 'ms'; el.appendChild(bar);
-  }
-  stack.appendChild(el);
-  return el;
+  if (opts.action) { const a = document.createElement('button'); a.className = 'view-btn'; a.textContent = opts.action; a.onclick = () => { el.remove(); showSnack('info', opts.actionMessage || '이동합니다.'); }; el.appendChild(a); }
+  if (opts.undo) { const u = document.createElement('button'); u.className = 'undo-btn'; u.textContent = '실행 취소'; u.onclick = () => { clearTimeout(opts.timerId); el.remove(); showSnack('info', opts.undoMessage || '취소되었습니다.'); }; el.appendChild(u); }
+  if (!opts.persistent) { const x = document.createElement('button'); x.className = 'close-btn'; x.setAttribute('aria-label','닫기'); x.textContent = '✕'; x.onclick = () => { clearTimeout(opts.timerId); el.remove(); }; el.appendChild(x); }
+  if (opts.duration) { const bar = document.createElement('div'); bar.className = 'bar'; bar.style.animationDuration = opts.duration + 'ms'; el.appendChild(bar); }
+  stack.appendChild(el); return el;
 }
-function showSnack(tone, msg) {
-  const ms = autoMs(msg);
-  let timerId;
-  const el = makeSnack(tone, msg, { duration: ms, get timerId() { return timerId; } });
-  timerId = setTimeout(() => el.remove(), ms);
-}
-function showLoadingSnack() {
-  const el = makeSnack('info', '삭제 처리 중...', { persistent: true });
-  el.querySelector('.dot').outerHTML = '<span class="spinner" style="width:10px;height:10px;border-width:2px"></span>';
-  setTimeout(() => { el.remove(); showSnack('success', '삭제가 완료되었습니다.'); }, 1500);
-}
-function showUndoSnack() {
-  const msg = '사용자 1명을 삭제했습니다.';
-  const ms = 5000;
-  let timerId; // getter로 넘겨 클릭 시점의 최신값을 참조 (선언 전 참조 문제 없음)
-  const el = makeSnack('warning', msg, { undo: true, undoMessage: '삭제가 취소되었습니다.', duration: ms, get timerId() { return timerId; } });
-  timerId = setTimeout(() => el.remove(), ms);
-}
+function showSnack(tone, msg) { const ms = autoMs(msg); let timerId; const el = makeSnack(tone, msg, { duration: ms, get timerId(){ return timerId; } }); timerId = setTimeout(() => el.remove(), ms); }
+function showLoadingSnack() { const el = makeSnack('info','삭제 처리 중...',{ persistent:true }); el.querySelector('.dot').outerHTML = '<span class="spinner" style="width:10px;height:10px;border-width:2px"></span>'; setTimeout(() => { el.remove(); showSnack('success','삭제가 완료되었습니다.'); }, 1500); }
+function showUndoSnack() { const ms = 5000; let timerId; const el = makeSnack('warning','사용자 1명을 삭제했습니다.',{ undo:true, undoMessage:'삭제가 취소되었습니다.', duration: ms, get timerId(){ return timerId; } }); timerId = setTimeout(() => el.remove(), ms); }
+function showActionSnack() { const ms = 4000; let timerId; const el = makeSnack('info','새 신고가 접수되었습니다.',{ action:'보기', actionMessage:'모더레이션 화면으로 이동합니다.', duration: ms, get timerId(){ return timerId; } }); timerId = setTimeout(() => el.remove(), ms); }
+function showStack() { showSnack('info','1번째 알림'); setTimeout(() => showSnack('warning','2번째 알림'), 150); setTimeout(() => showSnack('success','3번째 알림'), 300); }
+function toggleSnackPosition() { stack.classList.toggle('top-pos'); }
 
-// 16. 모달
+// ── 16. 모달 ──
 function openModal(id) { document.getElementById(id).hidden = false; }
 function closeModal(id) { document.getElementById(id).hidden = true; }
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') document.querySelectorAll('.modal-overlay:not([hidden])').forEach(m => m.hidden = true);
-});
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') document.querySelectorAll('.modal-overlay:not([hidden])').forEach(m => m.hidden = true); });
+function checkConfirmWord(input) { document.getElementById('confirm-word-btn').disabled = input.value.trim() !== 'DELETE'; }
 
-// 18. 스켈레톤 ⇄ 로드 완료
-function toggleSkeleton() {
-  const box = document.getElementById('skeleton-demo');
-  const isSkeleton = !!box.querySelector('.skeleton');
-  if (isSkeleton) {
-    box.innerHTML = '<div class="sk-row" style="margin-bottom:14px"><div style="width:40px;height:40px;border-radius:999px;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px">JK</div><div><div style="font-weight:700;font-size:13.5px">user01@example.com</div><div style="font-size:11.5px;color:var(--slate-400)">2026-03-11 가입</div></div></div><div style="font-size:13px;color:var(--slate-700)">최근 로그인: 2시간 전 · 디바이스 2대 연결됨 · 상태 정상</div>';
-  } else {
-    box.innerHTML = '<div class="sk-row" style="margin-bottom:14px"><div class="skeleton sk-avatar"></div><div style="flex:1"><div class="skeleton sk-line w40"></div><div class="skeleton sk-line w60" style="margin-bottom:0"></div></div></div><div class="skeleton sk-line w90"></div><div class="skeleton sk-line w90"></div><div class="skeleton sk-line w60" style="margin-bottom:0"></div>';
-  }
+// ── 17. 표 ──
+function toggleRowSelectAll(master) { document.querySelectorAll('.row-check').forEach(c => c.checked = master.checked); syncRowSelection(); }
+function syncRowSelection() {
+  const boxes = [...document.querySelectorAll('.row-check')]; const n = boxes.filter(b => b.checked).length;
+  document.getElementById('table-select-all').checked = n === boxes.length;
+  const bar = document.getElementById('select-bar'); bar.classList.toggle('show', n > 0);
+  document.getElementById('select-count').textContent = n + '개 선택됨';
+}
+function clearSelection() { document.querySelectorAll('.row-check').forEach(c => c.checked = false); document.getElementById('table-select-all').checked = false; document.getElementById('select-bar').classList.remove('show'); }
+function sortTable(th, colIndex) {
+  const table = document.getElementById('demo-table'); const tbody = table.querySelector('tbody');
+  const dir = th.dataset.dir === 'asc' ? 'desc' : 'asc';
+  table.querySelectorAll('th[data-dir]').forEach(h => h.dataset.dir = 'none'); th.dataset.dir = dir;
+  const rows = [...tbody.querySelectorAll('tr')];
+  rows.sort((a, b) => {
+    const av = a.children[colIndex].textContent.trim(), bv = b.children[colIndex].textContent.trim();
+    return dir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av);
+  });
+  rows.forEach(r => tbody.appendChild(r));
 }
 
-// 19. 진행률 바
-function runProgress(pct) { document.getElementById('progress-fill').style.width = pct + '%'; }
+// ── 18. 스켈레톤 ──
+function toggleSkeleton() {
+  const box = document.getElementById('skeleton-demo'); const isSkeleton = !!box.querySelector('.skeleton');
+  box.innerHTML = isSkeleton
+    ? '<div class="sk-row" style="margin-bottom:14px"><div style="width:40px;height:40px;border-radius:999px;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px">JK</div><div><div style="font-weight:700;font-size:13.5px">user01@example.com</div><div style="font-size:11.5px;color:var(--slate-400)">2026-03-11 가입</div></div></div><div style="font-size:13px;color:var(--slate-700)">최근 로그인: 2시간 전 · 디바이스 2대 연결됨</div>'
+    : '<div class="sk-row" style="margin-bottom:14px"><div class="skeleton sk-avatar"></div><div style="flex:1"><div class="skeleton sk-line w40"></div><div class="skeleton sk-line w60" style="margin-bottom:0"></div></div></div><div class="skeleton sk-line w90"></div><div class="skeleton sk-line w90"></div><div class="skeleton sk-line w60" style="margin-bottom:0"></div>';
+}
 
-// 20. 클립보드 복사
+// ── 19. 진행률 / 스텝퍼 ──
+function runProgress(pct) { document.getElementById('progress-fill').style.width = pct + '%'; }
+function jumpStep(i) { const steps = document.querySelectorAll('#stepper .step'); steps.forEach((s, idx) => { s.dataset.done = idx < i ? 'true' : 'false'; s.dataset.active = idx === i ? 'true' : 'false'; s.querySelector('.circle').textContent = idx < i ? '✓' : String(idx + 1); }); }
+
+// ── 20. 유틸 ──
 function copyToClipboard() {
   const text = document.getElementById('copy-target').textContent;
   const done = () => showSnack('success', 'UUID가 복사되었습니다.');
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(text).then(done).catch(() => showSnack('error', '복사에 실패했습니다.'));
-  } else {
-    const ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select();
-    try { document.execCommand('copy'); done(); } catch (e) { showSnack('error', '복사에 실패했습니다.'); }
-    ta.remove();
-  }
+  if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(text).then(done).catch(() => showSnack('error','복사에 실패했습니다.')); }
+  else { const ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); done(); } catch (e) { showSnack('error','복사에 실패했습니다.'); } ta.remove(); }
 }
 </script>
 </body>
