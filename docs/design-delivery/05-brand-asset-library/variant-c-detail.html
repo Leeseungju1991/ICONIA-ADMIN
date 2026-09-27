@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>컬렉션 상세 — 브랜드 에셋 라이브러리 시안 C</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+<style>.asset-card{border-radius:14px;overflow:hidden;background:var(--surface);border:1px solid var(--hairline)}.asset-card .thumb{height:80px}.asset-card .body{padding:8px}</style>
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 전체 목록</a> · <a href="./README.md">브랜드 에셋 라이브러리 폴더</a> · <a href="./variant-c.html">시안 C 홈</a></div>
+    <h1 id="coll-title">컬렉션 상세 — 시안 C</h1>
+  </header>
+
+  <div class="page-frame">
+    <div class="page-title-row"><h2 id="coll-title2" style="margin:0"></h2><button class="btn-outline btn-sm" onclick="showSnack('success','전체 다운로드를 시작합니다.')">⬇ 전체 다운로드</button></div>
+    <div class="grid" id="asset-grid"></div>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+<script>
+  const COLLS = {
+    col1:{ title:'2026 가을 캠페인', assets:[
+      { title:'가을 캠페인 키비주얼', fmt:'JPG', color:'linear-gradient(135deg,#EC4899,#f472b6)' },
+      { title:'가을 캠페인 SNS 배너', fmt:'PNG', color:'linear-gradient(135deg,#f59e0b,#fbbf24)' },
+      { title:'가을 캠페인 영상', fmt:'MP4', color:'linear-gradient(135deg,#60A5FA,#93c5fd)' },
+    ]},
+    col2:{ title:'브랜드 기본 키트', assets:[
+      { title:'로고 — 기본형(컬러)', fmt:'PNG', color:'linear-gradient(135deg,var(--accent),#8b7cff)' },
+      { title:'로고 — 흑백형', fmt:'PNG', color:'linear-gradient(135deg,#475569,#94a3b8)' },
+      { title:'제품 아이콘 세트', fmt:'SVG', color:'linear-gradient(135deg,#14B8A6,#5eead4)' },
+    ]},
+    col3:{ title:'제품 카탈로그 사진', assets:[
+      { title:'제품 정면 컷', fmt:'JPG', color:'linear-gradient(135deg,#60A5FA,#93c5fd)' },
+      { title:'제품 상세 컷', fmt:'JPG', color:'linear-gradient(135deg,#93c5fd,#bfdbfe)' },
+    ]},
+    col4:{ title:'SNS 템플릿', assets:[
+      { title:'인스타그램 정사각 템플릿', fmt:'PSD', color:'linear-gradient(135deg,#14B8A6,#5eead4)' },
+      { title:'스토리 템플릿', fmt:'PSD', color:'linear-gradient(135deg,#5eead4,#99f6e4)' },
+    ]},
+    col5:{ title:'외부 협력사 배포용', assets:[
+      { title:'로고 사용 가이드', fmt:'PDF', color:'linear-gradient(135deg,#f59e0b,#fbbf24)' },
+      { title:'제품 이미지 압축본', fmt:'ZIP', color:'linear-gradient(135deg,#fbbf24,#fde68a)' },
+    ]},
+  };
+  const id = new URLSearchParams(window.location.search).get('id') || 'col1';
+  const coll = COLLS[id] || COLLS.col1;
+  document.title = coll.title + ' — 시안 C';
+  document.getElementById('coll-title').textContent = coll.title;
+  document.getElementById('coll-title2').textContent = coll.title;
+  document.getElementById('asset-grid').innerHTML = coll.assets.map((a) => (
+    '<div class="asset-card"><div class="thumb" style="background:' + a.color + '"></div><div class="body"><b style="font-size:12.5px">' + a.title + '</b><div class="row" style="margin-top:6px"><span class="chip chip-muted">' + a.fmt + '</span></div></div></div>'
+  )).join('');
+</script>
+</body>
+</html>
