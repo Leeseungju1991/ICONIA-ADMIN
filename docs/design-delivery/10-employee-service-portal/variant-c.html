@@ -16,24 +16,22 @@
 
   <div class="page-frame">
     <div class="brief-box">
-      <h4>기능</h4>
-      <ul><li>내 정보(잔여 연차 등)를 카드로 우선 노출</li><li>자주 쓰는 신청은 원클릭 버튼으로, 공지는 아코디언으로 정리</li></ul>
-      <h4>UI/UX</h4>
-      <ul><li>매일 로그인해 "내 상태"부터 확인하는 개인화 대시보드형 — 카탈로그(A)보다 "나"를 중심에 둠</li></ul>
+      <h4>방향성 — 개인화 대시보드형</h4>
+      <ul><li>매일 로그인해 "내 상태"부터 확인하는 개인화 대시보드형 — 카탈로그(A)보다 "나"를 중심에 둠</li><li>연차 신청 시 잔여 연차가 실제로 차감되어 저장됩니다</li></ul>
     </div>
 
     <div class="detail-grid">
       <div class="glass-panel">
         <div class="u-label">내 정보</div>
         <div class="kv-list" style="margin-bottom:16px">
-          <div class="kv-row"><span class="k">잔여 연차</span><span class="v">8.5일</span></div>
+          <div class="kv-row"><span class="k">잔여 연차</span><span class="v" id="leave-balance"></span></div>
           <div class="kv-row"><span class="k">이번달 정산 예정</span><span class="v">124,000원</span></div>
         </div>
         <div class="u-label">빠른 신청</div>
         <div style="display:flex;flex-direction:column;gap:6px">
-          <button class="btn-outline btn-sm btn-block">연차 신청</button>
-          <button class="btn-outline btn-sm btn-block">회의실 예약</button>
-          <button class="btn-outline btn-sm btn-block">IT 장애 접수</button>
+          <a href="./variant-c-leave.html" class="btn-outline btn-sm btn-block" style="text-align:center;text-decoration:none">연차 신청</a>
+          <button class="btn-outline btn-sm btn-block" onclick="showSnack('success','회의실 예약 화면으로 이동합니다.')">회의실 예약</button>
+          <button class="btn-outline btn-sm btn-block" onclick="showSnack('success','IT 장애 접수가 접수되었습니다.')">IT 장애 접수</button>
         </div>
       </div>
       <div class="glass-panel">
@@ -46,5 +44,9 @@
 </div>
 <div id="snackbar-stack"></div>
 <script src="../components/interactions.js"></script>
+<script>
+  const NS = '10c';
+  document.getElementById('leave-balance').textContent = sgGetJSON(NS + '-leave-balance', 8.5) + '일';
+</script>
 </body>
 </html>
