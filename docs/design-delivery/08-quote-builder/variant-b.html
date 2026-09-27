@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>견적서 작성 — 시안 B (카드형 품목)</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+<style>.qi-card{background:var(--surface);border:1px solid var(--hairline);border-radius:12px;padding:12px;margin-bottom:10px}</style>
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 시안 목록</a> · <a href="./README.md">견적서 작성 폴더</a></div>
+    <h1>견적서 작성 — 시안 B</h1>
+    <p>품목마다 카드로 나눠 큼직하게 입력하는 형태. 표보다 좁은 화면(태블릿·모바일)에서 입력하기 편합니다.</p>
+  </header>
+
+  <div class="page-frame">
+    <div class="page-title-row"><h2>새 견적서</h2></div>
+
+    <div class="glass-panel" style="margin-bottom:12px">
+      <div class="form-row2">
+        <div class="field" style="margin-bottom:0"><label>고객사</label><input class="input" placeholder="숨코리아" /></div>
+        <div class="field" style="margin-bottom:0"><label>담당자</label><input class="input" placeholder="김하나" /></div>
+      </div>
+    </div>
+
+    <div class="qi-card">
+      <div class="row" style="justify-content:space-between;margin-bottom:8px"><b style="font-size:13px">품목 1</b><button class="btn-ghost btn-xs">삭제</button></div>
+      <div class="field" style="margin-bottom:8px"><input class="input" placeholder="품목명" value="ICONIA 스마트 인형" /></div>
+      <div class="row">
+        <div class="field grow" style="margin-bottom:0"><label>수량</label><input class="input" type="number" value="10" /></div>
+        <div class="field grow" style="margin-bottom:0"><label>단가</label><input class="input" type="number" value="89000" /></div>
+      </div>
+      <div class="row" style="justify-content:flex-end;margin-top:8px;font-size:13px;font-weight:700">890,000원</div>
+    </div>
+
+    <div class="qi-card">
+      <div class="row" style="justify-content:space-between;margin-bottom:8px"><b style="font-size:13px">품목 2</b><button class="btn-ghost btn-xs">삭제</button></div>
+      <div class="field" style="margin-bottom:8px"><input class="input" placeholder="품목명" value="충전 크래들" /></div>
+      <div class="row">
+        <div class="field grow" style="margin-bottom:0"><label>수량</label><input class="input" type="number" value="10" /></div>
+        <div class="field grow" style="margin-bottom:0"><label>단가</label><input class="input" type="number" value="12000" /></div>
+      </div>
+      <div class="row" style="justify-content:flex-end;margin-top:8px;font-size:13px;font-weight:700">120,000원</div>
+    </div>
+
+    <button class="btn-outline btn-sm btn-block" style="margin-bottom:16px">+ 품목 추가</button>
+
+    <div class="glass-panel">
+      <div class="row" style="justify-content:space-between"><span style="font-size:13px;color:var(--slate-600)">합계</span><span style="font-size:16px;font-weight:800">1,010,000원</span></div>
+    </div>
+    <div class="sticky-footer"><button class="btn-outline btn-sm">취소</button><button class="btn-primary btn-sm" onclick="showSnack('success','견적서가 발송되었습니다.')">발송</button></div>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+</body>
+</html>

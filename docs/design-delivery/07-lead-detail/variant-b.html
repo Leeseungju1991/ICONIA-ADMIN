@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>리드 상세 — 시안 B (타임라인 중심)</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+<style>
+  .vtimeline { position:relative; padding-left:24px; }
+  .vtimeline::before { content:""; position:absolute; left:6px; top:6px; bottom:6px; width:2px; background:var(--hairline); }
+  .vt-item { position:relative; margin-bottom:16px; }
+  .vt-item::before { content:""; position:absolute; left:-24px; top:3px; width:10px; height:10px; border-radius:999px; background:var(--accent); }
+  .vt-item .when { font-size:11px; color:var(--slate-400); }
+  .vt-item .what { font-size:13px; font-weight:600; margin-top:2px; }
+  .vt-item .detail { font-size:12px; color:var(--slate-600); margin-top:2px; }
+</style>
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 시안 목록</a> · <a href="./README.md">리드 상세 폴더</a></div>
+    <h1>리드 상세 — 시안 B</h1>
+    <p>모든 접촉 기록을 세로 타임라인으로 보여주고, 요약은 사이드 카드로 고정. "이 리드와 지금까지 무슨 일이 있었는지" 흐름이 중요할 때.</p>
+  </header>
+
+  <div class="page-frame">
+    <div class="detail-grid">
+      <div class="glass-panel">
+        <div class="panel-head"><div><h3>활동 타임라인</h3></div><button class="btn-outline btn-sm">+ 활동 기록</button></div>
+        <div class="vtimeline">
+          <div class="vt-item"><div class="when">2026-09-25 · 오늘</div><div class="what">첫 통화 완료</div><div class="detail">관심도 높음, 제안서 요청함</div></div>
+          <div class="vt-item"><div class="when">2026-09-20</div><div class="what">웹사이트 문의 접수</div><div class="detail">가격 문의 남김</div></div>
+          <div class="vt-item"><div class="when">2026-09-18</div><div class="what">이메일 캠페인 클릭</div><div class="detail">9월 신규가입 프로모션</div></div>
+        </div>
+      </div>
+      <div class="glass-panel">
+        <div class="u-label">리드 요약</div>
+        <div class="kv-list">
+          <div class="kv-row"><span class="k">회사</span><span class="v">숨코리아</span></div>
+          <div class="kv-row"><span class="k">점수</span><span class="v">82</span></div>
+          <div class="kv-row"><span class="k">담당</span><span class="v">박영업</span></div>
+        </div>
+        <div class="danger-zone" style="margin-top:12px"><div style="font-size:12px;color:var(--slate-600)">이 리드를 종료 처리</div><button class="btn-danger btn-sm">종료</button></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+</body>
+</html>

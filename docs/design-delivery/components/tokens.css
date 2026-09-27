@@ -1,6 +1,6 @@
 /*
  * ICONIA 디자인 시안 — 공용 토큰 · 베이스 컴포넌트 스타일시트.
- * 5개 주제 폴더(01~05)의 모든 시안(variant-*.html)이 이 파일 하나를 공유합니다.
+ * 10개 주제 폴더(01~10)의 모든 시안(variant-*.html)이 이 파일 하나를 공유합니다.
  * 근거: app/globals.css, tailwind.config.js (docs/design-delivery/README.md §1 참고).
  * 다크모드는 실제 앱에 없는 이 문서군 전용 제안 레이어입니다 (헤더 토글로 전환).
  */
@@ -201,6 +201,8 @@ table.data-table { width:100%; border-collapse:collapse; background:var(--surfac
 .kv-row { display:flex; justify-content:space-between; gap:12px; padding:9px 0; border-bottom:1px solid var(--hairline); font-size:13px; }
 .kv-row:last-child { border-bottom:none; }
 .kv-row .k { color:var(--slate-600); } .kv-row .v { font-weight:600; text-align:right; }
+.danger-zone { border:1px solid rgba(190,18,60,.3); background:rgba(190,18,60,.05); border-radius:14px; padding:14px; display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; }
+:root[data-theme="dark"] .danger-zone { background:rgba(190,18,60,.12); }
 
 /* ── 상태 박스 ── */
 .state-box { background:var(--surface); border-radius:16px; box-shadow:var(--shadow-card); padding:26px; text-align:center; color:var(--slate-600); font-size:13px; }
@@ -220,3 +222,25 @@ table.data-table { width:100%; border-collapse:collapse; background:var(--surfac
   .spinner, .snackbar, .sg-snack-in { animation:none !important; }
   body, .switch .knob, .switch, .btn-primary, .btn-outline, .btn-danger, .progress-fill { transition:none !important; }
 }
+
+/* ── 칸반 보드 (파이프라인/파이프라인형 컬럼) ── */
+.kanban-board { display:flex; gap:12px; overflow-x:auto; padding-bottom:4px; -webkit-overflow-scrolling:touch; }
+.kanban-col { flex:0 0 240px; background:var(--surface-2); border-radius:14px; padding:10px; }
+.kanban-col-head { display:flex; align-items:center; justify-content:space-between; padding:4px 4px 10px; font-size:12px; font-weight:700; color:var(--slate-600); }
+.kanban-col-head .count { background:var(--surface-3); border-radius:999px; padding:1px 8px; font-size:11px; }
+.kanban-card { background:var(--surface); border-radius:10px; padding:10px 12px; margin-bottom:8px; box-shadow:var(--shadow-card); font-size:12.5px; }
+.kanban-card .name { font-weight:700; margin-bottom:4px; }
+.kanban-card .meta { font-size:11px; color:var(--slate-400); margin-bottom:6px; }
+.kanban-card .move-row { display:flex; gap:4px; justify-content:flex-end; }
+.kanban-card .move-row button { border:1px solid var(--track); background:var(--surface); border-radius:6px; width:22px; height:22px; font-size:11px; cursor:pointer; color:var(--slate-600); }
+
+/* ── 반복 입력 행 (견적서 품목 등) ── */
+.item-row { display:grid; grid-template-columns:2fr 1fr 1fr 1fr auto; gap:8px; align-items:center; margin-bottom:8px; }
+.item-row input { width:100%; }
+.item-row .remove-btn { width:32px; height:32px; border-radius:8px; border:1px solid var(--track); background:var(--surface); color:var(--slate-600); cursor:pointer; }
+.item-row.head { font-size:11px; color:var(--slate-400); font-weight:700; text-transform:uppercase; letter-spacing:.03em; }
+@media (max-width:640px) { .item-row { grid-template-columns:1fr 1fr; grid-template-areas:"name name" "qty price" "total remove"; } }
+
+/* ── 랭킹 메달 표기 (표 셀 안에서 사용) ── */
+.rank-medal { font-size:13px; }
+

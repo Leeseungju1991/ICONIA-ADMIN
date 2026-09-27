@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>캠페인 성과 리포트 — 시안 C (기간 비교)</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+<style>
+  .cmp-col h4 { font-size:12px; color:var(--slate-400); text-transform:uppercase; letter-spacing:.03em; margin:0 0 10px; }
+  .cmp-row { display:flex; justify-content:space-between; padding:9px 0; border-bottom:1px solid var(--hairline); font-size:13px; }
+  .cmp-row:last-child { border-bottom:none; }
+</style>
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 시안 목록</a> · <a href="./README.md">캠페인 성과 리포트 폴더</a></div>
+    <h1>캠페인 성과 리포트 — 시안 C</h1>
+    <p>이번 달과 지난 달을 나란히 놓고 비교하는 구성. "지난달보다 좋아졌는지"가 핵심 질문일 때 가장 빠르게 답을 줍니다.</p>
+  </header>
+
+  <div class="page-frame">
+    <div class="page-title-row"><h2>기간 비교</h2><span class="chip chip-muted">2026-09 vs 2026-08</span></div>
+
+    <div class="two-col">
+      <div class="glass-panel cmp-col">
+        <h4>8월 (이전)</h4>
+        <div class="cmp-row"><span>노출</span><span>352,900</span></div>
+        <div class="cmp-row"><span>클릭</span><span>12,680</span></div>
+        <div class="cmp-row"><span>CTR</span><span>3.6%</span></div>
+        <div class="cmp-row"><span>전환</span><span>440건</span></div>
+      </div>
+      <div class="glass-panel cmp-col" style="border-color:var(--accent)">
+        <h4>9월 (현재)</h4>
+        <div class="cmp-row"><span>노출</span><span>402,400 <span class="up" style="font-size:11px">▲14%</span></span></div>
+        <div class="cmp-row"><span>클릭</span><span>13,820 <span class="up" style="font-size:11px">▲9%</span></span></div>
+        <div class="cmp-row"><span>CTR</span><span>3.4% <span class="down" style="font-size:11px">▼0.2%p</span></span></div>
+        <div class="cmp-row"><span>전환</span><span>468건 <span class="up" style="font-size:11px">▲6%</span></span></div>
+      </div>
+    </div>
+
+    <div class="banner info" style="margin-top:16px"><span class="icon">ℹ</span><div><p class="title">인사이트</p><p class="desc">노출·클릭은 늘었지만 CTR은 소폭 하락 — 신규 채널(SMS) 추가로 평균이 낮아진 것으로 보입니다.</p></div></div>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+</body>
+</html>

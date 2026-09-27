@@ -12,36 +12,43 @@
 
 ---
 
-## 폴더 구성 (총 6개) — 어디부터 볼지
+## 폴더 구성 (총 11개) — 어디부터 볼지
 
-이 저장소는 **부품 폴더 1개 + 주제(시안) 폴더 5개**, 총 6개 폴더로 구성됩니다. 순서는
-**components → 관심 있는 주제 폴더** 입니다: 부품을 먼저 보면 주제 폴더의 화면이 어떤
-조각으로 조립됐는지 바로 이해가 됩니다.
+이 저장소는 **부품 폴더 1개(20개 카테고리) + 주제(시안) 폴더 10개**, 총 11개 폴더로
+구성됩니다. 순서는 **components → 관심 있는 주제 폴더** 입니다: 부품을 먼저 보면 주제
+폴더의 화면이 어떤 조각으로 조립됐는지 바로 이해가 됩니다.
 
-### 📦 부품 (1개 폴더)
+### 📦 부품 20종 (1개 폴더)
 
 | 폴더 | 내용 |
 |---|---|
-| [`components/`](./components/) | 20개 카테고리 인터랙티브 카탈로그 + 5개 주제 폴더가 공유하는 `tokens.css`/`interactions.js` |
+| [`components/`](./components/) | **20개 카테고리** 인터랙티브 카탈로그(컬러·버튼·폼·카드·탭·모달·스낵바 등) + 10개 주제 폴더가 공유하는 `tokens.css`/`interactions.js` |
 
-### 🎨 주제별 시안 (5개 폴더 · 폴더당 2개 시안)
+### 🎨 대주제 10개 (폴더당 시안 3종 — A/B/C)
 
-| 폴더 | 주제 | 시안 A | 시안 B |
-|---|---|---|---|
-| [`01-campaign-list/`](./01-campaign-list/) | 마케팅 · 캠페인 목록 | ![A](./01-campaign-list/preview-a.svg) 표 중심 | ![B](./01-campaign-list/preview-b.svg) 카드 그리드 |
-| [`02-email-push-builder/`](./02-email-push-builder/) | 마케팅 · 이메일/푸시 빌더 | ![A](./02-email-push-builder/preview-a.svg) 2단 분할형 | ![B](./02-email-push-builder/preview-b.svg) 3단계 위저드 |
-| [`03-lead-list/`](./03-lead-list/) | 영업 · 리드/고객 목록 | ![A](./03-lead-list/preview-a.svg) 파이프라인 필터+표 | ![B](./03-lead-list/preview-b.svg) 단계별 그룹 리스트 |
-| [`04-sales-goal-dashboard/`](./04-sales-goal-dashboard/) | 영업 · 목표 달성 현황 | ![A](./04-sales-goal-dashboard/preview-a.svg) 개인 중심 | ![B](./04-sales-goal-dashboard/preview-b.svg) 팀 비교 중심 |
-| [`05-executive-dashboard/`](./05-executive-dashboard/) | 대시보드 · 경영 종합 | ![A](./05-executive-dashboard/preview-a.svg) KPI 그리드형 | ![B](./05-executive-dashboard/preview-b.svg) 탭 분할형 |
+| # | 폴더 | 주제 | 시안 A | 시안 B | 시안 C |
+|---|---|---|---|---|---|
+| 1 | [`01-campaign-list/`](./01-campaign-list/) | 마케팅 · 캠페인 목록 | ![A](./01-campaign-list/preview-a.svg) 표 중심 | ![B](./01-campaign-list/preview-b.svg) 카드 그리드 | ![C](./01-campaign-list/preview-c.svg) 타임라인형 |
+| 2 | [`02-email-push-builder/`](./02-email-push-builder/) | 마케팅 · 이메일/푸시 빌더 | ![A](./02-email-push-builder/preview-a.svg) 2단 분할형 | ![B](./02-email-push-builder/preview-b.svg) 3단계 위저드 | ![C](./02-email-push-builder/preview-c.svg) 템플릿 갤러리 |
+| 3 | [`03-lead-list/`](./03-lead-list/) | 영업 · 리드/고객 목록 | ![A](./03-lead-list/preview-a.svg) 파이프라인 필터+표 | ![B](./03-lead-list/preview-b.svg) 단계별 그룹 리스트 | ![C](./03-lead-list/preview-c.svg) 칸반 보드 |
+| 4 | [`04-sales-goal-dashboard/`](./04-sales-goal-dashboard/) | 영업 · 목표 달성 현황 | ![A](./04-sales-goal-dashboard/preview-a.svg) 개인 중심 | ![B](./04-sales-goal-dashboard/preview-b.svg) 팀 비교 중심 | ![C](./04-sales-goal-dashboard/preview-c.svg) 리더보드(게임화) |
+| 5 | [`05-executive-dashboard/`](./05-executive-dashboard/) | 대시보드 · 경영 종합 | ![A](./05-executive-dashboard/preview-a.svg) KPI 그리드형 | ![B](./05-executive-dashboard/preview-b.svg) 탭 분할형 | ![C](./05-executive-dashboard/preview-c.svg) 모니터링 콘솔형 |
+| 6 | [`06-campaign-performance-report/`](./06-campaign-performance-report/) | 마케팅 · 캠페인 성과 리포트 | ![A](./06-campaign-performance-report/preview-a.svg) KPI+채널 표 | ![B](./06-campaign-performance-report/preview-b.svg) 캠페인별 탭 | ![C](./06-campaign-performance-report/preview-c.svg) 기간 비교 |
+| 7 | [`07-lead-detail/`](./07-lead-detail/) | 영업 · 리드 상세 | ![A](./07-lead-detail/preview-a.svg) 탭 기반 | ![B](./07-lead-detail/preview-b.svg) 타임라인 중심 | ![C](./07-lead-detail/preview-c.svg) 단일 스크롤+앵커 |
+| 8 | [`08-quote-builder/`](./08-quote-builder/) | 영업 · 견적서 작성 | ![A](./08-quote-builder/preview-a.svg) 반복 입력행 | ![B](./08-quote-builder/preview-b.svg) 카드형 품목 | ![C](./08-quote-builder/preview-c.svg) 실시간 미리보기 |
+| 9 | [`09-team-performance-dashboard/`](./09-team-performance-dashboard/) | 대시보드 · 팀별 성과 | ![A](./09-team-performance-dashboard/preview-a.svg) 팀 전환 탭 | ![B](./09-team-performance-dashboard/preview-b.svg) 팀 카드 비교 | ![C](./09-team-performance-dashboard/preview-c.svg) 전사 랭킹 |
+| 10 | [`10-report-scheduler/`](./10-report-scheduler/) | 대시보드 · 리포트 예약/내보내기 | ![A](./10-report-scheduler/preview-a.svg) 필터+미리보기 | ![B](./10-report-scheduler/preview-b.svg) 예약 목록 관리 | ![C](./10-report-scheduler/preview-c.svg) 3단계 위저드 |
 
-각 폴더를 열면 `README.md`에 두 시안의 미리보기와 "언제 어떤 시안을 쓰면 좋은지"가 정리돼
-있고, `variant-a.html`/`variant-b.html`을 브라우저로 직접 열면 실제 동작(클릭 가능한 버튼,
-탭, 드롭다운 등)까지 확인할 수 있습니다. 미리보기 이미지는 실제 화면을 렌더링한 스크린샷이
-아니라 레이아웃을 요약한 와이어프레임 SVG입니다 — 정확한 모습은 반드시 `.html` 파일을 열어
-확인하세요.
+각 폴더를 열면 `README.md`에 세 시안의 미리보기와 "언제 어떤 시안을 쓰면 좋은지"가 정리돼
+있고, `variant-a.html`/`variant-b.html`/`variant-c.html`을 브라우저로 직접 열면 실제 동작
+(클릭 가능한 버튼, 탭, 드롭다운, 칸반 카드 이동, 견적 합계 자동계산 등)까지 확인할 수
+있습니다. 미리보기 이미지는 실제 화면을 렌더링한 스크린샷이 아니라 레이아웃을 요약한
+와이어프레임 SVG입니다 — 정확한 모습은 반드시 `.html` 파일을 열어 확인하세요.
 
-> 남은 10개 주제(P6 이후, 결제·리포트 등)는 아직 시안을 만들지 않았습니다. 다음 배치로
-> 진행할 주제를 알려주시면 같은 방식(폴더 + 시안 2개 + README + 미리보기)으로 추가합니다.
+10개 대주제는 모두 [`components/tokens.css`](./components/tokens.css) ·
+[`components/interactions.js`](./components/interactions.js)를 공유합니다. 견적서 작성(08)의
+반복 입력행, 리드 목록(03)의 칸반 보드를 위해 `kanban-*`/`item-row` 클래스와 이동·합계계산
+헬퍼 함수를 추가한 것 외에는 새 부품을 만들지 않았습니다.
 
 ---
 
@@ -466,3 +473,11 @@ function Toggle({ on, onChange }: { on: boolean; onChange: (next: boolean) => vo
   `02-email-push-builder`, `03-lead-list`, `04-sales-goal-dashboard`,
   `05-executive-dashboard`. 폴더마다 시안 2종(`variant-a.html`/`variant-b.html`) + 와이어프레임
   SVG 미리보기 2장 + README. 이 README 상단에 6개 폴더를 미리보기와 함께 보여주는 목차 추가.
+- 2026-09-27: **총 11개 폴더**(부품 1 + 대주제 10)로 확장. 기존 5개 주제 폴더(01~05) 각각에
+  시안 C를 추가해 3종(A/B/C)으로 확장 — 01 타임라인형, 02 템플릿 갤러리, 03 칸반 보드(카드
+  이동 버튼 실동작), 04 리더보드(게임화), 05 모니터링 콘솔형(다크 우선). 신규 대주제 5개를
+  각 3종씩 새로 추가 — `06-campaign-performance-report`, `07-lead-detail`,
+  `08-quote-builder`(반복 입력행 + 합계 자동계산), `09-team-performance-dashboard`,
+  `10-report-scheduler`. `tokens.css`/`interactions.js`에 칸반 보드·반복 입력행·랭킹 메달
+  전용 클래스와 헬퍼 함수(`moveKanbanCard`, `addItemRow`/`removeItemRow`/`recalcItemTotal`,
+  `selectOnlyCard`) 추가. 이 README 상단 목차를 10개 대주제 × 3개 시안 표로 갱신.

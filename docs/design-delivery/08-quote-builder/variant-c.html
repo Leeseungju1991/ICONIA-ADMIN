@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>견적서 작성 — 시안 C (실시간 미리보기)</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+<style>
+  .split { display:grid; grid-template-columns:1fr 1fr; gap:16px; align-items:start; }
+  @media (max-width:760px) { .split { grid-template-columns:1fr; } }
+  .doc-preview { background:#fff; color:#0f172a; border-radius:12px; padding:20px; box-shadow:var(--shadow-pop); font-size:12.5px; }
+  .doc-preview h4 { font-size:15px; margin:0 0 4px; }
+  .doc-preview .sub { color:#64748b; font-size:11px; margin-bottom:16px; }
+  .doc-preview table { width:100%; border-collapse:collapse; font-size:12px; }
+  .doc-preview th { text-align:left; border-bottom:1px solid #e2e8f0; padding:6px 0; color:#64748b; font-weight:600; }
+  .doc-preview td { padding:6px 0; border-bottom:1px solid #f1f5f9; }
+  .doc-preview .total-row td { border-bottom:none; font-weight:800; padding-top:10px; }
+</style>
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 시안 목록</a> · <a href="./README.md">견적서 작성 폴더</a></div>
+    <h1>견적서 작성 — 시안 C</h1>
+    <p>좌측에서 입력하며 우측에 실제 견적서 문서 형태로 바로 보여주는 구성. 고객에게 보낼 최종 모습을 확인하며 작성할 때.</p>
+  </header>
+
+  <div class="page-frame">
+    <div class="split">
+      <div class="glass-panel">
+        <div class="form-section">
+          <div class="fs-title">고객 정보</div>
+          <div class="field"><label>고객사</label><input class="input" value="숨코리아" /></div>
+        </div>
+        <div class="form-section">
+          <div class="fs-title">품목</div>
+          <div class="field" style="margin-bottom:8px"><input class="input" value="ICONIA 스마트 인형 × 10 · 89,000원" /></div>
+          <div class="field"><input class="input" value="충전 크래들 × 10 · 12,000원" /></div>
+          <button class="btn-outline btn-sm">+ 품목 추가</button>
+        </div>
+        <div class="row" style="justify-content:flex-end"><button class="btn-primary btn-sm" onclick="showSnack('success','견적서가 발송되었습니다.')">발송</button></div>
+      </div>
+
+      <div class="doc-preview">
+        <h4>견적서</h4>
+        <div class="sub">발행일 2026-09-27 · 숨코리아 귀중</div>
+        <table>
+          <thead><tr><th>품목</th><th>수량</th><th>단가</th><th>합계</th></tr></thead>
+          <tbody>
+            <tr><td>ICONIA 스마트 인형</td><td>10</td><td>89,000원</td><td>890,000원</td></tr>
+            <tr><td>충전 크래들</td><td>10</td><td>12,000원</td><td>120,000원</td></tr>
+            <tr class="total-row"><td colspan="3">합계 (VAT 포함)</td><td>1,010,000원</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+</body>
+</html>
