@@ -16,25 +16,31 @@
 
   <div class="page-frame">
     <div class="brief-box">
-      <h4>기능</h4>
-      <ul><li>HR·IT·총무 등 자주 쓰는 사내 서비스를 타일로 모아 제공</li><li>중요 공지를 상단에 배너로 노출</li></ul>
-      <h4>UI/UX</h4>
-      <ul><li>전 직원이 매일 들어오는 진입점 — 아이콘 타일 그리드로 "어디서 뭘 신청하는지" 직관적으로</li></ul>
+      <h4>방향성 — 서비스 타일 그리드형(전 직원 진입점)</h4>
+      <ul><li>전 직원이 매일 들어오는 진입점 — 아이콘 타일 그리드로 "어디서 뭘 신청하는지" 직관적으로</li><li>타일을 누르면 서비스 상세에서 바로 신청할 수 있고, 신청 여부가 실제로 저장됩니다</li></ul>
     </div>
 
     <div class="banner info" style="margin-bottom:16px"><span class="icon">📢</span><div><p class="title">10월 정기 건강검진 신청 안내</p><p class="desc">10/15까지 사내 포털에서 신청해주세요.</p></div></div>
 
-    <div class="grid">
-      <div class="pick-card" data-selected="false" onclick="selectOnlyCard(this)"><b>👤 인사·근태</b><div style="font-size:11.5px;color:var(--slate-500);margin-top:4px">연차·재직증명·급여명세서</div></div>
-      <div class="pick-card" data-selected="false" onclick="selectOnlyCard(this)"><b>💻 IT 지원</b><div style="font-size:11.5px;color:var(--slate-500);margin-top:4px">장비 신청·계정 발급·장애 접수</div></div>
-      <div class="pick-card" data-selected="false" onclick="selectOnlyCard(this)"><b>🏢 총무·시설</b><div style="font-size:11.5px;color:var(--slate-500);margin-top:4px">회의실 예약·비품 신청</div></div>
-      <div class="pick-card" data-selected="false" onclick="selectOnlyCard(this)"><b>💳 경비 정산</b><div style="font-size:11.5px;color:var(--slate-500);margin-top:4px">법인카드·출장비 정산</div></div>
-      <div class="pick-card" data-selected="false" onclick="selectOnlyCard(this)"><b>📚 사내 교육</b><div style="font-size:11.5px;color:var(--slate-500);margin-top:4px">필수 교육·신청 강의</div></div>
-      <div class="pick-card" data-selected="false" onclick="selectOnlyCard(this)"><b>❓ 문의하기</b><div style="font-size:11.5px;color:var(--slate-500);margin-top:4px">부서별 담당자 찾기</div></div>
-    </div>
+    <div class="grid" id="tile-grid"></div>
   </div>
 </div>
 <div id="snackbar-stack"></div>
 <script src="../components/interactions.js"></script>
+<script>
+  const NS = '10a';
+  const SERVICES = [
+    { id:'svc1', icon:'👤', name:'인사·근태', desc:'연차·재직증명·급여명세서' },
+    { id:'svc2', icon:'💻', name:'IT 지원', desc:'장비 신청·계정 발급·장애 접수' },
+    { id:'svc3', icon:'🏢', name:'총무·시설', desc:'회의실 예약·비품 신청' },
+    { id:'svc4', icon:'💳', name:'경비 정산', desc:'법인카드·출장비 정산' },
+    { id:'svc5', icon:'📚', name:'사내 교육', desc:'필수 교육·신청 강의' },
+    { id:'svc6', icon:'❓', name:'문의하기', desc:'부서별 담당자 찾기' },
+  ];
+  document.getElementById('tile-grid').innerHTML = SERVICES.map((s) => {
+    const applied = sgGetJSON(NS + '-applied-' + s.id, false);
+    return '<a href="./variant-a-detail.html?id=' + s.id + '" style="text-decoration:none;color:inherit"><div class="pick-card" data-selected="false"><b>' + s.icon + ' ' + s.name + '</b>' + (applied ? ' <span class="chip chip-success">신청됨</span>' : '') + '<div style="font-size:11.5px;color:var(--slate-500);margin-top:4px">' + s.desc + '</div></div></a>';
+  }).join('');
+</script>
 </body>
 </html>

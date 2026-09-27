@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>연차 신청 — 임직원 서비스 포털 시안 C</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 전체 목록</a> · <a href="./README.md">임직원 서비스 포털 폴더</a> · <a href="./variant-c.html">시안 C 홈</a></div>
+    <h1>연차 신청 — 시안 C</h1>
+  </header>
+
+  <div class="page-frame">
+    <p style="font-size:13px;color:var(--slate-600)">현재 잔여 연차: <b id="cur-balance"></b>일</p>
+    <div class="form-row2">
+      <div class="field"><label>시작일</label><input class="input" type="date" id="f-start" /></div>
+      <div class="field"><label>종료일</label><input class="input" type="date" id="f-end" /></div>
+    </div>
+    <div class="field"><label>사용 일수</label><input class="input" id="f-days" type="number" min="0.5" step="0.5" value="1" /></div>
+    <button type="button" class="btn-primary" onclick="submitLeave()">신청하기</button>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+<script>
+  const NS = '10c';
+  function balance() { return sgGetJSON(NS + '-leave-balance', 8.5); }
+  document.getElementById('cur-balance').textContent = balance();
+
+  function submitLeave() {
+    const days = parseFloat(document.getElementById('f-days').value) || 0;
+    const cur = balance();
+    if (days <= 0) { showSnack('warning', '사용 일수를 입력해주세요.'); return; }
+    if (days > cur) { showSnack('error', '잔여 연차보다 많이 신청할 수 없습니다.'); return; }
+    sgSetJSON(NS + '-leave-balance', Math.round((cur - days) * 10) / 10);
+    document.getElementById('cur-balance').textContent = balance();
+    showSnack('success', days + '일 연차 신청이 접수되었습니다.');
+  }
+</script>
+</body>
+</html>

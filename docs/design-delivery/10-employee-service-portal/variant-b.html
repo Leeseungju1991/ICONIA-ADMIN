@@ -16,21 +16,15 @@
 
   <div class="page-frame">
     <div class="brief-box">
-      <h4>기능</h4>
-      <ul><li>내가 신청한 내역과 처리 상태를 표로 확인</li><li>새 신청은 모달로 빠르게</li></ul>
-      <h4>UI/UX</h4>
-      <ul><li>이미 여러 건을 신청해본 직원이 "내 신청이 어떻게 됐는지" 추적하는 데 최적화된 목록형</li></ul>
+      <h4>방향성 — 신청 내역 표·모달형(추적형)</h4>
+      <ul><li>이미 여러 건을 신청해본 직원이 "내 신청이 어떻게 됐는지" 추적하는 데 최적화된 목록형</li><li>새 신청을 모달에서 접수하면 표에 실제로 추가되어 저장됩니다</li></ul>
     </div>
 
     <div class="page-title-row"><h2>내 신청 내역</h2><button class="btn-primary btn-sm" onclick="openModal('modal-new-req')">+ 새 신청</button></div>
 
     <div class="table-scroll"><table class="data-table">
       <thead><tr><th>신청 항목</th><th>신청일</th><th>처리 상태</th></tr></thead>
-      <tbody>
-        <tr><td>연차 신청 (10/2~10/4)</td><td>09-25</td><td><span class="chip chip-success">승인됨</span></td></tr>
-        <tr><td>모니터 추가 신청</td><td>09-20</td><td><span class="chip chip-warn">검토중</span></td></tr>
-        <tr><td>출장비 정산 (부산 출장)</td><td>09-15</td><td><span class="chip chip-success">지급완료</span></td></tr>
-      </tbody>
+      <tbody id="req-tbody"></tbody>
     </table></div>
   </div>
 </div>
@@ -39,13 +33,45 @@
   <div class="modal plain">
     <header><h4>새 신청</h4></header>
     <div class="body">
-      <div class="field"><label>신청 유형</label><select class="select"><option>연차</option><option>장비 신청</option><option>경비 정산</option></select></div>
-      <div class="field"><label>사유</label><textarea rows="2" placeholder="간단히 입력하세요"></textarea></div>
+      <div class="field"><label>신청 유형</label><select class="select" id="f-type"><option>연차</option><option>장비 신청</option><option>경비 정산</option></select></div>
+      <div class="field"><label>사유</label><textarea id="f-reason" rows="2" placeholder="간단히 입력하세요"></textarea></div>
     </div>
-    <footer><button class="btn-outline btn-sm" onclick="closeModal('modal-new-req')">취소</button><button class="btn-primary btn-sm" onclick="closeModal('modal-new-req'); showSnack('success','신청이 접수되었습니다.')">신청</button></footer>
+    <footer><button class="btn-outline btn-sm" onclick="closeModal('modal-new-req')">취소</button><button class="btn-primary btn-sm" onclick="submitRequest()">신청</button></footer>
   </div>
 </div>
 <div id="snackbar-stack"></div>
 <script src="../components/interactions.js"></script>
+<script>
+  const NS = '10b';
+  const SEED = [
+    { id:'r1', item:'연차 신청 (10/2~10/4)', date:'09-25', status:'승인됨' },
+    { id:'r2', item:'모니터 추가 신청', date:'09-20', status:'검토중' },
+    { id:'r3', item:'출장비 정산 (부산 출장)', date:'09-15', status:'지급완료' },
+  ];
+  function loadReqs() {
+    let list = sgGetJSON('sg-requests-' + NS, null);
+    if (!list) { list = SEED; sgSetJSON('sg-requests-' + NS, list); }
+    return list;
+  }
+  function statusChip(s) { return s === '취소됨' ? 'chip-muted' : s === '검토중' ? 'chip-warn' : 'chip-success'; }
+  function render() {
+    const list = loadReqs();
+    document.getElementById('req-tbody').innerHTML = list.map((r) => (
+      '<tr style="cursor:pointer" onclick="location.href=\'./variant-b-detail.html?id=' + r.id + '\'"><td>' + r.item + '</td><td>' + r.date + '</td><td><span class="chip ' + statusChip(r.status) + '">' + r.status + '</span></td></tr>'
+    )).join('');
+  }
+  function submitRequest() {
+    const type = document.getElementById('f-type').value;
+    const reason = document.getElementById('f-reason').value.trim();
+    const list = loadReqs();
+    const id = 'r' + Date.now();
+    list.unshift({ id, item: type + (reason ? ' — ' + reason : ''), date: new Date().toISOString().slice(5, 10).replace('-', '-'), status:'검토중' });
+    sgSetJSON('sg-requests-' + NS, list);
+    closeModal('modal-new-req');
+    render();
+    showSnack('success', '신청이 접수되었습니다.');
+  }
+  render();
+</script>
 </body>
 </html>

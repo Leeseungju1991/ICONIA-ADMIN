@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>서비스 신청 — 임직원 서비스 포털 시안 A</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 전체 목록</a> · <a href="./README.md">임직원 서비스 포털 폴더</a> · <a href="./variant-a.html">시안 A 홈</a></div>
+    <h1 id="svc-title">서비스 신청 — 시안 A</h1>
+  </header>
+
+  <div class="page-frame">
+    <p style="font-size:13px;color:var(--slate-600)" id="svc-desc"></p>
+    <div class="field"><label>신청 사유</label><textarea class="input" id="f-reason" rows="3" placeholder="간단히 입력하세요"></textarea></div>
+    <button type="button" class="btn-primary" id="apply-btn" onclick="apply()">신청하기</button>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+<script>
+  const NS = '10a';
+  const SERVICES = {
+    svc1:{ name:'인사·근태', desc:'연차·재직증명·급여명세서 등을 신청합니다.' },
+    svc2:{ name:'IT 지원', desc:'장비 신청·계정 발급·장애 접수를 신청합니다.' },
+    svc3:{ name:'총무·시설', desc:'회의실 예약·비품 신청을 접수합니다.' },
+    svc4:{ name:'경비 정산', desc:'법인카드·출장비 정산을 신청합니다.' },
+    svc5:{ name:'사내 교육', desc:'필수 교육·신청 강의를 신청합니다.' },
+    svc6:{ name:'문의하기', desc:'부서별 담당자를 찾아 문의를 접수합니다.' },
+  };
+  const id = new URLSearchParams(window.location.search).get('id') || 'svc1';
+  const s = SERVICES[id] || SERVICES.svc1;
+  document.title = s.name + ' — 시안 A';
+  document.getElementById('svc-title').textContent = s.name;
+  document.getElementById('svc-desc').textContent = s.desc;
+
+  function render() {
+    const applied = sgGetJSON(NS + '-applied-' + id, false);
+    const btn = document.getElementById('apply-btn');
+    if (applied) { btn.textContent = '신청 완료'; btn.disabled = true; btn.className = 'btn-outline'; }
+  }
+  function apply() {
+    sgSetJSON(NS + '-applied-' + id, true);
+    render();
+    showSnack('success', '신청이 접수되었습니다.');
+  }
+  render();
+</script>
+</body>
+</html>

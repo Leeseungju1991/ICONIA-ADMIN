@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>신청 상세 — 임직원 서비스 포털 시안 B</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 전체 목록</a> · <a href="./README.md">임직원 서비스 포털 폴더</a> · <a href="./variant-b.html">시안 B 홈</a></div>
+    <h1 id="req-title">신청 상세 — 시안 B</h1>
+  </header>
+
+  <div class="page-frame">
+    <div class="page-title-row">
+      <span class="chip" id="req-status-chip"></span>
+      <button type="button" class="btn-danger btn-sm" id="cancel-btn" onclick="cancelRequest()">신청 취소</button>
+    </div>
+    <div class="glass-panel kv-list">
+      <div class="kv-row"><span class="k">신청일</span><span class="v" id="req-date"></span></div>
+    </div>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+<script>
+  const NS = '10b';
+  function loadReqs() { return sgGetJSON('sg-requests-' + NS, []); }
+  function saveReqs(list) { sgSetJSON('sg-requests-' + NS, list); }
+
+  const id = new URLSearchParams(window.location.search).get('id');
+  let list = loadReqs();
+  let req = list.find((r) => r.id === id) || list[0];
+
+  function render() {
+    document.title = req.item + ' — 시안 B';
+    document.getElementById('req-title').textContent = req.item;
+    document.getElementById('req-date').textContent = req.date;
+    document.getElementById('req-status-chip').className = 'chip ' + (req.status === '취소됨' ? 'chip-muted' : req.status === '검토중' ? 'chip-warn' : 'chip-success');
+    document.getElementById('req-status-chip').textContent = req.status;
+    document.getElementById('cancel-btn').style.display = req.status === '취소됨' ? 'none' : '';
+  }
+  function cancelRequest() {
+    req.status = '취소됨';
+    saveReqs(list);
+    render();
+    showSnack('info', '신청이 취소되었습니다.');
+  }
+  render();
+</script>
+</body>
+</html>
