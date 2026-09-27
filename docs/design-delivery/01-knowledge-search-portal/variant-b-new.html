@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>신규 문서 등록 — 지식 검색 포털 시안 B</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 전체 목록</a> · <a href="./README.md">지식 검색 포털 폴더</a> · <a href="./variant-b.html">시안 B 홈</a></div>
+    <h1>신규 문서 등록 — 시안 B</h1>
+  </header>
+
+  <div class="page-frame">
+    <form id="new-doc-form" onsubmit="return submitNewDoc(event)">
+      <div class="form-section">
+        <div class="fs-title">기본 정보</div>
+        <div class="form-row2">
+          <div class="field"><label>문서 제목<span class="req">*</span></label><input class="input" id="f-title" required placeholder="예: 출장 신청 및 정산 가이드" /></div>
+          <div class="field"><label>카테고리<span class="req">*</span></label>
+            <select class="select" id="f-cat" required>
+              <option value="">선택</option><option>인사</option><option>IT</option><option>총무</option><option>보안</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row2">
+          <div class="field"><label>문서 유형</label>
+            <select class="select" id="f-type"><option>위키</option><option>규정</option><option>공지</option><option>매뉴얼</option></select>
+          </div>
+          <div class="field"><label>공개 범위</label>
+            <select class="select" id="f-scope"><option>전사 공개</option><option>부서 내 공개</option><option>관리자만</option></select>
+          </div>
+        </div>
+      </div>
+      <div class="form-section">
+        <div class="fs-title">본문</div>
+        <div class="field"><textarea class="input" id="f-body" rows="6" required placeholder="문서 내용을 입력하세요"></textarea><div class="hint">등록 후에도 버전 관리와 함께 수정할 수 있습니다.</div></div>
+      </div>
+      <div class="sticky-footer">
+        <button type="button" class="btn-outline" onclick="location.href='./variant-b.html'">취소</button>
+        <button type="submit" class="btn-primary" id="submit-btn">등록</button>
+      </div>
+    </form>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+<script>
+  function submitNewDoc(e) {
+    e.preventDefault();
+    const btn = document.getElementById('submit-btn');
+    btn.innerHTML = '<span class="spinner spin"></span> 등록 중...';
+    btn.disabled = true;
+    setTimeout(() => {
+      showSnack('success', '"' + document.getElementById('f-title').value + '" 문서가 등록되었습니다.');
+      setTimeout(() => { window.location.href = './variant-b.html'; }, 900);
+    }, 700);
+    return false;
+  }
+</script>
+</body>
+</html>

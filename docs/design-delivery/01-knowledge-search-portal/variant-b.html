@@ -16,32 +16,28 @@
 
   <div class="page-frame">
     <div class="brief-box">
-      <h4>기능</h4>
-      <ul><li>부서/카테고리 트리 구조로 문서함 탐색</li><li>선택한 카테고리의 문서를 표로 조회</li></ul>
-      <h4>UI/UX</h4>
-      <ul><li>검색보다 "찾아 들어가는" 탐색이 익숙한 사용자를 위한 트리+표 레이아웃</li><li>카테고리를 클릭하면 우측 표가 즉시 갱신</li></ul>
+      <h4>방향성 — 카테고리 탐색·에디토리얼형</h4>
+      <ul><li>검색보다 "부서함을 열어 들어가는" 탐색이 익숙한 사용자를 위한 <b>트리 + 표</b> 레이아웃, 문서 상세는 잡지 기사처럼 넓은 본문 컬럼으로 읽기 좋게 구성</li><li>문서 상세에서 본문/버전이력/승인상태 탭이 실제로 전환됩니다</li><li>담당자는 "신규 문서 등록" 폼으로 바로 문서를 추가할 수 있습니다</li></ul>
     </div>
+
+    <div class="page-title-row"><h2 style="margin:0"></h2><a href="./variant-b-new.html" class="btn-primary btn-sm">+ 신규 문서 등록</a></div>
 
     <div class="detail-grid" style="grid-template-columns:220px 1fr">
       <div class="glass-panel">
         <div class="u-label">카테고리</div>
-        <nav style="display:flex;flex-direction:column;gap:2px">
-          <button class="nav-mock-item" onclick="pickNavItem2(this)" data-active="true" style="text-align:left;background:rgba(109,93,254,.1);color:var(--accent);font-weight:700;border:none;padding:8px 10px;border-radius:8px;font-size:12.5px;cursor:pointer;font-family:inherit">인사</button>
-          <button class="nav-mock-item" onclick="pickNavItem2(this)" data-active="false" style="text-align:left;background:none;border:none;padding:8px 10px;border-radius:8px;font-size:12.5px;cursor:pointer;color:var(--slate-600);font-family:inherit">IT</button>
-          <button class="nav-mock-item" onclick="pickNavItem2(this)" data-active="false" style="text-align:left;background:none;border:none;padding:8px 10px;border-radius:8px;font-size:12.5px;cursor:pointer;color:var(--slate-600);font-family:inherit">총무</button>
-          <button class="nav-mock-item" onclick="pickNavItem2(this)" data-active="false" style="text-align:left;background:none;border:none;padding:8px 10px;border-radius:8px;font-size:12.5px;cursor:pointer;color:var(--slate-600);font-family:inherit">보안</button>
+        <nav style="display:flex;flex-direction:column;gap:2px" id="cat-nav">
+          <button class="nav-mock-item" onclick="pickNavItem2(this,0)" data-active="true" style="text-align:left;background:rgba(109,93,254,.1);color:var(--accent);font-weight:700;border:none;padding:8px 10px;border-radius:8px;font-size:12.5px;cursor:pointer;font-family:inherit">인사</button>
+          <button class="nav-mock-item" onclick="pickNavItem2(this,1)" data-active="false" style="text-align:left;background:none;border:none;padding:8px 10px;border-radius:8px;font-size:12.5px;cursor:pointer;color:var(--slate-600);font-family:inherit">IT</button>
+          <button class="nav-mock-item" onclick="pickNavItem2(this,2)" data-active="false" style="text-align:left;background:none;border:none;padding:8px 10px;border-radius:8px;font-size:12.5px;cursor:pointer;color:var(--slate-600);font-family:inherit">총무</button>
+          <button class="nav-mock-item" onclick="pickNavItem2(this,3)" data-active="false" style="text-align:left;background:none;border:none;padding:8px 10px;border-radius:8px;font-size:12.5px;cursor:pointer;color:var(--slate-600);font-family:inherit">보안</button>
         </nav>
       </div>
       <div class="glass-panel">
-        <div class="panel-head"><div><h3 id="cat-title">인사 문서함</h3></div></div>
+        <div class="panel-head"><div><h3 id="cat-title">인사 문서함</h3><p>총 <span id="cat-count">3</span>건</p></div></div>
         <div class="table-scroll">
           <table class="data-table">
             <thead><tr><th>문서명</th><th>유형</th><th>갱신일</th></tr></thead>
-            <tbody>
-              <tr><td>연차 신청 방법 안내</td><td>위키</td><td>2026-08-11</td></tr>
-              <tr><td>인사 규정 전문</td><td>규정</td><td>2026-05-02</td></tr>
-              <tr><td>신규 입사자 온보딩 가이드</td><td>매뉴얼</td><td>2026-07-20</td></tr>
-            </tbody>
+            <tbody id="cat-tbody"></tbody>
           </table>
         </div>
       </div>
@@ -51,13 +47,39 @@
 <div id="snackbar-stack"></div>
 <script src="../components/interactions.js"></script>
 <script>
-  const CAT_LABEL = { 0: '인사 문서함', 1: 'IT 문서함', 2: '총무 문서함', 3: '보안 문서함' };
-  function pickNavItem2(btn) {
+  const CATS = [
+    { label:'인사 문서함', docs:[
+      { id:'d1', title:'연차 신청 방법 안내', type:'위키', date:'2026-08-11' },
+      { id:'d2', title:'연차 관련 인사 규정 제12조', type:'규정', date:'2026-05-02' },
+      { id:'d4', title:'신규 입사자 온보딩 가이드', type:'매뉴얼', date:'2026-07-20' },
+    ]},
+    { label:'IT 문서함', docs:[
+      { id:'d5', title:'사내 와이파이 접속 및 VPN 설정 안내', type:'매뉴얼', date:'2026-06-15' },
+    ]},
+    { label:'총무 문서함', docs:[
+      { id:'d3', title:'2026년 하반기 연차 사용 독려 공지', type:'공지', date:'2026-09-01' },
+      { id:'d7', title:'법인카드 사용 및 정산 가이드', type:'매뉴얼', date:'2026-04-11' },
+      { id:'d8', title:'회의실 예약 시스템 사용법', type:'위키', date:'2026-03-22' },
+    ]},
+    { label:'보안 문서함', docs:[
+      { id:'d6', title:'보안 정책 v2.1 (재택근무 보안수칙 포함)', type:'규정', date:'2026-08-30' },
+    ]},
+  ];
+  function renderCat(i) {
+    const cat = CATS[i];
+    document.getElementById('cat-title').textContent = cat.label;
+    document.getElementById('cat-count').textContent = cat.docs.length;
+    document.getElementById('cat-tbody').innerHTML = cat.docs.map((d) => (
+      '<tr style="cursor:pointer" onclick="location.href=\'./variant-b-detail.html?id=' + d.id + '\'"><td>' + d.title + '</td><td>' + d.type + '</td><td>' + d.date + '</td></tr>'
+    )).join('');
+  }
+  function pickNavItem2(btn, idx) {
     const items = [...btn.parentElement.children];
     items.forEach((b) => { b.dataset.active = 'false'; b.style.background = 'none'; b.style.color = 'var(--slate-600)'; b.style.fontWeight = '400'; });
     btn.dataset.active = 'true'; btn.style.background = 'rgba(109,93,254,.1)'; btn.style.color = 'var(--accent)'; btn.style.fontWeight = '700';
-    document.getElementById('cat-title').textContent = CAT_LABEL[items.indexOf(btn)];
+    renderCat(idx);
   }
+  renderCat(0);
 </script>
 </body>
 </html>

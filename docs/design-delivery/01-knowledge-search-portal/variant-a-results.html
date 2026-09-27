@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>검색결과 — 지식 검색 포털 시안 A</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 전체 목록</a> · <a href="./README.md">지식 검색 포털 폴더</a> · <a href="./variant-a.html">시안 A 홈</a></div>
+    <h1>검색결과 — 시안 A</h1>
+  </header>
+
+  <div class="page-frame">
+    <div class="page-toolbar">
+      <div class="input-wrap grow"><input class="input" id="q-input" placeholder="예: 연차 신청 방법" oninput="onSearchInput(this)" style="padding-right:34px" /><button type="button" class="clear-btn" onclick="clearSearch(this)">✕</button></div>
+      <div class="dropdown"><button class="btn-outline btn-sm" onclick="toggleDropdown(event,this)" id="dept-btn">부서 ▾</button>
+        <div class="dropdown-menu" hidden onclick="event.stopPropagation()">
+          <label class="item"><input type="checkbox" class="dept-check" value="인사" onchange="applyFilters()" /> 인사</label>
+          <label class="item"><input type="checkbox" class="dept-check" value="IT" onchange="applyFilters()" /> IT</label>
+          <label class="item"><input type="checkbox" class="dept-check" value="총무" onchange="applyFilters()" /> 총무</label>
+          <label class="item"><input type="checkbox" class="dept-check" value="보안" onchange="applyFilters()" /> 보안</label>
+          <hr /><button class="item" onclick="closeDropdown()">닫기</button>
+        </div>
+      </div>
+      <div class="dropdown"><button class="btn-outline btn-sm" onclick="toggleDropdown(event,this)" id="type-btn">문서유형 ▾</button>
+        <div class="dropdown-menu" hidden onclick="event.stopPropagation()">
+          <label class="item"><input type="checkbox" class="type-check" value="위키" onchange="applyFilters()" /> 위키</label>
+          <label class="item"><input type="checkbox" class="type-check" value="규정" onchange="applyFilters()" /> 규정</label>
+          <label class="item"><input type="checkbox" class="type-check" value="공지" onchange="applyFilters()" /> 공지</label>
+          <label class="item"><input type="checkbox" class="type-check" value="매뉴얼" onchange="applyFilters()" /> 매뉴얼</label>
+          <hr /><button class="item" onclick="closeDropdown()">닫기</button>
+        </div>
+      </div>
+      <button class="btn-primary btn-sm" onclick="commitSearch()">검색</button>
+    </div>
+
+    <div id="result-summary" style="font-size:12.5px;color:var(--slate-600);margin-bottom:10px"></div>
+
+    <div class="glass-panel" id="result-list"></div>
+    <div class="pagination" id="pagination"></div>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+<script>
+  const DOCS = [
+    { id:'d1', title:'연차 신청 방법 안내', type:'위키', dept:'인사', date:'2026-08-11', views:1204 },
+    { id:'d2', title:'연차 관련 인사 규정 제12조', type:'규정', dept:'인사', date:'2026-05-02', views:862 },
+    { id:'d3', title:'2026년 하반기 연차 사용 독려 공지', type:'공지', dept:'총무', date:'2026-09-01', views:430 },
+    { id:'d4', title:'신규 입사자 온보딩 가이드', type:'매뉴얼', dept:'인사', date:'2026-07-20', views:980 },
+    { id:'d5', title:'사내 와이파이 접속 및 VPN 설정 안내', type:'매뉴얼', dept:'IT', date:'2026-06-15', views:862 },
+    { id:'d6', title:'보안 정책 v2.1 (재택근무 보안수칙 포함)', type:'규정', dept:'보안', date:'2026-08-30', views:551 },
+    { id:'d7', title:'법인카드 사용 및 정산 가이드', type:'매뉴얼', dept:'총무', date:'2026-04-11', views:701 },
+    { id:'d8', title:'회의실 예약 시스템 사용법', type:'위키', dept:'총무', date:'2026-03-22', views:390 },
+  ];
+  const NS = '01a';
+  const PAGE_SIZE = 4;
+  let currentPage = 1;
+
+  function getQueryParam(key) {
+    return new URLSearchParams(window.location.search).get(key) || '';
+  }
+
+  function filteredDocs() {
+    const q = document.getElementById('q-input').value.trim().toLowerCase();
+    const depts = [...document.querySelectorAll('.dept-check:checked')].map((c) => c.value);
+    const types = [...document.querySelectorAll('.type-check:checked')].map((c) => c.value);
+    return DOCS.filter((d) => {
+      const matchQ = !q || d.title.toLowerCase().includes(q);
+      const matchDept = depts.length === 0 || depts.includes(d.dept);
+      const matchType = types.length === 0 || types.includes(d.type);
+      return matchQ && matchDept && matchType;
+    });
+  }
+
+  function chipClass(type) {
+    return type === '공지' ? 'chip-warn' : type === '규정' ? 'chip-muted' : type === '위키' ? 'chip-info' : 'chip-success';
+  }
+
+  function render() {
+    const results = filteredDocs();
+    const totalPages = Math.max(1, Math.ceil(results.length / PAGE_SIZE));
+    currentPage = Math.min(currentPage, totalPages);
+    const pageItems = results.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+    document.getElementById('result-summary').textContent = '전체 ' + results.length + '건 검색됨';
+
+    document.getElementById('result-list').innerHTML = pageItems.length ? pageItems.map((d, i) => (
+      '<a href="./variant-a-detail.html?id=' + d.id + '" style="text-decoration:none;color:inherit;display:block;padding:12px 0;' + (i < pageItems.length - 1 ? 'border-bottom:1px solid var(--hairline)' : '') + '">' +
+      '<b style="font-size:13px">' + d.title + '</b> <span class="chip ' + chipClass(d.type) + '" style="margin-left:6px">' + d.type + '</span>' +
+      (sgIsFavorite(NS, d.id) ? ' <span class="chip chip-success">★ 즐겨찾기</span>' : '') +
+      '<div style="font-size:12px;color:var(--slate-500);margin-top:4px">' + d.dept + ' · ' + d.date + ' 갱신 · 조회 ' + d.views.toLocaleString() + '</div>' +
+      '</a>'
+    )).join('') : '<div class="state-box">검색 결과가 없습니다. 필터를 조정해 보세요.</div>';
+
+    document.getElementById('pagination').innerHTML =
+      '<span>전체 ' + results.length + '건 중 ' + (pageItems.length ? (currentPage - 1) * PAGE_SIZE + 1 : 0) + '–' + ((currentPage - 1) * PAGE_SIZE + pageItems.length) + '</span>' +
+      '<div class="controls">' +
+      '<button onclick="goPage(1)" ' + (currentPage <= 1 ? 'disabled' : '') + '>«</button>' +
+      '<button onclick="goPage(currentPage-1)" ' + (currentPage <= 1 ? 'disabled' : '') + '>이전</button>' +
+      '<span class="page-num">' + currentPage + ' / ' + totalPages + '</span>' +
+      '<button onclick="goPage(currentPage+1)" ' + (currentPage >= totalPages ? 'disabled' : '') + '>다음</button>' +
+      '<button onclick="goPage(' + totalPages + ')" ' + (currentPage >= totalPages ? 'disabled' : '') + '>»</button>' +
+      '</div>';
+  }
+  function goPage(p) { currentPage = p; render(); }
+  /* 체크박스 변경 시에는 드롭다운을 열어둔 채 목록만 즉시 갱신 (여러 항목을 연속 선택할 수 있도록) */
+  function applyFilters() { currentPage = 1; render(); }
+  /* "검색"/"닫기" 버튼에서만 드롭다운을 닫고 검색어를 기록 */
+  function commitSearch() { applyFilters(); closeDropdown(); sgAddHistory(NS, document.getElementById('q-input').value); }
+
+  const initialQ = getQueryParam('q');
+  if (initialQ) {
+    document.getElementById('q-input').value = initialQ;
+    onSearchInput(document.getElementById('q-input'));
+  }
+  render();
+</script>
+</body>
+</html>

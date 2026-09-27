@@ -16,27 +16,48 @@
 
   <div class="page-frame">
     <div class="brief-box">
-      <h4>기능</h4>
-      <ul><li>질문을 그대로 입력하면 AI가 문서를 근거로 답변 요약</li><li>답변 아래 실제 출처 문서를 카드로 함께 제시</li></ul>
-      <h4>UI/UX</h4>
-      <ul><li>목록 대신 "질문 → 답 요약" 우선 배치 — 결과를 훑기보다 바로 답을 얻고 싶을 때</li><li>출처를 항상 함께 보여줘 신뢰도를 유지</li></ul>
+      <h4>방향성 — AI 어시스턴트형</h4>
+      <ul><li>목록을 훑기보다 "질문 → 답" 바로 얻고 싶을 때를 위한 대화형 진입. 질문을 입력하면 AI 요약 답변 + 출처 문서를 함께 제시합니다</li><li>최근 질문 기록이 브라우저에 실제로 저장되어(localStorage) 다시 방문해도 이어볼 수 있습니다</li></ul>
     </div>
 
-    <div class="input-wrap" style="margin-bottom:16px"><input class="input" value="연차는 최대 며칠까지 이월할 수 있나요?" style="padding-right:34px" /><button type="button" class="clear-btn" style="display:block">✕</button></div>
+    <div class="page-title-row"><h2 style="margin:0">무엇이든 물어보세요</h2></div>
+    <form id="ask-form" style="margin-bottom:20px" onsubmit="return submitAsk(event)">
+      <div class="input-wrap"><input class="input" id="ask-input" placeholder="예: 연차는 최대 며칠까지 이월할 수 있나요?" oninput="onSearchInput(this)" style="padding-right:34px" /><button type="button" class="clear-btn" onclick="clearSearch(this)">✕</button></div>
+    </form>
 
-    <div class="banner info" style="margin-bottom:16px">
-      <span class="icon">✨</span>
-      <div><p class="title">AI 요약 답변</p><p class="desc">인사 규정 제12조에 따라 미사용 연차는 최대 5일까지 다음 해로 이월할 수 있습니다. 5일을 초과하는 연차는 회계연도 말 자동 소멸됩니다.</p></div>
+    <div class="u-label">추천 질문</div>
+    <div class="row" style="margin-bottom:24px">
+      <button type="button" class="pill-tab" onclick="askQuick('연차는 최대 며칠까지 이월할 수 있나요?')">연차 이월 한도는?</button>
+      <button type="button" class="pill-tab" onclick="askQuick('VPN 접속은 어떻게 하나요?')">VPN 접속 방법</button>
+      <button type="button" class="pill-tab" onclick="askQuick('법인카드 정산 기한은?')">법인카드 정산 기한</button>
+      <button type="button" class="pill-tab" onclick="askQuick('신규 입사자 체크리스트는?')">온보딩 체크리스트</button>
     </div>
 
-    <div class="u-label">출처 문서</div>
-    <div class="grid">
-      <div class="glass-card"><b style="font-size:12.5px">인사 규정 제12조 (연차 이월)</b><div style="font-size:11px;color:var(--slate-400);margin-top:4px">인사팀 · 2026-05-02</div></div>
-      <div class="glass-card"><b style="font-size:12.5px">연차 신청 방법 안내</b><div style="font-size:11px;color:var(--slate-400);margin-top:4px">인사팀 · 2026-08-11</div></div>
-    </div>
+    <div class="page-title-row"><div class="u-label" style="margin:0">최근 질문</div><button class="btn-ghost btn-xs" onclick="clearHist()">기록 지우기</button></div>
+    <div class="glass-panel" id="history-list"></div>
   </div>
 </div>
 <div id="snackbar-stack"></div>
 <script src="../components/interactions.js"></script>
+<script>
+  const NS = '01c';
+  function askQuick(q) { window.location.href = './variant-c-answer.html?q=' + encodeURIComponent(q); }
+  document.getElementById('ask-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    const q = document.getElementById('ask-input').value.trim();
+    if (q) window.location.href = './variant-c-answer.html?q=' + encodeURIComponent(q);
+  });
+  function renderHistory() {
+    const hist = sgGetHistory(NS);
+    document.getElementById('history-list').innerHTML = hist.length ? hist.map((h, i) => (
+      '<a href="./variant-c-answer.html?q=' + encodeURIComponent(h.text) + '" style="text-decoration:none;color:inherit;display:block;padding:10px 0;' + (i < hist.length - 1 ? 'border-bottom:1px solid var(--hairline)' : '') + '">' +
+      '<span style="font-size:13px">💬 ' + h.text + '</span>' +
+      '<div style="font-size:11px;color:var(--slate-400);margin-top:2px">' + new Date(h.ts).toLocaleString('ko-KR') + '</div>' +
+      '</a>'
+    )).join('') : '<div class="state-box">아직 질문 기록이 없습니다. 위에서 질문을 입력해 보세요.</div>';
+  }
+  function clearHist() { sgClearHistory(NS, () => { renderHistory(); showSnack('info', '질문 기록을 지웠습니다.'); }); }
+  renderHistory();
+</script>
 </body>
 </html>
