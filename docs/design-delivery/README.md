@@ -179,6 +179,50 @@ Tailwind 기반 라이트 테마로 확정되어 있습니다 — 시안 전달 
 
 **20. 상태 · 유틸리티** (적용중) — empty/loading/error/forbidden 4종 · 클립보드 복사(클릭) · 인쇄(클릭 시 브라우저 인쇄창) · 키보드 포커스 링(Tab 이동 데모)
 
+### 1.5 구현 기준 — TypeScript · Tailwind CSS · HTML
+
+`style-guide.html`은 **브라우저에서 빌드 없이 바로 열람**할 수 있도록 순수 CSS + 바닐라 JS로
+작성된 **미리보기 전용 문서**입니다. 실제 코드로 옮길 때는 이 레포의 기존 스택을 그대로
+따릅니다 — 새 라이브러리나 CSS-in-JS를 도입하지 않습니다.
+
+| 구분 | 기준 | 비고 |
+|---|---|---|
+| 언어 | **TypeScript** (`.tsx`) | `app/dashboard/_components/*.tsx`와 동일한 함수형 컴포넌트 + named export 패턴 |
+| 스타일 | **Tailwind CSS** 유틸리티 클래스 | 새 CSS 파일을 만들지 않고 클래스명으로 표현. 반복되는 조합만 `app/globals.css`의 `@layer components`에 `.btn-*`/`.chip-*`처럼 추가 |
+| 마크업 | **HTML(JSX)** 시맨틱 요소 | `role="dialog"`/`role="switch"`/`role="tablist"` 등 이 문서의 접근성 속성을 그대로 유지 |
+| 상태 | React `useState`/`useTransition` | 데모의 바닐라 JS(`toggleSwitch`, `switchTab` 등)는 리액트 상태로 1:1 대응 |
+
+**변환 예시 — §5 토글 스위치** (데모의 순수 CSS/JS → 실제 TSX/Tailwind):
+
+```tsx
+// 데모(style-guide.html): <button class="switch" data-on="true" onclick="toggleSwitch(this)">
+// 실제 구현: app/dashboard/_components/AutoRefreshToggle.tsx 와 동일한 패턴
+function Toggle({ on, onChange }: { on: boolean; onChange: (next: boolean) => void }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={on}
+      onClick={() => onChange(!on)}
+      className={
+        "relative inline-flex h-5 w-9 items-center rounded-full transition " +
+        (on ? "bg-emerald-500" : "bg-slate-300")
+      }
+    >
+      <span
+        className={
+          "inline-block h-4 w-4 rounded-full bg-white shadow transition " +
+          (on ? "translate-x-4" : "translate-x-0.5")
+        }
+      />
+    </button>
+  );
+}
+```
+
+즉 이 문서의 20개 카테고리는 **"무엇을 만들지"에 대한 시각적 명세**이고, **"어떻게 코드로
+옮길지"는 TypeScript + Tailwind CSS + HTML(JSX)**로 고정합니다.
+
 ---
 
 ## 2. 기능 그룹별 화면
@@ -345,3 +389,7 @@ Tailwind 기반 라이트 테마로 확정되어 있습니다 — 시안 전달 
   형태로 전면 확장 (예: 버튼 7종, 폼 입력 8종, 스낵바 6종, 드롭다운 3종). 표는 전체 정렬/행
   선택+선택바, 아코디언은 그룹 단일열림/FAQ 스타일, 모달은 문구입력확인/우측드로어, 카드는
   선택가능/이미지헤더 등 세부 변형을 추가하고 대부분 클릭 동작으로 구현. §1.4를 세부 목록으로 갱신.
+- 2026-09-27: §1.5 "구현 기준 — TypeScript · Tailwind CSS · HTML" 추가. `style-guide.html`은
+  빌드 없는 미리보기 전용(순수 CSS/바닐라 JS)이고, 실제 코드로 옮길 때는 기존 스택 그대로
+  TypeScript(.tsx) + Tailwind CSS 유틸리티 + HTML(JSX)로 구현한다는 기준을 명시. 토글 스위치
+  변환 예시(TSX) 추가, `style-guide.html` 헤더에도 동일 안내 추가.
