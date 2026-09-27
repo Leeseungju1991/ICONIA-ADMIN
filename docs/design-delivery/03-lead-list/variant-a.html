@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>리드/고객 목록 — 시안 A (파이프라인 필터)</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 시안 목록</a> · <a href="./README.md">리드/고객 목록 폴더</a></div>
+    <h1>리드/고객 목록 — 시안 A</h1>
+    <p>파이프라인 단계를 필 탭으로 필터링하는 표 중심 레이아웃. 하루에도 여러 번 전체 리드를 훑어보는 영업 매니저용.</p>
+  </header>
+
+  <div class="page-frame">
+    <div class="page-title-row"><h2>리드 · 고객</h2><button class="btn-primary btn-sm">+ 리드 추가</button></div>
+
+    <div class="pill-tabs" style="margin-bottom:14px">
+      <button class="pill-tab" aria-selected="true" onclick="switchTab(this,'all')">전체 (24)</button>
+      <button class="pill-tab" aria-selected="false" onclick="switchTab(this,'new')">신규 (6)</button>
+      <button class="pill-tab" aria-selected="false" onclick="switchTab(this,'talk')">상담중 (9)</button>
+      <button class="pill-tab" aria-selected="false" onclick="switchTab(this,'prop')">제안 (5)</button>
+      <button class="pill-tab" aria-selected="false" onclick="switchTab(this,'won')">성사 (4)</button>
+    </div>
+
+    <div class="tab-panel" data-panel="all">
+      <div class="table-scroll">
+        <table class="data-table">
+          <thead><tr><th>회사 / 담당자</th><th>영업 담당</th><th>최근 접촉</th><th>점수</th><th>단계</th></tr></thead>
+          <tbody>
+            <tr><td>숨코리아 · 김하나</td><td>박영업</td><td>2시간 전</td><td>82</td><td><span class="chip chip-info">신규</span></td></tr>
+            <tr><td>테크스퀘어 · 이도윤</td><td>박영업</td><td>어제</td><td>65</td><td><span class="chip chip-warn">상담중</span></td></tr>
+            <tr><td>그린라이트 · 최서연</td><td>정영업</td><td>3일 전</td><td>91</td><td><span class="chip chip-success">제안</span></td></tr>
+            <tr><td>파인우드 · 한지민</td><td>정영업</td><td>1주 전</td><td>48</td><td><span class="chip chip-warn">상담중</span></td></tr>
+            <tr><td>브릿지랩 · 오세훈</td><td>박영업</td><td>2주 전</td><td>96</td><td><span class="chip chip-muted">성사</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="pagination"><span>전체 24건 중 1–5</span><div class="controls"><button disabled>«</button><button disabled>이전</button><span class="page-num">1 / 5</span><button>다음</button><button>»</button></div></div>
+    </div>
+    <div class="tab-panel" data-panel="new" hidden style="padding:40px 0;text-align:center;color:var(--slate-600)">신규 단계 리드 6건</div>
+    <div class="tab-panel" data-panel="talk" hidden style="padding:40px 0;text-align:center;color:var(--slate-600)">상담중 리드 9건</div>
+    <div class="tab-panel" data-panel="prop" hidden style="padding:40px 0;text-align:center;color:var(--slate-600)">제안 단계 리드 5건</div>
+    <div class="tab-panel" data-panel="won" hidden style="padding:40px 0;text-align:center;color:var(--slate-600)">성사된 리드 4건</div>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+</body>
+</html>

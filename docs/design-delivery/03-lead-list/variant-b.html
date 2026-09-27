@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>리드/고객 목록 — 시안 B (단계별 그룹)</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+<style>
+  .stage-group { margin-bottom:16px; }
+  .stage-head { display:flex; align-items:center; gap:8px; padding:10px 14px; border-radius:10px; color:#fff; font-size:13px; font-weight:700; margin-bottom:8px; }
+  .lead-card { display:flex; justify-content:space-between; align-items:center; padding:10px 14px; border-radius:10px; background:var(--surface); border:1px solid var(--hairline); margin-bottom:6px; font-size:13px; }
+  .lead-card .name { font-weight:600; } .lead-card .meta { font-size:11px; color:var(--slate-400); }
+</style>
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 시안 목록</a> · <a href="./README.md">리드/고객 목록 폴더</a></div>
+    <h1>리드/고객 목록 — 시안 B</h1>
+    <p>파이프라인 단계별로 그룹핑해 접었다 펼치는 레이아웃. 드래그 앤 드롭 칸반 없이도 "지금 어디에 몇 건 있는지"를 한눈에 보여주는 절충안.</p>
+  </header>
+
+  <div class="page-frame">
+    <div class="page-title-row"><h2>리드 · 고객 (단계별 보기)</h2><button class="btn-primary btn-sm">+ 리드 추가</button></div>
+
+    <div class="stage-group">
+      <div class="stage-head" style="background:var(--accent)">신규 · 6건</div>
+      <div class="lead-card"><div><div class="name">숨코리아 · 김하나</div><div class="meta">박영업 담당 · 2시간 전 접촉</div></div><span class="chip chip-info">점수 82</span></div>
+      <div class="lead-card"><div><div class="name">브라이트웨이 · 정민수</div><div class="meta">박영업 담당 · 5시간 전 접촉</div></div><span class="chip chip-info">점수 74</span></div>
+    </div>
+
+    <div class="stage-group">
+      <div class="stage-head" style="background:#d97706">상담중 · 9건</div>
+      <div class="lead-card"><div><div class="name">테크스퀘어 · 이도윤</div><div class="meta">박영업 담당 · 어제 접촉</div></div><span class="chip chip-warn">점수 65</span></div>
+      <div class="lead-card"><div><div class="name">파인우드 · 한지민</div><div class="meta">정영업 담당 · 1주 전 접촉</div></div><span class="chip chip-warn">점수 48</span></div>
+      <div class="lead-card"><div><div class="name">오션뷰 · 서준서</div><div class="meta">정영업 담당 · 3일 전 접촉</div></div><span class="chip chip-warn">점수 55</span></div>
+    </div>
+
+    <div class="stage-group">
+      <div class="stage-head" style="background:var(--emerald-600,#059669)">제안 · 5건</div>
+      <div class="lead-card"><div><div class="name">그린라이트 · 최서연</div><div class="meta">정영업 담당 · 3일 전 접촉</div></div><span class="chip chip-success">점수 91</span></div>
+      <div class="lead-card"><div><div class="name">노스브릿지 · 강태오</div><div class="meta">박영업 담당 · 5일 전 접촉</div></div><span class="chip chip-success">점수 88</span></div>
+    </div>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+</body>
+</html>

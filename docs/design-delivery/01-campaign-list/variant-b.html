@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>캠페인 목록 — 시안 B (카드 그리드)</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+<style>
+  .camp-card { border-radius:16px; overflow:hidden; background:var(--surface); box-shadow:var(--shadow-card); }
+  .camp-card .band { height:56px; display:flex; align-items:center; padding:0 14px; color:#fff; font-weight:700; font-size:13px; }
+  .camp-card .body { padding:12px 14px 14px; }
+  .camp-card .body .title { font-size:13.5px; font-weight:700; margin-bottom:6px; }
+  .camp-card .body .sub { font-size:11px; color:var(--slate-400); margin-bottom:10px; }
+</style>
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 시안 목록</a> · <a href="./README.md">캠페인 목록 폴더</a></div>
+    <h1>캠페인 목록 — 시안 B</h1>
+    <p>카드 그리드 중심 레이아웃. 채널별 색상과 진행률을 시각적으로 강조해, 실무 운영자보다 마케팅 리더가 훑어보기 좋은 화면.</p>
+  </header>
+
+  <div class="page-frame">
+    <div class="banner info" style="margin-bottom:16px"><span class="icon">ℹ</span><div><p class="title">이번 분기 캠페인 12건 운영 중</p><p class="desc">예산 소진율 68% · 평균 전환율 3.4% (지난 분기 대비 +0.6%p)</p></div></div>
+
+    <div class="grid">
+      <div class="camp-card">
+        <div class="band" style="background:linear-gradient(135deg,var(--accent),#8b7cff)">이메일</div>
+        <div class="body">
+          <div class="title">9월 신규가입 프로모션</div>
+          <div class="sub">09.01 – 09.30 · 예산 320만원</div>
+          <div class="progress-track" style="margin-bottom:6px"><div class="progress-fill" style="width:74%"></div></div>
+          <div class="row"><span class="chip chip-success">운영중</span><span style="font-size:11px;color:var(--slate-400);margin-left:auto">전환 3.2%</span></div>
+        </div>
+      </div>
+      <div class="camp-card">
+        <div class="band" style="background:linear-gradient(135deg,#EC4899,#f472b6)">카카오</div>
+        <div class="body">
+          <div class="title">추석 연휴 알림톡</div>
+          <div class="sub">09.20 – 09.29 · 예산 120만원</div>
+          <div class="progress-track" style="margin-bottom:6px"><div class="progress-fill" style="width:92%"></div></div>
+          <div class="row"><span class="chip chip-success">운영중</span><span style="font-size:11px;color:var(--slate-400);margin-left:auto">전환 6.1%</span></div>
+        </div>
+      </div>
+      <div class="camp-card">
+        <div class="band" style="background:linear-gradient(135deg,#60A5FA,#93c5fd)">앱 푸시</div>
+        <div class="body">
+          <div class="title">리텐션 푸시 A/B</div>
+          <div class="sub">10.01 – 10.14 · 예산 80만원</div>
+          <div class="progress-track" style="margin-bottom:6px"><div class="progress-fill" style="width:0%"></div></div>
+          <div class="row"><span class="chip chip-warn">예약됨</span><span style="font-size:11px;color:var(--slate-400);margin-left:auto">시작 전</span></div>
+        </div>
+      </div>
+      <div class="camp-card">
+        <div class="band" style="background:linear-gradient(135deg,#14B8A6,#5eead4)">이메일</div>
+        <div class="body">
+          <div class="title">8월 여름 세일</div>
+          <div class="sub">08.01 – 08.31 · 예산 400만원</div>
+          <div class="progress-track" style="margin-bottom:6px"><div class="progress-fill" style="width:100%;background:var(--slate-300)"></div></div>
+          <div class="row"><span class="chip chip-muted">종료</span><span style="font-size:11px;color:var(--slate-400);margin-left:auto">전환 2.8%</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+</body>
+</html>
