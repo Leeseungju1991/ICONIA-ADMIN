@@ -16,10 +16,8 @@
 
   <div class="page-frame">
     <div class="brief-box">
-      <h4>기능</h4>
-      <ul><li>부서별 컴플라이언스 준수율을 카드로 비교</li></ul>
-      <h4>UI/UX</h4>
-      <ul><li>실행보다 "어느 부서가 취약한지" 파악이 우선인 경영진·감사팀 보고용 요약 대시보드</li></ul>
+      <h4>방향성 — 부서별 준수율 비교 대시보드형</h4>
+      <ul><li>실행보다 "어느 부서가 취약한지" 파악이 우선인 경영진·감사팀 보고용 요약 대시보드</li><li>부서 카드를 누르면 해당 부서의 미조치 항목을 확인할 수 있습니다</li></ul>
     </div>
 
     <div class="grid" style="margin-bottom:16px">
@@ -27,15 +25,22 @@
       <div class="stat-card"><div class="blob" style="background:radial-gradient(circle,#f43f5e,transparent)"></div><div class="label">미조치 항목</div><div class="value">6건</div></div>
     </div>
 
-    <div class="grid">
-      <div class="glass-panel"><div class="panel-head"><div><h3>IT팀</h3></div><span class="chip chip-success">96%</span></div><div class="progress-track" style="height:8px"><div class="progress-fill" style="width:96%"></div></div></div>
-      <div class="glass-panel"><div class="panel-head"><div><h3>보안팀</h3></div><span class="chip chip-warn">82%</span></div><div class="progress-track" style="height:8px"><div class="progress-fill" style="width:82%"></div></div></div>
-      <div class="glass-panel"><div class="panel-head"><div><h3>인프라팀</h3></div><span class="chip chip-error">61%</span></div><div class="progress-track" style="height:8px"><div class="progress-fill" style="width:61%"></div></div></div>
-      <div class="glass-panel"><div class="panel-head"><div><h3>영업팀</h3></div><span class="chip chip-success">100%</span></div><div class="progress-track" style="height:8px"><div class="progress-fill" style="width:100%"></div></div></div>
-    </div>
+    <div class="grid" id="dept-grid"></div>
   </div>
 </div>
 <div id="snackbar-stack"></div>
 <script src="../components/interactions.js"></script>
+<script>
+  const DEPTS = [
+    { id:'d1', name:'IT팀', rate:96 },
+    { id:'d2', name:'보안팀', rate:82 },
+    { id:'d3', name:'인프라팀', rate:61 },
+    { id:'d4', name:'영업팀', rate:100 },
+  ];
+  function rateChip(r) { return r >= 90 ? 'chip-success' : r >= 70 ? 'chip-warn' : 'chip-error'; }
+  document.getElementById('dept-grid').innerHTML = DEPTS.map((d) => (
+    '<a href="./variant-b-detail.html?id=' + d.id + '" style="text-decoration:none;color:inherit"><div class="glass-panel"><div class="panel-head"><div><h3>' + d.name + '</h3></div><span class="chip ' + rateChip(d.rate) + '">' + d.rate + '%</span></div><div class="progress-track" style="height:8px"><div class="progress-fill" style="width:' + d.rate + '%"></div></div></div></a>'
+  )).join('');
+</script>
 </body>
 </html>

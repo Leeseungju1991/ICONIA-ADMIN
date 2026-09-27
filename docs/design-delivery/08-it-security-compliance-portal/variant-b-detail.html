@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>부서 상세 — IT·보안 컴플라이언스 포털 시안 B</title>
+<link rel="stylesheet" href="../components/tokens.css" />
+</head>
+<body>
+<div class="app-shell">
+  <header class="page-head">
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <div class="crumb-nav"><a href="../README.md">← 전체 목록</a> · <a href="./README.md">IT·보안 컴플라이언스 포털 폴더</a> · <a href="./variant-b.html">시안 B 홈</a></div>
+    <h1 id="dept-title">부서 상세 — 시안 B</h1>
+  </header>
+
+  <div class="page-frame">
+    <div class="page-title-row"><h2 id="dept-title2" style="margin:0"></h2><span class="chip" id="dept-rate-chip"></span></div>
+    <div class="u-label">미조치 항목</div>
+    <div class="glass-panel" id="issue-list"></div>
+  </div>
+</div>
+<div id="snackbar-stack"></div>
+<script src="../components/interactions.js"></script>
+<script>
+  const DEPTS = {
+    d1:{ name:'IT팀', rate:96, issues:['협력사 접근권한 재검토'] },
+    d2:{ name:'보안팀', rate:82, issues:['외부 접속 VPN 로그 이상 여부'] },
+    d3:{ name:'인프라팀', rate:61, issues:['백업 복구 테스트','재해복구 훈련 미실시','서버실 출입기록 점검 누락'] },
+    d4:{ name:'영업팀', rate:100, issues:[] },
+  };
+  const id = new URLSearchParams(window.location.search).get('id') || 'd1';
+  const d = DEPTS[id] || DEPTS.d1;
+  document.title = d.name + ' — 시안 B';
+  document.getElementById('dept-title').textContent = d.name;
+  document.getElementById('dept-title2').textContent = d.name;
+  document.getElementById('dept-rate-chip').className = 'chip ' + (d.rate >= 90 ? 'chip-success' : d.rate >= 70 ? 'chip-warn' : 'chip-error');
+  document.getElementById('dept-rate-chip').textContent = d.rate + '%';
+  document.getElementById('issue-list').innerHTML = d.issues.length ? d.issues.map((label, i) => (
+    '<div class="checklist-item"><span class="status-icon fail">✕</span><span class="label">' + label + '</span></div>'
+  )).join('') : '<div class="state-box">미조치 항목이 없습니다.</div>';
+</script>
+</body>
+</html>
