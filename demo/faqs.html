@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>FAQ 관리 — ICONIA 관리자 데모</title>
+<link rel="stylesheet" href="style.css" />
+<style>
+  .faq-list { display: flex; flex-direction: column; gap: 10px; }
+  .faq-card { background: var(--surface); border: 1px solid var(--hairline); border-radius: 14px; padding: 16px 18px; box-shadow: 0 1px 2px rgba(15,23,42,.04); }
+  .faq-q { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 14px; font-weight: 800; }
+  .faq-a { margin-top: 10px; font-size: 13px; color: var(--text-muted); line-height: 1.6; }
+  .badge.purple { background: #F5F3FF; color: #7C3AED; }
+  .badge.teal { background: #F0FDFA; color: #0D9488; }
+</style>
+</head>
+<body>
+  <div class="demo-banner">DEMO 모드 — 실제 서버/DB 연결 없이 화면 미리보기만 제공합니다. 모든 수치는 목데이터입니다.</div>
+
+  <div class="app-shell">
+    <div class="sidebar" id="sidebar-mount"></div>
+
+    <div class="main">
+      <div class="topbar" id="topbar-mount"></div>
+
+      <div class="content">
+        <div class="toolbar">
+          <input type="text" placeholder="질문 검색 (데모에서는 비활성)" disabled />
+          <button disabled>FAQ 등록</button>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title">FAQ 목록 <span class="muted">총 8건 (목데이터)</span></div>
+          <div class="faq-list">
+            <div class="faq-card">
+              <div class="faq-q">디바이스 배터리는 얼마나 지속되나요? <span class="badge blue">디바이스</span></div>
+              <div class="faq-a">일반 사용 기준 약 8~10시간 지속되며, 대화가 많은 날은 6시간 내외로 단축될 수 있습니다. 충전 크래들에 올려두면 약 2시간 내 완충됩니다.</div>
+            </div>
+            <div class="faq-card">
+              <div class="faq-q">비밀번호를 잊어버렸어요. 어떻게 재설정하나요? <span class="badge purple">계정</span></div>
+              <div class="faq-a">로그인 화면의 '비밀번호 찾기'에서 가입 이메일로 인증 링크를 받아 재설정할 수 있습니다. 이메일이 오지 않으면 스팸함을 확인해주세요.</div>
+            </div>
+            <div class="faq-card">
+              <div class="faq-q">환불 및 교환은 어떻게 신청하나요? <span class="badge teal">주문</span></div>
+              <div class="faq-a">마이페이지 &gt; 주문내역에서 신청 가능하며, 상품 수령 후 7일 이내 미개봉 상태여야 합니다. 단순 변심의 경우 왕복 배송비가 발생할 수 있습니다.</div>
+            </div>
+            <div class="faq-card">
+              <div class="faq-q">디바이스를 분실했어요. 어떻게 해야 하나요? <span class="badge blue">디바이스</span></div>
+              <div class="faq-a">앱 내 '분실·도난 신고' 메뉴에서 신고 접수 후 원격 잠금을 요청할 수 있습니다. 자세한 내용은 고객센터로 문의해주세요.</div>
+            </div>
+            <div class="faq-card">
+              <div class="faq-q">회원 탈퇴는 어디서 하나요? <span class="badge purple">계정</span></div>
+              <div class="faq-a">설정 &gt; 계정 관리 &gt; 회원 탈퇴에서 진행할 수 있으며, 탈퇴 시 저장된 대화 기록과 도감 데이터는 즉시 삭제되어 복구가 불가능합니다.</div>
+            </div>
+            <div class="faq-card">
+              <div class="faq-q">우리 아이 목소리를 저장할 수 있나요? <span class="badge gray">AI</span></div>
+              <div class="faq-a">현재는 보호자 목소리 등록 기능을 베타로 제공하고 있으며, 앱 설정 &gt; AI 페르소나에서 신청할 수 있습니다.</div>
+            </div>
+            <div class="faq-card">
+              <div class="faq-q">앱 푸시 알림이 오지 않아요. <span class="badge gray">AI</span></div>
+              <div class="faq-a">기기 설정에서 알림 권한이 꺼져 있는지 확인해주세요. 권한이 켜져 있는데도 문제가 지속되면 앱을 최신 버전으로 업데이트해주세요.</div>
+            </div>
+            <div class="faq-card">
+              <div class="faq-q">해외에서도 사용할 수 있나요? <span class="badge blue">디바이스</span></div>
+              <div class="faq-a">Wi-Fi 연결이 가능한 지역이라면 대부분의 기능을 사용할 수 있으나, 일부 AI 응답 지연이 발생할 수 있습니다.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="demo-note" style="max-width:100%;">
+          실제 콘솔에서는 FAQ 등록·수정·게시 순서 변경이 가능하며 변경 이력이 감사 로그에 남습니다. 이 데모에서는 조회 화면만 제공합니다.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="nav.js"></script>
+  <script>
+    renderSidebar("sidebar-mount", "faqs.html");
+    renderTopbar("topbar-mount", "FAQ 관리");
+  </script>
+</body>
+</html>

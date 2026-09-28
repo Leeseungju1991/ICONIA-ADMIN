@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>준비 중 — ICONIA 관리자 데모</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="demo-banner">DEMO 모드 — 실제 서버/DB 연결 없이 화면 미리보기만 제공합니다.</div>
+
+  <div class="app-shell">
+    <div class="sidebar" id="sidebar-mount"></div>
+
+    <div class="main">
+      <div class="topbar" id="topbar-mount"></div>
+
+      <div class="content">
+        <div class="placeholder-wrap">
+          <h2 id="ph-title">이 화면은 라이트 데모에 포함되지 않았습니다</h2>
+          <p>실제 ICONIA-ADMIN 콘솔에는 이 메뉴가 AWS 서버와 연동된 화면으로 존재합니다.<br />
+          이번 데모는 로그인·대시보드 홈·회원 관리 3개 화면만 목데이터로 재현했습니다.</p>
+          <p style="margin-top:20px;"><a href="dashboard.html">← 대시보드로 돌아가기</a></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="nav.js"></script>
+  <script>
+    const params = new URLSearchParams(location.search);
+    const title = params.get("title") || "이 화면";
+    renderSidebar("sidebar-mount", location.pathname.split("/").pop());
+    renderTopbar("topbar-mount", title);
+    document.getElementById("ph-title").textContent = `"${title}" 화면은 라이트 데모에 포함되지 않았습니다`;
+  </script>
+</body>
+</html>

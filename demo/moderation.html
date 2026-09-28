@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>모더레이션 — ICONIA 관리자 데모</title>
+<link rel="stylesheet" href="style.css" />
+<style>
+  .badge.red { background: #FEF2F2; color: #DC2626; }
+</style>
+</head>
+<body>
+  <div class="demo-banner">DEMO 모드 — 실제 서버/DB 연결 없이 화면 미리보기만 제공합니다. 모든 수치는 목데이터입니다.</div>
+
+  <div class="app-shell">
+    <div class="sidebar" id="sidebar-mount"></div>
+
+    <div class="main">
+      <div class="topbar" id="topbar-mount"></div>
+
+      <div class="content">
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-label">대기중 신고</div>
+            <div class="kpi-value">4</div>
+            <div class="kpi-sub" style="color:#F97316;">확인 필요</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">검토중</div>
+            <div class="kpi-value">2</div>
+            <div class="kpi-sub" style="color:#6B7280;">담당자 배정됨</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">이번 달 처리완료</div>
+            <div class="kpi-value">57</div>
+            <div class="kpi-sub">평균 처리 6.4시간</div>
+          </div>
+        </div>
+
+        <div class="toolbar">
+          <input type="text" placeholder="신고자 · 대상 검색 (데모에서는 비활성)" disabled />
+          <button disabled>처리 완료 처리</button>
+          <button disabled>담당자 지정</button>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title">신고 접수 목록 <span class="muted">총 8건 표시 (목데이터)</span></div>
+          <table>
+            <thead>
+              <tr><th>유형</th><th>신고사유</th><th>신고자</th><th>대상</th><th>상태</th><th>접수일</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>피드 게시물</td><td>부적절한 언어 사용</td><td>user_8823</td><td>#F-19281</td><td><span class="badge gray">대기</span></td><td>2026-08-03</td></tr>
+              <tr><td>댓글</td><td>스팸·광고성 내용</td><td>user_1042</td><td>#C-77213</td><td><span class="badge gray">대기</span></td><td>2026-08-02</td></tr>
+              <tr><td>사용자</td><td>타인 사칭 의심</td><td>user_2201</td><td>user_5591</td><td><span class="badge blue">검토중</span></td><td>2026-08-02</td></tr>
+              <tr><td>게시물</td><td>개인정보 노출</td><td>user_6614</td><td>#F-19205</td><td><span class="badge gray">대기</span></td><td>2026-08-01</td></tr>
+              <tr><td>댓글</td><td>욕설·비방</td><td>user_3390</td><td>#C-77190</td><td><span class="badge blue">검토중</span></td><td>2026-08-01</td></tr>
+              <tr><td>게시물</td><td>저작권 침해 의심</td><td>user_9012</td><td>#F-19188</td><td><span class="badge green">처리완료</span></td><td>2026-07-31</td></tr>
+              <tr><td>사용자</td><td>지속적인 악성 댓글</td><td>user_4456</td><td>user_7734</td><td><span class="badge green">처리완료</span></td><td>2026-07-30</td></tr>
+              <tr><td>게시물</td><td>허위 정보 유포</td><td>user_1123</td><td>#F-19150</td><td><span class="badge gray">대기</span></td><td>2026-07-29</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="demo-note" style="max-width:100%;">
+          실제 콘솔에서는 신고 처리 시 조치 사유 입력과 대상 알림 발송이 함께 이루어지며 모두 감사 로그에 기록됩니다.
+          이 데모에서는 버튼이 비활성화되어 있습니다.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="nav.js"></script>
+  <script>
+    renderSidebar("sidebar-mount", "moderation.html");
+    renderTopbar("topbar-mount", "모더레이션");
+  </script>
+</body>
+</html>

@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>OTA 배포 — ICONIA 관리자 데모</title>
+<link rel="stylesheet" href="style.css" />
+<style>
+  .channel-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+  .channel-card { border: 1px solid var(--hairline); border-radius: 12px; padding: 14px 16px; }
+  .channel-card .ch-name { font-size: 13px; font-weight: 800; display: flex; align-items: center; justify-content: space-between; }
+  .channel-card .ch-ver { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+  .progress-track { width: 100%; height: 8px; border-radius: 999px; background: #F3F4F6; margin-top: 12px; overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 999px; background: var(--accent); }
+  .progress-fill.beta { background: var(--accent-blue); }
+  .progress-fill.dev { background: var(--accent-orange); }
+  .ch-pct { font-size: 11px; color: var(--text-muted); margin-top: 6px; font-weight: 600; }
+  .badge.red { background: #FEF2F2; color: #DC2626; }
+</style>
+</head>
+<body>
+  <div class="demo-banner">DEMO 모드 — 실제 서버/DB 연결 없이 화면 미리보기만 제공합니다. 모든 수치는 목데이터입니다.</div>
+
+  <div class="app-shell">
+    <div class="sidebar" id="sidebar-mount"></div>
+
+    <div class="main">
+      <div class="topbar" id="topbar-mount"></div>
+
+      <div class="content">
+        <div class="toolbar">
+          <button disabled>새 배포 생성</button>
+          <button disabled>롤백</button>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title">채널별 배포 현황 <span class="muted">stable · beta · dev</span></div>
+          <div class="channel-grid">
+            <div class="channel-card">
+              <div class="ch-name">stable <span class="badge green">안정</span></div>
+              <div class="ch-ver">현재 버전 2.4.1</div>
+              <div class="progress-track"><div class="progress-fill" style="width:100%;"></div></div>
+              <div class="ch-pct">롤아웃 100%</div>
+            </div>
+            <div class="channel-card">
+              <div class="ch-name">beta <span class="badge blue">진행중</span></div>
+              <div class="ch-ver">현재 버전 2.5.0-beta.3</div>
+              <div class="progress-track"><div class="progress-fill beta" style="width:62%;"></div></div>
+              <div class="ch-pct">롤아웃 62%</div>
+            </div>
+            <div class="channel-card">
+              <div class="ch-name">dev <span class="badge gray">내부</span></div>
+              <div class="ch-ver">현재 버전 2.6.0-dev.11</div>
+              <div class="progress-track"><div class="progress-fill dev" style="width:18%;"></div></div>
+              <div class="ch-pct">롤아웃 18%</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title">최근 배포 이력 <span class="muted">최근 5건 (목데이터)</span></div>
+          <table>
+            <thead><tr><th>버전</th><th>채널</th><th>배포일시</th><th>성공률</th><th>상태</th></tr></thead>
+            <tbody>
+              <tr><td>2.5.0-beta.3</td><td>beta</td><td>2026-08-04 06:00</td><td>98.4%</td><td><span class="badge blue">진행중</span></td></tr>
+              <tr><td>2.4.1</td><td>stable</td><td>2026-08-01 10:00</td><td>99.7%</td><td><span class="badge green">완료</span></td></tr>
+              <tr><td>2.6.0-dev.11</td><td>dev</td><td>2026-07-31 15:20</td><td>91.2%</td><td><span class="badge blue">진행중</span></td></tr>
+              <tr><td>2.4.0</td><td>stable</td><td>2026-07-20 09:00</td><td>99.1%</td><td><span class="badge green">완료</span></td></tr>
+              <tr><td>2.3.9</td><td>stable</td><td>2026-07-05 11:30</td><td>87.5%</td><td><span class="badge red">롤백</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="demo-note" style="max-width:100%;">
+          실제 콘솔에서는 채널별 롤아웃 비율 조정, 배포 생성, 롤백에 2단계 확인과 승인 절차가 필요하며 모두
+          감사 로그에 기록됩니다. 이 데모는 조회 전용이며 모든 버튼이 비활성화되어 있습니다.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="nav.js"></script>
+  <script>
+    renderSidebar("sidebar-mount", "ota-deploy.html");
+    renderTopbar("topbar-mount", "OTA 배포");
+  </script>
+</body>
+</html>

@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>콘텐츠 관리 — ICONIA 관리자 데모</title>
+<link rel="stylesheet" href="style.css" />
+<style>
+  .content-link-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin-bottom: 20px; }
+  .content-link-card {
+    display: block; background: var(--surface); border: 1px solid var(--hairline); border-radius: 14px;
+    padding: 20px 22px; box-shadow: 0 1px 2px rgba(15,23,42,.04); transition: box-shadow .15s, border-color .15s;
+  }
+  .content-link-card:hover { border-color: var(--accent); box-shadow: 0 4px 14px rgba(109,93,254,.12); }
+  .content-link-card .cl-title { font-size: 15px; font-weight: 800; margin-bottom: 6px; }
+  .content-link-card .cl-desc { font-size: 12.5px; color: var(--text-muted); line-height: 1.5; margin-bottom: 14px; }
+  .content-link-card .cl-kpi { font-size: 13px; font-weight: 700; color: var(--accent); }
+  .content-link-card .cl-arrow { float: right; color: var(--text-muted); font-weight: 400; }
+</style>
+</head>
+<body>
+  <div class="demo-banner">DEMO 모드 — 실제 서버/DB 연결 없이 화면 미리보기만 제공합니다. 모든 수치는 목데이터입니다.</div>
+
+  <div class="app-shell">
+    <div class="sidebar" id="sidebar-mount"></div>
+
+    <div class="main">
+      <div class="topbar" id="topbar-mount"></div>
+
+      <div class="content">
+        <div class="content-link-grid">
+          <a class="content-link-card" href="feed.html">
+            <div class="cl-title">피드 관리 <span class="cl-arrow">→</span></div>
+            <div class="cl-desc">사용자 피드 게시물과 댓글, 신고 현황을 확인하고 노출 상태를 관리합니다.</div>
+            <div class="cl-kpi">피드 게시물 1,204건</div>
+          </a>
+          <a class="content-link-card" href="content-commerce.html">
+            <div class="cl-title">커머스 상품 <span class="cl-arrow">→</span></div>
+            <div class="cl-desc">인형·액세서리 상품 카탈로그와 주문 현황을 조회합니다.</div>
+            <div class="cl-kpi">커머스 상품 86건</div>
+          </a>
+          <a class="content-link-card" href="content-catalog.html">
+            <div class="cl-title">인형 도감 <span class="cl-arrow">→</span></div>
+            <div class="cl-desc">등록된 캐릭터·인형의 페르소나 타입과 출시 정보를 관리합니다.</div>
+            <div class="cl-kpi">도감 항목 42종</div>
+          </a>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title">콘텐츠 개요 <span class="muted">최근 7일</span></div>
+          <div class="status-grid">
+            <div class="status-item"><span class="status-dot"></span> 신규 게시물 214건</div>
+            <div class="status-item"><span class="status-dot"></span> 신규 댓글 1,882건</div>
+            <div class="status-item"><span class="status-dot warn"></span> 신고 접수 9건</div>
+            <div class="status-item"><span class="status-dot"></span> 신규 주문 31건</div>
+          </div>
+        </div>
+
+        <div class="demo-note" style="max-width:100%;">
+          실제 콘솔에서는 각 카드에서 상세 목록으로 이동하여 게시물 숨김 처리, 상품 재고 수정, 도감 항목 발행 등을
+          수행할 수 있습니다. 이 데모에서는 조회 화면만 제공합니다.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="nav.js"></script>
+  <script>
+    renderSidebar("sidebar-mount", "content.html");
+    renderTopbar("topbar-mount", "콘텐츠 관리");
+  </script>
+</body>
+</html>

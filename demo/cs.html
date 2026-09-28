@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>CS 통합 조회 — ICONIA 관리자 데모</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="demo-banner">DEMO 모드 — 실제 서버/DB 연결 없이 화면 미리보기만 제공합니다. 아래 문의 목록은 목데이터입니다.</div>
+
+  <div class="app-shell">
+    <div class="sidebar" id="sidebar-mount"></div>
+
+    <div class="main">
+      <div class="topbar" id="topbar-mount"></div>
+
+      <div class="content">
+        <div class="toolbar">
+          <input type="text" placeholder="사용자 · 접수번호 검색 (데모에서는 비활성)" disabled />
+          <button disabled>새 문의 등록</button>
+          <button disabled>담당자 배정</button>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title">CS 문의 목록 <span class="muted">최근 8건 (목데이터)</span></div>
+          <table>
+            <thead>
+              <tr><th>사용자</th><th>문의유형</th><th>상태</th><th>접수일시</th><th>담당자</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>ke***@naver.com</td><td>결제</td><td><span class="badge gray">대기</span></td><td>2026-08-04 08:52</td><td>미배정</td></tr>
+              <tr><td>pa***@gmail.com</td><td>기기</td><td><span class="badge blue">처리중</span></td><td>2026-08-04 07:30</td><td>상담원_이지은</td></tr>
+              <tr><td>le***@naver.com</td><td>계정</td><td><span class="badge green">완료</span></td><td>2026-08-03 21:14</td><td>상담원_박서준</td></tr>
+              <tr><td>ch***@daum.net</td><td>기타</td><td><span class="badge green">완료</span></td><td>2026-08-03 16:47</td><td>상담원_박서준</td></tr>
+              <tr><td>jo***@gmail.com</td><td>기기</td><td><span class="badge blue">처리중</span></td><td>2026-08-03 11:05</td><td>상담원_이지은</td></tr>
+              <tr><td>yu***@naver.com</td><td>결제</td><td><span class="badge gray">대기</span></td><td>2026-08-02 19:23</td><td>미배정</td></tr>
+              <tr><td>ha***@nate.com</td><td>계정</td><td><span class="badge green">완료</span></td><td>2026-08-02 14:11</td><td>상담원_최민호</td></tr>
+              <tr><td>si***@gmail.com</td><td>기타</td><td><span class="badge blue">처리중</span></td><td>2026-08-01 09:48</td><td>상담원_최민호</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="demo-note" style="max-width:100%;">
+          실제 콘솔에서는 CS 문의가 사용자 360 조회 결과와 연동되어 HW/SERVER/AI/APP 이력을 함께 확인할 수 있으며,
+          담당자 배정·상태 변경은 감사 로그에 기록됩니다. 이 데모에서는 등록·배정 버튼이 비활성화되어 있습니다.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="nav.js"></script>
+  <script>
+    renderSidebar("sidebar-mount", "cs.html");
+    renderTopbar("topbar-mount", "CS 통합 조회");
+  </script>
+</body>
+</html>

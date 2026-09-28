@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>감사 로그 — ICONIA 관리자 데모</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="demo-banner">DEMO 모드 — 실제 서버/DB 연결 없이 화면 미리보기만 제공합니다. 모든 감사 기록은 목데이터입니다.</div>
+
+  <div class="app-shell">
+    <div class="sidebar" id="sidebar-mount"></div>
+
+    <div class="main">
+      <div class="topbar" id="topbar-mount"></div>
+
+      <div class="content">
+        <div class="toolbar">
+          <input type="text" placeholder="운영자 · action · 대상 검색 (데모에서는 비활성)" disabled />
+          <button disabled>내보내기</button>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title">감사 로그 <span class="muted">최근 10건</span></div>
+          <table>
+            <thead>
+              <tr><th>action</th><th>운영자</th><th>대상</th><th>시각</th><th>hash</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>USER_SUSPEND</td><td>op_kim</td><td>user_5591</td><td>2026-08-04 09:12:03</td><td>a3f9…20b1</td></tr>
+              <tr><td>MFA_RESET</td><td>op_park</td><td>user_1042</td><td>2026-08-04 08:47:51</td><td>7c2e…e4d0</td></tr>
+              <tr><td>FORCE_LOGOUT</td><td>op_lee</td><td>user_8823</td><td>2026-08-04 08:20:14</td><td>91bd…5aa7</td></tr>
+              <tr><td>ROLE_CHANGE</td><td>op_kim</td><td>operator_choi</td><td>2026-08-04 07:58:39</td><td>0f6a…c312</td></tr>
+              <tr><td>REPORT_RESOLVE</td><td>op_jung</td><td>#F-19281</td><td>2026-08-03 22:41:07</td><td>bb14…9908</td></tr>
+              <tr><td>API_KEY_ROTATE</td><td>op_kim</td><td>gemini-key-03</td><td>2026-08-03 21:15:22</td><td>4d80…71fe</td></tr>
+              <tr><td>NOTICE_PUBLISH</td><td>op_yoo</td><td>notice_2026-0803</td><td>2026-08-03 19:02:48</td><td>e29c…0a63</td></tr>
+              <tr><td>DEVICE_UNPAIR</td><td>op_park</td><td>dev_A02X-1188</td><td>2026-08-03 16:33:10</td><td>5a71…dd2f</td></tr>
+              <tr><td>USER_SUSPEND</td><td>op_lee</td><td>user_2201</td><td>2026-08-03 14:07:55</td><td>c608…3e91</td></tr>
+              <tr><td>FEATURE_FLAG_TOGGLE</td><td>op_kim</td><td>ai_fallback_v2</td><td>2026-08-03 11:26:33</td><td>18ef…b704</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="demo-note" style="max-width:100%;">
+          실제 콘솔에서는 각 항목의 hash가 이전 항목과 체인으로 연결되어 위변조를 방지하며, 상세보기에서 요청 IP·사유·변경 전/후 값을 확인할 수 있습니다.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="nav.js"></script>
+  <script>
+    renderSidebar("sidebar-mount", "ops-audit.html");
+    renderTopbar("topbar-mount", "감사 로그");
+  </script>
+</body>
+</html>

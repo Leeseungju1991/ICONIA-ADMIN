@@ -1,0 +1,52 @@
+# -----------------------------------------------------------------------------
+# gh-pages-demo.yml — demo/ 폴더(라이트 정적 목업)를 GitHub Pages 로 배포.
+#
+# 주의: 이 워크플로는 실제 ICONIA-ADMIN Next.js 앱(app/, lib/ 등)을 빌드/배포하지
+# 않는다. 실제 앱은 Server Actions + middleware 기반 서버측 인증 구조라 정적
+# 호스팅에서 동작할 수 없다 (Node 서버 필수). demo/ 는 로그인·대시보드 홈·회원
+# 관리 3개 화면만 목데이터로 재현한 순수 정적 HTML/CSS/JS 이며, AWS 계정/서버가
+# 전혀 필요 없다.
+#
+# 최초 1회, 저장소 Settings → Pages → Build and deployment → Source 를
+# "GitHub Actions" 로 지정해야 한다 (코드로는 이 설정을 켤 수 없음).
+# -----------------------------------------------------------------------------
+name: Deploy lite demo to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'demo/**'
+      - '.github/workflows/gh-pages-demo.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload demo site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: demo
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

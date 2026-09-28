@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>회원 관리 — ICONIA 관리자 데모</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="demo-banner">DEMO 모드 — 실제 서버/DB 연결 없이 화면 미리보기만 제공합니다. 아래 회원 목록은 목데이터입니다.</div>
+
+  <div class="app-shell">
+    <div class="sidebar" id="sidebar-mount"></div>
+
+    <div class="main">
+      <div class="topbar" id="topbar-mount"></div>
+
+      <div class="content">
+        <div class="toolbar">
+          <input type="text" placeholder="이메일 · 이름 · UUID 검색 (데모에서는 비활성)" disabled />
+          <button disabled>강제 로그아웃</button>
+          <button disabled>일시정지</button>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title">회원 목록 <span class="muted">총 6명 (목데이터)</span></div>
+          <table>
+            <thead>
+              <tr><th>이메일</th><th>이름</th><th>가입일</th><th>디바이스</th><th>상태</th><th>MFA</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>ke***@naver.com</td><td>김**</td><td>2026-02-14</td><td>2대</td><td><span class="badge green">정상</span></td><td><span class="badge blue">설정됨</span></td></tr>
+              <tr><td>pa***@gmail.com</td><td>박**</td><td>2026-03-02</td><td>1대</td><td><span class="badge green">정상</span></td><td><span class="badge gray">미설정</span></td></tr>
+              <tr><td>le***@naver.com</td><td>이**</td><td>2026-03-19</td><td>1대</td><td><span class="badge gray">일시정지</span></td><td><span class="badge blue">설정됨</span></td></tr>
+              <tr><td>ch***@daum.net</td><td>최**</td><td>2026-04-08</td><td>3대</td><td><span class="badge green">정상</span></td><td><span class="badge blue">설정됨</span></td></tr>
+              <tr><td>jo***@gmail.com</td><td>조**</td><td>2026-05-27</td><td>1대</td><td><span class="badge green">정상</span></td><td><span class="badge gray">미설정</span></td></tr>
+              <tr><td>yu***@naver.com</td><td>유**</td><td>2026-06-11</td><td>2대</td><td><span class="badge green">정상</span></td><td><span class="badge blue">설정됨</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="demo-note" style="max-width:100%;">
+          실제 콘솔에서는 이메일·이름·전화가 기본 마스킹되며, 강제 로그아웃·일시정지·MFA 초기화 등은
+          사유 입력 + 2단계 확인 후 감사 로그에 기록됩니다. 이 데모에서는 버튼이 비활성화되어 있습니다.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="nav.js"></script>
+  <script>
+    renderSidebar("sidebar-mount", "users.html");
+    renderTopbar("topbar-mount", "회원 관리");
+  </script>
+</body>
+</html>

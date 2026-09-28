@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>운영자 관리 — ICONIA 관리자 데모</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="demo-banner">DEMO 모드 — 실제 서버/DB 연결 없이 화면 미리보기만 제공합니다. 아래 운영자 목록은 목데이터입니다.</div>
+
+  <div class="app-shell">
+    <div class="sidebar" id="sidebar-mount"></div>
+
+    <div class="main">
+      <div class="topbar" id="topbar-mount"></div>
+
+      <div class="content">
+        <div class="toolbar">
+          <input type="text" placeholder="이름 · 이메일 검색 (데모에서는 비활성)" disabled />
+          <button disabled>운영자 초대</button>
+          <button disabled>권한 변경</button>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title">운영자 목록 <span class="muted">총 7명 (목데이터)</span></div>
+          <table>
+            <thead>
+              <tr><th>이름</th><th>이메일</th><th>역할</th><th>상태</th><th>최종 로그인</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>김도윤</td><td>kim.dy@iconia.local</td><td><span class="badge blue">최고관리자</span></td><td><span class="badge green">활성</span></td><td>2026-08-04 09:12</td></tr>
+              <tr><td>박서연</td><td>park.sy@iconia.local</td><td><span class="badge gray">SRE</span></td><td><span class="badge green">활성</span></td><td>2026-08-04 08:47</td></tr>
+              <tr><td>이하준</td><td>lee.hj@iconia.local</td><td><span class="badge gray">보안운영</span></td><td><span class="badge green">활성</span></td><td>2026-08-04 08:20</td></tr>
+              <tr><td>최지우</td><td>choi.jw@iconia.local</td><td><span class="badge green">CS</span></td><td><span class="badge green">활성</span></td><td>2026-08-03 22:41</td></tr>
+              <tr><td>정민서</td><td>jung.ms@iconia.local</td><td><span class="badge green">CS</span></td><td><span class="badge gray">비활성</span></td><td>2026-07-28 17:03</td></tr>
+              <tr><td>유하은</td><td>yoo.he@iconia.local</td><td><span class="badge gray">읽기전용</span></td><td><span class="badge green">활성</span></td><td>2026-08-03 19:02</td></tr>
+              <tr><td>조은서</td><td>jo.es@iconia.local</td><td><span class="badge gray">SRE</span></td><td><span class="badge gray">비활성</span></td><td>2026-07-15 11:26</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="demo-note" style="max-width:100%;">
+          실제 콘솔에서는 운영자 초대·권한 변경·비활성화 시 2단계 확인이 필요하며 모든 조치는 감사 로그에 기록됩니다.
+          이 데모에서는 버튼이 비활성화되어 있습니다.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="nav.js"></script>
+  <script>
+    renderSidebar("sidebar-mount", "operators.html");
+    renderTopbar("topbar-mount", "운영자 관리");
+  </script>
+</body>
+</html>

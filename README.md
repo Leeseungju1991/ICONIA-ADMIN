@@ -8,6 +8,19 @@ ICONIA 운영자 콘솔 — Next.js 14 (App Router) · React 18 · Tailwind 3.
 > 기본 Server URL = `http://iconia-prod-alb-1600486872.ap-northeast-2.elb.amazonaws.com`.
 > 도메인/HTTPS 가 준비되면 `ICONIA_SERVER_URL` env 로만 override 합니다 (env override 우선). 로컬/LAN 백엔드 연결 개념은 제거되었습니다.
 
+## 🌐 라이트 데모 (GitHub Pages)
+
+- **데모 URL**: https://leeseungju1991.github.io/iconia-admin/ (AWS 계정 불필요)
+- 이 앱은 Next.js Server Actions 로 백엔드를 직접 호출하고 `middleware.ts` 가 서버측
+  JWT 인증을 강제하는 구조라, **정적 호스팅(GitHub Pages)에서는 애초에 실행될 수 없다**
+  (Node 서버 필수). AWS 계정이 삭제된 상태에서 실제 앱을 배포하려면 Node 런타임을 가진
+  호스팅 + 실 서버(ICONIA-SERVER) 재배포가 필요하다.
+- 대신 `demo/` 폴더에 **로그인 화면 · 대시보드 홈 · 회원 관리** 3개 화면만 목데이터로
+  재현한 순수 정적 HTML/CSS/JS 라이트 데모를 두었다 (`.github/workflows/gh-pages-demo.yml`
+  이 main push 시 자동 배포). 실제 앱 코드(`app/`, `lib/` 등)와는 완전히 분리되어 있고,
+  실 앱 동작에는 아무 영향이 없다. 나머지 메뉴는 "라이트 데모에 포함되지 않음" 안내 화면으로
+  연결된다.
+
 ---
 
 ## 1. 구조도
